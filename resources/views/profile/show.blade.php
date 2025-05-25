@@ -55,6 +55,13 @@
         <p><strong>تاريخ التسجيل:</strong> {{ $user->created_at->format('Y-m-d') }}</p>
     </div>
 
+    @php
+    use Illuminate\Support\Facades\Auth;
+
+    $user = Auth::user();
+    $attendanceUrlWithUser = route('attendance.sessions', ['user_id' => $user->user_id], true);
+    @endphp
+    
 <style>
     /* Modal styles (unchanged) */
     .modal {
