@@ -1,0 +1,63 @@
+<?php
+// webhook.php - Place this in your web-accessible directory
+// e.g., /var/www/AvaPachomius-Khoddam/public/webhook.php
+
+$secret = '437d78b383ddb2a2c9e573c214d30cb1853b734c4185474798461fe68f7a1f52'; // Set this in GitHub webhook settings
+$project_path = '/var/www/AvaPachomius-Khoddam';
+
+// Verify GitHub signature
+$hub_signature = $_SERVER['HTTP_X_HUB_SIGNATURE_256'] ?? '';
+$payload = file_get_contents('php://input');
+$signature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
+
+if (!hash_equals($signature, $hub_signature)) {
+    http_response_code(403);
+    die('Unauthorized');
+}
+
+// Decode payload
+$data = json_decode($payload, true);
+
+// Check if it's a push to main branch
+if ($data['ref'] === 'refs/heads/main' || $data['ref'] === 'refs/heads/master') {
+    // Change to project directory and pull changes
+    chdir($project_path);
+    
+    // Execute deployment commands
+    $commands = [
+        'git pull origin main 2>&1',
+        'composer install --optimize-autoloader --no-dev 2>&1',
+        'php artisan config:clear 2>&1',
+        'php artisan cache:clear 2>&1',
+        'php artisan route:clear 2>&1',
+        'php artisan view:clear 2>&1',
+        'php artisan config:cache 2>&1',
+        'php artisan route:cache 2>&1',
+        'php artisan view:cache 2>&1'
+    ];
+    
+    $output = [];
+    foreach ($commands as $command) {
+        $output[] = "Running: $command";
+        $result = shell_exec($command);
+        $output[] = $result;
+    }
+    
+    // Set permissions
+    shell_exec("sudo chown -R www-data:www-data $project_path 2>&1");
+    shell_exec("sudo chmod -R 755 $project_path 2>&1");
+    shell_exec("sudo chmod -R 775 $project_path/storage 2>&1");
+    shell_exec("sudo chmod -R 775 $project_path/bootstrap/cache 2>&1");
+    
+    // Log the deployment
+    file_put_contents($project_path . '/deployment.log', 
+        date('Y-m-d H:i:s') . " - Deployment completed\n" . 
+        implode("\n", $output) . "\n\n", 
+        FILE_APPEND
+    );
+    
+    echo "Deployment successful";
+} else {
+    echo "Not a main branch push, ignoring";
+}
+?>
