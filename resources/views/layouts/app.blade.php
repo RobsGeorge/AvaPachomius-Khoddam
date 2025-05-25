@@ -112,7 +112,7 @@
 
     <!-- Footer -->
     <footer class="text-center">
-        &copy; {{ date('Y') }} إعداد خدام
+        &copy; {{ date('Y') }} اعداد خدام
     </footer>
 
     @stack('scripts')
