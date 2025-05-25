@@ -94,7 +94,7 @@ class RegisterController extends Controller
             'email' => ['required', 'email', 'max:100', 'unique:user,email'],
             'job' => ['required', 'string', 'max:100'],
             'date_of_birth' => ['required', 'date'],
-            'mobile_number' => ['required', 'regex:/^10[0-9]{8}$/'],
+            'mobile_number' => ['required'],
             'profile_photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
             'first_name.regex' => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',

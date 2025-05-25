@@ -85,7 +85,7 @@
                                 
                                 <input id="mobile_number" type="text" class="form-control rounded-end @error('mobile_number') is-invalid @enderror"
                                     name="mobile_number" value="{{ old('mobile_number') }}" required
-                                    style="direction: ltr;" maxlength="10" pattern="\d{10}">
+                                    style="direction: ltr;" maxlength="10">
                                 <span class="input-group-text bg-white border rounded-start" style="direction: ltr;">+20</span>
                                 
                                 @error('mobile_number')
@@ -238,14 +238,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        function validateMobile(input) {
-            if (!mobileRegex.test(input.value.trim())) {
-                showError(input, 'رقم الهاتف يجب أن يحتوي على 10 أرقام فقط بعد +20');
-            } else {
-                clearError(input);
-            }
-        }
-
         function validateEmail(input) {
             if (!input.validity.valid) {
                 showError(input, 'الرجاء إدخال بريد إلكتروني صالح');
@@ -270,9 +262,7 @@ document.addEventListener('DOMContentLoaded', function () {
             validateNationalId(this);
         });
 
-        document.getElementById('mobile_number').addEventListener('input', function () {
-            validateMobile(this);
-        });
+        
 
         document.getElementById('email').addEventListener('input', function () {
             validateEmail(this);
@@ -302,19 +292,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     validateFile('profile_photo');
-
-    // Mobile input validation
-    document.getElementById('mobile_number').addEventListener('input', function () {
-        const val = this.value.trim();
-        const error = document.getElementById('mobile_error');
-        if (!/^\d{10}$/.test(val)) {
-            this.classList.add('is-invalid');
-            error.classList.remove('d-none');
-        } else {
-            this.classList.remove('is-invalid');
-            error.classList.add('d-none');
-        }
-    });
 });
 </script>
 
