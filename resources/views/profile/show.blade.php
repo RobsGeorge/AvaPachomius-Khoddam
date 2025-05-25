@@ -55,16 +55,6 @@
         <p><strong>تاريخ التسجيل:</strong> {{ $user->created_at->format('Y-m-d') }}</p>
     </div>
 
-    @php
-    use Illuminate\Support\Facades\Auth;
-
-    // Generate URL including user_id param
-    $user = Auth::user();
-    $ngrokUrl = 'https://845f-197-46-119-213.ngrok-free.app';  // Replace with your actual ngrok URL
-    $attendanceUrlWithUser = $ngrokUrl . '/attendance/sessions?user_id=' . $user->user_id;
-    //$attendanceUrlWithUser = route('attendance.sessions', ['user_id' => $user->user_id], true);
-    @endphp
-
 <style>
     /* Modal styles (unchanged) */
     .modal {
