@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="container" dir="rtl">
-    <h1 class="text-2xl font-bold mb-6 text-right">الاسم: </h1>
-    <h1 class="text-2xl font-bold mb-6 text-right">{{ $user->first_name }}{{$user->second_name}} {{$user->third_name}}</h1>
+
+    <h2 class="text-2xl font-bold mb-6 text-right">{{ $user->first_name }}{{$user->second_name}} {{$user->third_name}}</h2>
     <div class="relative w-32 h-32 rounded-full overflow-hidden mx-auto mb-4 cursor-pointer">
         @if($user->profile_photo)
             <img src="{{ asset('storage/' . $user->profile_photo) }}" alt="صورة الملف الشخصي"
@@ -16,7 +16,7 @@
     </div>
 </br>
 
-    <h1 class="mb-4">محاضرات اليوم ({{ date('Y-m-d') }})</h1>
+    <h1 class="text-2xl font-bold mb-6 text-right">محاضرات اليوم ({{ date('Y-m-d') }})</h1>
 
     @if(session('success'))
         <div class="alert alert-success mb-3">{{ session('success') }}</div>
