@@ -45,7 +45,7 @@
         </button>
 
         <div class="mt-4 text-right">
-            <a href="{{ route('password.request') }}" class="text-blue-600 hover:underline">هل نسيت كلمة المرور؟</a>
+            <a href="{{ route('password.request') }}" class="text-blue-600 hover:underline">هل نسيت كلمة السر؟</a>
         </div>
     </form>
 </div>
