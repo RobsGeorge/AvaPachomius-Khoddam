@@ -14,6 +14,9 @@ class AttendanceController extends Controller
     public function showTodaySessions(Request $request)
     {
         $userId = $request->query('user_id');
+        $user = User::find($userId);
+
+
 
         // Optional: validate user exists
         if (!$userId || !User::find($userId)) {
@@ -26,7 +29,7 @@ class AttendanceController extends Controller
         $today = date('Y-m-d');
         $sessions = Session::whereDate('session_date', $today)->get();
 
-        return view('attendance.sessions', compact('sessions', 'userId'));
+        return view('attendance.sessions', compact('sessions', 'userId', 'user'));
     }
 
     // Record attendance for the student (userId) for a given session
