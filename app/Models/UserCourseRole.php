@@ -14,6 +14,7 @@ class UserCourseRole extends Model
     protected $primaryKey = 'user_course_role_id';
 
     protected $fillable = ['user_id', 'course_id', 'role_id'];
+    public $timestamps = false;
 
     public function user()
     {
