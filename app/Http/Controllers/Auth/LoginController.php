@@ -30,7 +30,7 @@ class LoginController extends Controller
                 return back()->withErrors('Your account is not approved by admin yet.');
             }*/
 
-            return redirect()->intended('/dashboard')->with('success', 'Welcome back!');
+            return redirect('/dashboard')->with('success', 'Welcome back!');
         }
 
         return back()->withErrors([

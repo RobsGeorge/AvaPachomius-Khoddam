@@ -22,6 +22,9 @@ use Inertia\Response;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+
+
 
 
 
@@ -51,11 +54,9 @@ Route::middleware(['auth'])->group(function () {
 Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('register', [RegisterController::class, 'register']);
 
-// Show forgot password form
-Route::get('forgot-password', [PasswordResetLinkController::class, 'showForgotForm'])->name('password.request');
-// Handle form submission, redirect to OTP sending route
-Route::post('forgot-password', [PasswordResetLinkController::class, 'sendResetOtp'])->name('password.email');
-// Your existing OTP route, assuming something like:
+Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+
 Route::post('otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');
 
 
@@ -77,6 +78,7 @@ Route::middleware(['auth', 'role:Admin,Instructor'])->group(function () {
     Route::post('/attendance/record/{session}', [AttendanceController::class, 'recordAttendance'])->name('attendance.record');
 
 });
+
 
 
 

@@ -1,25 +1,26 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto max-w-md p-6 bg-white rounded shadow-md">
-    <h2 class="text-2xl mb-6 font-bold">Reset Password</h2>
+<div class="container">
+    <h1>استعادة كلمة المرور</h1>
 
     @if (session('status'))
-        <div class="mb-4 text-green-600">{{ session('status') }}</div>
+        <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
     <form method="POST" action="{{ route('password.email') }}">
         @csrf
 
-        <div class="mb-4">
-            <label for="email" class="block mb-1">Email Address</label>
-            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus
-                class="w-full border rounded px-3 py-2">
+        <div class="mb-3">
+            <label for="email" class="form-label">البريد الإلكتروني</label>
+            <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" required autofocus>
+
+            @error('email')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
         </div>
 
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            Send Password Reset Link
-        </button>
+        <button type="submit" class="btn btn-primary">إرسال رابط إعادة التعيين</button>
     </form>
 </div>
 @endsection
