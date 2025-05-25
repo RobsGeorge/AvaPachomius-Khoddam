@@ -37,7 +37,7 @@
             <!-- Invisible file input filling the circle -->
             <input 
                 type="file" 
-                name="profile_picture" 
+                name="profile_photo" 
                 class="opacity-0 w-full h-full cursor-pointer" 
                 onchange="this.form.submit()" 
                 title="اضغط لتحميل صورة جديدة"
@@ -61,7 +61,7 @@
     $user = Auth::user();
     $attendanceUrlWithUser = route('attendance.sessions', ['user_id' => $user->user_id], true);
     @endphp
-    
+
 <style>
     /* Modal styles (unchanged) */
     .modal {

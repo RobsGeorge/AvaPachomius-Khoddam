@@ -39,7 +39,7 @@ class ProfileController extends Controller
     public function updatePicture(Request $request)
     {
         $request->validate([
-            'profile_picture' => 'required|image|max:2048',
+            'profile_photo' => 'image|max:2048',
         ]);
 
         $user = Auth::user();
@@ -51,12 +51,12 @@ class ProfileController extends Controller
         
 
         // Store new picture
-        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+        $path = $request->file('profile_photo')->store('profile_photos', 'public');
 
-        $user->profile_picture = $path;
+        $user->profile_photo = $path;
         $user->save();
 
-        return redirect()->route('profile.show')->with('success', 'تم تحديث صورة الملف الشخصي بنجاح.');
+        return redirect()->route('profile')->with('success', 'تم تحديث صورة الملف الشخصي بنجاح.');
     }
 }
 ?>
