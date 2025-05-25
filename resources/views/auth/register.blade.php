@@ -158,21 +158,6 @@
                         </div>
 
 
-                        <!-- خطاب التزكية -->
-                        <div class="row mb-3">
-                            <label for="tazkeyya_letter_photo" class="col-md-4 col-form-label text-md-end">خطاب التزكية</label>
-                            <div class="col-md-6">
-                                <input id="tazkeyya_letter_photo" type="file" accept="image/*,application/pdf"
-                                    class="form-control @error('tazkeyya_letter_photo') is-invalid @enderror"
-                                    name="tazkeyya_letter_photo">
-                                <div class="invalid-feedback d-none" id="tazkeyya_letter_photo_error"></div>
-                                @error('tazkeyya_letter_photo')
-                                    <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
-                                @enderror
-                            </div>
-                        </div>
-
-
                         <!-- زر التسجيل -->
                         <div class="row mb-0">
                             <div class="col-md-6 offset-md-4 d-grid">
@@ -317,7 +302,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     validateFile('profile_photo');
-    validateFile('tazkeyya_letter_photo');
 
     // Mobile input validation
     document.getElementById('mobile_number').addEventListener('input', function () {
@@ -363,7 +347,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     validateFile('profile_photo');
-    validateFile('tazkeyya_letter_photo');
 });
 </script>
 @endpush

@@ -28,7 +28,6 @@ class RegisterController extends Controller
         $this->validator($request->all())->validate();
 
         $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
-        $tazkeyyaPhotoPath = $this->storeFile($request->file('tazkeyya_letter_photo'), 'tazkeyya_letters');
 
         DB::beginTransaction();
 
@@ -43,7 +42,6 @@ class RegisterController extends Controller
                 'job' => $request->job,
                 'date_of_birth' => $request->date_of_birth,
                 'profile_photo' => $profilePhotoPath,
-                'tazkeyya_letter_photo' => $tazkeyyaPhotoPath,
                 'password' => Hash::make(Str::random(12)),
                 'is_verified' => false,
             ]);
@@ -75,7 +73,6 @@ class RegisterController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Storage::delete("public/{$profilePhotoPath}");
-            Storage::delete("public/{$tazkeyyaPhotoPath}");
 
             \Log::error('Registration failed: ' . $e->getMessage());
 
@@ -99,7 +96,6 @@ class RegisterController extends Controller
             'date_of_birth' => ['required', 'date'],
             'mobile_number' => ['required', 'regex:/^10[0-9]{8}$/'],
             'profile_photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'tazkeyya_letter_photo' => ['file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
         ], [
             'first_name.regex' => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
             'second_name.regex' => 'الاسم الثاني يجب أن يحتوي على أحرف عربية فقط.',

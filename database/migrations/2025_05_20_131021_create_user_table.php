@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('third_name', 30);
             $table->string('profile_photo', 255);
             $table->string('national_id', 14);
-            $table->string('tazkeyya_letter_photo', 255);
             $table->string('mobile_number', 10)->unique();
             $table->string('email', 30);
             $table->string('job', 50);
