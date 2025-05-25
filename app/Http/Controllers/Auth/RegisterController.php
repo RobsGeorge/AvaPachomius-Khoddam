@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\OtpCode;
+use App\Models\UserCourseRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
@@ -44,6 +45,13 @@ class RegisterController extends Controller
                 'profile_photo' => $profilePhotoPath,
                 'password' => Hash::make(Str::random(12)),
                 'is_verified' => false,
+            ]);
+
+            $user_role = UserCourseRole::create([
+                'user_id' => $user->user_id,
+                'course_id' => 1, // Assuming course_id 1 is the default course
+                'role_id' => 1, // Assuming role_id 1 is the default role
+                'created_at' => now(),
             ]);
 
             $studentRole = Role::where('role_name', 'Student')->first();
