@@ -12,7 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Run the mark absent users command daily at midnight
+        $schedule->command('attendance:mark-absent')->dailyAt('00:00');
     }
 
     /**
@@ -24,4 +25,8 @@ class Kernel extends ConsoleKernel
 
         require base_path('routes/console.php');
     }
+
+    protected $commands = [
+        Commands\MarkAbsentUsers::class,
+    ];
 }
