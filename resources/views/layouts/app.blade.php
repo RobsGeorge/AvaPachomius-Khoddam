@@ -26,37 +26,11 @@
             background: linear-gradient(to bottom right, #e0f2fe, #ede9fe);
         }
 
-        nav, footer {
+        footer {
             font-family: 'Cairo', sans-serif !important;
             background: linear-gradient(90deg, #93c5fd, #8b5cf6); /* baby blue to violet */
             color: white;
             box-shadow: 0 4px 8px rgb(139 92 246 / 0.3);
-        }
-
-        nav a, nav span, footer {
-            color: white !important;
-            font-weight: 600;
-            font-size: 0.95rem;
-            letter-spacing: 0.02em;
-        }
-
-        nav a:hover, nav button:hover {
-            text-decoration: underline;
-        }
-
-        nav button {
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: white;
-        }
-
-        nav .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
         }
 
         main > h1 {
@@ -79,34 +53,6 @@
 </head>
 
 <body class="min-h-screen flex flex-col">
-
-    <!-- Navigation -->
-    <nav class="p-3 d-flex justify-content-between align-items-center">
-    <a href="{{ url('/dashboard') }}" class="logo" style="color: #c084fc; font-weight: 700; font-size: 1.25rem;">
-    إعداد خدام 2025
-</a>
-
-
-        <div class="d-flex gap-4 align-items-center">
-            @guest
-                <a href="{{ route('login') }}" style="color: #6366f1;">تسجيل الدخول</a>
-                <a href="{{ route('register') }}" style="color: #8b5cf6;">إنشاء حساب</a>
-            @else
-                <span style="color: #2563eb;">{{ Auth::user()->first_name }}</span>
-                <a href="{{ route('profile') }}" style="color: #7c3aed;">الملف الشخصي</a>
-
-                @if(Auth::user()->roles->contains('role_name', 'Admin'))
-                    <a href="{{ route('admin.users.unverified') }}" style="color: #a78bfa;">لوحة التحكم</a>
-                @endif
-
-                <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 d-inline">
-                    @csrf
-                    <button type="submit" style="color: #4f46e5; background: none; border: none; cursor: pointer;">تسجيل الخروج</button>
-                </form>
-            @endguest
-        </div>
-    </nav>
-
     <!-- Main Content -->
     <main class="flex-grow p-5 container">
         @yield('content')
