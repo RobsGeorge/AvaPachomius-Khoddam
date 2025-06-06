@@ -8,74 +8,6 @@
         <div class="alert alert-success mb-3">{{ session('success') }}</div>
     @endif
 
-    <!-- Search and Filter Section -->
-    <div class="bg-white p-4 rounded-lg shadow mb-6">
-        <div class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Search by Name -->
-                <div>
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">البحث بالاسم</label>
-                    <input type="text" id="search" 
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        placeholder="ادخل اسم المستخدم">
-                </div>
-
-                <!-- Date Range -->
-                <div>
-                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">من تاريخ</label>
-                    <input type="date" id="date_from"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                </div>
-
-                <div>
-                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">إلى تاريخ</label>
-                    <input type="date" id="date_to"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                </div>
-
-                <!-- Status Filter -->
-                <div>
-                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">الحالة</label>
-                    <select id="status"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">الكل</option>
-                        <option value="Present">حاضر</option>
-                        <option value="Absent">غائب</option>
-                        <option value="Late">متأخر</option>
-                        <option value="Permission">إذن</option>
-                    </select>
-                </div>
-
-                <!-- Group By -->
-                <div>
-                    <label for="group_by" class="block text-sm font-medium text-gray-700 mb-1">تجميع حسب</label>
-                    <select id="group_by"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">بدون تجميع</option>
-                        <option value="date">التاريخ</option>
-                        <option value="user">المستخدم</option>
-                    </select>
-                </div>
-
-                <!-- Sort By -->
-                <div>
-                    <label for="sort_by" class="block text-sm font-medium text-gray-700 mb-1">ترتيب حسب</label>
-                    <select id="sort_by"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="date_desc">التاريخ (تنازلي)</option>
-                        <option value="date_asc">التاريخ (تصاعدي)</option>
-                        <option value="name_asc">الاسم (أ-ي)</option>
-                        <option value="name_desc">الاسم (ي-أ)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex justify-end space-x-4 space-x-reverse">
-                <button type="button" id="resetFilters" class="btn btn-secondary">إعادة تعيين</button>
-            </div>
-        </div>
-    </div>
-
     @if($attendanceRecords->isEmpty())
         <p class="text-right">لا توجد سجلات حضور.</p>
     @else
@@ -103,7 +35,7 @@
             @endif
         </div>
 
-        <div class="mt-4">
+        <div class="mt-8">
             {{ $attendanceRecords->appends(request()->query())->links() }}
         </div>
     @endif
@@ -111,94 +43,87 @@
 
 @push('styles')
 <style>
-    /* Pagination Styling */
+    /* Enhanced Pagination Styling */
     .pagination {
         display: flex;
         justify-content: center;
-        gap: 0.5rem;
+        align-items: center;
+        gap: 0.75rem;
         margin-top: 2rem;
+        padding: 1rem;
+        background-color: #ffffff;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
     .pagination > * {
-        padding: 0.5rem 1rem;
+        padding: 0.625rem 1.25rem;
         border-radius: 0.375rem;
-        background-color: #f3f4f6;
-        color: #374151;
-        transition: all 0.2s;
+        background-color: #f8fafc;
+        color: #1e293b;
+        font-weight: 500;
+        transition: all 0.2s ease-in-out;
+        border: 1px solid #e2e8f0;
     }
 
-    .pagination > *:hover {
-        background-color: #e5e7eb;
+    .pagination > *:hover:not(.disabled) {
+        background-color: #f1f5f9;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     .pagination .active {
         background-color: #4f46e5;
         color: white;
+        border-color: #4f46e5;
+    }
+
+    .pagination .active:hover {
+        background-color: #4338ca;
     }
 
     .pagination .disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        background-color: #f1f5f9;
     }
 
-    /* Add icons to pagination */
+    /* Navigation arrows */
+    .pagination .prev,
+    .pagination .next {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+    }
+
     .pagination .prev:before {
         content: "←";
-        margin-right: 0.5rem;
+        font-size: 1.25rem;
     }
 
     .pagination .next:after {
         content: "→";
-        margin-left: 0.5rem;
+        font-size: 1.25rem;
+    }
+
+    /* Page numbers */
+    .pagination .page-item {
+        min-width: 2.5rem;
+        text-align: center;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+        .pagination {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .pagination > * {
+            padding: 0.5rem 1rem;
+        }
     }
 </style>
-@endpush
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('search');
-    const dateFromInput = document.getElementById('date_from');
-    const dateToInput = document.getElementById('date_to');
-    const statusSelect = document.getElementById('status');
-    const resetButton = document.getElementById('resetFilters');
-    const rows = document.querySelectorAll('.attendance-row');
-
-    function filterRows() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const dateFrom = dateFromInput.value;
-        const dateTo = dateToInput.value;
-        const status = statusSelect.value;
-
-        rows.forEach(row => {
-            const name = row.dataset.name;
-            const date = row.dataset.date;
-            const rowStatus = row.dataset.status;
-
-            const matchesSearch = !searchTerm || name.includes(searchTerm);
-            const matchesDateFrom = !dateFrom || date >= dateFrom;
-            const matchesDateTo = !dateTo || date <= dateTo;
-            const matchesStatus = !status || rowStatus === status;
-
-            row.style.display = matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus ? '' : 'none';
-        });
-    }
-
-    // Add event listeners for instant filtering
-    searchInput.addEventListener('input', filterRows);
-    dateFromInput.addEventListener('change', filterRows);
-    dateToInput.addEventListener('change', filterRows);
-    statusSelect.addEventListener('change', filterRows);
-
-    // Reset filters
-    resetButton.addEventListener('click', function() {
-        searchInput.value = '';
-        dateFromInput.value = '';
-        dateToInput.value = '';
-        statusSelect.value = '';
-        filterRows();
-    });
-});
-</script>
 @endpush
 @endsection 
