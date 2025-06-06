@@ -90,8 +90,7 @@ Route::middleware(['auth', 'role:Admin,Instructor'])->group(function () {
     Route::post('/attendance/update-permission-reason/{attendance}', [AttendanceController::class, 'updatePermissionReason'])->name('attendance.update-permission-reason');
 });
 
-
-
+Route::get('/attendance/user-report/{userId}', [AttendanceController::class, 'userReport'])->name('attendance.user-report');
 
 Auth::routes(['verify' => false]);  // disable default verify because we use custom OTP
 

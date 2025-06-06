@@ -188,6 +188,17 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    public function userReport($userId)
+    {
+        $user = User::findOrFail($userId);
+        $attendanceRecords = Attendance::with(['session'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('attendance.user-report', compact('user', 'attendanceRecords'));
+    }
 }
 
 ?>
