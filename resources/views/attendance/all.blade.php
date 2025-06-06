@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container" dir="rtl">
+<div class="container mx-auto">
     <h1 class="text-2xl font-bold mb-6 text-right">سجل الحضور الكامل</h1>
 
     @if(session('success'))
