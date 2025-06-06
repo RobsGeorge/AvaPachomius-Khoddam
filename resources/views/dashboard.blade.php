@@ -64,7 +64,9 @@
     <section class="mb-10">
         <h2 class="section-title">الحضور</h2>
         <p class="section-desc">عرض سجل الحضور الخاص بك</p>
-        <!-- Add attendance info -->
+        @if(Auth::user()->roles->contains('role_name', 'Admin') || Auth::user()->roles->contains('role_name', 'Instructor'))
+            <a href="{{ route('attendance.all') }}" class="btn btn-primary mt-2">عرض سجل الحضور الكامل</a>
+        @endif
     </section>
 
     <section class="mb-10">

@@ -64,6 +64,28 @@ class AttendanceController extends Controller
 
         return redirect()->back()->with('success', 'تم تسجيل الحضور بنجاح.');
     }
+
+    // View all attendance records (for admin and instructor)
+    public function viewAllAttendance()
+    {
+        $attendanceRecords = Attendance::with(['user', 'session', 'takenBy'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('attendance.all', compact('attendanceRecords'));
+    }
+
+    // View attendance records for a specific user (for admin and instructor)
+    public function viewUserAttendance($userId)
+    {
+        $user = User::findOrFail($userId);
+        $attendanceRecords = Attendance::with(['session', 'takenBy'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('attendance.user', compact('attendanceRecords', 'user'));
+    }
 }
 
 ?>

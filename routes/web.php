@@ -77,6 +77,11 @@ Route::middleware(['auth', 'role:Admin,Instructor'])->group(function () {
     // Record attendance for a given session
     Route::post('/attendance/record/{session}', [AttendanceController::class, 'recordAttendance'])->name('attendance.record');
 
+    // View all attendance records
+    Route::get('/attendance/all', [AttendanceController::class, 'viewAllAttendance'])->name('attendance.all');
+
+    // View attendance records for a specific user
+    Route::get('/attendance/user/{userId}', [AttendanceController::class, 'viewUserAttendance'])->name('attendance.user');
 });
 
 
