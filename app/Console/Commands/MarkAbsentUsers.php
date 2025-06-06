@@ -18,7 +18,7 @@ class MarkAbsentUsers extends Command
         $sessionId = $this->argument('session_id');
         
         if ($sessionId) {
-            $sessions = Session::where('id', $sessionId)->get();
+            $sessions = Session::where('session_id', $sessionId)->get();
         } else {
             // Get all sessions from today backwards
             $sessions = Session::where('session_date', '<=', Carbon::today())->get();
@@ -31,7 +31,7 @@ class MarkAbsentUsers extends Command
             $users = User::all();
             
             // Get existing attendance records for this session
-            $existingAttendance = Attendance::where('session_id', $session->id)
+            $existingAttendance = Attendance::where('session_id', $session->session_id)
                 ->pluck('user_id')
                 ->toArray();
             
@@ -44,7 +44,7 @@ class MarkAbsentUsers extends Command
             $absentRecords = $absentUsers->map(function ($user) use ($session) {
                 return [
                     'user_id' => $user->id,
-                    'session_id' => $session->id,
+                    'session_id' => $session->session_id,
                     'state' => 'Absent',
                     'created_at' => now(),
                     'updated_at' => now(),
