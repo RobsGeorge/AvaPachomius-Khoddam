@@ -84,10 +84,10 @@ Route::middleware(['auth', 'role:Admin,Instructor'])->group(function () {
     Route::get('/attendance/user/{userId}', [AttendanceController::class, 'viewUserAttendance'])->name('attendance.user');
 
     // Update attendance status
-    Route::post('/attendance/update-status/{attendance}', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
+    Route::get('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
 
     // Update permission reason
-    Route::post('/attendance/update-permission-reason/{attendance}', [AttendanceController::class, 'updatePermissionReason'])->name('attendance.update-permission-reason');
+    Route::get('/attendance/update-permission-reason/{id}', [AttendanceController::class, 'updatePermissionReason'])->name('attendance.update-permission-reason');
 });
 
 Route::get('/attendance/user-report/{userId}', [AttendanceController::class, 'userReport'])->name('attendance.user-report');

@@ -171,33 +171,13 @@ class AttendanceController extends Controller
     }
 
     // Update permission reason
-    public function updatePermissionReason(Request $request, $attendanceId)
+    public function updatePermissionReason(Request $request, $id)
     {
-        try {
-            $attendance = Attendance::findOrFail($attendanceId);
-            $attendance->permission_reason = $request->input('permission_reason');
-            $attendance->save();
+        $attendance = Attendance::findOrFail($id);
+        $attendance->permission_reason = $request->permission_reason;
+        $attendance->save();
 
-            return response()->json([
-                'success' => true
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء تحديث سبب الإذن'
-            ], 500);
-        }
-    }
-
-    public function userReport($userId)
-    {
-        $user = User::findOrFail($userId);
-        $attendanceRecords = Attendance::with(['session'])
-            ->where('user_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        return view('attendance.user-report', compact('user', 'attendanceRecords'));
+        return response()->json(['success' => true]);
     }
 }
 
