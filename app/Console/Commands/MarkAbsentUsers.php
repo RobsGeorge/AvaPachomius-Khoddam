@@ -45,7 +45,7 @@ class MarkAbsentUsers extends Command
                 return [
                     'user_id' => $user->id,
                     'session_id' => $session->session_id,
-                    'state' => 'Absent',
+                    'status' => 'Absent',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
