@@ -1,3 +1,6 @@
+@extends('layouts.app')
+
+@section('content')
 <div class="overflow-x-auto">
     <table class="min-w-full bg-white border border-gray-300">
         <thead>
@@ -158,5 +161,4 @@ function showNotification(message, type) {
     }, 3000);
 }
 </script>
-@endpush 
 @endpush 
