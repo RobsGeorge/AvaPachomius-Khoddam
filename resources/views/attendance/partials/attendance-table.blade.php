@@ -12,7 +12,10 @@
         </thead>
         <tbody>
             @foreach($records as $record)
-                <tr>
+                <tr class="attendance-row" 
+                    data-name="{{ strtolower($record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name) }}"
+                    data-date="{{ $record->session->session_date }}"
+                    data-status="{{ $record->status }}">
                     <td class="px-6 py-4 border-b text-right">
                         <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
                             {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
