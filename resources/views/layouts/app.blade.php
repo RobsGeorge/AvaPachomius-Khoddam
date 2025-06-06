@@ -19,6 +19,9 @@
     <!-- Tailwind -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <!-- Custom Styles -->
     <style>
         body {
@@ -74,7 +77,7 @@
     </style>
 </head>
 
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col" x-data="{ open: false }">
     @include('layouts.navigation')
     <main class="flex-grow container mx-auto px-4 py-8">
         @yield('content')
