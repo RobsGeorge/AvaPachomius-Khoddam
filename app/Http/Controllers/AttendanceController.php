@@ -149,10 +149,12 @@ class AttendanceController extends Controller
     }
 
     // Update attendance status
-    public function updateStatus(Request $request, Attendance $attendance)
+    public function updateStatus(Request $request, $attendanceId)
     {
         try {
+            $attendance = Attendance::findOrFail($attendanceId);
             $previousStatus = $attendance->status;
+            
             $attendance->status = $request->input('status');
             $attendance->save();
 
@@ -169,9 +171,10 @@ class AttendanceController extends Controller
     }
 
     // Update permission reason
-    public function updatePermissionReason(Request $request, Attendance $attendance)
+    public function updatePermissionReason(Request $request, $attendanceId)
     {
         try {
+            $attendance = Attendance::findOrFail($attendanceId);
             $attendance->permission_reason = $request->input('permission_reason');
             $attendance->save();
 

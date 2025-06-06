@@ -65,22 +65,34 @@ function updateAttendanceStatus(selectElement) {
     // Show/hide permission reason input
     permissionReasonInput.style.display = status === 'Permission' ? 'block' : 'none';
 
+    // Get CSRF token from meta tag
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
     // Send update request
     fetch(`/attendance/update-status/${attendanceId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': token
         },
         body: JSON.stringify({
-            status: status
+            status: status,
+            _token: token
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Show success message
             showNotification('تم تحديث الحالة بنجاح', 'success');
+            // Update the row's data-status attribute
+            row.dataset.status = status;
         } else {
             // Show error message
             showNotification('حدث خطأ أثناء تحديث الحالة', 'error');
@@ -91,24 +103,34 @@ function updateAttendanceStatus(selectElement) {
     .catch(error => {
         console.error('Error:', error);
         showNotification('حدث خطأ أثناء تحديث الحالة', 'error');
+        // Revert the select to its previous value
+        selectElement.value = row.dataset.status;
     });
 }
 
 function updatePermissionReason(inputElement) {
     const attendanceId = inputElement.dataset.attendanceId;
     const reason = inputElement.value;
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     fetch(`/attendance/update-permission-reason/${attendanceId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': token
         },
         body: JSON.stringify({
-            permission_reason: reason
+            permission_reason: reason,
+            _token: token
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             showNotification('تم تحديث سبب الإذن بنجاح', 'success');
@@ -126,7 +148,7 @@ function showNotification(message, type) {
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
         type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    } text-white`;
+    } text-white z-50`;
     notification.textContent = message;
     document.body.appendChild(notification);
 
@@ -136,4 +158,5 @@ function showNotification(message, type) {
     }, 3000);
 }
 </script>
+@endpush 
 @endpush 
