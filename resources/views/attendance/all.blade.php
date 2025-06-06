@@ -1,202 +1,190 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container" dir="rtl">
-    <h1 class="text-2xl font-bold mb-6 text-right">سجل الحضور الكامل</h1>
-
-    @if(session('success'))
-        <div class="alert alert-success mb-3">{{ session('success') }}</div>
-    @endif
-
-    <!-- Search and Filter Section -->
-    <div class="bg-white p-4 rounded-lg shadow mb-6">
-        <div class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Search by Name -->
-                <div>
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">البحث بالاسم</label>
-                    <input type="text" id="search" 
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
-                        placeholder="ادخل اسم المستخدم">
+<div class="container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">سجل الحضور</h1>
+            <div class="flex space-x-4 rtl:space-x-reverse">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="بحث..." 
+                           class="w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none rtl:left-auto rtl:right-0 rtl:pl-0 rtl:pr-3">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
                 </div>
-
-                <!-- Date Range -->
-                <div>
-                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">من تاريخ</label>
-                    <input type="date" id="date_from"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                </div>
-
-                <div>
-                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">إلى تاريخ</label>
-                    <input type="date" id="date_to"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                </div>
-
-                <!-- Status Filter -->
-                <div>
-                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">الحالة</label>
-                    <select id="status"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">الكل</option>
-                        <option value="Present">حاضر</option>
-                        <option value="Absent">غائب</option>
-                        <option value="Late">متأخر</option>
-                        <option value="Permission">إذن</option>
+                <div class="flex space-x-2 rtl:space-x-reverse">
+                    <input type="date" id="dateFilter" 
+                           class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="statusFilter" 
+                            class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">كل الحالات</option>
+                        <option value="present">حاضر</option>
+                        <option value="absent">غائب</option>
+                        <option value="late">متأخر</option>
+                        <option value="permission">إذن</option>
                     </select>
                 </div>
-
-                <!-- Group By -->
-                <div>
-                    <label for="group_by" class="block text-sm font-medium text-gray-700 mb-1">تجميع حسب</label>
-                    <select id="group_by"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="">بدون تجميع</option>
-                        <option value="date">التاريخ</option>
-                        <option value="user">المستخدم</option>
-                    </select>
-                </div>
-
-                <!-- Sort By -->
-                <div>
-                    <label for="sort_by" class="block text-sm font-medium text-gray-700 mb-1">ترتيب حسب</label>
-                    <select id="sort_by"
-                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        <option value="date_desc">التاريخ (تنازلي)</option>
-                        <option value="date_asc">التاريخ (تصاعدي)</option>
-                        <option value="name_asc">الاسم (أ-ي)</option>
-                        <option value="name_desc">الاسم (ي-أ)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex justify-end space-x-4 space-x-reverse">
-                <button type="button" id="resetFilters" class="btn btn-secondary">إعادة تعيين</button>
             </div>
         </div>
-    </div>
 
-    @if($attendanceRecords->isEmpty())
-        <p class="text-right">لا توجد سجلات حضور.</p>
-    @else
-        <div id="attendance-content">
-            @if(request('group_by') == 'date')
-                @foreach($attendanceRecords->groupBy(function($record) {
-                    return $record->session->session_date;
-                }) as $date => $records)
-                    <div class="mb-8">
-                        <h2 class="text-xl font-bold mb-4 text-right">{{ $date }}</h2>
-                        @include('attendance.partials.attendance-table', ['records' => $records])
-                    </div>
-                @endforeach
-            @elseif(request('group_by') == 'user')
-                @foreach($attendanceRecords->groupBy('user_id') as $userId => $records)
-                    <div class="mb-8">
-                        <h2 class="text-xl font-bold mb-4 text-right">
-                            {{ $records->first()->user->first_name . ' ' . $records->first()->user->second_name . ' ' . $records->first()->user->third_name }}
-                        </h2>
-                        @include('attendance.partials.attendance-table', ['records' => $records])
-                    </div>
-                @endforeach
-            @else
-                @include('attendance.partials.attendance-table', ['records' => $attendanceRecords])
-            @endif
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="px-6 py-3 border-b border-gray-200 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الاسم</th>
+                        <th class="px-6 py-3 border-b border-gray-200 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
+                        <th class="px-6 py-3 border-b border-gray-200 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
+                        <th class="px-6 py-3 border-b border-gray-200 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سبب الإذن</th>
+                        <th class="px-6 py-3 border-b border-gray-200 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($attendanceRecords as $record)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $record->user->name }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $record->date }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <select class="state-select px-2 py-1 border rounded" 
+                                    data-id="{{ $record->id }}"
+                                    data-current-state="{{ $record->state }}">
+                                <option value="present" {{ $record->state === 'present' ? 'selected' : '' }}>حاضر</option>
+                                <option value="absent" {{ $record->state === 'absent' ? 'selected' : '' }}>غائب</option>
+                                <option value="late" {{ $record->state === 'late' ? 'selected' : '' }}>متأخر</option>
+                                <option value="permission" {{ $record->state === 'permission' ? 'selected' : '' }}>إذن</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <input type="text" 
+                                   class="permission-reason px-2 py-1 border rounded w-full" 
+                                   value="{{ $record->permission_reason }}"
+                                   data-id="{{ $record->id }}"
+                                   placeholder="سبب الإذن"
+                                   {{ $record->state !== 'permission' ? 'disabled' : '' }}>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <a href="{{ route('attendance.user', $record->user_id) }}" 
+                               class="text-blue-600 hover:text-blue-900">عرض السجل</a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
 
         <div class="mt-4">
-            {{ $attendanceRecords->appends(request()->query())->links() }}
+            {{ $attendanceRecords->links() }}
         </div>
-    @endif
+    </div>
 </div>
-
-@push('styles')
-<style>
-    /* Pagination Styling */
-    .pagination {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        margin-top: 2rem;
-    }
-
-    .pagination > * {
-        padding: 0.5rem 1rem;
-        border-radius: 0.375rem;
-        background-color: #f3f4f6;
-        color: #374151;
-        transition: all 0.2s;
-    }
-
-    .pagination > *:hover {
-        background-color: #e5e7eb;
-    }
-
-    .pagination .active {
-        background-color: #4f46e5;
-        color: white;
-    }
-
-    .pagination .disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    /* Add icons to pagination */
-    .pagination .prev:before {
-        content: "←";
-        margin-right: 0.5rem;
-    }
-
-    .pagination .next:after {
-        content: "→";
-        margin-left: 0.5rem;
-    }
-</style>
-@endpush
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('search');
-    const dateFromInput = document.getElementById('date_from');
-    const dateToInput = document.getElementById('date_to');
-    const statusSelect = document.getElementById('status');
-    const resetButton = document.getElementById('resetFilters');
-    const rows = document.querySelectorAll('.attendance-row');
+    const searchInput = document.getElementById('searchInput');
+    const dateFilter = document.getElementById('dateFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const table = document.querySelector('table');
+    const rows = table.getElementsByTagName('tr');
 
-    function filterRows() {
-        const searchTerm = searchInput.value.toLowerCase();
-        const dateFrom = dateFromInput.value;
-        const dateTo = dateToInput.value;
-        const status = statusSelect.value;
+    function filterTable() {
+        const searchText = searchInput.value.toLowerCase();
+        const dateValue = dateFilter.value;
+        const statusValue = statusFilter.value;
 
-        rows.forEach(row => {
-            const name = row.dataset.name;
-            const date = row.dataset.date;
-            const rowStatus = row.dataset.status;
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cells = row.getElementsByTagName('td');
+            const name = cells[0].textContent.toLowerCase();
+            const date = cells[1].textContent;
+            const status = cells[2].querySelector('select').value;
 
-            const matchesSearch = !searchTerm || name.includes(searchTerm);
-            const matchesDateFrom = !dateFrom || date >= dateFrom;
-            const matchesDateTo = !dateTo || date <= dateTo;
-            const matchesStatus = !status || rowStatus === status;
+            const matchesSearch = name.includes(searchText);
+            const matchesDate = !dateValue || date === dateValue;
+            const matchesStatus = !statusValue || status === statusValue;
 
-            row.style.display = matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus ? '' : 'none';
-        });
+            row.style.display = matchesSearch && matchesDate && matchesStatus ? '' : 'none';
+        }
     }
 
-    // Add event listeners for instant filtering
-    searchInput.addEventListener('input', filterRows);
-    dateFromInput.addEventListener('change', filterRows);
-    dateToInput.addEventListener('change', filterRows);
-    statusSelect.addEventListener('change', filterRows);
+    searchInput.addEventListener('input', filterTable);
+    dateFilter.addEventListener('change', filterTable);
+    statusFilter.addEventListener('change', filterTable);
 
-    // Reset filters
-    resetButton.addEventListener('click', function() {
-        searchInput.value = '';
-        dateFromInput.value = '';
-        dateToInput.value = '';
-        statusSelect.value = '';
-        filterRows();
+    // Handle state changes
+    document.querySelectorAll('.state-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const recordId = this.dataset.id;
+            const newState = this.value;
+            const permissionInput = this.closest('tr').querySelector('.permission-reason');
+            
+            // Enable/disable permission reason input
+            permissionInput.disabled = newState !== 'permission';
+            if (newState !== 'permission') {
+                permissionInput.value = '';
+            }
+
+            // Update the state
+            fetch(`/attendance/${recordId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ state: newState })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert('تم تحديث الحالة بنجاح');
+                } else {
+                    // Show error message
+                    alert('حدث خطأ أثناء تحديث الحالة');
+                    // Revert the select to its previous value
+                    this.value = this.dataset.currentState;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء تحديث الحالة');
+                // Revert the select to its previous value
+                this.value = this.dataset.currentState;
+            });
+        });
+    });
+
+    // Handle permission reason changes
+    document.querySelectorAll('.permission-reason').forEach(input => {
+        input.addEventListener('change', function() {
+            const recordId = this.dataset.id;
+            const reason = this.value;
+
+            fetch(`/attendance/${recordId}/permission-reason`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ permission_reason: reason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert('تم تحديث سبب الإذن بنجاح');
+                } else {
+                    // Show error message
+                    alert('حدث خطأ أثناء تحديث سبب الإذن');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء تحديث سبب الإذن');
+            });
+        });
     });
 });
 </script>
