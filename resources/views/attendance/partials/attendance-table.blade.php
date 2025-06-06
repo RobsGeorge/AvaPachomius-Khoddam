@@ -6,6 +6,7 @@
                 <th class="px-6 py-3 border-b text-right">المحاضرة</th>
                 <th class="px-6 py-3 border-b text-right">التاريخ</th>
                 <th class="px-6 py-3 border-b text-right">الحالة</th>
+                <th class="px-6 py-3 border-b text-right">سبب الإذن</th>
                 <th class="px-6 py-3 border-b text-right">تم التسجيل بواسطة</th>
                 <th class="px-6 py-3 border-b text-right">وقت التسجيل</th>
             </tr>
@@ -15,7 +16,8 @@
                 <tr class="attendance-row" 
                     data-name="{{ strtolower($record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name) }}"
                     data-date="{{ $record->session->session_date }}"
-                    data-status="{{ $record->status }}">
+                    data-status="{{ $record->status }}"
+                    data-attendance-id="{{ $record->attendance_id }}">
                     <td class="px-6 py-4 border-b text-right">
                         <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
                             {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
@@ -24,14 +26,23 @@
                     <td class="px-6 py-4 border-b text-right">{{ $record->session->session_title }}</td>
                     <td class="px-6 py-4 border-b text-right">{{ $record->session->session_date }}</td>
                     <td class="px-6 py-4 border-b text-right">
-                        <span class="px-2 py-1 rounded-full text-sm
-                            @if($record->status == 'Present') bg-green-100 text-green-800
-                            @elseif($record->status == 'Absent') bg-red-100 text-red-800
-                            @elseif($record->status == 'Late') bg-yellow-100 text-yellow-800
-                            @else bg-blue-100 text-blue-800
-                            @endif">
-                            {{ $record->status }}
-                        </span>
+                        <select class="status-select rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                data-attendance-id="{{ $record->attendance_id }}"
+                                onchange="updateAttendanceStatus(this)">
+                            <option value="Present" {{ $record->status == 'Present' ? 'selected' : '' }}>حاضر</option>
+                            <option value="Absent" {{ $record->status == 'Absent' ? 'selected' : '' }}>غائب</option>
+                            <option value="Late" {{ $record->status == 'Late' ? 'selected' : '' }}>متأخر</option>
+                            <option value="Permission" {{ $record->status == 'Permission' ? 'selected' : '' }}>إذن</option>
+                        </select>
+                    </td>
+                    <td class="px-6 py-4 border-b text-right">
+                        <input type="text" 
+                               class="permission-reason rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                               data-attendance-id="{{ $record->attendance_id }}"
+                               value="{{ $record->permission_reason }}"
+                               placeholder="سبب الإذن"
+                               style="display: {{ $record->status == 'Permission' ? 'block' : 'none' }}"
+                               onchange="updatePermissionReason(this)">
                     </td>
                     <td class="px-6 py-4 border-b text-right">
                         {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}
@@ -41,4 +52,88 @@
             @endforeach
         </tbody>
     </table>
-</div> 
+</div>
+
+@push('scripts')
+<script>
+function updateAttendanceStatus(selectElement) {
+    const attendanceId = selectElement.dataset.attendanceId;
+    const status = selectElement.value;
+    const row = selectElement.closest('tr');
+    const permissionReasonInput = row.querySelector('.permission-reason');
+
+    // Show/hide permission reason input
+    permissionReasonInput.style.display = status === 'Permission' ? 'block' : 'none';
+
+    // Send update request
+    fetch(`/attendance/update-status/${attendanceId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            status: status
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showNotification('تم تحديث الحالة بنجاح', 'success');
+        } else {
+            // Show error message
+            showNotification('حدث خطأ أثناء تحديث الحالة', 'error');
+            // Revert the select to its previous value
+            selectElement.value = data.previousStatus;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('حدث خطأ أثناء تحديث الحالة', 'error');
+    });
+}
+
+function updatePermissionReason(inputElement) {
+    const attendanceId = inputElement.dataset.attendanceId;
+    const reason = inputElement.value;
+
+    fetch(`/attendance/update-permission-reason/${attendanceId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            permission_reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('تم تحديث سبب الإذن بنجاح', 'success');
+        } else {
+            showNotification('حدث خطأ أثناء تحديث سبب الإذن', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('حدث خطأ أثناء تحديث سبب الإذن', 'error');
+    });
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    } text-white`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+</script>
+@endpush 

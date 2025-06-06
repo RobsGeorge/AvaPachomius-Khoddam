@@ -147,6 +147,44 @@ class AttendanceController extends Controller
 
         return view('attendance.user', compact('attendanceRecords', 'user'));
     }
+
+    // Update attendance status
+    public function updateStatus(Request $request, Attendance $attendance)
+    {
+        try {
+            $previousStatus = $attendance->status;
+            $attendance->status = $request->input('status');
+            $attendance->save();
+
+            return response()->json([
+                'success' => true,
+                'previousStatus' => $previousStatus
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث الحالة'
+            ], 500);
+        }
+    }
+
+    // Update permission reason
+    public function updatePermissionReason(Request $request, Attendance $attendance)
+    {
+        try {
+            $attendance->permission_reason = $request->input('permission_reason');
+            $attendance->save();
+
+            return response()->json([
+                'success' => true
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث سبب الإذن'
+            ], 500);
+        }
+    }
 }
 
 ?>
