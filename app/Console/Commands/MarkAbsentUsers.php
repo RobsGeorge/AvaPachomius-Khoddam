@@ -10,12 +10,18 @@ use Carbon\Carbon;
 
 class MarkAbsentUsers extends Command
 {
-    protected $signature = 'attendance:mark-absent {session_id?}';
+    protected $signature = 'attendance:mark-absent {session_id?} {--admin-id=}';
     protected $description = 'Mark users as absent for sessions where they have no attendance record';
 
     public function handle()
     {
         $sessionId = $this->argument('session_id');
+        $adminId = $this->option('admin-id');
+        
+        if (!$adminId) {
+            $this->error('Please provide an admin ID using --admin-id option');
+            return 1;
+        }
         
         if ($sessionId) {
             $sessions = Session::where('session_id', $sessionId)->get();
@@ -51,7 +57,7 @@ class MarkAbsentUsers extends Command
             }
             
             // Create absent records
-            $absentRecords = $absentUsers->map(function ($user) use ($session) {
+            $absentRecords = $absentUsers->map(function ($user) use ($session, $adminId) {
                 if (!$user->user_id) {
                     $this->warn("Skipping user with null ID");
                     return null;
@@ -61,6 +67,7 @@ class MarkAbsentUsers extends Command
                     'user_id' => $user->user_id,
                     'session_id' => $session->session_id,
                     'status' => 'Absent',
+                    'taken_by_id' => $adminId,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -86,5 +93,6 @@ class MarkAbsentUsers extends Command
         }
         
         $this->info('Process completed successfully!');
+        return 0;
     }
 } 
