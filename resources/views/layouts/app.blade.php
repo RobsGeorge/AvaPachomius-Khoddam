@@ -37,11 +37,48 @@
         main > h1 + section {
             margin-top: 2rem;
         }
+
+        /* Responsive Navigation */
+        @media (max-width: 768px) {
+            .navbar-collapse {
+                background-color: white;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        /* Responsive Tables */
+        @media (max-width: 640px) {
+            .table-responsive {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Responsive Cards */
+        @media (max-width: 768px) {
+            .card {
+                margin-bottom: 1rem;
+            }
+        }
+
+        /* Responsive Forms */
+        @media (max-width: 640px) {
+            .form-group {
+                margin-bottom: 1rem;
+            }
+        }
     </style>
 </head>
 
 <body class="min-h-screen flex flex-col">
-    @yield('content')
+    @include('layouts.navigation')
+    <main class="flex-grow container mx-auto px-4 py-8">
+        @yield('content')
+    </main>
     @stack('scripts')
 </body>
 </html>

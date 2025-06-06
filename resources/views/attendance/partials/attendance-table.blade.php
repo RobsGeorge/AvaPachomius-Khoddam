@@ -22,14 +22,7 @@
                     data-status="{{ $record->status }}"
                     data-attendance-id="{{ $record->attendance_id }}">
                     <td class="px-6 py-4 border-b text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <a href="{{ route('attendance.user-report', $record->user_id) }}" class="btn btn-sm btn-primary">
-                                عرض السجل
-                            </a>
-                            <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
-                                {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
-                            </a>
-                        </div>
+                        {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
                     </td>
                     <td class="px-6 py-4 border-b text-right">{{ $record->session->session_title }}</td>
                     <td class="px-6 py-4 border-b text-right">{{ $record->session->session_date }}</td>
