@@ -26,13 +26,6 @@
             background: linear-gradient(to bottom right, #e0f2fe, #ede9fe);
         }
 
-        footer {
-            font-family: 'Cairo', sans-serif !important;
-            background: linear-gradient(90deg, #93c5fd, #8b5cf6); /* baby blue to violet */
-            color: white;
-            box-shadow: 0 4px 8px rgb(139 92 246 / 0.3);
-        }
-
         main > h1 {
             font-size: 1.5rem;
             font-weight: 700;
@@ -44,25 +37,11 @@
         main > h1 + section {
             margin-top: 2rem;
         }
-
-        footer {
-            font-size: 0.9rem;
-            padding: 1rem 0;
-        }
     </style>
 </head>
 
 <body class="min-h-screen flex flex-col">
-    <!-- Main Content -->
-    <main class="flex-grow p-5 container">
-        @yield('content')
-    </main>
-
-    <!-- Footer -->
-    <footer class="text-center">
-        &copy; {{ date('Y') }} اعداد خدام
-    </footer>
-
+    @yield('content')
     @stack('scripts')
 </body>
 </html>
