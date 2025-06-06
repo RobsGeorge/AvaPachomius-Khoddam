@@ -66,11 +66,72 @@ class AttendanceController extends Controller
     }
 
     // View all attendance records (for admin and instructor)
-    public function viewAllAttendance()
+    public function viewAllAttendance(Request $request)
     {
-        $attendanceRecords = Attendance::with(['user', 'session', 'takenBy'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $query = Attendance::with(['user', 'session', 'takenBy']);
+
+        // Search by name
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->whereHas('user', function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('second_name', 'like', "%{$search}%")
+                  ->orWhere('third_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by date range
+        if ($request->filled('date_from')) {
+            $query->whereHas('session', function($q) use ($request) {
+                $q->whereDate('session_date', '>=', $request->input('date_from'));
+            });
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereHas('session', function($q) use ($request) {
+                $q->whereDate('session_date', '<=', $request->input('date_to'));
+            });
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        // Sorting
+        if ($request->filled('sort_by')) {
+            switch ($request->input('sort_by')) {
+                case 'date_desc':
+                    $query->join('session', 'attendance.session_id', '=', 'session.session_id')
+                          ->orderBy('session.session_date', 'desc')
+                          ->orderBy('attendance.attendance_time', 'desc');
+                    break;
+                case 'date_asc':
+                    $query->join('session', 'attendance.session_id', '=', 'session.session_id')
+                          ->orderBy('session.session_date', 'asc')
+                          ->orderBy('attendance.attendance_time', 'asc');
+                    break;
+                case 'name_asc':
+                    $query->join('user', 'attendance.user_id', '=', 'user.user_id')
+                          ->orderBy('user.first_name', 'asc')
+                          ->orderBy('user.second_name', 'asc')
+                          ->orderBy('user.third_name', 'asc');
+                    break;
+                case 'name_desc':
+                    $query->join('user', 'attendance.user_id', '=', 'user.user_id')
+                          ->orderBy('user.first_name', 'desc')
+                          ->orderBy('user.second_name', 'desc')
+                          ->orderBy('user.third_name', 'desc');
+                    break;
+            }
+        } else {
+            // Default sorting by date descending
+            $query->join('session', 'attendance.session_id', '=', 'session.session_id')
+                  ->orderBy('session.session_date', 'desc')
+                  ->orderBy('attendance.attendance_time', 'desc');
+        }
+
+        $attendanceRecords = $query->paginate(20);
 
         return view('attendance.all', compact('attendanceRecords'));
     }
