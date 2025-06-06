@@ -27,8 +27,13 @@ class MarkAbsentUsers extends Command
         foreach ($sessions as $session) {
             $this->info("Processing session: {$session->session_date}");
             
-            // Get all users
-            $users = User::all();
+            // Get all active users
+            $users = User::whereNotNull('id')->get();
+            
+            if ($users->isEmpty()) {
+                $this->warn("No users found to process for session {$session->session_date}");
+                continue;
+            }
             
             // Get existing attendance records for this session
             $existingAttendance = Attendance::where('session_id', $session->session_id)
@@ -37,11 +42,21 @@ class MarkAbsentUsers extends Command
             
             // Find users without attendance records
             $absentUsers = $users->filter(function ($user) use ($existingAttendance) {
-                return !in_array($user->id, $existingAttendance);
+                return $user->id && !in_array($user->id, $existingAttendance);
             });
+            
+            if ($absentUsers->isEmpty()) {
+                $this->info("No absent users to mark for session {$session->session_date}");
+                continue;
+            }
             
             // Create absent records
             $absentRecords = $absentUsers->map(function ($user) use ($session) {
+                if (!$user->id) {
+                    $this->warn("Skipping user with null ID");
+                    return null;
+                }
+                
                 return [
                     'user_id' => $user->id,
                     'session_id' => $session->session_id,
@@ -49,17 +64,24 @@ class MarkAbsentUsers extends Command
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
-            })->toArray();
+            })
+            ->filter() // Remove any null records
+            ->values() // Re-index the array
+            ->toArray();
             
             if (!empty($absentRecords)) {
-                // Insert absent records in chunks to avoid memory issues
-                foreach (array_chunk($absentRecords, 100) as $chunk) {
-                    Attendance::insert($chunk);
+                try {
+                    // Insert absent records in chunks to avoid memory issues
+                    foreach (array_chunk($absentRecords, 100) as $chunk) {
+                        Attendance::insert($chunk);
+                    }
+                    
+                    $this->info("Marked {$absentUsers->count()} users as absent for session {$session->session_date}");
+                } catch (\Exception $e) {
+                    $this->error("Error marking users as absent: " . $e->getMessage());
                 }
-                
-                $this->info("Marked {$absentUsers->count()} users as absent for session {$session->session_date}");
             } else {
-                $this->info("No absent users to mark for session {$session->session_date}");
+                $this->info("No valid absent records to create for session {$session->session_date}");
             }
         }
         
