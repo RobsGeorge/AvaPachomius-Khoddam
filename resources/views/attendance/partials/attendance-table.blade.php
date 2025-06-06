@@ -22,7 +22,9 @@
                     data-status="{{ $record->status }}"
                     data-attendance-id="{{ $record->attendance_id }}">
                     <td class="px-6 py-4 border-b text-right">
-                        {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
+                        <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
+                            {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
+                        </a>
                     </td>
                     <td class="px-6 py-4 border-b text-right">{{ $record->session->session_title }}</td>
                     <td class="px-6 py-4 border-b text-right">{{ $record->session->session_date }}</td>

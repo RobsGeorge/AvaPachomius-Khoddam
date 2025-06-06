@@ -100,6 +100,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::get('/logout', [LoginController::class, 'logout'])->name('logout');
+    
+    // Regular user attendance view
+    Route::get('/attendance/my', [AttendanceController::class, 'viewMyAttendance'])->name('attendance.my');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {

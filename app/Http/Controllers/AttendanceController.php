@@ -140,12 +140,29 @@ class AttendanceController extends Controller
     public function viewUserAttendance($userId)
     {
         $user = User::findOrFail($userId);
-        $attendanceRecords = Attendance::with(['session', 'takenBy'])
+        $attendanceRecords = Attendance::with(['session', 'user'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
-            ->paginate(20);
+            ->paginate(10);
 
-        return view('attendance.user', compact('attendanceRecords', 'user'));
+        return view('attendance.user', [
+            'user' => $user,
+            'attendanceRecords' => $attendanceRecords
+        ]);
+    }
+
+    public function viewMyAttendance()
+    {
+        $user = auth()->user();
+        $attendanceRecords = Attendance::with(['session'])
+            ->where('user_id', $user->user_id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('attendance.my', [
+            'user' => $user,
+            'attendanceRecords' => $attendanceRecords
+        ]);
     }
 
     // Update attendance status

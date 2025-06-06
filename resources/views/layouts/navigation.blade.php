@@ -11,12 +11,18 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8 sm:space-x-reverse">
-                    <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                        الرئيسية
-                    </a>
-                    <a href="{{ route('attendance.all') }}" class="{{ request()->routeIs('attendance.*') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
-                        الحضور
-                    </a>
+                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                        {{ __('Dashboard') }}
+                    </x-nav-link>
+                    @if(auth()->user()->role === 'Admin' || auth()->user()->role === 'Instructor')
+                        <x-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
+                            {{ __('Attendance') }}
+                        </x-nav-link>
+                    @else
+                        <x-nav-link :href="route('attendance.my')" :active="request()->routeIs('attendance.my')">
+                            {{ __('My Attendance') }}
+                        </x-nav-link>
+                    @endif
                     <a href="{{ route('sessions.index') }}" class="{{ request()->routeIs('sessions.*') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' }} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                         المحاضرات
                     </a>
