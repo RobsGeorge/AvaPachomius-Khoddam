@@ -11,21 +11,23 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden sm:ml-6 sm:flex sm:space-x-8 sm:space-x-reverse">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        الرئيسية
-                    </x-nav-link>
-                    @if(auth()->user()->role === 'Admin' || auth()->user()->role === 'Instructor')
-                        <x-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
-                            الحضور
+                    @auth
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                            الرئيسية
                         </x-nav-link>
-                    @else
-                        <x-nav-link :href="route('attendance.my')" :active="request()->routeIs('attendance.my')">
-                            سجل الحضور
+                        @if(auth()->user()->role === 'Admin' || auth()->user()->role === 'Instructor')
+                            <x-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
+                                الحضور
+                            </x-nav-link>
+                        @else
+                            <x-nav-link :href="route('attendance.my')" :active="request()->routeIs('attendance.my')">
+                                سجل الحضور
+                            </x-nav-link>
+                        @endif
+                        <x-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">
+                            المحاضرات
                         </x-nav-link>
-                    @endif
-                    <x-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">
-                        المحاضرات
-                    </x-nav-link>
+                    @endauth
                 </div>
             </div>
 
