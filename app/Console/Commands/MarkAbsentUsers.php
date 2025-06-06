@@ -28,7 +28,7 @@ class MarkAbsentUsers extends Command
             $this->info("Processing session: {$session->session_date}");
             
             // Get all active users
-            $users = User::whereNotNull('id')->get();
+            $users = User::whereNotNull('user_id')->get();
             
             if ($users->isEmpty()) {
                 $this->warn("No users found to process for session {$session->session_date}");
@@ -42,7 +42,7 @@ class MarkAbsentUsers extends Command
             
             // Find users without attendance records
             $absentUsers = $users->filter(function ($user) use ($existingAttendance) {
-                return $user->id && !in_array($user->id, $existingAttendance);
+                return $user->user_id && !in_array($user->user_id, $existingAttendance);
             });
             
             if ($absentUsers->isEmpty()) {
@@ -52,13 +52,13 @@ class MarkAbsentUsers extends Command
             
             // Create absent records
             $absentRecords = $absentUsers->map(function ($user) use ($session) {
-                if (!$user->id) {
+                if (!$user->user_id) {
                     $this->warn("Skipping user with null ID");
                     return null;
                 }
                 
                 return [
-                    'user_id' => $user->id,
+                    'user_id' => $user->user_id,
                     'session_id' => $session->session_id,
                     'status' => 'Absent',
                     'created_at' => now(),
