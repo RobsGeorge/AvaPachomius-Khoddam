@@ -43,39 +43,46 @@
 
 @push('styles')
 <style>
-    /* Enhanced Pagination Styling */
+    /* Modern Pagination Styling */
     .pagination {
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
         margin-top: 2rem;
         padding: 1rem;
         background-color: #ffffff;
-        border-radius: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
 
     .pagination > * {
-        padding: 0.625rem 1.25rem;
-        border-radius: 0.375rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
         background-color: #f8fafc;
         color: #1e293b;
         font-weight: 500;
         transition: all 0.2s ease-in-out;
         border: 1px solid #e2e8f0;
+        min-width: 2.5rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .pagination > *:hover:not(.disabled) {
         background-color: #f1f5f9;
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border-color: #cbd5e1;
     }
 
     .pagination .active {
         background-color: #4f46e5;
         color: white;
         border-color: #4f46e5;
+        font-weight: 600;
     }
 
     .pagination .active:hover {
@@ -95,22 +102,28 @@
         align-items: center;
         gap: 0.5rem;
         font-weight: 600;
+        padding: 0.5rem 1.25rem;
     }
 
     .pagination .prev:before {
         content: "←";
         font-size: 1.25rem;
+        line-height: 1;
     }
 
     .pagination .next:after {
         content: "→";
         font-size: 1.25rem;
+        line-height: 1;
     }
 
     /* Page numbers */
     .pagination .page-item {
         min-width: 2.5rem;
-        text-align: center;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     /* Responsive adjustments */
@@ -118,10 +131,17 @@
         .pagination {
             flex-wrap: wrap;
             gap: 0.5rem;
+            padding: 0.75rem;
         }
 
         .pagination > * {
-            padding: 0.5rem 1rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .pagination .prev,
+        .pagination .next {
+            padding: 0.375rem 1rem;
         }
     }
 </style>
