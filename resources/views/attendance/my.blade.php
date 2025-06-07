@@ -24,10 +24,10 @@
                         @foreach($attendanceRecords as $record)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-6 py-4 border-b text-sm text-gray-700">
-                                    {{ $record->session->name }}
+                                    {{ $record->session->name ?? 'غير محدد' }}
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm text-gray-700">
-                                    {{ $record->session->date->format('Y-m-d') }}
+                                    {{ $record->session->date ? $record->session->date->format('Y-m-d') : 'غير محدد' }}
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm">
                                     @if($record->status === 'Present')
@@ -39,7 +39,7 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm text-gray-700">
-                                    @if($record->status !== 'Absent')
+                                    @if($record->status !== 'Absent' && $record->created_at)
                                         {{ $record->created_at->format('H:i') }}
                                     @endif
                                 </td>
