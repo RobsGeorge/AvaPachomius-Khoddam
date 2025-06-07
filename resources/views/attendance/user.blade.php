@@ -4,7 +4,6 @@
 <div class="container" dir="rtl">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-2xl font-bold text-right">سجل الحضور - {{ $user->first_name . ' ' . $user->second_name . ' ' . $user->third_name }}</h1>
-        <a href="{{ route('attendance.all') }}" class="btn btn-secondary">العودة للسجل الكامل</a>
     </div>
 
     @if(session('success'))
