@@ -80,8 +80,7 @@ Route::middleware(['auth', 'role:Admin,Instructor'])->group(function () {
     // View all attendance records
     Route::get('/attendance/all', [AttendanceController::class, 'viewAllAttendance'])->name('attendance.all');
 
-    // View attendance records for a specific user
-    Route::get('/attendance/user/{userId}', [AttendanceController::class, 'viewUserAttendance'])->name('attendance.user');
+    
 
     // Update attendance status
     Route::get('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
@@ -100,6 +99,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::get('/logout', [LoginController::class, 'logout'])->name('logout');
+
+    // View attendance records for a specific user
+    Route::get('/attendance/user/{userId}', [AttendanceController::class, 'viewUserAttendance'])->name('attendance.user');
     
     // Regular user attendance view
     Route::get('/attendance/my', [AttendanceController::class, 'viewMyAttendance'])->name('attendance.my');
