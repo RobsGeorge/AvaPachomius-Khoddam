@@ -67,7 +67,7 @@
         @if(Auth::user()->roles->contains('role_name', 'Admin') || Auth::user()->roles->contains('role_name', 'Instructor'))
             <a href="{{ route('attendance.all') }}" class="btn btn-primary mt-2">عرض سجل الحضور الكامل</a>
         @else
-            <a href="{{ route('attendance.user', ['userId' => Auth::user()->user_id]) }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
+            <a href="{{ route('attendance.my' }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
         @endif
     </section>
 
