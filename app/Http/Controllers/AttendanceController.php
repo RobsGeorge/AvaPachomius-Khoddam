@@ -76,8 +76,7 @@ class AttendanceController extends Controller
             ->select([
                 'attendance.*',
                 DB::raw('DATE_ADD(session.session_date, INTERVAL 3 HOUR) as session_date'),
-                DB::raw('DATE_ADD(attendance.created_at, INTERVAL 3 HOUR) as created_at'),
-                DB::raw('DATE_ADD(attendance.updated_at, INTERVAL 3 HOUR) as updated_at')
+                DB::raw('DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR) as attendance_time')
             ]);
 
         // Filter by session date
