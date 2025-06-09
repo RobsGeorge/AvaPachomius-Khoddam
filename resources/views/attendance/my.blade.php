@@ -42,7 +42,7 @@
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm text-gray-700">
                                     @if($record->status !== 'Absent' && $record->created_at)
-                                        {{ $record->created_at->format('H:i') }}
+                                        {{ $record->attendance_time->format('H:i') }}
                                     @endif
                                 </td>
                             </tr>
