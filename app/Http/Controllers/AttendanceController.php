@@ -164,6 +164,27 @@ class AttendanceController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    // View attendance records for a specific date
+    public function viewAttendanceByDate($date)
+    {
+        $query = Attendance::with(['user', 'session', 'takenBy'])
+            ->join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
+            ->join('session', 'attendance.session_id', '=', 'session.session_id')
+            ->where('user_course_role.role_id', '=', 1)
+            ->whereDate('session.session_date', $date)
+            ->select([
+                'attendance.*',
+                DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
+                DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
+            ])
+            ->orderBy('attendance.created_at', 'desc');
+
+        $attendanceRecords = $query->paginate(20);
+        $selectedDate = $date;
+
+        return view('attendance.all', compact('attendanceRecords', 'selectedDate'));
+    }
 }
 
 ?>

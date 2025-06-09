@@ -14,7 +14,7 @@
                 <table class="min-w-full bg-white">
                     <thead>
                         <tr class="bg-gray-100">
-                            <th class="px-6 py-3 border-b text-right text-sm font-semibold text-gray-600">الجلسة</th>
+                            <th class="px-6 py-3 border-b text-right text-sm font-semibold text-gray-600">المحاضرة</th>
                             <th class="px-6 py-3 border-b text-right text-sm font-semibold text-gray-600">التاريخ</th>
                             <th class="px-6 py-3 border-b text-right text-sm font-semibold text-gray-600">الحالة</th>
                             <th class="px-6 py-3 border-b text-right text-sm font-semibold text-gray-600">وقت التسجيل</th>

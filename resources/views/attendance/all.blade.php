@@ -36,8 +36,10 @@
                                 <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
                                     {{ $record->session->session_title }}
                                 </td>
-                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
-                                    {{ $record->session_date }}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <a href="{{ route('attendance.by-date', $record->session_date) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                                        {{ $record->session_date }}
+                                    </a>
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
                                     @if($record->status === 'Present')

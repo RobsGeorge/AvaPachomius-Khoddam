@@ -113,3 +113,5 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');
+
+Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttendanceByDate'])->name('attendance.by-date');
