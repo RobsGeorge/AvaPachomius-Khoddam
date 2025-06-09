@@ -76,7 +76,7 @@ class AttendanceController extends Controller
             ->select([
                 'attendance.*',
                 DB::raw('DATE_ADD(session.session_date, INTERVAL 3 HOUR) as session_date'),
-                DB::raw("DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i %p') as attendance_time")
+                DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ]);
 
         // Filter by session date
