@@ -71,7 +71,7 @@ class AttendanceController extends Controller
         $query = Attendance::with(['user', 'session', 'takenBy'])
             ->join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->where('user_course_role.role_id', '=', 2);
+            ->where('user_course_role.role_id', '=', 1);
 
         // Filter by session date
         if ($request->filled('session_date')) {
