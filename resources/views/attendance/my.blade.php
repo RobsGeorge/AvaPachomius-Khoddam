@@ -27,7 +27,7 @@
                                     {{ $record->session->session_title ?? 'غير محدد' }}
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm text-gray-700">
-                                    {{ $record->session->session_date ? \Carbon\Carbon::parse($record->session->session_date)->addHours(3)->format('Y-m-d') : 'غير محدد' }}
+                                    {{ $record->session_date ?? 'غير محدد' }}
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm">
                                     @if($record->status === 'Present')
@@ -39,10 +39,7 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 border-b text-sm text-gray-700">
-                                    @if($record->attendance_time)
-                                        {{ \Carbon\Carbon::parse($record->attendance_time)->addHours(3)->format('h:i') }}
-                                        {{ \Carbon\Carbon::parse($record->attendance_time)->addHours(3)->format('A') === 'AM' ? 'ص' : 'م' }}
-                                    @endif
+                                    {{ $record->attendance_time ?? '' }}
                                 </td>
                             </tr>
                         @endforeach
