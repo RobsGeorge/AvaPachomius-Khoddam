@@ -110,24 +110,18 @@ class AttendanceController extends Controller
     public function viewMyAttendance()
     {
         $user = auth()->user();
-
-        $query = Attendance::with(['session'])
-        ->join('session', 'attendance.session_id', '=', 'session.session_id')
-        ->where('user_id', $user->user_id)
-        ->select([
-            'attendance.*',
-            DB::raw('DATE_ADD(session.session_date, INTERVAL 3 HOUR) as session_date'),
-            DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
-        ]);
-
         $attendanceRecords = Attendance::with(['session'])
             ->where('user_id', $user->user_id)
-            ->orderBy('attendance_time', 'desc')
-            ->paginate(10);
+            ->orderBy('created_at', 'desc')
+            ->select([
+                'attendance.*',
+                DB::raw('DATE_ADD(session.session_date, INTERVAL 3 HOUR) as session_date'),
+                DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
+            ]);
 
         return view('attendance.my', [
             'user' => $user,
-            'attendanceRecords' => $query
+            'attendanceRecords' => $attendanceRecords
         ]);
     }
 
