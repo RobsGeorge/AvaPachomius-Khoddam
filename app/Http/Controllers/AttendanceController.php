@@ -7,6 +7,7 @@ use App\Models\Course;
 use Illuminate\Http\Request;
 use App\Models\Session;
 use App\Models\Attendance;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -71,7 +72,13 @@ class AttendanceController extends Controller
         $query = Attendance::with(['user', 'session', 'takenBy'])
             ->join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->where('user_course_role.role_id', '=', 1);
+            ->where('user_course_role.role_id', '=', 1)
+            ->select([
+                'attendance.*',
+                DB::raw('DATE_ADD(session.session_date, INTERVAL 3 HOUR) as session_date'),
+                DB::raw('DATE_ADD(attendance.created_at, INTERVAL 3 HOUR) as created_at'),
+                DB::raw('DATE_ADD(attendance.updated_at, INTERVAL 3 HOUR) as updated_at')
+            ]);
 
         // Filter by session date
         if ($request->filled('session_date')) {
