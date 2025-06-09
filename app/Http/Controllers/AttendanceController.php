@@ -113,10 +113,10 @@ class AttendanceController extends Controller
         $attendanceRecords = Attendance::with(['session'])
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
             ->where('user_id', $user->user_id)
-            ->orderBy('created_at', 'desc')
+            ->orderBy('session.session_date', 'desc')
             ->select([
                 'attendance.*',
-                DB::raw('DATE_ADD(session.session_date, INTERVAL 3 HOUR) as session_date'),
+                DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
                 DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ])
             ->paginate(10);
