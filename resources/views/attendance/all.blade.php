@@ -42,16 +42,23 @@
                                     </a>
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
-                                    @if($record->status === 'Present')
-                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">حاضر</span>
-                                    @elseif($record->status === 'Absent')
-                                        <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full">غائب</span>
-                                    @else
-                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">متأخر</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
-                                    {{ $record->permission_reason }}
+                                    <select 
+                                        class="status-select bg-white border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        data-attendance-id="{{ $record->attendance_id }}"
+                                        onchange="updateStatus(this)">
+                                        <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>حاضر</option>
+                                        <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>غائب</option>
+                                        <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>متأخر</option>
+                                        <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>إذن</option>
+                                    </select>
+                                    <div id="permission-reason-{{ $record->attendance_id }}" class="mt-2 {{ $record->status === 'Permission' ? '' : 'hidden' }}">
+                                        <input 
+                                            type="text" 
+                                            class="permission-reason bg-white border border-gray-300 rounded-md px-3 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="سبب الإذن"
+                                            value="{{ $record->permission_reason }}"
+                                            onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
                                     {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}
@@ -111,4 +118,84 @@
         @endif
     </div>
 </div>
+
+@push('scripts')
+<script>
+function updateStatus(select) {
+    const attendanceId = select.dataset.attendanceId;
+    const status = select.value;
+    const permissionReasonDiv = document.getElementById(`permission-reason-${attendanceId}`);
+    const permissionReasonInput = permissionReasonDiv.querySelector('input');
+
+    if (status === 'Permission') {
+        permissionReasonDiv.classList.remove('hidden');
+        if (!permissionReasonInput.value) {
+            alert('الرجاء إدخال سبب الإذن');
+            select.value = '{{ $record->status }}';
+            return;
+        }
+    } else {
+        permissionReasonDiv.classList.add('hidden');
+    }
+
+    fetch(`/attendance/${attendanceId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            status: status,
+            permission_reason: permissionReasonInput.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('حدث خطأ أثناء تحديث الحالة');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء تحديث الحالة');
+    });
+}
+
+function updatePermissionReason(input, attendanceId) {
+    const select = input.closest('td').querySelector('select');
+    const status = select.value;
+
+    if (status === 'Permission' && !input.value) {
+        alert('الرجاء إدخال سبب الإذن');
+        return;
+    }
+
+    fetch(`/attendance/${attendanceId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            status: status,
+            permission_reason: input.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+        } else {
+            alert('حدث خطأ أثناء تحديث سبب الإذن');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء تحديث سبب الإذن');
+    });
+}
+</script>
+@endpush
 @endsection 

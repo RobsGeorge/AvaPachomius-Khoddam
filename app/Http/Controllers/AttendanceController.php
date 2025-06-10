@@ -146,25 +146,22 @@ class AttendanceController extends Controller
     }
 
     // Update attendance status
-    public function updateStatus(Request $request, $attendanceId)
+    public function updateStatus(Request $request, $id)
     {
-        try {
-            $attendance = Attendance::findOrFail($attendanceId);
-            $previousStatus = $attendance->status;
-            
-            $attendance->status = $request->input('status');
-            $attendance->save();
+        $request->validate([
+            'status' => 'required|in:Present,Absent,Late,Permission',
+            'permission_reason' => 'required_if:status,Permission|nullable|string|max:255'
+        ]);
 
-            return response()->json([
-                'success' => true,
-                'previousStatus' => $previousStatus
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء تحديث الحالة'
-            ], 500);
-        }
+        $attendance = Attendance::findOrFail($id);
+        $attendance->status = $request->status;
+        $attendance->permission_reason = $request->permission_reason;
+        $attendance->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تحديث الحالة بنجاح'
+        ]);
     }
 
     // Update permission reason
