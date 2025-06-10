@@ -85,8 +85,10 @@
     <section class="mb-10">
         <h2 class="section-title">الامتحانات</h2>
         <a href="{{ route('exams.index') }}" class="btn btn-primary mt-2">عرض مواعيد ونتائج الامتحانات</a>
-        @if(auth()->user()->hasRole(['Admin', 'Instructor']))
-            <a href="{{ route('exams.dashboard') }}" class="btn btn-secondary mt-2">إدارة الامتحانات</a>
+        @if(auth()->user()->courses()->whereHas('roles', function($query) {
+            $query->whereIn('role_name', ['Admin', 'Instructor']);
+        })->exists())
+            <a href="{{ route('exams.admin-dashboard') }}" class="btn btn-secondary mt-2">إدارة الامتحانات</a>
         @endif
     </section>
 </div>

@@ -13,13 +13,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Attendance;
 use App\Models\UserAssessment;
 use App\Models\Role;
-use App\Traits\HasRoles;
 
 
 
 class User extends Authenticatable
 {
-    use Notifiable, HasApiTokens, HasFactory, HasRoles;
+    use Notifiable, HasApiTokens, HasFactory;
 
     protected $table = 'user';
 
