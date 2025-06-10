@@ -183,7 +183,7 @@ class AttendanceController extends Controller
         $attendanceRecords = $query->paginate(20);
         $selectedDate = $date;
 
-        return view('attendance.all', compact('attendanceRecords', 'selectedDate'));
+        return view('attendance.date', compact('attendanceRecords', 'selectedDate'));
     }
 }
 
