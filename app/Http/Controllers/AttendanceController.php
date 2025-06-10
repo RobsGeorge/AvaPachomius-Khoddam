@@ -180,7 +180,7 @@ class AttendanceController extends Controller
                 DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
                 DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ])
-            ->orderBy('attendance.created_at', 'desc');
+            ->orderBy('attendance.attendance_time', 'desc');
 
         $attendanceRecords = $query->paginate(20);
         $selectedDate = $date;

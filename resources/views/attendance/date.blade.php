@@ -27,36 +27,33 @@
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
-                                    {{ $record->user->name }}
+                                {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
                                 </a>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ $record->session->session_title }}
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ $record->session->session_date }}
+                            </td>
                             <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
-                                @if($record->status === 'present')
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        حاضر
-                                    </span>
-                                @elseif($record->status === 'absent')
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        غائب
-                                    </span>
-                                @elseif($record->status === 'late')
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        متأخر
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $record->attendance_time }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $record->takenBy->name }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $record->notes }}
-                            </td>
+                                    @if($record->status === 'Present')
+                                        <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">حاضر</span>
+                                    @elseif($record->status === 'Absent')
+                                        <span class="px-2 py-1 bg-red-100 text-red-800 rounded-full">غائب</span>
+                                    @else
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">متأخر</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    {{ $record->permission_reason }}
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    {{ $record->attendance_time }}
+                                </td>
                         </tr>
                     @empty
                         <tr>
