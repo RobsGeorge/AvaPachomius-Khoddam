@@ -175,6 +175,8 @@ class AttendanceController extends Controller
             ->whereDate('session.session_date', $date)
             ->select([
                 'attendance.*',
+                'session.session_title',
+                'user_course_role.role_id',
                 DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
                 DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ])
