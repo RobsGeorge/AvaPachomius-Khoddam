@@ -283,6 +283,25 @@ class AttendanceController extends Controller
             ->orderBy('month', 'desc')
             ->get();
     }
+
+    private function getUserStats()
+    {
+        return Attendance::join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
+            ->join('user', 'attendance.user_id', '=', 'user.user_id')
+            ->where('user_course_role.role_id', '=', 1)
+            ->select([
+                'user.user_id',
+                'user.first_name',
+                'user.second_name',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
+            ])
+            ->groupBy('user.user_id', 'user.first_name', 'user.second_name')
+            ->having('total', '>', 0)
+            ->orderByRaw('(SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) / COUNT(*)) DESC')
+            ->limit(5)
+            ->get();
+    }
 }
 
 ?>
