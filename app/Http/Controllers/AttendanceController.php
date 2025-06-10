@@ -117,7 +117,7 @@ class AttendanceController extends Controller
         $overallStats = $this->getOverallStats();
 
         // Get monthly statistics
-        $monthlyStats = $this->getMonthlyStats();
+        $monthlyStats = $this->getMonthlyStats($userId);
 
         return view('attendance.user', compact('user', 'attendanceRecords', 'overallStats', 'monthlyStats'));
     }
@@ -140,7 +140,7 @@ class AttendanceController extends Controller
         $overallStats = $this->getOverallStats();
 
         // Get monthly statistics
-        $monthlyStats = $this->getMonthlyStats();
+        $monthlyStats = $this->getMonthlyStats($user->user_id);
 
         return view('attendance.my', compact('attendanceRecords', 'overallStats', 'monthlyStats'));
     }
@@ -278,66 +278,80 @@ class AttendanceController extends Controller
 
     private function getUserStats()
     {
-        return Attendance::join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
-            ->join('user', 'attendance.user_id', '=', 'user.user_id')
-            ->where('user_course_role.role_id', '=', 1)
-            ->select([
-                'user.user_id',
-                'user.first_name',
-                'user.second_name',
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
-            ])
-            ->groupBy('user.user_id', 'user.first_name', 'user.second_name')
-            ->having('total', '>', 0)
-            ->orderByRaw('(SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) / COUNT(*)) DESC')
+        return DB::table('attendance')
+            ->join('users', 'attendance.user_id', '=', 'users.user_id')
+            ->selectRaw('
+                users.user_id,
+                users.name,
+                COUNT(*) as total_records,
+                SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
+            ')
+            ->groupBy('users.user_id', 'users.name')
+            ->orderByRaw('SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) / COUNT(*) DESC')
             ->limit(5)
             ->get();
     }
 
     private function getOverallStats()
     {
-        return Attendance::select([
-            DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present'),
-            DB::raw('SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent'),
-            DB::raw('SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late')
-        ])->first();
+        return DB::table('attendance')
+            ->selectRaw('
+                COUNT(*) as total_records,
+                SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
+            ')
+            ->first();
     }
 
-    private function getMonthlyStats()
+    private function getDailyStats()
     {
-        return Attendance::join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->select([
-                DB::raw('DATE_FORMAT(session.session_date, "%Y-%m") as month'),
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
-            ])
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
-            ->get()
-            ->keyBy('month')
-            ->map(function($item) {
-                return [
-                    'total' => $item->total,
-                    'present' => $item->present
-                ];
-            });
+        return DB::table('attendance')
+            ->join('session', 'attendance.session_id', '=', 'session.session_id')
+            ->selectRaw('
+                DATE(session.session_date) as date,
+                COUNT(*) as total_records,
+                SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
+            ')
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->get();
     }
 
     private function getSessionStats($date)
     {
-        return Attendance::join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
+        return DB::table('attendance')
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->where('user_course_role.role_id', '=', 1)
             ->whereDate('session.session_date', $date)
-            ->select([
-                'session.session_title',
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
-            ])
+            ->selectRaw('
+                session.session_title,
+                COUNT(*) as total_records,
+                SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
+            ')
             ->groupBy('session.session_title')
-            ->orderBy('total', 'desc')
+            ->get();
+    }
+
+    private function getMonthlyStats($userId)
+    {
+        return DB::table('attendance')
+            ->join('session', 'attendance.session_id', '=', 'session.session_id')
+            ->where('attendance.user_id', $userId)
+            ->selectRaw('
+                DATE_FORMAT(session.session_date, "%Y-%m") as month,
+                COUNT(*) as total_records,
+                SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
+            ')
+            ->groupBy('month')
+            ->orderBy('month', 'desc')
             ->get();
     }
 }
