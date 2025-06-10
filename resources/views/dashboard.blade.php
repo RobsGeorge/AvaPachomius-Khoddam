@@ -57,16 +57,15 @@
 
     <section class="mb-10">
         <h2 class="section-title">الملف الشخصي</h2>
-        <a href="{{ route('profile') }}" class="btn btn-primary mt-2">الملف الشخصي</a>
+        <a href="{{ route('profile') }}" class="btn btn-primary mt-2">عرض الملف الشخصي</a>
         <!-- Example: Show user info here -->
     </section>
 
     <section class="mb-10">
         <h2 class="section-title">الحضور</h2>
+        <a href="{{ route('attendance.user', ['userId' => Auth::user()->user_id]) }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
         @if(Auth::user()->roles->contains('role_name', 'Admin') || Auth::user()->roles->contains('role_name', 'Instructor'))
-            <a href="{{ route('attendance.all') }}" class="btn btn-primary mt-2">عرض سجل الحضور الكامل</a>
-        @else
-            <a href="{{ route('attendance.user', ['userId' => Auth::user()->user_id]) }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
+            <a href="{{ route('attendance.all') }}" class="btn btn-secondary mt-2">عرض سجل الحضور الكامل</a>
         @endif
     </section>
 
