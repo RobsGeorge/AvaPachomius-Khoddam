@@ -86,6 +86,17 @@
                 <!-- Monthly Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات شهرية</h3>
+                    @php
+                        $monthlyStats = $attendanceRecords->groupBy(function($record) {
+                            return \Carbon\Carbon::parse($record->session_date)->format('Y-m');
+                        })->map(function($records) {
+                            return [
+                                'total' => $records->count(),
+                                'present' => $records->where('status', 'Present')->count(),
+                                'percentage' => round(($records->where('status', 'Present')->count() / $records->count()) * 100)
+                            ];
+                        })->sortKeysDesc();
+                    @endphp
                     <div class="space-y-4">
                         @foreach($monthlyStats as $month => $stat)
                             <div class="border-b pb-2">

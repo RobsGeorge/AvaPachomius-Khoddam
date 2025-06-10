@@ -3,41 +3,33 @@
 @section('content')
 <div class="container mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">سجل الحضور ليوم {{ $selectedDate }}</h2>
-            <a href="{{ route('attendance.all') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200">
-                العودة للقائمة الرئيسية
-            </a>
-        </div>
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">سجل الحضور - {{ $date }}</h1>
 
-        <div class="w-full overflow-x-auto">
-            <table class="w-full table-auto">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">اسم الطالب</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">عنوان المحاضرة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ المحاضرة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الحالة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سبب الاذن</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التسجيل بواسطة</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">وقت الحضور</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse($attendanceRecords as $record)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:text-blue-800 hover:underline">
-                                {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
-                                </a>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $record->session->session_title }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ $record->session->session_date }}
-                            </td>
-                            <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
+        @if($attendanceRecords->count() === 0)
+            <p class="text-right">لا توجد سجلات حضور.</p>
+        @else
+            <div class="w-full overflow-x-auto">
+                <table class="w-full table-auto">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">المحاضرة</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">التاريخ</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">الحالة</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">سبب الإذن</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">تم التسجيل بواسطة</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">وقت التسجيل</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @foreach($attendanceRecords as $record)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    {{ $record->session->session_title }}
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    {{ $record->session_date }}
+                                </td>
+                                <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
                                     @if($record->status === 'Present')
                                         <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">حاضر</span>
                                     @elseif($record->status === 'Absent')
@@ -55,19 +47,12 @@
                                 <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
                                     {{ $record->attendance_time }}
                                 </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
-                                لا توجد سجلات حضور لهذا اليوم
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-        @if($attendanceRecords->count() > 0)
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Daily Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
@@ -107,23 +92,13 @@
                 <!-- Session Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات المحاضرات</h3>
-                    @php
-                        $sessionStats = $attendanceRecords->groupBy('session_id')->map(function($records) {
-                            return [
-                                'title' => $records->first()->session->session_title,
-                                'total' => $records->count(),
-                                'present' => $records->where('status', 'Present')->count(),
-                                'percentage' => round(($records->where('status', 'Present')->count() / $records->count()) * 100)
-                            ];
-                        });
-                    @endphp
                     <div class="space-y-4">
                         @foreach($sessionStats as $stat)
                             <div class="border-b pb-2">
-                                <p class="text-gray-800 font-medium">{{ $stat['title'] }}</p>
+                                <p class="text-gray-800 font-medium">{{ $stat->session_title }}</p>
                                 <div class="flex justify-between items-center">
-                                    <p class="text-sm text-gray-600">الحضور: {{ $stat['present'] }}/{{ $stat['total'] }}</p>
-                                    <p class="text-sm text-gray-600">{{ $stat['percentage'] }}%</p>
+                                    <p class="text-sm text-gray-600">الحضور: {{ $stat->present }}/{{ $stat->total }}</p>
+                                    <p class="text-sm text-gray-600">{{ round(($stat->present / $stat->total) * 100) }}%</p>
                                 </div>
                             </div>
                         @endforeach
