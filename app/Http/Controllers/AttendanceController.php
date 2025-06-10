@@ -302,6 +302,35 @@ class AttendanceController extends Controller
             ->limit(5)
             ->get();
     }
+
+    private function getOverallStats()
+    {
+        return Attendance::select([
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present'),
+            DB::raw('SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent'),
+            DB::raw('SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late')
+        ])->first();
+    }
+
+    private function getMonthlyStats()
+    {
+        return Attendance::select([
+            DB::raw('DATE_FORMAT(session_date, "%Y-%m") as month'),
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
+        ])
+        ->groupBy('month')
+        ->orderBy('month', 'desc')
+        ->get()
+        ->keyBy('month')
+        ->map(function($item) {
+            return [
+                'total' => $item->total,
+                'present' => $item->present
+            ];
+        });
+    }
 }
 
 ?>

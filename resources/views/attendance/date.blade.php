@@ -69,9 +69,9 @@
 
         @if($attendanceRecords->count() > 0)
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Overall Statistics -->
+                <!-- Daily Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات عامة</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات اليوم</h3>
                     @php
                         $total = $attendanceRecords->count();
                         $present = $attendanceRecords->where('status', 'Present')->count();
@@ -81,7 +81,7 @@
                     @endphp
                     <div class="space-y-4">
                         <div>
-                            <p class="text-gray-600 mb-2">نسبة الحضور لهذا اليوم</p>
+                            <p class="text-gray-600 mb-2">نسبة الحضور</p>
                             <div class="w-full bg-gray-200 rounded-full h-4">
                                 <div class="bg-green-600 h-4 rounded-full" style="width: {{ $presentPercentage }}%"></div>
                             </div>
@@ -104,20 +104,8 @@
                     </div>
                 </div>
 
-                <!-- Overall Statistics -->
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات عامة</h3>
-                    <div class="space-y-2">
-                        <p class="text-gray-600">إجمالي السجلات: <span class="font-semibold">{{ $overallStats->total }}</span></p>
-                        <p class="text-gray-600">الحاضرين: <span class="font-semibold text-green-600">{{ $overallStats->present }}</span></p>
-                        <p class="text-gray-600">الغائبين: <span class="font-semibold text-red-600">{{ $overallStats->absent }}</span></p>
-                        <p class="text-gray-600">المتأخرين: <span class="font-semibold text-yellow-600">{{ $overallStats->late }}</span></p>
-                        <p class="text-gray-600">نسبة الحضور: <span class="font-semibold">{{ round(($overallStats->present / $overallStats->total) * 100) }}%</span></p>
-                    </div>
-                </div>
-
                 <!-- Session Statistics -->
-                <div class="bg-white p-6 rounded-lg shadow-md col-span-2">
+                <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات المحاضرات</h3>
                     @php
                         $sessionStats = $attendanceRecords->groupBy('session_id')->map(function($records) {

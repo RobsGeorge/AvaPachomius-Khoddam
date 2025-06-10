@@ -58,7 +58,7 @@
             </div>
 
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Overall Statistics -->
+                <!-- Personal Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات الحضور</h3>
                     @php
@@ -94,7 +94,7 @@
                 </div>
 
                 <!-- Monthly Statistics -->
-                <div class="bg-white p-6 rounded-lg shadow-md col-span-2">
+                <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات شهرية</h3>
                     @php
                         $monthlyStats = $attendanceRecords->groupBy(function($record) {
