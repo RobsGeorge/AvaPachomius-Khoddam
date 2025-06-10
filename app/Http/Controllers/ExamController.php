@@ -83,4 +83,33 @@ class ExamController extends Controller
         return redirect()->route('exams.dashboard')
             ->with('success', 'تم حذف الامتحان بنجاح');
     }
+
+    public function adminDashboard()
+    {
+        // Get statistics
+        $totalExams = Exam::count();
+        $upcomingExams = ExamSchedule::where('scheduled_date', '>', now())->count();
+        $completedExams = ExamSchedule::where('is_completed', true)->count();
+
+        // Get upcoming exam schedules with related data
+        $upcomingExamSchedules = ExamSchedule::with(['exam', 'results'])
+            ->where('scheduled_date', '>', now())
+            ->orderBy('scheduled_date')
+            ->take(5)
+            ->get();
+
+        // Get recent results
+        $recentResults = ExamResult::with(['user', 'exam', 'schedule'])
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return view('exams.admin-dashboard', compact(
+            'totalExams',
+            'upcomingExams',
+            'completedExams',
+            'upcomingExamSchedules',
+            'recentResults'
+        ));
+    }
 } 
