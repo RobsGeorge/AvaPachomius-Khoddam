@@ -310,21 +310,22 @@ class AttendanceController extends Controller
 
     private function getMonthlyStats()
     {
-        return Attendance::select([
-            DB::raw('DATE_FORMAT(session_date, "%Y-%m") as month'),
-            DB::raw('COUNT(*) as total'),
-            DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
-        ])
-        ->groupBy('month')
-        ->orderBy('month', 'desc')
-        ->get()
-        ->keyBy('month')
-        ->map(function($item) {
-            return [
-                'total' => $item->total,
-                'present' => $item->present
-            ];
-        });
+        return Attendance::join('session', 'attendance.session_id', '=', 'session.session_id')
+            ->select([
+                DB::raw('DATE_FORMAT(session.session_date, "%Y-%m") as month'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
+            ])
+            ->groupBy('month')
+            ->orderBy('month', 'desc')
+            ->get()
+            ->keyBy('month')
+            ->map(function($item) {
+                return [
+                    'total' => $item->total,
+                    'present' => $item->present
+                ];
+            });
     }
 
     private function getSessionStats($date)
