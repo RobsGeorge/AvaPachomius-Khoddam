@@ -120,12 +120,12 @@
                         })->sortKeysDesc();
                     @endphp
                     <div class="space-y-4">
-                        @foreach($monthlyStats as $stat)
+                        @foreach($monthlyStats as $month => $stat)
                             <div class="border-b pb-2">
-                                <p class="text-gray-800 font-medium">{{ \Carbon\Carbon::createFromFormat('Y-m', $stat->month)->format('F Y') }}</p>
+                                <p class="text-gray-800 font-medium">{{ \Carbon\Carbon::createFromFormat('Y-m', $month)->format('F Y') }}</p>
                                 <div class="flex justify-between items-center">
-                                    <p class="text-sm text-gray-600">الحضور: {{ $stat->present }}/{{ $stat->total }}</p>
-                                    <p class="text-sm text-gray-600">{{ round(($stat->present / $stat->total) * 100) }}%</p>
+                                    <p class="text-sm text-gray-600">الحضور: {{ $stat['present'] }}/{{ $stat['total'] }}</p>
+                                    <p class="text-sm text-gray-600">{{ round(($stat['present'] / $stat['total']) * 100) }}%</p>
                                 </div>
                             </div>
                         @endforeach
