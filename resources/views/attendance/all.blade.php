@@ -70,10 +70,11 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات عامة</h3>
                     <div class="space-y-2">
-                        <p class="text-gray-600">إجمالي السجلات: <span class="font-semibold">{{ $attendanceRecords->total() }}</span></p>
-                        <p class="text-gray-600">الحاضرين: <span class="font-semibold text-green-600">{{ $attendanceRecords->where('status', 'Present')->count() }}</span></p>
-                        <p class="text-gray-600">الغائبين: <span class="font-semibold text-red-600">{{ $attendanceRecords->where('status', 'Absent')->count() }}</span></p>
-                        <p class="text-gray-600">المتأخرين: <span class="font-semibold text-yellow-600">{{ $attendanceRecords->where('status', 'Late')->count() }}</span></p>
+                        <p class="text-gray-600">إجمالي السجلات: <span class="font-semibold">{{ $overallStats->total }}</span></p>
+                        <p class="text-gray-600">الحاضرين: <span class="font-semibold text-green-600">{{ $overallStats->present }}</span></p>
+                        <p class="text-gray-600">الغائبين: <span class="font-semibold text-red-600">{{ $overallStats->absent }}</span></p>
+                        <p class="text-gray-600">المتأخرين: <span class="font-semibold text-yellow-600">{{ $overallStats->late }}</span></p>
+                        <p class="text-gray-600">نسبة الحضور: <span class="font-semibold">{{ round(($overallStats->present / $overallStats->total) * 100) }}%</span></p>
                     </div>
                 </div>
 
@@ -81,20 +82,10 @@
                 <div class="bg-white p-6 rounded-lg shadow-md">
                     <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات يومية</h3>
                     <div class="space-y-2">
-                        @php
-                            $dailyStats = $attendanceRecords->groupBy('session_date')->map(function($records) {
-                                return [
-                                    'total' => $records->count(),
-                                    'present' => $records->where('status', 'Present')->count(),
-                                    'absent' => $records->where('status', 'Absent')->count(),
-                                    'late' => $records->where('status', 'Late')->count()
-                                ];
-                            });
-                        @endphp
-                        @foreach($dailyStats->take(5) as $date => $stats)
+                        @foreach($dailyStats as $stat)
                             <div class="border-b pb-2">
-                                <p class="text-gray-800 font-medium">{{ $date }}</p>
-                                <p class="text-sm text-gray-600">الحضور: {{ $stats['present'] }} ({{ round(($stats['present'] / $stats['total']) * 100) }}%)</p>
+                                <p class="text-gray-800 font-medium">{{ $stat->date }}</p>
+                                <p class="text-sm text-gray-600">الحضور: {{ $stat->present }} ({{ round(($stat->present / $stat->total) * 100) }}%)</p>
                             </div>
                         @endforeach
                     </div>
@@ -102,24 +93,12 @@
 
                 <!-- User Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات المستخدمين</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">أعلى نسبة حضور</h3>
                     <div class="space-y-2">
-                        @php
-                            $userStats = $attendanceRecords->groupBy('user_id')->map(function($records) {
-                                return [
-                                    'total' => $records->count(),
-                                    'present' => $records->where('status', 'Present')->count(),
-                                    'percentage' => round(($records->where('status', 'Present')->count() / $records->count()) * 100)
-                                ];
-                            })->sortByDesc('percentage')->take(5);
-                        @endphp
-                        @foreach($userStats as $userId => $stats)
-                            @php
-                                $user = $attendanceRecords->firstWhere('user_id', $userId)->user;
-                            @endphp
+                        @foreach($userStats as $stat)
                             <div class="border-b pb-2">
-                                <p class="text-gray-800 font-medium">{{ $user->first_name . ' ' . $user->second_name }}</p>
-                                <p class="text-sm text-gray-600">نسبة الحضور: {{ $stats['percentage'] }}%</p>
+                                <p class="text-gray-800 font-medium">{{ $stat->first_name . ' ' . $stat->second_name }}</p>
+                                <p class="text-sm text-gray-600">نسبة الحضور: {{ round(($stat->present / $stat->total) * 100) }}%</p>
                             </div>
                         @endforeach
                     </div>
