@@ -121,8 +121,8 @@ Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStat
 
 // Exam routes
 Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
-Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard')->middleware(['auth', 'role:Instructor,Admin']);
-Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard')->middleware(['auth', 'role:Instructor,Admin']);
+Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
+Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
 Route::post('/exams', [ExamController::class, 'store'])->name('exams.store')->middleware(['auth', 'role:Instructor,Admin']);
 Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware(['auth', 'role:Instructor,Admin']);
 Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware(['auth', 'role:Instructor,Admin']);
