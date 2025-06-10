@@ -247,7 +247,7 @@ class AttendanceController extends Controller
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
             ])
-            ->groupBy('users.id', 'users.first_name', 'users.second_name')
+            ->groupBy('user.user_id', 'user.first_name', 'user.second_name')
             ->having('total', '>', 0)
             ->orderByRaw('(SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) / COUNT(*)) DESC')
             ->limit(5)
