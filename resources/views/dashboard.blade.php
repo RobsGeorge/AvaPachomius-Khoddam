@@ -86,15 +86,15 @@
         <h2 class="section-title">الامتحانات</h2>
         <p class="section-desc">مواعيد ونتائج الامتحانات</p>
         <!-- Add exams info -->
-    </section>
-
-    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-        <div class="p-6 text-gray-900">
-            <h3 class="text-lg font-semibold mb-4">الامتحانات</h3>
-            <a href="{{ route('exams.index') }}" class="inline-block bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        @if(Auth::user()->roles->contains('role_name', 'Admin') || Auth::user()->roles->contains('role_name', 'Instructor'))
+        <a href="{{ route('exams.index') }}" class="inline-block bg-Red-500 hover:bg-Red-700 text-white font-bold py-2 px-4 rounded">
                 عرض مواعيد ونتائج الامتحانات
             </a>
-        </div>
-    </div>
+        @else
+        <a href="{{ route('exams.index') }}" class="inline-block bg-Red-500 hover:bg-Red-700 text-white font-bold py-2 px-4 rounded">
+                عرض مواعيد ونتائج الامتحانات
+            </a>
+        @endif
+    </section>
 </div>
 @endsection
