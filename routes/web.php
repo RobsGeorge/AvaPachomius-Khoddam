@@ -23,6 +23,7 @@ use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\ExamController;
 
 
 
@@ -117,3 +118,12 @@ Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])-
 Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttendanceByDate'])->name('attendance.by-date');
 
 Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
+
+// Exam routes
+Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
+Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard')->middleware(['auth', 'role:instructor,admin']);
+Route::post('/exams', [ExamController::class, 'store'])->name('exams.store')->middleware(['auth', 'role:instructor,admin']);
+Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware(['auth', 'role:instructor,admin']);
+Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware(['auth', 'role:instructor,admin']);
+Route::post('/exams/{exam}/schedule', [ExamController::class, 'scheduleExam'])->name('exams.schedule')->middleware(['auth', 'role:instructor,admin']);
+Route::put('/exam-results/{result}', [ExamController::class, 'updateResult'])->name('exam-results.update')->middleware(['auth', 'role:instructor,admin']);
