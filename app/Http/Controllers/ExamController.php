@@ -7,6 +7,7 @@ use App\Models\ExamSchedule;
 use App\Models\ExamResult;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ExamController extends Controller
 {
@@ -29,14 +30,42 @@ class ExamController extends Controller
     {
         $validated = $request->validate([
             'exam_name' => 'required|string|max:255',
+            'exam_description' => 'required|string',
+            'passing_score' => 'required|integer|min:0|max:100',
             'duration_minutes' => 'required|integer|min:1',
-            'study_resources' => 'nullable|string',
         ]);
 
-        Exam::create($validated);
+        try {
+            $exam = Exam::create($validated);
+            
+            if (!$exam->exists) {
+                \Log::error('Failed to create exam', [
+                    'data' => $validated,
+                    'error' => 'Exam was not saved to database'
+                ]);
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'حدث خطأ أثناء إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
+            }
 
-        return redirect()->route('exams.dashboard')
-            ->with('success', 'تم إضافة الامتحان بنجاح');
+            \Log::info('Exam created successfully', [
+                'exam_id' => $exam->exam_id,
+                'exam_name' => $exam->exam_name
+            ]);
+
+            return redirect()->route('exams.index')
+                ->with('success', 'تم إنشاء الامتحان بنجاح');
+        } catch (\Exception $e) {
+            \Log::error('Error creating exam', [
+                'data' => $validated,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'حدث خطأ أثناء إنشاء الامتحان: ' . $e->getMessage());
+        }
     }
 
     public function update(Request $request, Exam $exam)
