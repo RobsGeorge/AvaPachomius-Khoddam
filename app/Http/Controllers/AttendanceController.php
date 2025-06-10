@@ -238,12 +238,12 @@ class AttendanceController extends Controller
     private function getUserStatistics()
     {
         return Attendance::join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
-            ->join('users', 'attendance.user_id', '=', 'users.id')
+            ->join('user', 'attendance.user_id', '=', 'user.user_id')
             ->where('user_course_role.role_id', '=', 1)
             ->select([
-                'users.id',
-                'users.first_name',
-                'users.second_name',
+                'user.user_id',
+                'user.first_name',
+                'user.second_name',
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
             ])
