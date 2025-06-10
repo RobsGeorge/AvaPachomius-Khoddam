@@ -28,6 +28,12 @@ class ExamController extends Controller
 
     public function store(Request $request)
     {
+        // Log the incoming request data
+        Log::info('Exam creation request received', [
+            'all_data' => $request->all(),
+            'validated_data' => $request->validated() ?? 'No validated data yet'
+        ]);
+
         $validated = $request->validate([
             'exam_name' => 'required|string|max:255',
             'exam_description' => 'required|string',
@@ -35,11 +41,28 @@ class ExamController extends Controller
             'duration_minutes' => 'required|integer|min:1',
         ]);
 
+        // Log the validated data
+        Log::info('Validated exam data', [
+            'validated_data' => $validated
+        ]);
+
         try {
+            // Log before creation attempt
+            Log::info('Attempting to create exam', [
+                'data' => $validated
+            ]);
+
             $exam = Exam::create($validated);
             
+            // Log the created exam
+            Log::info('Exam creation result', [
+                'exam' => $exam->toArray(),
+                'exists' => $exam->exists,
+                'wasRecentlyCreated' => $exam->wasRecentlyCreated
+            ]);
+            
             if (!$exam->exists) {
-                \Log::error('Failed to create exam', [
+                Log::error('Failed to create exam', [
                     'data' => $validated,
                     'error' => 'Exam was not saved to database'
                 ]);
@@ -48,7 +71,7 @@ class ExamController extends Controller
                     ->with('error', 'حدث خطأ أثناء إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
             }
 
-            \Log::info('Exam created successfully', [
+            Log::info('Exam created successfully', [
                 'exam_id' => $exam->exam_id,
                 'exam_name' => $exam->exam_name
             ]);
@@ -56,7 +79,7 @@ class ExamController extends Controller
             return redirect()->route('exams.index')
                 ->with('success', 'تم إنشاء الامتحان بنجاح');
         } catch (\Exception $e) {
-            \Log::error('Error creating exam', [
+            Log::error('Error creating exam', [
                 'data' => $validated,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
