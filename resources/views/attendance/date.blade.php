@@ -67,6 +67,71 @@
             </table>
         </div>
 
+        @if($attendanceRecords->count() > 0)
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Attendance Statistics -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات الحضور</h3>
+                    @php
+                        $total = $attendanceRecords->count();
+                        $present = $attendanceRecords->where('status', 'Present')->count();
+                        $absent = $attendanceRecords->where('status', 'Absent')->count();
+                        $late = $attendanceRecords->where('status', 'Late')->count();
+                        $presentPercentage = round(($present / $total) * 100);
+                    @endphp
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-gray-600 mb-2">نسبة الحضور الإجمالية</p>
+                            <div class="w-full bg-gray-200 rounded-full h-4">
+                                <div class="bg-green-600 h-4 rounded-full" style="width: {{ $presentPercentage }}%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">{{ $presentPercentage }}%</p>
+                        </div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-green-600">{{ $present }}</p>
+                                <p class="text-sm text-gray-600">حاضر</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-red-600">{{ $absent }}</p>
+                                <p class="text-sm text-gray-600">غائب</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-yellow-600">{{ $late }}</p>
+                                <p class="text-sm text-gray-600">متأخر</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Statistics -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات المحاضرات</h3>
+                    @php
+                        $sessionStats = $attendanceRecords->groupBy('session_id')->map(function($records) {
+                            return [
+                                'title' => $records->first()->session->session_title,
+                                'total' => $records->count(),
+                                'present' => $records->where('status', 'Present')->count(),
+                                'percentage' => round(($records->where('status', 'Present')->count() / $records->count()) * 100)
+                            ];
+                        });
+                    @endphp
+                    <div class="space-y-4">
+                        @foreach($sessionStats as $stats)
+                            <div class="border-b pb-2">
+                                <p class="text-gray-800 font-medium">{{ $stats['title'] }}</p>
+                                <div class="flex justify-between items-center">
+                                    <p class="text-sm text-gray-600">الحضور: {{ $stats['present'] }}/{{ $stats['total'] }}</p>
+                                    <p class="text-sm text-gray-600">{{ $stats['percentage'] }}%</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="mt-4">
             {{ $attendanceRecords->links() }}
         </div>
