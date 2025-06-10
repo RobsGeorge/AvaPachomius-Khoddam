@@ -131,10 +131,6 @@
                 </div>
             </div>
         @endif
-
-        <div class="mt-4">
-            {{ $attendanceRecords->links() }}
-        </div>
     </div>
 </div>
 @endsection 

@@ -99,10 +99,6 @@
                     </div>
                 </div>
             </div>
-
-            <div class="mt-4">
-                {{ $attendanceRecords->links() }}
-            </div>
         @endif
     </div>
 </div>

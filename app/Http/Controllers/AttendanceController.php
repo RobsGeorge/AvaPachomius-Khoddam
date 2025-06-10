@@ -102,25 +102,24 @@ class AttendanceController extends Controller
     public function viewUserAttendance($userId)
     {
         $user = User::findOrFail($userId);
-        
-        $query = Attendance::with(['session', 'takenBy'])
+        $attendanceRecords = Attendance::with(['session', 'takenBy'])
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
             ->where('attendance.user_id', $userId)
+            ->orderBy('session.session_date', 'desc')
             ->select([
                 'attendance.*',
-                'session.session_title',
                 DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
                 DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ])
-            ->orderBy('session.session_date', 'desc');
-
-        $attendanceRecords = $query->paginate(20);
+            ->get();
 
         // Get overall statistics
-        $overallStats = $this->getOverallStatistics();
-        $monthlyStats = $this->getMonthlyStatistics();
+        $overallStats = $this->getOverallStats();
 
-        return view('attendance.user', compact('attendanceRecords', 'user', 'overallStats', 'monthlyStats'));
+        // Get monthly statistics
+        $monthlyStats = $this->getMonthlyStats();
+
+        return view('attendance.user', compact('user', 'attendanceRecords', 'overallStats', 'monthlyStats'));
     }
 
     public function viewMyAttendance()
@@ -135,7 +134,7 @@ class AttendanceController extends Controller
                 DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
                 DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ])
-            ->paginate(10);
+            ->get();
 
         // Get overall statistics
         $overallStats = $this->getOverallStats();
@@ -181,28 +180,24 @@ class AttendanceController extends Controller
     // View attendance records for a specific date
     public function viewAttendanceByDate($date)
     {
-        $query = Attendance::with(['user', 'session', 'takenBy'])
-            ->join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
+        $attendanceRecords = Attendance::with(['session', 'user', 'takenBy'])
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->where('user_course_role.role_id', '=', 1)
             ->whereDate('session.session_date', $date)
+            ->orderBy('session.session_date', 'desc')
             ->select([
                 'attendance.*',
-                'session.session_title',
-                'user_course_role.role_id',
                 DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
                 DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
             ])
-            ->orderBy('attendance.attendance_time', 'desc');
-
-        $attendanceRecords = $query->paginate(20);
-        $selectedDate = $date;
+            ->get();
 
         // Get overall statistics
-        $overallStats = $this->getOverallStatistics();
-        $sessionStats = $this->getSessionStatistics();
+        $overallStats = $this->getOverallStats();
 
-        return view('attendance.date', compact('attendanceRecords', 'selectedDate', 'overallStats', 'sessionStats'));
+        // Get session statistics
+        $sessionStats = $this->getSessionStats($date);
+
+        return view('attendance.date', compact('attendanceRecords', 'date', 'overallStats', 'sessionStats'));
     }
 
     // Helper methods for statistics
@@ -330,6 +325,22 @@ class AttendanceController extends Controller
                 'present' => $item->present
             ];
         });
+    }
+
+    private function getSessionStats($date)
+    {
+        return Attendance::join('user_course_role', 'attendance.user_id', '=', 'user_course_role.user_id')
+            ->join('session', 'attendance.session_id', '=', 'session.session_id')
+            ->where('user_course_role.role_id', '=', 1)
+            ->whereDate('session.session_date', $date)
+            ->select([
+                'session.session_title',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
+            ])
+            ->groupBy('session.session_title')
+            ->orderBy('total', 'desc')
+            ->get();
     }
 }
 
