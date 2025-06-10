@@ -8,7 +8,6 @@ use App\Models\User;
 
 class Role extends Model
 {
-
     protected $table = 'roles';
 
     protected $primaryKey = 'role_id';
