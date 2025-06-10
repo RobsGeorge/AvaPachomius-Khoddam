@@ -57,7 +57,7 @@
 
     <section class="mb-10">
         <h2 class="section-title">الملف الشخصي</h2>
-        <a href="{{ route('profile') }}" class="class-desc">الملف الشخصي</a>
+        <a href="{{ route('profile') }}" class="btn btn-primary mt-2">الملف الشخصي</a>
         <!-- Example: Show user info here -->
     </section>
 
@@ -84,8 +84,6 @@
 
     <section class="mb-10">
         <h2 class="section-title">الامتحانات</h2>
-        <p class="section-desc">مواعيد ونتائج الامتحانات</p>
-        <!-- Add exams info -->
         <a href="{{ route('exams.index') }}" class="btn btn-primary mt-2">عرض مواعيد ونتائج الامتحانات</a>
     </section>
 </div>
