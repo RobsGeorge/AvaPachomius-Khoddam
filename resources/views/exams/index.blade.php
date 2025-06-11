@@ -41,9 +41,10 @@
                                 </td>
                                 <td class="px-6 py-4 text-sm text-gray-900">
                                     @if(!$schedule->is_completed)
-                                        <button onclick="selectSchedule({{ $schedule->schedule_id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                        <!--<button onclick="selectSchedule({{ $schedule->schedule_id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                                             اختيار المعاد المناسب للامتحان
                                         </button>
+-->
                                     @endif
                                 </td>
                             </tr>
