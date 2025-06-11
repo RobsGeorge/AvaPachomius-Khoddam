@@ -132,6 +132,7 @@ Route::put('/exam-results/{result}', [ExamController::class, 'updateResult'])->n
 
 // Assignment routes
 Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+Route::get('/assignments/dashboard', [AssignmentController::class, 'dashboard'])->name('assignments.dashboard')->middleware(['auth', 'role:instructor,admin']);
 Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create')->middleware(['auth', 'role:instructor,admin']);
 Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store')->middleware(['auth', 'role:instructor,admin']);
 Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');

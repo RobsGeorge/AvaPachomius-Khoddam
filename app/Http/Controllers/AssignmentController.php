@@ -184,4 +184,32 @@ class AssignmentController extends Controller
                 ->with('error', 'حدث خطأ أثناء تقييم الواجب');
         }
     }
+
+    public function dashboard()
+    {
+        // Get statistics
+        $totalAssignments = Assignment::count();
+        $upcomingAssignments = Assignment::where('due_date', '>', now())->count();
+        $completedAssignments = Assignment::where('due_date', '<', now())->count();
+
+        // Get upcoming assignments
+        $upcomingAssignmentsList = Assignment::where('due_date', '>', now())
+            ->orderBy('due_date')
+            ->take(5)
+            ->get();
+
+        // Get recent submissions
+        $recentSubmissions = AssignmentSubmission::with(['user', 'assignment'])
+            ->orderBy('submitted_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return view('assignments.dashboard', compact(
+            'totalAssignments',
+            'upcomingAssignments',
+            'completedAssignments',
+            'upcomingAssignmentsList',
+            'recentSubmissions'
+        ));
+    }
 } 
