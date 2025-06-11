@@ -71,9 +71,9 @@
 
     <section class="mb-10">
     <h2 class="section-title">الأبحاث والواجبات</h2>
-        <a href="{{ route('assignments.index') }}" class="btn btn-primary mt-2">عرض الأبحاث والواجبات</a>
+        <a href="" class="btn btn-primary mt-2">عرض الأبحاث والواجبات</a>
         @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-            <a href="{{ route('assignments.dashboard') }}" class="btn btn-secondary mt-2">إدارة الأبحاث والواجبات</a>
+            <a href="" class="btn btn-secondary mt-2">إدارة الأبحاث والواجبات</a>
         @endif
     </section>
 
