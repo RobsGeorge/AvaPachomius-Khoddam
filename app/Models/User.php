@@ -66,6 +66,6 @@ class User extends Authenticatable
 
     // Override the "must verify email" behavior since we have custom OTP
     public function hasVerifiedEmail() {
-        return $this->is_verified;  // Admin verified flag instead of default email_verified_at
+        return $this->is_verified;  // admin verified flag instead of default email_verified_at
     }
 }

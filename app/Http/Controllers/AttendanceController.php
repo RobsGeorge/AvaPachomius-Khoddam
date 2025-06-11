@@ -24,7 +24,7 @@ class AttendanceController extends Controller
             abort(404, 'المستخدم غير موجود');
         }
 
-        // Optional: ensure current user is Admin/Instructor (middleware)
+        // Optional: ensure current user is admin/instructor (middleware)
         // Or add extra validation if needed
 
         $today = date('Y-m-d');

@@ -15,7 +15,7 @@
                         <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                             الرئيسية
                         </x-nav-link>
-                        @if(auth()->user()->role === 'Admin' || auth()->user()->role === 'Instructor')
+                        @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
                             <x-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
                                 الحضور
                             </x-nav-link>
@@ -85,7 +85,7 @@
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     الرئيسية
                 </x-responsive-nav-link>
-                @if(auth()->user()->role === 'Admin' || auth()->user()->role === 'Instructor')
+                @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
                     <x-responsive-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
                         الحضور
                     </x-responsive-nav-link>

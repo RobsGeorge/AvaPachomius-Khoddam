@@ -14,7 +14,7 @@ use App\Http\Controllers\CourseAssessmentController;
 use App\Http\Controllers\UserAssessmentController;
 use App\Http\Controllers\UserCourseRoleController;
 use App\Http\Controllers\Auth\RegisterController;
-use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\admin\UserManagementController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -24,6 +24,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ExamController;
+use App\Http\Controllers\AssignmentController;
 
 
 
@@ -71,7 +72,7 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.store');
 
-Route::middleware(['auth', 'role:Admin,Instructor'])->group(function () {
+Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     // Page that shows today's sessions after scanning QR
     Route::get('/attendance/sessions', [AttendanceController::class, 'showTodaySessions'])->name('attendance.sessions');
 
@@ -123,8 +124,19 @@ Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStat
 Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
 Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
 Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
-Route::post('/exams', [ExamController::class, 'store'])->name('exams.store')->middleware(['auth', 'role:Instructor,Admin']);
-Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware(['auth', 'role:Instructor,Admin']);
-Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware(['auth', 'role:Instructor,Admin']);
-Route::post('/exams/{exam}/schedule', [ExamController::class, 'scheduleExam'])->name('exams.schedule')->middleware(['auth', 'role:Instructor,Admin']);
-Route::put('/exam-results/{result}', [ExamController::class, 'updateResult'])->name('exam-results.update')->middleware(['auth', 'role:Instructor,Admin']);
+Route::post('/exams', [ExamController::class, 'store'])->name('exams.store')->middleware(['auth', 'role:instructor,admin']);
+Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware(['auth', 'role:instructor,admin']);
+Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware(['auth', 'role:instructor,admin']);
+Route::post('/exams/{exam}/schedule', [ExamController::class, 'scheduleExam'])->name('exams.schedule')->middleware(['auth', 'role:instructor,admin']);
+Route::put('/exam-results/{result}', [ExamController::class, 'updateResult'])->name('exam-results.update')->middleware(['auth', 'role:instructor,admin']);
+
+// Assignment routes
+Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create')->middleware(['auth', 'role:instructor,admin']);
+Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store')->middleware(['auth', 'role:instructor,admin']);
+Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');
+Route::get('/assignments/{assignment}/edit', [AssignmentController::class, 'edit'])->name('assignments.edit')->middleware(['auth', 'role:instructor,admin']);
+Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update')->middleware(['auth', 'role:instructor,admin']);
+Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy')->middleware(['auth', 'role:instructor,admin']);
+Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->name('assignments.submit');
+Route::post('/assignment-submissions/{submission}/grade', [AssignmentController::class, 'grade'])->name('assignments.grade')->middleware(['auth', 'role:instructor,admin']);
