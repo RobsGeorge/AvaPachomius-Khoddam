@@ -155,6 +155,8 @@ class AssignmentController extends Controller
             $submission->user_id = Auth::id();
             $assignment->submissions()->save($submission);
 
+            return $submission . " " . $assignment;
+
             return redirect()->route('assignments.show', $assignment)
                 ->with('success', 'تم تقديم الواجب بنجاح');
         } catch (\Exception $e) {
