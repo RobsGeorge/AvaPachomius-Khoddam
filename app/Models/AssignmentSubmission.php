@@ -24,6 +24,8 @@ class AssignmentSubmission extends Model
         'points_earned' => 'integer',
     ];
 
+    protected $table = 'assignemnt_submission';
+
     public function assignment(): BelongsTo
     {
         return $this->belongsTo(Assignment::class, 'assignment_id');

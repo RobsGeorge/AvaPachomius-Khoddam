@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('assignment_submissions', function (Blueprint $table) {
+        Schema::create('assignment_submission', function (Blueprint $table) {
             $table->id('submission_id');
             $table->foreignId('assignment_id')->constrained('assignments', 'assignment_id')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('user', 'id')->onDelete('cascade');
@@ -36,7 +36,7 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('assignment_submissions');
+        Schema::dropIfExists('assignment_submission');
         Schema::dropIfExists('assignments');
     }
 }; 
