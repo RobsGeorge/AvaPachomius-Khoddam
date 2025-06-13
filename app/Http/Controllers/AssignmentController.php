@@ -82,7 +82,12 @@ class AssignmentController extends Controller
 
     public function show(Assignment $assignment)
     {
-        $submissions = $assignment->submissions()->with('user')->get();
+        if (Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor')) {
+            $submissions = $assignment->uniqueTeamSubmissions();
+        } else {
+            $submissions = $assignment->submissions()->with('user')->get();
+        }
+        
         $currentSubmission = null;
         
         if (Auth::user()->roles->contains('role_name', 'student')) {
@@ -214,7 +219,16 @@ class AssignmentController extends Controller
         ]);
 
         try {
-            $submission->update($validated);
+            // Get all submissions in the team
+            $teamSubmissions = $submission->isTeamSubmission() 
+                ? $submission->getMainSubmission()->teamSubmissions()->get()
+                : collect([$submission]);
+
+            // Update all submissions in the team
+            foreach ($teamSubmissions as $teamSubmission) {
+                $teamSubmission->update($validated);
+            }
+
             return redirect()->route('assignments.show', $submission->assignment)
                 ->with('success', 'تم تقييم الواجب بنجاح');
         } catch (\Exception $e) {

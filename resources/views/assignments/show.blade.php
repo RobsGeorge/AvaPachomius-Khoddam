@@ -225,8 +225,27 @@
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="card-title mb-0">{{ $submission->user->first_name }} {{ $submission->user->second_name }}</h5>
-                                        <span class="badge bg-info">{{ $submission->submitted_at->format('Y-m-d H:i') }}</span>
+                                        <div>
+                                            <h5 class="card-title mb-0">
+                                                {{ $submission->user->first_name }} {{ $submission->user->second_name }}
+                                                @if($submission->isTeamSubmission())
+                                                    <span class="badge bg-info">تسليم جماعي</span>
+                                                @endif
+                                            </h5>
+                                            @if($submission->isTeamSubmission())
+                                                <div class="mt-2">
+                                                    <small class="text-muted">أعضاء الفريق:</small>
+                                                    <div class="d-flex flex-wrap gap-2 mt-1">
+                                                        @foreach($submission->teamMembers() as $member)
+                                                            <span class="badge bg-secondary">
+                                                                {{ $member->first_name }} {{ $member->second_name }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <span class="badge bg-info">{{ $submission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
                                     </div>
                                     
                                     <div class="mb-3">
