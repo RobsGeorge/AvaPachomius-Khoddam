@@ -40,7 +40,7 @@
                                 @forelse($assignments as $assignment)
                                     <tr>
                                         <td>{{ $assignment->assignment_name }}</td>
-                                        <td>{{ Str::limit($assignment->assignment_description, 50) }}</td>
+                                        <td>{{ Str::limit($assignment->assignment_description, 500) }}</td>
                                         <td>{{ $assignment->total_points }}</td>
                                         <td>{{ $assignment->due_date->format('Y-m-d H:i') }}</td>
                                         <td>
