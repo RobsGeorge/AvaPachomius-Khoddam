@@ -47,16 +47,6 @@
                                         <td>{{ $assignment->due_date->format('Y-m-d H:i') }}</td>
                                         <td>
                                             <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">عرض</a>
-                                            @if(auth()->user()->courses()->whereHas('roles', function($query) {
-                                                $query->whereIn('role_name', ['admin', 'instructor']);
-                                            })->exists())
-                                            <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">تعديل</a>
-                                            <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من حذف هذا الواجب؟')">حذف</button>
-                                            </form>
-                                            @endif
                                         </td>
                                     </tr>
                                 @empty
