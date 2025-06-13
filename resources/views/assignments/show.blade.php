@@ -7,9 +7,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="mb-0">{{ $assignment->assignment_name }}</h2>
-                    @if(auth()->user()->courses()->whereHas('roles', function($query) {
-                        $query->whereIn('role_name', ['admin', 'instructor']);
-                    })->exists())
+                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                     <div>
                         <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning">تعديل</a>
                         <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
@@ -64,9 +62,7 @@
                     </div>
                     @endif
 
-                    @if(!auth()->user()->courses()->whereHas('roles', function($query) {
-                        $query->whereIn('role_name', ['admin', 'instructor']);
-                    })->exists())
+                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                     <div class="mb-4">
                         <h4>تقديم الواجب</h4>
                         <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
@@ -94,9 +90,7 @@
                     </div>
                     @endif
 
-                    @if(auth()->user()->courses()->whereHas('roles', function($query) {
-                        $query->whereIn('role_name', ['admin', 'instructor']);
-                    })->exists())
+                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                     <div class="mb-4">
                         <h4>التسليمات</h4>
                         @forelse($submissions as $submission)
