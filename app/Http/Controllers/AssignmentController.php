@@ -13,7 +13,7 @@ class AssignmentController extends Controller
     public function index()
     {
         $assignments = Assignment::orderBy('due_date', 'desc')->get();
-        return $assignments;
+        
         return view('assignments.index', compact('assignments'));
     }
 
