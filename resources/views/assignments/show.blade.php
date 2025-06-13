@@ -62,7 +62,7 @@
                     </div>
                     @endif
 
-                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+                    
                     <div class="mb-4">
                         <h4>تقديم الواجب</h4>
                         <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
@@ -85,11 +85,117 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-
                             <button type="submit" class="btn btn-primary">تقديم الواجب</button>
                         </form>
                     </div>
+
+                    @if(Auth::user()->roles->contains('role_name', 'student'))
+                    <div class="mb-4">
+                        <h4>تسليماتي</h4>
+                        @if($submission)
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="card-title mb-0">{{ $submission->user->first_name }} {{ $submission->user->second_name }}</h5>
+                                        <span class="badge bg-info">{{ $submission->submitted_at->format('Y-m-d H:i') }}</span>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold">المحتوى:</h6>
+                                        <p class="card-text">{{ $submission->submission_content }}</p>
+                                    </div>
+
+                                    @if($submission->file_path)
+                                        <div class="mb-3">
+                                            <h6 class="fw-bold">الملف المرفق:</h6>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                <a href="{{ Storage::url($submission->file_path) }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-download me-1"></i>
+                                                    تحميل الملف
+                                                </a>
+                                                <a href="{{ Storage::url($submission->file_path) }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-outline-info btn-sm ms-2">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    عرض الملف
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if($submission->points_earned !== null)
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label class="form-label">الدرجة</label>
+                                                    <p class="form-control-static">{{ $submission->points_earned }} / {{ $assignment->total_points }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label class="form-label">التغذية الراجعة</label>
+                                                    <p class="form-control-static">{{ $submission->feedback ?? 'لا توجد تغذية راجعة' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+
+                                    @if(now() < $assignment->due_date)
+                                        <div class="mt-3">
+                                            <h6 class="fw-bold">تحديث التسليم</h6>
+                                            <form action="{{ route('assignments.update-submission', $submission) }}" method="POST" enctype="multipart/form-data">
+                                                @csrf
+                                                @method('PUT')
+                                                <div class="form-group mb-3">
+                                                    <label for="submission_content">المحتوى</label>
+                                                    <textarea class="form-control @error('submission_content') is-invalid @enderror" 
+                                                              id="submission_content" 
+                                                              name="submission_content" 
+                                                              rows="5" 
+                                                              required>{{ old('submission_content', $submission->submission_content) }}</textarea>
+                                                    @error('submission_content')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+
+                                                <div class="form-group mb-3">
+                                                    <label for="file">ملف مرفق (PDF فقط)</label>
+                                                    <input type="file" 
+                                                           class="form-control @error('file') is-invalid @enderror" 
+                                                           id="file" 
+                                                           name="file" 
+                                                           accept=".pdf">
+                                                    <small class="form-text text-muted">اختياري. إذا لم تقم باختيار ملف جديد، سيتم الاحتفاظ بالملف الحالي. الحد الأقصى للحجم هو 10 ميجابايت</small>
+                                                    @error('file')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save me-1"></i>
+                                                    تحديث التسليم
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <div class="alert alert-warning mt-3">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>
+                                            انتهى موعد التسليم في {{ $assignment->due_date->format('Y-m-d H:i') }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                لا توجد تسليمات حتى الآن
+                            </div>
+                        @endif
+                    </div>
                     @endif
+                    
 
                     @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                     <div class="mb-4">

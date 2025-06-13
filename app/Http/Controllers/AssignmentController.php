@@ -7,6 +7,7 @@ use App\Models\AssignmentSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class AssignmentController extends Controller
 {
@@ -82,7 +83,15 @@ class AssignmentController extends Controller
     public function show(Assignment $assignment)
     {
         $submissions = $assignment->submissions()->with('user')->get();
-        return view('assignments.show', compact('assignment', 'submissions'));
+        $currentSubmission = null;
+        
+        if (Auth::user()->roles->contains('role_name', 'student')) {
+            $currentSubmission = $assignment->submissions()
+                ->where('user_id', Auth::id())
+                ->first();
+        }
+        
+        return view('assignments.show', compact('assignment', 'submissions', 'currentSubmission'));
     }
 
     public function edit(Assignment $assignment)
@@ -215,5 +224,56 @@ class AssignmentController extends Controller
             'upcomingAssignmentsList',
             'recentSubmissions'
         ));
+    }
+
+    public function updateSubmission(Request $request, AssignmentSubmission $submission)
+    {
+        // Check if the user owns this submission
+        if ($submission->user_id !== Auth::id()) {
+            return redirect()->back()
+                ->with('error', 'غير مصرح لك بتحديث هذا التسليم');
+        }
+
+        // Check if the deadline has passed
+        if (now() > $submission->assignment->due_date) {
+            return redirect()->back()
+                ->with('error', 'انتهى موعد التسليم');
+        }
+
+        $validated = $request->validate([
+            'submission_content' => 'required|string',
+            'file' => 'nullable|file|mimes:pdf|max:10240', // 10MB max, PDF only
+        ], [
+            'file.mimes' => 'يجب أن يكون الملف المرفق بصيغة PDF فقط',
+            'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
+        ]);
+
+        try {
+            $submission->submission_content = $validated['submission_content'];
+            $submission->submitted_at = now();
+
+            if ($request->hasFile('file')) {
+                // Delete old file if exists
+                if ($submission->file_path) {
+                    Storage::delete($submission->file_path);
+                }
+                
+                // Store new file
+                $path = $request->file('file')->store('submissions');
+                $submission->file_path = $path;
+            }
+
+            $submission->save();
+
+            return redirect()->route('assignments.show', $submission->assignment)
+                ->with('success', 'تم تحديث التسليم بنجاح');
+        } catch (\Exception $e) {
+            Log::error('Error updating submission', [
+                'submission_id' => $submission->submission_id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->back()
+                ->with('error', 'حدث خطأ أثناء تحديث التسليم');
+        }
     }
 } 

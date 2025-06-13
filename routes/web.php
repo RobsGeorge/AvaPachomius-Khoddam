@@ -140,4 +140,5 @@ Route::get('/assignments/{assignment}/edit', [AssignmentController::class, 'edit
 Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update')->middleware(['auth', 'role:instructor,admin']);
 Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy')->middleware(['auth', 'role:instructor,admin']);
 Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->name('assignments.submit');
+Route::put('/assignment-submissions/{submission}/update', [AssignmentController::class, 'updateSubmission'])->name('assignments.update-submission');
 Route::post('/assignment-submissions/{submission}/grade', [AssignmentController::class, 'grade'])->name('assignments.grade')->middleware(['auth', 'role:instructor,admin']);
