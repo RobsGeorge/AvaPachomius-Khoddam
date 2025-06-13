@@ -160,7 +160,7 @@ class AssignmentController extends Controller
                 'user_id' => Auth::id()
             ]);
 
-            $path = $request->file('file')->store('submissions');
+            $path = $request->file('file')->store('submissions', 'public');
             $submission->file_path = $path;
 
             $submission->save();
@@ -255,11 +255,11 @@ class AssignmentController extends Controller
             if ($request->hasFile('file')) {
                 // Delete old file if exists
                 if ($submission->file_path) {
-                    Storage::delete($submission->file_path);
+                    Storage::disk('public')->delete($submission->file_path);
                 }
                 
                 // Store new file
-                $path = $request->file('file')->store('submissions');
+                $path = $request->file('file')->store('submissions', 'public');
                 $submission->file_path = $path;
             }
 
