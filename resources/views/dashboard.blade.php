@@ -63,7 +63,7 @@
 
     <section class="mb-10">
         <h2 class="section-title">الحضور</h2>
-        <a href="{{ route('attendance.user', ['userId' => Auth::user()->user_id]) }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
+        <a href="{{ route('attendance.my') }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
         @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
             <a href="{{ route('attendance.all') }}" class="btn btn-secondary mt-2">عرض سجل الحضور الكامل</a>
         @endif
