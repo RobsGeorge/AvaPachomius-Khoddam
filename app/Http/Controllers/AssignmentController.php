@@ -161,7 +161,7 @@ class AssignmentController extends Controller
 
         $validated = $request->validate([
             'team_members' => 'required|array|min:1',
-            'team_members.*' => 'exists:users,id',
+            'team_members.*' => 'exists:user,id',
             'submission_content' => 'required|string',
             'file' => 'required|file|mimes:pdf|max:10240', // 10MB max, PDF only
         ], [

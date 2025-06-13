@@ -338,8 +338,35 @@
         $('.select2').select2({
             placeholder: 'اختر أعضاء الفريق',
             allowClear: true,
-            dir: 'rtl'
+            dir: 'rtl',
+            language: {
+                noResults: function() {
+                    return "لا توجد نتائج";
+                },
+                searching: function() {
+                    return "جاري البحث...";
+                }
+            },
+            templateResult: formatUser,
+            templateSelection: formatUserSelection,
+            escapeMarkup: function(markup) {
+                return markup;
+            }
         });
     });
+
+    function formatUser(user) {
+        if (!user.id) {
+            return user.text;
+        }
+        return $('<span>' + user.text + '</span>');
+    }
+
+    function formatUserSelection(user) {
+        if (!user.id) {
+            return user.text;
+        }
+        return $('<span>' + user.text + '</span>');
+    }
 </script>
 @endpush 

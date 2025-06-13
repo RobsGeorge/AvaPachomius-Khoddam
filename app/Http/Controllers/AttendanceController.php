@@ -279,16 +279,16 @@ class AttendanceController extends Controller
     private function getUserStats()
     {
         return DB::table('attendance')
-            ->join('users', 'attendance.user_id', '=', 'users.user_id')
+            ->join('user', 'attendance.user_id', '=', 'user.user_id')
             ->selectRaw('
-                users.user_id,
-                users.name,
+                user.user_id,
+                user.name,
                 COUNT(*) as total_records,
                 SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
                 SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
                 SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
             ')
-            ->groupBy('users.user_id', 'users.name')
+            ->groupBy('user.user_id', 'user.name')
             ->orderByRaw('SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) / COUNT(*) DESC')
             ->limit(5)
             ->get();
