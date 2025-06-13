@@ -233,16 +233,7 @@
                                                 @endif
                                             </h5>
                                             @if($submission->isTeamSubmission())
-                                                <div class="mt-2">
-                                                    <small class="text-muted">أعضاء الفريق:</small>
-                                                    <div class="d-flex flex-wrap gap-2 mt-1">
-                                                        @foreach($submission->teamMembers() as $member)
-                                                            <span class="badge bg-secondary">
-                                                                {{ $member->first_name }} {{ $member->second_name }}
-                                                            </span>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
+                                                <small class="text-muted">أعضاء الفريق:</small>
                                                 <select class="form-control col-sm-4 select2" style="margin-right: 20px;" name="team_submission" id="team_submission">
                                                 @foreach($submission->teamMembers() as $member)
                                                     <option style="font-family: 'Cairo', sans-serif; color: black;" value="{{$member->user_id}}">{{ $member->first_name }} {{ $member->second_name }}</option>
