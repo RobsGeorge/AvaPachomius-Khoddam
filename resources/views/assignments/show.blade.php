@@ -243,6 +243,11 @@
                                                         @endforeach
                                                     </div>
                                                 </div>
+                                                <select class="form-control col-sm-4 select2" style="margin-right: 20px;" name="team_submission" id="team_submission">
+                                                @foreach($submission->teamMembers() as $member)
+                                                    <option style="font-family: 'Cairo', sans-serif; color: black;" value="{{$member->user_id}}">{{ $member->first_name }} {{ $member->second_name }}</option>
+                                                @endforeach
+                                            </select>
                                             @endif
                                         </div>
                                         <span class="badge bg-info">{{ $submission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
