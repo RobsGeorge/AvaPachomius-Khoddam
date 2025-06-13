@@ -147,15 +147,14 @@ class AssignmentController extends Controller
             $submission = new AssignmentSubmission([
                 'submission_content' => $validated['submission_content'],
                 'submitted_at' => now(),
+                'assignment_id' => $assignment->assignment_id,
+                'user_id' => Auth::id()
             ]);
 
             $path = $request->file('file')->store('submissions');
             $submission->file_path = $path;
 
-            $submission->user_id = Auth::id();
-            $assignment->submissions()->save($submission);
-
-            
+            $submission->save();
 
             return redirect()->route('assignments.show', $assignment)
                 ->with('success', 'تم تقديم الواجب بنجاح');

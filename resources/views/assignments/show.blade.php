@@ -97,48 +97,80 @@
                         @forelse($submissions as $submission)
                             <div class="card mb-3">
                                 <div class="card-body">
-                                    <h5 class="card-title">{{ $submission->user->name }}</h5>
-                                    <p class="card-text">
-                                        <strong>تاريخ التسليم:</strong> {{ $submission->submitted_at->format('Y-m-d H:i') }}<br>
-                                        <strong>المحتوى:</strong><br>
-                                        {{ $submission->submission_content }}
-                                    </p>
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="card-title mb-0">{{ $submission->user->first_name }} {{ $submission->user->second_name }}</h5>
+                                        <span class="badge bg-info">{{ $submission->submitted_at->format('Y-m-d H:i') }}</span>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold">المحتوى:</h6>
+                                        <p class="card-text">{{ $submission->submission_content }}</p>
+                                    </div>
+
                                     @if($submission->file_path)
-                                        <p>
-                                            <a href="{{ Storage::url($submission->file_path) }}" target="_blank" class="btn btn-info btn-sm">
-                                                عرض الملف المرفق
-                                            </a>
-                                        </p>
+                                        <div class="mb-3">
+                                            <h6 class="fw-bold">الملف المرفق:</h6>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                <a href="{{ Storage::url($submission->file_path) }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-download me-1"></i>
+                                                    تحميل الملف
+                                                </a>
+                                                <a href="{{ Storage::url($submission->file_path) }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-outline-info btn-sm ms-2">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    عرض الملف
+                                                </a>
+                                            </div>
+                                        </div>
                                     @endif
 
                                     <form action="{{ route('assignments.grade', $submission) }}" method="POST" class="mt-3">
                                         @csrf
-                                        <div class="form-group mb-3">
-                                            <label for="points_earned">الدرجة</label>
-                                            <input type="number" class="form-control @error('points_earned') is-invalid @enderror" 
-                                                   id="points_earned" name="points_earned" 
-                                                   value="{{ old('points_earned', $submission->points_earned) }}" 
-                                                   min="0" max="{{ $assignment->total_points }}">
-                                            @error('points_earned')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label for="points_earned" class="form-label">الدرجة</label>
+                                                    <input type="number" 
+                                                           class="form-control @error('points_earned') is-invalid @enderror" 
+                                                           id="points_earned" 
+                                                           name="points_earned" 
+                                                           value="{{ old('points_earned', $submission->points_earned) }}" 
+                                                           min="0" 
+                                                           max="{{ $assignment->total_points }}">
+                                                    @error('points_earned')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group mb-3">
+                                                    <label for="feedback" class="form-label">التغذية الراجعة</label>
+                                                    <textarea class="form-control @error('feedback') is-invalid @enderror" 
+                                                              id="feedback" 
+                                                              name="feedback" 
+                                                              rows="3">{{ old('feedback', $submission->feedback) }}</textarea>
+                                                    @error('feedback')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
                                         </div>
-
-                                        <div class="form-group mb-3">
-                                            <label for="feedback">التغذية الراجعة</label>
-                                            <textarea class="form-control @error('feedback') is-invalid @enderror" 
-                                                      id="feedback" name="feedback" rows="3">{{ old('feedback', $submission->feedback) }}</textarea>
-                                            @error('feedback')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-
-                                        <button type="submit" class="btn btn-primary">تقييم</button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-check me-1"></i>
+                                            تقييم
+                                        </button>
                                     </form>
                                 </div>
                             </div>
                         @empty
-                            <p>لا توجد تسليمات حتى الآن</p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                لا توجد تسليمات حتى الآن
+                            </div>
                         @endforelse
                     </div>
                     @endif
