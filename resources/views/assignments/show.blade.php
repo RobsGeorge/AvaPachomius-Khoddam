@@ -92,31 +92,31 @@
                     @if(Auth::user()->roles->contains('role_name', 'student'))
                     <div class="mb-4">
                         <h4>تسليماتي</h4>
-                        @if($submission)
+                        @if($currentSubmission)
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="card-title mb-0">{{ $submission->user->first_name }} {{ $submission->user->second_name }}</h5>
-                                        <span class="badge bg-info">{{ $submission->submitted_at->format('Y-m-d H:i') }}</span>
+                                        <h5 class="card-title mb-0">{{ $currentSubmission->user->first_name }} {{ $currentSubmission->user->second_name }}</h5>
+                                        <span class="badge bg-info">{{ $currentSubmission->submitted_at->format('Y-m-d H:i') }}</span>
                                     </div>
                                     
                                     <div class="mb-3">
                                         <h6 class="fw-bold">المحتوى:</h6>
-                                        <p class="card-text">{{ $submission->submission_content }}</p>
+                                        <p class="card-text">{{ $currentSubmission->submission_content }}</p>
                                     </div>
 
-                                    @if($submission->file_path)
+                                    @if($currentSubmission->file_path)
                                         <div class="mb-3">
                                             <h6 class="fw-bold">الملف المرفق:</h6>
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-file-pdf text-danger me-2"></i>
-                                                <a href="{{ Storage::url($submission->file_path) }}" 
+                                                <a href="{{ Storage::url($currentSubmission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-download me-1"></i>
                                                     تحميل الملف
                                                 </a>
-                                                <a href="{{ Storage::url($submission->file_path) }}" 
+                                                <a href="{{ Storage::url($currentSubmission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-info btn-sm ms-2">
                                                     <i class="fas fa-eye me-1"></i>
@@ -126,18 +126,18 @@
                                         </div>
                                     @endif
 
-                                    @if($submission->points_earned !== null)
+                                    @if($currentSubmission->points_earned !== null)
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group mb-3">
                                                     <label class="form-label">الدرجة</label>
-                                                    <p class="form-control-static">{{ $submission->points_earned }} / {{ $assignment->total_points }}</p>
+                                                    <p class="form-control-static">{{ $currentSubmission->points_earned }} / {{ $assignment->total_points }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group mb-3">
                                                     <label class="form-label">التغذية الراجعة</label>
-                                                    <p class="form-control-static">{{ $submission->feedback ?? 'لا توجد تغذية راجعة' }}</p>
+                                                    <p class="form-control-static">{{ $currentSubmission->feedback ?? 'لا توجد تغذية راجعة' }}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -146,7 +146,7 @@
                                     @if(now() < $assignment->due_date)
                                         <div class="mt-3">
                                             <h6 class="fw-bold">تحديث التسليم</h6>
-                                            <form action="{{ route('assignments.update-submission', $submission) }}" method="POST" enctype="multipart/form-data">
+                                            <form action="{{ route('assignments.update-submission', $currentSubmission) }}" method="POST" enctype="multipart/form-data">
                                                 @csrf
                                                 @method('PUT')
                                                 <div class="form-group mb-3">
@@ -155,7 +155,7 @@
                                                               id="submission_content" 
                                                               name="submission_content" 
                                                               rows="5" 
-                                                              required>{{ old('submission_content', $submission->submission_content) }}</textarea>
+                                                              required>{{ old('submission_content', $currentSubmission->submission_content) }}</textarea>
                                                     @error('submission_content')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
