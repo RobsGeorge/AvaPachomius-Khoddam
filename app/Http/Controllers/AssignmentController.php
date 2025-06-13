@@ -89,9 +89,14 @@ class AssignmentController extends Controller
             $currentSubmission = $assignment->submissions()
                 ->where('user_id', Auth::id())
                 ->first();
+
+            // Get all students for the team selection
+            $students = \App\Models\User::whereHas('roles', function($query) {
+                $query->where('role_name', 'student');
+            })->get();
         }
         
-        return view('assignments.show', compact('assignment', 'submissions', 'currentSubmission'));
+        return view('assignments.show', compact('assignment', 'submissions', 'currentSubmission', 'students'));
     }
 
     public function edit(Assignment $assignment)
@@ -150,26 +155,44 @@ class AssignmentController extends Controller
         }
 
         $validated = $request->validate([
+            'team_members' => 'required|array|min:1',
+            'team_members.*' => 'exists:users,id',
             'submission_content' => 'required|string',
             'file' => 'required|file|mimes:pdf|max:10240', // 10MB max, PDF only
         ], [
+            'team_members.required' => 'يجب اختيار عضو واحد على الأقل',
+            'team_members.*.exists' => 'أحد الأعضاء المختارين غير موجود',
             'file.required' => 'يجب رفع ملف PDF لتقديم الواجب',
             'file.mimes' => 'يجب أن يكون الملف المرفق بصيغة PDF فقط',
             'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
         ]);
 
         try {
-            $submission = new AssignmentSubmission([
-                'submission_content' => $validated['submission_content'],
-                'submitted_at' => now(),
-                'assignment_id' => $assignment->assignment_id,
-                'user_id' => Auth::id()
-            ]);
-
+            // Store the file first
             $path = $request->file('file')->store('submissions', 'public');
-            $submission->file_path = $path;
 
-            $submission->save();
+            // Create a submission for each team member
+            foreach ($validated['team_members'] as $userId) {
+                $submission = new AssignmentSubmission([
+                    'submission_content' => $validated['submission_content'],
+                    'submitted_at' => now(),
+                    'assignment_id' => $assignment->assignment_id,
+                    'user_id' => $userId,
+                    'file_path' => $path,
+                    'team_submission_id' => null // Will be set after first submission
+                ]);
+
+                $submission->save();
+
+                // If this is the first submission, update all submissions with this ID
+                if ($submission->id) {
+                    AssignmentSubmission::where('assignment_id', $assignment->assignment_id)
+                        ->where('submitted_at', $submission->submitted_at)
+                        ->where('submission_content', $submission->submission_content)
+                        ->where('file_path', $submission->file_path)
+                        ->update(['team_submission_id' => $submission->id]);
+                }
+            }
 
             return redirect()->route('assignments.show', $assignment)
                 ->with('success', 'تم تقديم الواجب بنجاح');
@@ -255,21 +278,28 @@ class AssignmentController extends Controller
         ]);
 
         try {
-            $submission->submission_content = $validated['submission_content'];
-            $submission->submitted_at = now();
+            // Update all submissions in the team
+            $teamSubmissions = AssignmentSubmission::where('team_submission_id', $submission->team_submission_id)
+                ->orWhere('id', $submission->team_submission_id)
+                ->get();
 
-            if ($request->hasFile('file')) {
-                // Delete old file if exists
-                if ($submission->file_path) {
-                    Storage::disk('public')->delete($submission->file_path);
+            foreach ($teamSubmissions as $teamSubmission) {
+                $teamSubmission->submission_content = $validated['submission_content'];
+                $teamSubmission->submitted_at = now();
+
+                if ($request->hasFile('file')) {
+                    // Delete old file if exists
+                    if ($teamSubmission->file_path) {
+                        Storage::disk('public')->delete($teamSubmission->file_path);
+                    }
+                    
+                    // Store new file
+                    $path = $request->file('file')->store('submissions', 'public');
+                    $teamSubmission->file_path = $path;
                 }
-                
-                // Store new file
-                $path = $request->file('file')->store('submissions', 'public');
-                $submission->file_path = $path;
-            }
 
-            $submission->save();
+                $teamSubmission->save();
+            }
 
             return redirect()->route('assignments.show', $submission->assignment)
                 ->with('success', 'تم تحديث التسليم بنجاح');

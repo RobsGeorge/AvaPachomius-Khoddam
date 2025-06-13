@@ -69,6 +69,26 @@
                                 <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
                                     @csrf
                                     <div class="form-group mb-3">
+                                        <label for="team_members">أعضاء الفريق</label>
+                                        <select class="form-control select2 @error('team_members') is-invalid @enderror" 
+                                                id="team_members" 
+                                                name="team_members[]" 
+                                                multiple="multiple" 
+                                                required>
+                                            @foreach($students as $student)
+                                                <option value="{{ $student->id }}" 
+                                                    {{ in_array($student->id, old('team_members', [Auth::id()])) ? 'selected' : '' }}>
+                                                    {{ $student->first_name }} {{ $student->second_name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <small class="form-text text-muted">اختر أعضاء الفريق الذين سيساهمون في هذا الواجب</small>
+                                        @error('team_members')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+
+                                    <div class="form-group mb-3">
                                         <label for="submission_content">المحتوى</label>
                                         <textarea class="form-control @error('submission_content') is-invalid @enderror" 
                                                   id="submission_content" name="submission_content" rows="5" required>{{ old('submission_content') }}</textarea>
@@ -91,52 +111,52 @@
                             </div>
                         @endif
 
-                        <div class="mb-4">
-                            <h4>تسليماتي</h4>
+                    <div class="mb-4">
+                        <h4>تسليماتي</h4>
                             @if($currentSubmission)
-                                <div class="card mb-3">
-                                    <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
                                             <h5 class="card-title mb-0">{{ $currentSubmission->user->first_name }} {{ $currentSubmission->user->second_name }}</h5>
                                             <span class="badge bg-info">{{ $currentSubmission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <h6 class="fw-bold">المحتوى:</h6>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold">المحتوى:</h6>
                                             <p class="card-text">{{ $currentSubmission->submission_content }}</p>
-                                        </div>
+                                    </div>
 
                                         @if($currentSubmission->file_path)
-                                            <div class="mb-3">
-                                                <h6 class="fw-bold">الملف المرفق:</h6>
-                                                <div class="d-flex align-items-center">
-                                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                        <div class="mb-3">
+                                            <h6 class="fw-bold">الملف المرفق:</h6>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file-pdf text-danger me-2"></i>
                                                     <a href="{{ Storage::url($currentSubmission->file_path) }}" 
-                                                       target="_blank" 
-                                                       class="btn btn-outline-primary btn-sm">
-                                                        <i class="fas fa-download me-1"></i>
-                                                        تحميل الملف
-                                                    </a>
+                                                   target="_blank" 
+                                                   class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-download me-1"></i>
+                                                    تحميل الملف
+                                                </a>
                                                     <a href="{{ Storage::url($currentSubmission->file_path) }}" 
-                                                       target="_blank" 
-                                                       class="btn btn-outline-info btn-sm ms-2">
-                                                        <i class="fas fa-eye me-1"></i>
-                                                        عرض الملف
-                                                    </a>
-                                                </div>
+                                                   target="_blank" 
+                                                   class="btn btn-outline-info btn-sm ms-2">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    عرض الملف
+                                                </a>
                                             </div>
-                                        @endif
+                                        </div>
+                                    @endif
 
                                         @if($currentSubmission->points_earned !== null)
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="form-group mb-3">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-3">
                                                         <label class="form-label">الدرجة</label>
                                                         <p class="form-control-static">{{ $currentSubmission->points_earned }} / {{ $assignment->total_points }}</p>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="form-group mb-3">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-3">
                                                         <label class="form-label">التغذية الراجعة</label>
                                                         <p class="form-control-static">{{ $currentSubmission->feedback ?? 'لا توجد تغذية راجعة' }}</p>
                                                     </div>
@@ -184,17 +204,17 @@
                                             <div class="alert alert-warning mt-3">
                                                 <i class="fas fa-exclamation-triangle me-2"></i>
                                                 انتهى موعد التسليم في {{ $assignment->due_date->addHours(3)->format('Y-m-d H:i') }}
-                                            </div>
+                                        </div>
                                         @endif
                                     </div>
                                 </div>
                             @else
-                                <div class="alert alert-info">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    لا توجد تسليمات حتى الآن
-                                </div>
-                            @endif
-                        </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                لا توجد تسليمات حتى الآن
+                            </div>
+                        @endif
+                    </div>
                     @endif
                     
 
@@ -286,4 +306,21 @@
         </div>
     </div>
 </div>
-@endsection 
+@endsection
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            placeholder: 'اختر أعضاء الفريق',
+            allowClear: true,
+            dir: 'rtl'
+        });
+    });
+</script>
+@endpush 
