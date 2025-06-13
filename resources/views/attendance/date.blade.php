@@ -12,7 +12,7 @@
                 <table class="w-full table-auto">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">المحاضرة</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">اسم الخادم</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">التاريخ</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">الحالة</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">سبب الإذن</th>
@@ -23,8 +23,10 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         @foreach($attendanceRecords as $record)
                             <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
-                                    {{ $record->session->session_title }}
+                            <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                                    <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
+                                        {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
+                                    </a>
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
                                     {{ $record->session_date }}
