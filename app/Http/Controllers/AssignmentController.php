@@ -136,7 +136,11 @@ class AssignmentController extends Controller
     {
         $validated = $request->validate([
             'submission_content' => 'required|string',
-            'file' => 'nullable|file|max:10240', // 10MB max
+            'file' => 'required|file|mimes:pdf|max:10240', // 10MB max, PDF only
+        ], [
+            'file.required' => 'يجب رفع ملف PDF لتقديم الواجب',
+            'file.mimes' => 'يجب أن يكون الملف المرفق بصيغة PDF فقط',
+            'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
         ]);
 
         try {
@@ -145,10 +149,8 @@ class AssignmentController extends Controller
                 'submitted_at' => now(),
             ]);
 
-            if ($request->hasFile('file')) {
-                $path = $request->file('file')->store('submissions');
-                $submission->file_path = $path;
-            }
+            $path = $request->file('file')->store('submissions');
+            $submission->file_path = $path;
 
             $submission->user_id = Auth::id();
             $assignment->submissions()->save($submission);

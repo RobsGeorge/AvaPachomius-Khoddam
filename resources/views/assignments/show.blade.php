@@ -77,9 +77,10 @@
                             </div>
 
                             <div class="form-group mb-3">
-                                <label for="file">ملف مرفق (اختياري)</label>
+                                <label for="file">ملف مرفق (PDF فقط) <span class="text-danger">*</span></label>
                                 <input type="file" class="form-control @error('file') is-invalid @enderror" 
-                                       id="file" name="file">
+                                       id="file" name="file" accept=".pdf" required>
+                                <small class="form-text text-muted">يجب رفع ملف PDF. الحد الأقصى للحجم هو 10 ميجابايت</small>
                                 @error('file')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
