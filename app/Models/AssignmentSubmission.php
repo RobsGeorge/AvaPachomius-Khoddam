@@ -24,7 +24,7 @@ class AssignmentSubmission extends Model
         'points_earned' => 'integer',
     ];
 
-    protected $table = 'assignemnt_submission';
+    protected $table = 'assignment_submission';
 
     public function assignment(): BelongsTo
     {
