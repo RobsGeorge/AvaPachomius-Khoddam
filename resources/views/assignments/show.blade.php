@@ -97,7 +97,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 class="card-title mb-0">{{ $currentSubmission->user->first_name }} {{ $currentSubmission->user->second_name }}</h5>
-                                        <span class="badge bg-info">{{ $currentSubmission->submitted_at->format('Y-m-d H:i') }}</span>
+                                        <span class="badge bg-info">{{ $currentSubmission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
                                     </div>
                                     
                                     <div class="mb-3">
@@ -143,7 +143,7 @@
                                         </div>
                                     @endif
 
-                                    @if(now() < $assignment->due_date)
+                                    @if(now()->addHours(3) < $assignment->due_date)
                                         <div class="mt-3">
                                             <h6 class="fw-bold">تحديث التسليم</h6>
                                             <form action="{{ route('assignments.update-submission', $currentSubmission) }}" method="POST" enctype="multipart/form-data">
@@ -182,7 +182,7 @@
                                     @else
                                         <div class="alert alert-warning mt-3">
                                             <i class="fas fa-exclamation-triangle me-2"></i>
-                                            انتهى موعد التسليم في {{ $assignment->due_date->format('Y-m-d H:i') }}
+                                            انتهى موعد التسليم في {{ $assignment->due_date->addHours(3)->format('Y-m-d H:i') }}
                                         </div>
                                     @endif
                                 </div>

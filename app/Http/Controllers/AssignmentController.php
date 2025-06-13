@@ -143,6 +143,12 @@ class AssignmentController extends Controller
 
     public function submit(Request $request, Assignment $assignment)
     {
+        // Check if the deadline has passed
+        if (now()->addHours(3) > $assignment->due_date) {
+            return redirect()->back()
+                ->with('error', 'انتهى موعد التسليم');
+        }
+
         $validated = $request->validate([
             'submission_content' => 'required|string',
             'file' => 'required|file|mimes:pdf|max:10240', // 10MB max, PDF only
@@ -235,7 +241,7 @@ class AssignmentController extends Controller
         }
 
         // Check if the deadline has passed
-        if (now() > $submission->assignment->due_date) {
+        if (now()->addHours(3) > $submission->assignment->due_date) {
             return redirect()->back()
                 ->with('error', 'انتهى موعد التسليم');
         }
