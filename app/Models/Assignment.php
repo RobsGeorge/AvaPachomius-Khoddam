@@ -22,9 +22,9 @@ class Assignment extends Model
         'due_date' => 'datetime',
     ];
 
-    public function submissions(): HasMany
+    public function submissions()
     {
-        return $this->hasMany(AssignmentSubmission::class, 'assignment_id');
+        return $this->hasMany(AssignmentSubmission::class, 'assignment_id', 'assignment_id');
     }
 
     /**

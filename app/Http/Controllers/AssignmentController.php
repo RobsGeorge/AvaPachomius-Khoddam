@@ -82,26 +82,17 @@ class AssignmentController extends Controller
 
     public function show(Assignment $assignment)
     {
-        if (Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor')) {
-            $submissions = $assignment->uniqueTeamSubmissions();
-        } else {
-            $submissions = $assignment->submissions()->with('user')->get();
-        }
-        
+        $submissions = $assignment->submissions()->with('user')->get();
         $currentSubmission = null;
-        
+
         if (Auth::user()->roles->contains('role_name', 'student')) {
             $currentSubmission = $assignment->submissions()
                 ->where('user_id', Auth::id())
+                ->latest()
                 ->first();
-
-            // Get all students for the team selection
-            $students = \App\Models\User::whereHas('roles', function($query) {
-                $query->where('role_name', 'student');
-            })->get();
         }
-        
-        return view('assignments.show', compact('assignment', 'submissions', 'currentSubmission', 'students'));
+
+        return view('assignments.show', compact('assignment', 'submissions', 'currentSubmission'));
     }
 
     public function edit(Assignment $assignment)
@@ -153,62 +144,32 @@ class AssignmentController extends Controller
 
     public function submit(Request $request, Assignment $assignment)
     {
-        // Check if the deadline has passed
         if (now()->addHours(3) > $assignment->due_date) {
-            return redirect()->back()
-                ->with('error', 'انتهى موعد التسليم');
+            return back()->with('error', 'انتهى موعد التسليم');
         }
 
         $validated = $request->validate([
-            'team_members' => 'required|array|min:1',
-            'team_members.*' => 'exists:user,id',
             'submission_content' => 'required|string',
             'file' => 'required|file|mimes:pdf|max:10240', // 10MB max, PDF only
         ], [
-            'team_members.required' => 'يجب اختيار عضو واحد على الأقل',
-            'team_members.*.exists' => 'أحد الأعضاء المختارين غير موجود',
-            'file.required' => 'يجب رفع ملف PDF لتقديم الواجب',
-            'file.mimes' => 'يجب أن يكون الملف المرفق بصيغة PDF فقط',
+            'submission_content.required' => 'يرجى إدخال محتوى التسليم',
+            'file.required' => 'يرجى رفع ملف PDF',
+            'file.mimes' => 'يجب أن يكون الملف بصيغة PDF',
             'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
         ]);
 
-        try {
-            // Store the file first
-            $path = $request->file('file')->store('submissions', 'public');
+        $file = $request->file('file');
+        $path = $file->store('submissions', 'public');
 
-            // Create a submission for each team member
-            foreach ($validated['team_members'] as $userId) {
-                $submission = new AssignmentSubmission([
-                    'submission_content' => $validated['submission_content'],
-                    'submitted_at' => now(),
-                    'assignment_id' => $assignment->assignment_id,
-                    'user_id' => $userId,
-                    'file_path' => $path,
-                    'team_submission_id' => null // Will be set after first submission
-                ]);
+        $submission = $assignment->submissions()->create([
+            'user_id' => Auth::id(),
+            'submission_content' => $validated['submission_content'],
+            'file_path' => $path,
+            'submitted_at' => now(),
+        ]);
 
-                $submission->save();
-
-                // If this is the first submission, update all submissions with this ID
-                if ($submission->id) {
-                    AssignmentSubmission::where('assignment_id', $assignment->assignment_id)
-                        ->where('submitted_at', $submission->submitted_at)
-                        ->where('submission_content', $submission->submission_content)
-                        ->where('file_path', $submission->file_path)
-                        ->update(['team_submission_id' => $submission->id]);
-                }
-            }
-
-            return redirect()->route('assignments.show', $assignment)
-                ->with('success', 'تم تقديم الواجب بنجاح');
-        } catch (\Exception $e) {
-            Log::error('Error submitting assignment', [
-                'assignment_id' => $assignment->assignment_id,
-                'error' => $e->getMessage()
-            ]);
-            return redirect()->back()
-                ->with('error', $e->getMessage());
-        }
+        return redirect()->route('assignments.show', $assignment)
+            ->with('success', 'تم تقديم الواجب بنجاح');
     }
 
     public function grade(Request $request, AssignmentSubmission $submission)

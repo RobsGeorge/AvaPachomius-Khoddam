@@ -15,6 +15,7 @@ class AssignmentSubmission extends Model
         'user_id',
         'submission_content',
         'file_path',
+        'submitted_at',
         'points_earned',
         'feedback',
         'submitted_at',
@@ -28,14 +29,14 @@ class AssignmentSubmission extends Model
 
     protected $table = 'assignment_submission';
 
-    public function assignment(): BelongsTo
+    public function assignment()
     {
-        return $this->belongsTo(Assignment::class, 'assignment_id');
+        return $this->belongsTo(Assignment::class, 'assignment_id', 'assignment_id');
     }
 
-    public function user(): BelongsTo
+    public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
     /**
