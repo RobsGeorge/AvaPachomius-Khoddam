@@ -64,51 +64,51 @@
 
                     @if(Auth::user()->roles->contains('role_name', 'student'))
                         @if(!$currentSubmission)
-                            <div class="mb-4">
-                                <h4>تقديم الواجب</h4>
-                                <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
-                                    @csrf
-                                    <div class="form-group mb-3">
-                                        <label for="team_members">أعضاء الفريق</label>
-                                        <select class="form-control select2 @error('team_members') is-invalid @enderror" 
-                                                id="team_members" 
-                                                name="team_members[]" 
-                                                multiple="multiple" 
-                                                required>
-                                            @foreach($students as $student)
-                                                <option value="{{ $student->id }}" 
-                                                    {{ in_array($student->id, old('team_members', [Auth::id()])) ? 'selected' : '' }}>
-                                                    {{ $student->first_name }} {{ $student->second_name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <small class="form-text text-muted">اختر أعضاء الفريق الذين سيساهمون في هذا الواجب</small>
-                                        @error('team_members')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-
-                                    <div class="form-group mb-3">
-                                        <label for="submission_content">المحتوى</label>
-                                        <textarea class="form-control @error('submission_content') is-invalid @enderror" 
-                                                  id="submission_content" name="submission_content" rows="5" required>{{ old('submission_content') }}</textarea>
-                                        @error('submission_content')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-
-                                    <div class="form-group mb-3">
-                                        <label for="file">ملف مرفق (PDF فقط) <span class="text-danger">*</span></label>
-                                        <input type="file" class="form-control @error('file') is-invalid @enderror" 
-                                               id="file" name="file" accept=".pdf" required>
-                                        <small class="form-text text-muted">يجب رفع ملف PDF. الحد الأقصى للحجم هو 10 ميجابايت</small>
-                                        @error('file')
-                                            <div class="invalid-feedback">{{ $message }}</div>
-                                        @enderror
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">تقديم الواجب</button>
-                                </form>
+                    <div class="mb-4">
+                        <h4>تقديم الواجب</h4>
+                        <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="form-group mb-3">
+                                <label for="team_members">أعضاء الفريق</label>
+                                <select class="form-control select2 @error('team_members') is-invalid @enderror" 
+                                        id="team_members" 
+                                        name="team_members[]" 
+                                        multiple="multiple" 
+                                        required>
+                                    @foreach($students as $student)
+                                        <option value="{{ $student->id }}" 
+                                            {{ in_array($student->id, old('team_members', [Auth::id()])) ? 'selected' : '' }}>
+                                            {{ $student->first_name }} {{ $student->second_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="form-text text-muted">اختر أعضاء الفريق الذين سيساهمون في هذا الواجب</small>
+                                @error('team_members')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
+
+                            <div class="form-group mb-3">
+                                <label for="submission_content">المحتوى</label>
+                                <textarea class="form-control @error('submission_content') is-invalid @enderror" 
+                                          id="submission_content" name="submission_content" rows="5" required>{{ old('submission_content') }}</textarea>
+                                @error('submission_content')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="file">ملف مرفق (PDF فقط) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control @error('file') is-invalid @enderror" 
+                                       id="file" name="file" accept=".pdf" required>
+                                <small class="form-text text-muted">يجب رفع ملف PDF. الحد الأقصى للحجم هو 10 ميجابايت</small>
+                                @error('file')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <button type="submit" class="btn btn-primary">تقديم الواجب</button>
+                        </form>
+                    </div>
                         @endif
 
                     <div class="mb-4">
@@ -117,8 +117,27 @@
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                            <h5 class="card-title mb-0">{{ $currentSubmission->user->first_name }} {{ $currentSubmission->user->second_name }}</h5>
-                                            <span class="badge bg-info">{{ $currentSubmission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
+                                        <div>
+                                            <h5 class="card-title mb-0">
+                                                {{ $currentSubmission->user->first_name }} {{ $currentSubmission->user->second_name }}
+                                                @if($currentSubmission->isTeamSubmission())
+                                                    <span class="badge bg-info">تسليم جماعي</span>
+                                                @endif
+                                            </h5>
+                                            @if($currentSubmission->isTeamSubmission())
+                                                <div class="mt-2">
+                                                    <small class="text-muted">أعضاء الفريق:</small>
+                                                    <div class="d-flex flex-wrap gap-2 mt-1">
+                                                        @foreach($currentSubmission->teamMembers() as $member)
+                                                            <span class="badge bg-secondary">
+                                                                {{ $member->first_name }} {{ $member->second_name }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <span class="badge bg-info">{{ $currentSubmission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
                                     </div>
                                     
                                     <div class="mb-3">
@@ -233,12 +252,16 @@
                                                 @endif
                                             </h5>
                                             @if($submission->isTeamSubmission())
-                                                <small class="text-muted">أعضاء الفريق:</small>
-                                                <select class="form-control col-sm-4 select2" style="margin-right: 20px;" name="team_submission" id="team_submission">
-                                                @foreach($submission->teamMembers() as $member)
-                                                    <option style="font-family: 'Cairo', sans-serif; color: black;" value="{{$member->user_id}}">{{ $member->first_name }} {{ $member->second_name }}</option>
-                                                @endforeach
-                                            </select>
+                                                <div class="mt-2">
+                                                    <small class="text-muted">أعضاء الفريق:</small>
+                                                    <div class="d-flex flex-wrap gap-2 mt-1">
+                                                        @foreach($submission->teamMembers() as $member)
+                                                            <span class="badge bg-secondary">
+                                                                {{ $member->first_name }} {{ $member->second_name }}
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
                                             @endif
                                         </div>
                                         <span class="badge bg-info">{{ $submission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
