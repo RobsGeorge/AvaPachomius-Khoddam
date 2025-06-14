@@ -234,57 +234,50 @@ class AssignmentController extends Controller
     {
         // Check if the user owns this submission
         if ($submission->user_id !== Auth::id()) {
-            return redirect()->back()
-                ->with('error', 'غير مصرح لك بتحديث هذا التسليم');
+            return back()->with('error', 'غير مصرح لك بتحديث هذا التسليم');
         }
 
         // Check if the deadline has passed
         if (now()->addHours(3) > $submission->assignment->due_date) {
-            return redirect()->back()
-                ->with('error', 'انتهى موعد التسليم');
+            return back()->with('error', 'انتهى موعد التسليم');
         }
 
         $validated = $request->validate([
             'submission_content' => 'required|string',
             'file' => 'nullable|file|mimes:pdf|max:10240', // 10MB max, PDF only
         ], [
-            'file.mimes' => 'يجب أن يكون الملف المرفق بصيغة PDF فقط',
+            'submission_content.required' => 'يرجى إدخال محتوى التسليم',
+            'file.mimes' => 'يجب أن يكون الملف بصيغة PDF',
             'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
         ]);
 
         try {
-            // Update all submissions in the team
-            $teamSubmissions = AssignmentSubmission::where('team_submission_id', $submission->team_submission_id)
-                ->orWhere('id', $submission->team_submission_id)
-                ->get();
+            // Update the submission content
+            $submission->submission_content = $validated['submission_content'];
 
-            foreach ($teamSubmissions as $teamSubmission) {
-                $teamSubmission->submission_content = $validated['submission_content'];
-                $teamSubmission->submitted_at = now();
-
-                if ($request->hasFile('file')) {
-                    // Delete old file if exists
-                    if ($teamSubmission->file_path) {
-                        Storage::disk('public')->delete($teamSubmission->file_path);
-                    }
-                    
-                    // Store new file
-                    $path = $request->file('file')->store('submissions', 'public');
-                    $teamSubmission->file_path = $path;
+            // If a new file is uploaded, update the file path
+            if ($request->hasFile('file')) {
+                // Delete the old file
+                if ($submission->file_path) {
+                    Storage::disk('public')->delete($submission->file_path);
                 }
 
-                $teamSubmission->save();
+                // Store the new file
+                $file = $request->file('file');
+                $path = $file->store('submissions', 'public');
+                $submission->file_path = $path;
             }
+
+            $submission->save();
 
             return redirect()->route('assignments.show', $submission->assignment)
                 ->with('success', 'تم تحديث التسليم بنجاح');
         } catch (\Exception $e) {
             Log::error('Error updating submission', [
-                'submission_id' => $submission->submission_id,
+                'submission_id' => $submission->id,
                 'error' => $e->getMessage()
             ]);
-            return redirect()->back()
-                ->with('error', 'حدث خطأ أثناء تحديث التسليم');
+            return back()->with('error', 'حدث خطأ أثناء تحديث التسليم');
         }
     }
 } 
