@@ -186,7 +186,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ $overallStats['total_sessions'] }}</div>
-            <div class="stat-label">إجمالي الجلسات</div>
+            <div class="stat-label">إجمالي المحاضرات</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ $overallStats['total_attended'] }}</div>
@@ -205,10 +205,10 @@
     <!-- Export Buttons -->
     <div class="export-buttons">
         <a href="{{ route('attendance.report') }}?export=pdf" class="btn-export">
-            <i class="fas fa-file-pdf"></i> تصدير PDF
+            <i class="fas fa-file-pdf"></i>  PDF
         </a>
         <a href="{{ route('attendance.report') }}?export=excel" class="btn-export">
-            <i class="fas fa-file-excel"></i> تصدير Excel
+            <i class="fas fa-file-excel"></i>  Excel
         </a>
     </div>
 
@@ -293,7 +293,7 @@
                 <div class="col-md-6">
                     <h5>أدنى 5 طلاب من حيث الحضور:</h5>
                     <ul class="list-group">
-                        @foreach($users->reverse()->take(5) as $index => $user)
+                        @foreach($users->sortBy('attendance_percentage')->take(5) as $index => $user)
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>{{ $index + 1 }}. {{ $user->first_name }} {{ $user->second_name }}</span>
                                 <span class="badge badge-danger">{{ number_format($user->attendance_percentage, 1) }}%</span>
