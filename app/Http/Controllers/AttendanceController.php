@@ -375,7 +375,7 @@ class AttendanceController extends Controller
                 DB::raw('COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0) as total_sessions'),
                 DB::raw('CASE 
                     WHEN COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0) > 0 
-                    THEN ROUND((COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Late") THEN 1 ELSE 0 END), 0) / 
+                    THEN ROUND((COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0) / 
                                COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0)) * 100, 2)
                     ELSE 0 
                 END as attendance_percentage')
