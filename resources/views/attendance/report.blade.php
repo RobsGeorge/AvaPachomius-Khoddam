@@ -219,11 +219,11 @@
                 <thead>
                     <tr>
                         <th>اسم الطالب</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>إجمالي الجلسات</th>
-                        <th>جلسات الحضور</th>
-                        <th>جلسات الغياب</th>
-                        <th>جلسات التأخير</th>
+                        <th>رقم الهاتف</th>
+                        <th>إجمالي عدد المحاضرات</th>
+                        <th>عدد مرات الحضور</th>
+                        <th>عدد مرات الغياب</th>
+                        <th>عدد مرات التأخير</th>
                         <th>نسبة الحضور</th>
                     </tr>
                 </thead>
@@ -235,7 +235,7 @@
                                     {{ $user->first_name }} {{ $user->second_name }}
                                 </a>
                             </td>
-                            <td>{{ $user->email }}</td>
+                            <td>{{ $user->mobile_number }}</td>
                             <td>{{ $user->total_sessions }}</td>
                             <td>
                                 <span class="text-success font-weight-bold">{{ $user->attended_sessions }}</span>
