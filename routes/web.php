@@ -82,7 +82,8 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     // View all attendance records
     Route::get('/attendance/all', [AttendanceController::class, 'viewAllAttendance'])->name('attendance.all');
 
-    
+    // Attendance report
+    Route::get('/attendance/report', [AttendanceController::class, 'attendanceReport'])->name('attendance.report');
 
     // Update attendance status
     Route::get('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
@@ -142,3 +143,7 @@ Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destro
 Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->name('assignments.submit');
 Route::put('/assignment-submissions/{submission}/update', [AssignmentController::class, 'updateSubmission'])->name('assignments.update-submission');
 Route::post('/assignment-submissions/{submission}/grade', [AssignmentController::class, 'grade'])->name('assignments.grade')->middleware(['auth', 'role:instructor,admin']);
+
+// Content feedback routes
+Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
+Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');

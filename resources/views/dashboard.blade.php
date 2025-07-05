@@ -66,6 +66,7 @@
         <a href="{{ route('attendance.my') }}" class="btn btn-primary mt-2">عرض سجل الحضور الخاص بي</a>
         @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
             <a href="{{ route('attendance.all') }}" class="btn btn-secondary mt-2">عرض سجل الحضور الكامل</a>
+            <a href="{{ route('attendance.report') }}" class="btn btn-info mt-2">تقرير الحضور والغياب الاجمالي</a>
         @endif
     </section>
 
@@ -74,6 +75,14 @@
         <a href="{{ route('assignments.index') }}" class="btn btn-primary mt-2">عرض الأبحاث والواجبات</a>
         @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
             <a href="" class="btn btn-secondary mt-2">إدارة الأبحاث والواجبات</a>
+        @endif
+    </section>
+
+    <section class="mb-10">
+        <h2 class="section-title">المحتوى التعليمي</h2>
+        <a href="{{ route('contents.index') }}" class="btn btn-primary mt-2">عرض المحتوى التعليمي</a>
+        @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+            <a href="{{ route('contents.create') }}" class="btn btn-secondary mt-2">إضافة محتوى جديد</a>
         @endif
     </section>
 

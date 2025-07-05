@@ -354,6 +354,51 @@ class AttendanceController extends Controller
             ->orderBy('month', 'desc')
             ->get();
     }
+
+    // Comprehensive attendance report for all users
+    public function attendanceReport()
+    {
+        $users = DB::table('user')
+            ->join('user_course_role', 'user.user_id', '=', 'user_course_role.user_id')
+            ->where('user_course_role.role_id', 1) // Assuming role_id 1 is for students
+            ->select([
+                'user.user_id',
+                'user.first_name',
+                'user.second_name',
+                'user.email',
+                DB::raw('COUNT(DISTINCT session.session_id) as total_sessions'),
+                DB::raw('COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0) as attended_sessions'),
+                DB::raw('COALESCE(SUM(CASE WHEN attendance.status = "Absent" THEN 1 ELSE 0 END), 0) as absent_sessions'),
+                DB::raw('COALESCE(SUM(CASE WHEN attendance.status = "Late" THEN 1 ELSE 0 END), 0) as late_sessions'),
+                DB::raw('CASE 
+                    WHEN COUNT(DISTINCT session.session_id) > 0 
+                    THEN ROUND((COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0) / COUNT(DISTINCT session.session_id)) * 100, 2)
+                    ELSE 0 
+                END as attendance_percentage')
+            ])
+            ->leftJoin('session', function($join) {
+                $join->on('session.course_id', '=', 'user_course_role.course_id');
+            })
+            ->leftJoin('attendance', function($join) {
+                $join->on('attendance.session_id', '=', 'session.session_id')
+                     ->on('attendance.user_id', '=', 'user.user_id');
+            })
+            ->groupBy('user.user_id', 'user.first_name', 'user.second_name', 'user.email')
+            ->orderBy('attendance_percentage', 'desc')
+            ->get();
+
+        // Calculate overall statistics
+        $overallStats = [
+            'total_users' => $users->count(),
+            'total_sessions' => $users->sum('total_sessions'),
+            'total_attended' => $users->sum('attended_sessions'),
+            'total_absent' => $users->sum('absent_sessions'),
+            'total_late' => $users->sum('late_sessions'),
+            'average_attendance' => $users->avg('attendance_percentage')
+        ];
+
+        return view('attendance.report', compact('users', 'overallStats'));
+    }
 }
 
 ?>
