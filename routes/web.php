@@ -26,6 +26,9 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\CourseContentController;
+use App\Http\Controllers\LectureController;
+use App\Http\Controllers\LectureMaterialController;
 
 
 
@@ -151,6 +154,20 @@ Route::post('/assignment-submissions/{submission}/grade', [AssignmentController:
 // Content feedback routes
 Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
 Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
+
+// Course content — student read-only view
+Route::middleware('auth')->get('/courses/{course}/content', [CourseContentController::class, 'show'])->name('course-content.show');
+
+// Course content — admin/instructor management panel
+Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
+    Route::get('/courses/{course}/content/manage', [CourseContentController::class, 'admin'])->name('course-content.admin');
+    Route::post('/lectures',                        [LectureController::class, 'store'])->name('lectures.store');
+    Route::get('/lectures/{lecture}/edit',          [LectureController::class, 'edit'])->name('lectures.edit');
+    Route::put('/lectures/{lecture}',               [LectureController::class, 'update'])->name('lectures.update');
+    Route::delete('/lectures/{lecture}',            [LectureController::class, 'destroy'])->name('lectures.destroy');
+    Route::post('/lecture-materials',               [LectureMaterialController::class, 'store'])->name('lecture-materials.store');
+    Route::delete('/lecture-materials/{material}',  [LectureMaterialController::class, 'destroy'])->name('lecture-materials.destroy');
+});
 
 // Superadmin routes — accessible only by users with is_superadmin = true
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
