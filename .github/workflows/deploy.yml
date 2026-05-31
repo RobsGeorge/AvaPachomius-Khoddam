@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Test SSH Connectivity
+        run: nc -zv ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }}
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
