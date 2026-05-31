@@ -25,6 +25,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\SuperAdminController;
 
 
 
@@ -150,3 +151,12 @@ Route::post('/assignment-submissions/{submission}/grade', [AssignmentController:
 // Content feedback routes
 Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
 Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
+
+// Superadmin routes — accessible only by users with is_superadmin = true
+Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
+    Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
+    Route::post('/assignments',              [SuperAdminController::class, 'store'])->name('store');
+    Route::delete('/assignments/{id}',       [SuperAdminController::class, 'destroy'])->name('destroy');
+    Route::post('/roles',                    [SuperAdminController::class, 'storeRole'])->name('roles.store');
+    Route::delete('/roles/{id}',             [SuperAdminController::class, 'destroyRole'])->name('roles.destroy');
+});

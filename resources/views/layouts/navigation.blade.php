@@ -32,6 +32,12 @@
                                 إدارة الأدوار
                             </x-nav-link>
                         @endif
+                        @if(auth()->user()->is_superadmin)
+                            <x-nav-link :href="route('superadmin.index')" :active="request()->routeIs('superadmin.*')"
+                                        style="color: #dc3545; font-weight: 700;">
+                                <i class="bi bi-shield-lock-fill"></i> المشرف العام
+                            </x-nav-link>
+                        @endif
                     </div>
                 @endauth
             </div>
@@ -105,6 +111,11 @@
                 @if(auth()->user()->roles->contains('role_name', 'admin'))
                     <x-responsive-nav-link :href="route('user-course-roles.index')" :active="request()->routeIs('user-course-roles.*', 'roles.*')">
                         إدارة الأدوار
+                    </x-responsive-nav-link>
+                @endif
+                @if(auth()->user()->is_superadmin)
+                    <x-responsive-nav-link :href="route('superadmin.index')" :active="request()->routeIs('superadmin.*')">
+                        <i class="bi bi-shield-lock-fill"></i> المشرف العام
                     </x-responsive-nav-link>
                 @endif
             </div>

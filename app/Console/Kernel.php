@@ -28,5 +28,6 @@ class Kernel extends ConsoleKernel
 
     protected $commands = [
         Commands\MarkAbsentUsers::class,
+        Commands\SetSuperAdmin::class,
     ];
 }

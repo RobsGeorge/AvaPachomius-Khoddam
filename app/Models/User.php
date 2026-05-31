@@ -28,7 +28,7 @@ class User extends Authenticatable
         'first_name', 'second_name', 'third_name', 'profile_photo',
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
-        'is_verified', 'remember_token', 'otp_code', 'otp_expires_at'
+        'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at'
     ];
 
     public function attendancesTaken()
