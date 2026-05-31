@@ -13,6 +13,8 @@ return new class extends Migration
             $table->string('exam_name');
             $table->integer('duration_minutes');
             $table->text('study_resources')->nullable();
+            $table->text('exam_description')->nullable();
+            $table->integer('passing_score')->nullable();
             $table->timestamps();
         });
 

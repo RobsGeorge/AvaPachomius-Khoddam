@@ -8,18 +8,18 @@ return new class extends Migration
 {
     public function up()
     {
-        Schema::table('assignment_submissions', function (Blueprint $table) {
+        Schema::table('assignment_submission', function (Blueprint $table) {
             $table->unsignedBigInteger('team_submission_id')->nullable();
             $table->foreign('team_submission_id')
-                  ->references('id')
-                  ->on('assignment_submissions')
+                  ->references('submission_id')
+                  ->on('assignment_submission')
                   ->onDelete('cascade');
         });
     }
 
     public function down()
     {
-        Schema::table('assignment_submissions', function (Blueprint $table) {
+        Schema::table('assignment_submission', function (Blueprint $table) {
             $table->dropForeign(['team_submission_id']);
             $table->dropColumn('team_submission_id');
         });

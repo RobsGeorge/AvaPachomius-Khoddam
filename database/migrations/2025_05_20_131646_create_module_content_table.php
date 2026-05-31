@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('module_content', function (Blueprint $table) {
             $table->id('module_content_id');
-            $table->foreignId('module_id')->constrained('module', 'module_id');
+            $table->foreignId('module_id')->constrained('modules', 'module_id');
             $table->foreignId('content_id')->constrained('content', 'content_id');
         });
         
