@@ -27,6 +27,11 @@
                         <x-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">
                             المحاضرات
                         </x-nav-link>
+                        @if(auth()->user()->roles->contains('role_name', 'admin'))
+                            <x-nav-link :href="route('user-course-roles.index')" :active="request()->routeIs('user-course-roles.*', 'roles.*')">
+                                إدارة الأدوار
+                            </x-nav-link>
+                        @endif
                     </div>
                 @endauth
             </div>
@@ -97,6 +102,11 @@
                 <x-responsive-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">
                     المحاضرات
                 </x-responsive-nav-link>
+                @if(auth()->user()->roles->contains('role_name', 'admin'))
+                    <x-responsive-nav-link :href="route('user-course-roles.index')" :active="request()->routeIs('user-course-roles.*', 'roles.*')">
+                        إدارة الأدوار
+                    </x-responsive-nav-link>
+                @endif
             </div>
 
             <!-- Responsive Settings Options -->

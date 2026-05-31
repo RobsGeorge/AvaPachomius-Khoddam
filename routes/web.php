@@ -42,7 +42,6 @@ require __DIR__.'/auth.php';
 
 Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
-    Route::resource('roles', RoleController::class);
     Route::resource('courses', CourseController::class);
     Route::resource('modules', ModuleController::class);
     Route::resource('contents', ContentController::class);
@@ -50,7 +49,11 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('assessments', AssessmentController::class);
     Route::resource('course-assessments', CourseAssessmentController::class);
     Route::resource('user-assessments', UserAssessmentController::class);
-    Route::resource('user-course-roles', UserCourseRoleController::class);
+});
+
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::resource('roles', RoleController::class)->only(['index', 'store', 'destroy']);
+    Route::resource('user-course-roles', UserCourseRoleController::class)->only(['index', 'create', 'store', 'destroy']);
 });
 
 Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
@@ -59,7 +62,7 @@ Route::post('register', [RegisterController::class, 'register']);
 Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 
-Route::post('otp/send', [OtpController::class, 'sendOtp'])->name('otp.send');
+Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
 
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -119,7 +122,7 @@ Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])-
 
 Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttendanceByDate'])->name('attendance.by-date');
 
-Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
+Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post');
 
 // Exam routes
 Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');

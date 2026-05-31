@@ -24,11 +24,10 @@ class LoginController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            // Check if user is approved
-            /*if (!Auth::user()->is_approved) {
+            if (!Auth::user()->is_verified) {
                 Auth::logout();
-                return back()->withErrors('Your account is not approved by admin yet.');
-            }*/
+                return back()->withErrors(['email' => 'حسابك لم يتم التحقق منه بعد. يرجى التواصل مع المشرف.']);
+            }
 
             return redirect('/dashboard')->with('success', 'Welcome back!');
         }

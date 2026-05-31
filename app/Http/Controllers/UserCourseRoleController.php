@@ -3,62 +3,54 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\UserCourseRole;
+use App\Models\User;
+use App\Models\Course;
+use App\Models\Role;
 
 class UserCourseRoleController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        //
+        $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
+        return view('user_course_roles.index', compact('assignments'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
+        $users   = User::orderBy('first_name')->get();
+        $courses = Course::orderBy('title')->get();
+        $roles   = Role::all();
+        return view('user_course_roles.create', compact('users', 'courses', 'roles'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'user_id'   => 'required|exists:user,user_id',
+            'course_id' => 'required|exists:course,course_id',
+            'role_id'   => 'required|exists:roles,role_id',
+        ]);
+
+        $exists = UserCourseRole::where('user_id', $request->user_id)
+            ->where('course_id', $request->course_id)
+            ->where('role_id', $request->role_id)
+            ->exists();
+
+        if ($exists) {
+            return back()
+                ->withErrors(['duplicate' => 'هذا المستخدم لديه هذا الدور في هذه الدورة بالفعل.'])
+                ->withInput();
+        }
+
+        UserCourseRole::create($request->only('user_id', 'course_id', 'role_id'));
+
+        return redirect()->route('user-course-roles.index')->with('success', 'تم تعيين الدور بنجاح');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
-        //
+        UserCourseRole::findOrFail($id)->delete();
+        return redirect()->route('user-course-roles.index')->with('success', 'تم إلغاء تعيين الدور');
     }
 }

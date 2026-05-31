@@ -13,6 +13,8 @@ class Exam extends Model
         'exam_name',
         'duration_minutes',
         'study_resources',
+        'exam_description',
+        'passing_score',
     ];
 
     public function schedules(): HasMany

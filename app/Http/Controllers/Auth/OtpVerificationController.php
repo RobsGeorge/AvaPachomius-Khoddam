@@ -22,7 +22,7 @@ class OTPController extends Controller
     public function verify(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:user,id',
+            'user_id' => 'required|exists:user,user_id',
             'otp_code' => 'required|digits:6',
         ], [
             'otp_code.digits' => 'رمز التحقق يجب أن يتكون من 6 أرقام.',
@@ -56,7 +56,7 @@ class OTPController extends Controller
     public function setPassword(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:users,id',
+            'user_id' => 'required|exists:user,user_id',
             'password' => 'required|string|min:8|confirmed',
         ]);
 
