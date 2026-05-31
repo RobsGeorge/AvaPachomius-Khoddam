@@ -30,10 +30,6 @@ jobs:
               --optimize-autoloader \
               --no-dev
 
-            # Remove next two lines if project has no frontend build step
-            npm ci install
-            npm run build
-
             php artisan migrate --force
 
             php artisan optimize:clear
