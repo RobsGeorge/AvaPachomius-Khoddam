@@ -63,15 +63,9 @@
                                 الملف الشخصي
                             </x-dropdown-link>
 
-                            <!-- Authentication -->
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <x-dropdown-link :href="route('logout')"
-                                        onclick="event.preventDefault();
-                                                    this.closest('form').submit();">
-                                    تسجيل الخروج
-                                </x-dropdown-link>
-                            </form>
+                            <x-dropdown-link :href="route('logout')">
+                                تسجيل الخروج
+                            </x-dropdown-link>
                         </x-slot>
                     </x-dropdown>
                 </div>
@@ -132,15 +126,9 @@
                         الملف الشخصي
                     </x-responsive-nav-link>
 
-                    <!-- Authentication -->
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <x-responsive-nav-link :href="route('logout')"
-                                onclick="event.preventDefault();
-                                            this.closest('form').submit();">
-                            تسجيل الخروج
-                        </x-responsive-nav-link>
-                    </form>
+                    <x-responsive-nav-link :href="route('logout')">
+                        تسجيل الخروج
+                    </x-responsive-nav-link>
                 </div>
             </div>
         @endauth
