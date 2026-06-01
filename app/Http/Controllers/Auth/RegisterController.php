@@ -95,7 +95,18 @@ class RegisterController extends Controller
                 ->with('user_id', $user->user_id)
                 ->with('success', 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.');
 
-        } catch (\Exception $e) {
+        } catch (QueryException $e) {
+            DB::rollBack();
+            Log::error('Re-registration DB error: ' . $e->getMessage());
+
+            if ($fieldErrors = $this->mapDbConstraintError($e)) {
+                return back()->withErrors($fieldErrors)->withInput();
+            }
+
+            return back()
+                ->withErrors(['general' => 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.'])
+                ->withInput();
+        } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Re-registration failed: ' . $e->getMessage());
             return back()
@@ -184,7 +195,7 @@ class RegisterController extends Controller
                 ->withErrors(['general' => 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.'])
                 ->withInput();
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
             if ($profilePhotoPath) Storage::delete("public/{$profilePhotoPath}");
             Log::error('Registration failed: ' . $e->getMessage());
@@ -205,9 +216,9 @@ class RegisterController extends Controller
             'third_name'    => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'national_id'   => ['required', 'digits:14'],
             'email'         => ['required', 'email', 'max:30'],
-            'job'           => ['required', 'string', 'max:100'],
+            'job'           => ['required', 'string', 'max:50'],
             'date_of_birth' => ['required', 'date'],
-            'mobile_number' => ['required', 'digits_between:9,11'],
+            'mobile_number' => ['required', 'numeric', 'digits_between:9,11'],
             'profile_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
             'first_name.regex'       => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
@@ -261,7 +272,7 @@ class RegisterController extends Controller
     }
 
     /** Map exception types to Arabic user-friendly messages */
-    private function friendlyError(\Exception $e): string
+    private function friendlyError(\Throwable $e): string
     {
         $msg = $e->getMessage();
 

@@ -30,7 +30,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data"
+                    <form method="POST" action="{{ route('register.store') }}" enctype="multipart/form-data"
                           id="registerForm" novalidate>
                         @csrf
 
