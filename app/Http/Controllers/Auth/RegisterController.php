@@ -11,6 +11,7 @@ use App\Models\Role;
 use App\Mail\SendOTPEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use App\Support\PasswordRules;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
@@ -299,8 +300,8 @@ class RegisterController extends Controller
     {
         $request->validate([
             'user_id'  => 'required|exists:user,user_id',
-            'password' => 'required|min:8|confirmed',
-        ]);
+            'password' => PasswordRules::field(),
+        ], PasswordRules::messages());
 
         $user           = User::where('user_id', $request->user_id)->firstOrFail();
         $user->password = Hash::make($request->password);

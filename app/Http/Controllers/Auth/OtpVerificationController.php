@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OTPCode;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Support\PasswordRules;
 use Illuminate\Support\Facades\Hash;
 
 class OTPController extends Controller
@@ -56,9 +57,9 @@ class OTPController extends Controller
     public function setPassword(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:user,user_id',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+            'user_id'  => 'required|exists:user,user_id',
+            'password' => PasswordRules::field(),
+        ], PasswordRules::messages());
 
         $user = User::find($request->user_id);
         $user->password = Hash::make($request->password);
