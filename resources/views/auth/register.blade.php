@@ -113,14 +113,14 @@
                                     <input id="mobile_number" type="tel"
                                            class="form-control @error('mobile_number') is-invalid @enderror"
                                            name="mobile_number" value="{{ old('mobile_number') }}" required
-                                           pattern="\d{9,}" minlength="9" maxlength="15"
-                                           title="رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل"
+                                           pattern="\d{9,11}" minlength="9" maxlength="11"
+                                           title="رقم الهاتف يجب أن يكون بين 9 و 11 رقمًا"
                                            inputmode="numeric">
                                     @error('mobile_number')
                                         <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                     @enderror
                                 </div>
-                                <div class="form-text text-end">9 أرقام على الأقل</div>
+                                <div class="form-text text-end">9–11 رقمًا (مثال: 1012345678)</div>
                             </div>
                         </div>
 
@@ -304,8 +304,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // Strip non-digits
         this.value = this.value.replace(/\D/g, '');
 
-        if (this.value.length > 0 && this.value.length < 9) {
-            this.setCustomValidity('رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل');
+        if (this.value.length > 0 && (this.value.length < 9 || this.value.length > 11)) {
+            this.setCustomValidity('رقم الهاتف يجب أن يكون بين 9 و 11 رقمًا');
         } else {
             this.setCustomValidity('');
         }

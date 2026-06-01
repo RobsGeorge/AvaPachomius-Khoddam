@@ -108,6 +108,12 @@ class RegisterController extends Controller
 
     private function createAndSendOtp(Request $request)
     {
+        if (User::where('mobile_number', $request->mobile_number)->exists()) {
+            return back()
+                ->withErrors(['mobile_number' => 'رقم الهاتف مستخدم بالفعل. يرجى استخدام رقم آخر.'])
+                ->withInput();
+        }
+
         // Profile photo is optional — store if uploaded, otherwise use empty string
         $profilePhotoPath = null;
         if ($request->hasFile('profile_photo')) {
@@ -170,10 +176,8 @@ class RegisterController extends Controller
             if ($profilePhotoPath) Storage::delete("public/{$profilePhotoPath}");
             Log::error('Registration DB error: ' . $e->getMessage());
 
-            if (str_contains($e->getMessage(), 'mobile_number')) {
-                return back()
-                    ->withErrors(['mobile_number' => 'رقم الهاتف مستخدم بالفعل. يرجى استخدام رقم آخر.'])
-                    ->withInput();
+            if ($fieldErrors = $this->mapDbConstraintError($e)) {
+                return back()->withErrors($fieldErrors)->withInput();
             }
 
             return back()
@@ -200,17 +204,53 @@ class RegisterController extends Controller
             'second_name'   => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'third_name'    => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'national_id'   => ['required', 'digits:14'],
-            'email'         => ['required', 'email', 'max:100'],
+            'email'         => ['required', 'email', 'max:30'],
             'job'           => ['required', 'string', 'max:100'],
             'date_of_birth' => ['required', 'date'],
-            'mobile_number' => ['required', 'min_digits:9'],
+            'mobile_number' => ['required', 'digits_between:9,11'],
             'profile_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
             'first_name.regex'       => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
             'second_name.regex'      => 'الاسم الثاني يجب أن يحتوي على أحرف عربية فقط.',
             'third_name.regex'       => 'الاسم الثالث يجب أن يحتوي على أحرف عربية فقط.',
-            'mobile_number.min_digits' => 'رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل.',
+            'mobile_number.digits_between' => 'رقم الهاتف يجب أن يكون بين 9 و 11 رقمًا.',
+            'email.max'                    => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).',
         ]);
+    }
+
+    /** Map DB constraint violations to the correct form field (not always mobile). */
+    private function mapDbConstraintError(QueryException $e): ?array
+    {
+        $message = $e->getMessage();
+        $code    = $e->errorInfo[1] ?? null;
+
+        $isDuplicate = $code === 1062
+            || str_contains($message, 'UNIQUE constraint failed')
+            || str_contains($message, 'Duplicate entry');
+
+        if ($isDuplicate) {
+            if (str_contains($message, 'mobile_number')) {
+                return ['mobile_number' => 'رقم الهاتف مستخدم بالفعل. يرجى استخدام رقم آخر.'];
+            }
+            if (str_contains($message, 'email')) {
+                return ['email' => 'هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول أو استخدام بريد آخر.'];
+            }
+
+            return null;
+        }
+
+        $isTooLong = $code === 1406 || str_contains($message, 'Data too long');
+
+        if ($isTooLong) {
+            if (str_contains($message, 'mobile_number')) {
+                return ['mobile_number' => 'رقم الهاتف طويل جداً. يجب ألا يتجاوز 11 رقمًا.'];
+            }
+            if (str_contains($message, 'email')) {
+                return ['email' => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).'];
+            }
+        }
+
+        return null;
     }
 
     protected function storeFile($file, $directory): string
