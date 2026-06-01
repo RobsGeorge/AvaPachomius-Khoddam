@@ -13,7 +13,6 @@ return new class extends Migration {
             $table->foreign('user_id')->references('user_id')->on('user')->onDelete('cascade');
             $table->string('code', 10);
             $table->timestamp('expires_at');
-            $table->timestamp('created_at')->nullable();
         });
     }
 

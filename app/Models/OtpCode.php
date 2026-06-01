@@ -9,10 +9,10 @@ class OtpCode extends Model
     protected $table      = 'otp_code';
     protected $primaryKey = 'user_id';
     public    $incrementing = false;   // user_id is a FK, not auto-increment
-    protected $keyType    = 'int';
+    protected $keyType    = 'integer';
     public    $timestamps = false;
 
     protected $fillable = ['user_id', 'code', 'expires_at'];
 
-    protected $casts = ['expires_at' => 'datetime', 'created_at' => 'datetime'];
+    protected $casts = ['expires_at' => 'datetime'];
 }
