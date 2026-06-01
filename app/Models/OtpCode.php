@@ -1,5 +1,4 @@
 <?php
-// app/Models/OtpCode.php
 
 namespace App\Models;
 
@@ -7,16 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class OtpCode extends Model
 {
-    public $timestamps = false;
-
-    protected $table = 'otp_code';
-
+    protected $table      = 'otp_code';
     protected $primaryKey = 'user_id';
+    public    $incrementing = false;   // user_id is a FK, not auto-increment
+    protected $keyType    = 'int';
+    public    $timestamps = false;
 
     protected $fillable = ['user_id', 'code', 'expires_at'];
 
-    protected $dates = ['created_at'];
+    protected $casts = ['expires_at' => 'datetime', 'created_at' => 'datetime'];
 }
-    
-        
-?>

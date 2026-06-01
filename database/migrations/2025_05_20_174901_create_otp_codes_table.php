@@ -8,10 +8,12 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::create('otp_code', function (Blueprint $table) {
-            $table->id();
-            $table->string('email')->index();      // To identify the user
-            $table->string('code');                // 6-digit OTP code
-            $table->timestamp('created_at');       // For expiration check
+            $table->unsignedBigInteger('user_id');
+            $table->primary('user_id');
+            $table->foreign('user_id')->references('user_id')->on('user')->onDelete('cascade');
+            $table->string('code', 10);
+            $table->timestamp('expires_at');
+            $table->timestamp('created_at')->nullable();
         });
     }
 
@@ -20,5 +22,3 @@ return new class extends Migration {
         Schema::dropIfExists('otp_code');
     }
 };
-
-?>
