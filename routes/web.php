@@ -17,8 +17,6 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\admin\UserManagementController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
-use Inertia\Response;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
