@@ -88,7 +88,7 @@ class RegisterController extends Controller
                 'expires_at' => now()->addMinutes(10),
             ]);
 
-            Mail::to($user->email)->send(new SendOTPEmail($otp));
+            Mail::to($user->email)->send(new SendOTPEmail($otp, $user));
 
             DB::commit();
 
@@ -175,7 +175,7 @@ class RegisterController extends Controller
                 'expires_at' => now()->addMinutes(10),
             ]);
 
-            Mail::to($user->email)->send(new SendOTPEmail($otp));
+            Mail::to($user->email)->send(new SendOTPEmail($otp, $user));
 
             DB::commit();
 

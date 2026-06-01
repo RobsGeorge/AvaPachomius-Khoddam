@@ -69,7 +69,8 @@ class OTPController extends Controller
         );
         
 
-        Mail::to(User::find($request->user_id)->email)->send(new \App\Mail\SendOTPEmail($otp));
+        $user = User::find($request->user_id);
+        Mail::to($user->email)->send(new \App\Mail\SendOTPEmail($otp, $user));
         RateLimiter::hit($key, 60);
 
         return back()->with('success', __('auth.registration_email_resent'));

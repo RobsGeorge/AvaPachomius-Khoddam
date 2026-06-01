@@ -23,9 +23,11 @@ class ResetPasswordMail extends Mailable
         return $this->subject(__('password.reset_email_subject'))
             ->view('emails.reset_password')
             ->with([
-                'user'          => $this->user,
-                'resetUrl'      => $this->resetUrl,
-                'expireMinutes' => $expireMinutes,
+                'user'            => $this->user,
+                'resetUrl'        => $this->resetUrl,
+                'expireMinutes'   => $expireMinutes,
+                'emailTitle'      => __('password.reset_email_subject'),
+                'headerSubtitle'  => __('password.reset_email_subject'),
             ]);
     }
 }
