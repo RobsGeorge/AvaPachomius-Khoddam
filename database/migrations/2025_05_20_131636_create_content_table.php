@@ -14,7 +14,14 @@ return new class extends Migration
         Schema::create('content', function (Blueprint $table) {
             $table->id('content_id');
             $table->string('title', 30);
-            $table->string('content_lcation', 255);
+            $table->string('content_location', 255);
+            $table->string('session_title')->nullable();
+            $table->date('session_date')->nullable();
+            $table->string('lecture_name')->nullable();
+            $table->string('speaker_name')->nullable();
+            $table->string('audio_link')->nullable();
+            $table->string('slides_link')->nullable();
+            $table->text('description')->nullable();
         });
         
     }

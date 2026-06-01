@@ -13,10 +13,8 @@ return new class extends Migration
             $table->foreignId('assignment_id')
                   ->constrained('assignments', 'assignment_id')
                   ->onDelete('cascade');
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')
-                  ->references('user_id')
-                  ->on('user')
+            $table->foreignId('user_id')
+                  ->constrained('user', 'user_id')
                   ->onDelete('cascade');
             $table->text('submission_content');
             $table->string('file_path')->nullable();
