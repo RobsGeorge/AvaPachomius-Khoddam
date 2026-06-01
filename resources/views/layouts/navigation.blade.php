@@ -13,7 +13,7 @@
                             {{ __('nav.home') }}
                         </a>
 
-                        @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
+                        @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
                             <a href="{{ route('attendance.all') }}" class="app-nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
                                 {{ __('nav.attendance') }}
                             </a>
@@ -99,7 +99,7 @@
             <div class="d-md-none nav-links mt-2" x-show="navOpen" x-transition>
                 <div class="d-flex flex-column gap-1">
                     <a href="{{ route('dashboard') }}" class="app-nav-link">{{ __('nav.home') }}</a>
-                    @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
+                    @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
                         <a href="{{ route('attendance.all') }}" class="app-nav-link">{{ __('nav.attendance') }}</a>
                     @else
                         <a href="{{ route('attendance.my') }}" class="app-nav-link">{{ __('nav.my_attendance') }}</a>

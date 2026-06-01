@@ -19,16 +19,16 @@ class UserAssessment extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
     public function courseAssessment()
     {
-        return $this->belongsTo(CourseAssessment::class, 'course_assessment_id');
+        return $this->belongsTo(CourseAssessment::class, 'course_assessment_id', 'course_assessment_id');
     }
 
     public function submittedBy()
     {
-        return $this->belongsTo(User::class, 'submitted_by_id');
+        return $this->belongsTo(User::class, 'submitted_by_id', 'user_id');
     }
 }

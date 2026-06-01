@@ -20,23 +20,41 @@ class Course extends Model
 
     public function sessions()
     {
-        return $this->hasMany(Session::class, 'course_id');
+        return $this->hasMany(Session::class, 'course_id', 'course_id');
     }
 
     public function modules()
     {
-        return $this->belongsToMany(Module::class, 'course_module', 'course_id', 'module_id');
+        return $this->belongsToMany(
+            Module::class,
+            'course_module',
+            'course_id',
+            'module_id',
+            'course_id',
+            'module_id'
+        );
     }
 
     public function assessments()
     {
-        return $this->hasMany(CourseAssessment::class, 'course_id');
+        return $this->hasMany(CourseAssessment::class, 'course_id', 'course_id');
     }
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'user_course_role', 'course_id', 'user_id')
-                    ->withPivot('role_id');
+        return $this->belongsToMany(
+            User::class,
+            'user_course_role',
+            'course_id',
+            'user_id',
+            'course_id',
+            'user_id'
+        )->withPivot('role_id', 'user_course_role_id');
+    }
+
+    public function userCourseRoles()
+    {
+        return $this->hasMany(UserCourseRole::class, 'course_id', 'course_id');
     }
 
     public function gradeCategories()

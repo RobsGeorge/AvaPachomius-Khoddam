@@ -22,7 +22,7 @@ class CourseAssessment extends Model
 
     public function course()
     {
-        return $this->belongsTo(Course::class, 'course_id');
+        return $this->belongsTo(Course::class, 'course_id', 'course_id');
     }
 
     public function assessment()
@@ -32,7 +32,7 @@ class CourseAssessment extends Model
 
     public function userAssessments()
     {
-        return $this->hasMany(UserAssessment::class, 'course_assessment_id');
+        return $this->hasMany(UserAssessment::class, 'course_assessment_id', 'course_assessment_id');
     }
 }
 

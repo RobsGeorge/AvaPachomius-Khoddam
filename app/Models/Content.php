@@ -32,12 +32,19 @@ class Content extends Model
 
     public function modules()
     {
-        return $this->belongsToMany(Module::class, 'module_content', 'content_id', 'module_id');
+        return $this->belongsToMany(
+            Module::class,
+            'module_content',
+            'content_id',
+            'module_id',
+            'content_id',
+            'module_id'
+        );
     }
 
     public function feedback()
     {
-        return $this->hasMany(ContentFeedback::class, 'content_id');
+        return $this->hasMany(ContentFeedback::class, 'content_id', 'content_id');
     }
 
     public function userFeedback($userId)

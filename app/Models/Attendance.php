@@ -21,17 +21,17 @@ class Attendance extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
     public function takenBy()
     {
-        return $this->belongsTo(User::class, 'taken_by_id');
+        return $this->belongsTo(User::class, 'taken_by_id', 'user_id');
     }
 
     public function session()
     {
-        return $this->belongsTo(Session::class, 'session_id');
+        return $this->belongsTo(Session::class, 'session_id', 'session_id');
     }
 }
 

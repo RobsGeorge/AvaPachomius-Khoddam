@@ -23,11 +23,11 @@ class ExamSchedule extends Model
 
     public function exam(): BelongsTo
     {
-        return $this->belongsTo(Exam::class, 'exam_id');
+        return $this->belongsTo(Exam::class, 'exam_id', 'exam_id');
     }
 
     public function results(): HasMany
     {
-        return $this->hasMany(ExamResult::class, 'schedule_id');
+        return $this->hasMany(ExamResult::class, 'schedule_id', 'schedule_id');
     }
 } 

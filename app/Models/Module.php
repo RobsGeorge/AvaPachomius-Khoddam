@@ -18,12 +18,26 @@ class Module extends Model
 
     public function courses()
     {
-        return $this->belongsToMany(Course::class, 'course_module', 'module_id', 'course_id');
+        return $this->belongsToMany(
+            Course::class,
+            'course_module',
+            'module_id',
+            'course_id',
+            'module_id',
+            'course_id'
+        );
     }
 
     public function contents()
     {
-        return $this->belongsToMany(Content::class, 'module_content', 'module_id', 'content_id');
+        return $this->belongsToMany(
+            Content::class,
+            'module_content',
+            'module_id',
+            'content_id',
+            'module_id',
+            'content_id'
+        );
     }
 
     public function lectures()

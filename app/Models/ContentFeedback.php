@@ -25,11 +25,11 @@ class ContentFeedback extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
     public function content()
     {
-        return $this->belongsTo(Content::class, 'content_id');
+        return $this->belongsTo(Content::class, 'content_id', 'content_id');
     }
 } 

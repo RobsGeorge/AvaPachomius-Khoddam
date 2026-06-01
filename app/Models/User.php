@@ -35,35 +35,61 @@ class User extends Authenticatable
 
     public function attendancesTaken()
     {
-        return $this->hasMany(Attendance::class, 'taken_by_id');
+        return $this->hasMany(Attendance::class, 'taken_by_id', 'user_id');
     }
 
     public function attendances()
     {
-        return $this->hasMany(Attendance::class, 'user_id');
+        return $this->hasMany(Attendance::class, 'user_id', 'user_id');
     }
 
     public function userAssessments()
     {
-        return $this->hasMany(UserAssessment::class, 'user_id');
+        return $this->hasMany(UserAssessment::class, 'user_id', 'user_id');
     }
 
     public function submittedAssessments()
     {
-        return $this->hasMany(UserAssessment::class, 'submitted_by_id');
+        return $this->hasMany(UserAssessment::class, 'submitted_by_id', 'user_id');
     }
 
     public function roles()
     {
-        return $this->belongsToMany(Role::class, 'user_course_role', 'user_id', 'role_id')
-                    ->withPivot('course_id');
+        return $this->belongsToMany(
+            Role::class,
+            'user_course_role',
+            'user_id',
+            'role_id',
+            'user_id',
+            'role_id'
+        )->withPivot('course_id', 'user_course_role_id');
     }
-
 
     public function courses()
     {
-        return $this->belongsToMany(Course::class, 'user_course_role', 'user_id', 'course_id')
-                    ->withPivot('role_id');
+        return $this->belongsToMany(
+            Course::class,
+            'user_course_role',
+            'user_id',
+            'course_id',
+            'user_id',
+            'course_id'
+        )->withPivot('role_id', 'user_course_role_id');
+    }
+
+    public function userCourseRoles()
+    {
+        return $this->hasMany(UserCourseRole::class, 'user_id', 'user_id');
+    }
+
+    public function hasRole(string $roleName): bool
+    {
+        return $this->roles->contains('role_name', $roleName);
+    }
+
+    public function hasAnyRole(array $roleNames): bool
+    {
+        return $this->roles->whereIn('role_name', $roleNames)->isNotEmpty();
     }
 
     // Override the "must verify email" behavior since we have custom OTP

@@ -22,16 +22,16 @@ class ExamResult extends Model
 
     public function exam(): BelongsTo
     {
-        return $this->belongsTo(Exam::class, 'exam_id');
+        return $this->belongsTo(Exam::class, 'exam_id', 'exam_id');
     }
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
     public function schedule(): BelongsTo
     {
-        return $this->belongsTo(ExamSchedule::class, 'schedule_id');
+        return $this->belongsTo(ExamSchedule::class, 'schedule_id', 'schedule_id');
     }
 } 

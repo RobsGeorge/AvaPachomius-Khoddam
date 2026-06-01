@@ -18,12 +18,12 @@ class Session extends Model
 
     public function course()
     {
-        return $this->belongsTo(Course::class, 'course_id');
+        return $this->belongsTo(Course::class, 'course_id', 'course_id');
     }
 
     public function attendances()
     {
-        return $this->hasMany(Attendance::class, 'session_id');
+        return $this->hasMany(Attendance::class, 'session_id', 'session_id');
     }
 }
 
