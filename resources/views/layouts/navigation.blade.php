@@ -5,7 +5,7 @@
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}" class="text-xl font-bold text-gray-800">
-                        إعداد خدام 2025
+                        إعداد خدام 2026
                     </a>
                 </div>
 

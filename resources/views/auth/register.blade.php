@@ -12,18 +12,38 @@
                 </div>
 
                 <div class="card-body bg-light">
-                    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
+
+                    {{-- General errors (non-field errors from the controller) --}}
+                    @if($errors->has('general'))
+                        <div class="alert alert-danger d-flex align-items-start gap-2">
+                            <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                            <div>{{ $errors->first('general') }}</div>
+                        </div>
+                    @elseif($errors->any())
+                        <div class="alert alert-danger">
+                            <strong>يرجى تصحيح الأخطاء التالية:</strong>
+                            <ul class="mb-0 mt-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data"
+                          id="registerForm" novalidate>
                         @csrf
 
-                        <!-- الاسم الأول -->
+                        {{-- الاسم الأول --}}
                         <div class="row mb-3">
                             <label for="first_name" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-person-fill"></i> الاسم الأول
+                                <i class="bi bi-person-fill"></i> الاسم الأول <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="first_name" type="text" class="form-control @error('first_name') is-invalid @enderror"
+                                <input id="first_name" type="text"
+                                       class="form-control @error('first_name') is-invalid @enderror"
                                        name="first_name" value="{{ old('first_name') }}" required
-                                       pattern="^[\u0621-\u064A\s]+$"
+                                       pattern="^[ء-ي\s]+$"
                                        title="الرجاء إدخال الاسم باللغة العربية فقط">
                                 @error('first_name')
                                     <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
@@ -31,15 +51,16 @@
                             </div>
                         </div>
 
-                        <!-- الاسم الثاني -->
+                        {{-- الاسم الثاني --}}
                         <div class="row mb-3">
                             <label for="second_name" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-person-fill"></i> الاسم الثاني
+                                <i class="bi bi-person-fill"></i> الاسم الثاني <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="second_name" type="text" class="form-control @error('second_name') is-invalid @enderror"
+                                <input id="second_name" type="text"
+                                       class="form-control @error('second_name') is-invalid @enderror"
                                        name="second_name" value="{{ old('second_name') }}" required
-                                       pattern="^[\u0621-\u064A\s]+$"
+                                       pattern="^[ء-ي\s]+$"
                                        title="الرجاء إدخال الاسم باللغة العربية فقط">
                                 @error('second_name')
                                     <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
@@ -47,15 +68,16 @@
                             </div>
                         </div>
 
-                        <!-- الاسم الثالث -->
+                        {{-- الاسم الثالث --}}
                         <div class="row mb-3">
                             <label for="third_name" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-person-fill"></i> الاسم الثالث
+                                <i class="bi bi-person-fill"></i> الاسم الثالث <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="third_name" type="text" class="form-control @error('third_name') is-invalid @enderror"
+                                <input id="third_name" type="text"
+                                       class="form-control @error('third_name') is-invalid @enderror"
                                        name="third_name" value="{{ old('third_name') }}" required
-                                       pattern="^[\u0621-\u064A\s]+$"
+                                       pattern="^[ء-ي\s]+$"
                                        title="الرجاء إدخال الاسم باللغة العربية فقط">
                                 @error('third_name')
                                     <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
@@ -63,46 +85,53 @@
                             </div>
                         </div>
 
-                        <!-- الرقم القومي -->
+                        {{-- الرقم القومي --}}
                         <div class="row mb-3">
                             <label for="national_id" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-card-text"></i> الرقم القومي
+                                <i class="bi bi-card-text"></i> الرقم القومي <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="national_id" type="text" class="form-control @error('national_id') is-invalid @enderror"
+                                <input id="national_id" type="text"
+                                       class="form-control @error('national_id') is-invalid @enderror"
                                        name="national_id" value="{{ old('national_id') }}" required
-                                       pattern="^\d{14}$" title="الرقم القومي يجب أن يكون 14 رقمًا بالضبط">
+                                       pattern="^\d{14}$" title="الرقم القومي يجب أن يكون 14 رقمًا بالضبط"
+                                       maxlength="14" style="direction:ltr;">
                                 @error('national_id')
                                     <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
                             </div>
                         </div>
 
-                        <!-- رقم الهاتف -->
+                        {{-- رقم الهاتف --}}
                         <div class="row mb-3">
-                            <label for="mobile_number" class="col-md-4 col-form-label text-md-end">رقم الهاتف</label>
-                            <div class="col-md-6 d-flex">
-                                
-                                <input id="mobile_number" type="text" class="form-control rounded-end @error('mobile_number') is-invalid @enderror"
-                                    name="mobile_number" value="{{ old('mobile_number') }}" required
-                                    style="direction: ltr;" maxlength="10">
-                                <span class="input-group-text bg-white border rounded-start" style="direction: ltr;">+20</span>
-                                
-                                @error('mobile_number')
-                                    <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
-                                @enderror
-                            </div>
-                            
-                        </div>
-
-
-                        <!-- البريد الإلكتروني -->
-                        <div class="row mb-3">
-                            <label for="email" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-envelope-fill"></i> البريد الإلكتروني
+                            <label for="mobile_number" class="col-md-4 col-form-label text-md-end">
+                                رقم الهاتف <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="email" type="email" class="form-control @error('email') is-invalid @enderror"
+                                <div class="input-group" style="direction:ltr;">
+                                    <span class="input-group-text">+20</span>
+                                    <input id="mobile_number" type="tel"
+                                           class="form-control @error('mobile_number') is-invalid @enderror"
+                                           name="mobile_number" value="{{ old('mobile_number') }}" required
+                                           pattern="\d{9,}" minlength="9" maxlength="15"
+                                           title="رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل"
+                                           inputmode="numeric">
+                                    @error('mobile_number')
+                                        <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
+                                    @enderror
+                                </div>
+                                <div class="form-text text-end">9 أرقام على الأقل</div>
+                            </div>
+                        </div>
+
+                        {{-- البريد الإلكتروني --}}
+                        <div class="row mb-3">
+                            <label for="email" class="col-md-4 col-form-label text-md-end">
+                                <i class="bi bi-envelope-fill"></i> البريد الإلكتروني <span class="text-danger">*</span>
+                            </label>
+                            <div class="col-md-6">
+                                <input id="email" type="email"
+                                       class="form-control @error('email') is-invalid @enderror"
                                        name="email" value="{{ old('email') }}" required>
                                 @error('email')
                                     <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
@@ -110,13 +139,14 @@
                             </div>
                         </div>
 
-                        <!-- الوظيفة -->
+                        {{-- الوظيفة --}}
                         <div class="row mb-3">
                             <label for="job" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-briefcase-fill"></i> الوظيفة
+                                <i class="bi bi-briefcase-fill"></i> الوظيفة <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="job" type="text" class="form-control @error('job') is-invalid @enderror"
+                                <input id="job" type="text"
+                                       class="form-control @error('job') is-invalid @enderror"
                                        name="job" value="{{ old('job') }}" required>
                                 @error('job')
                                     <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
@@ -124,41 +154,51 @@
                             </div>
                         </div>
 
-                        <!-- تاريخ الميلاد -->
+                        {{-- تاريخ الميلاد (dd/MM/YYYY display, YYYY-MM-DD submitted) --}}
                         <div class="row mb-3">
-                            <label for="date_of_birth" class="col-md-4 col-form-label text-md-end">
-                                <i class="bi bi-calendar-date-fill"></i> تاريخ الميلاد
+                            <label for="dob_display" class="col-md-4 col-form-label text-md-end">
+                                <i class="bi bi-calendar-date-fill"></i> تاريخ الميلاد <span class="text-danger">*</span>
                             </label>
                             <div class="col-md-6">
-                                <input id="date_of_birth" type="date" class="form-control @error('date_of_birth') is-invalid @enderror"
-                                       name="date_of_birth" value="{{ old('date_of_birth') }}" required>
+                                <input id="dob_display" type="text"
+                                       class="form-control @error('date_of_birth') is-invalid @enderror"
+                                       placeholder="DD/MM/YYYY" maxlength="10"
+                                       pattern="\d{2}/\d{2}/\d{4}"
+                                       title="أدخل تاريخ الميلاد بتنسيق يوم/شهر/سنة" required
+                                       autocomplete="bday" style="direction:ltr;">
+                                <input type="hidden" id="date_of_birth" name="date_of_birth"
+                                       value="{{ old('date_of_birth') }}">
                                 @error('date_of_birth')
-                                    <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
+                                    <span class="invalid-feedback d-block"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <div class="form-text text-end">مثال: 15/06/1990</div>
                             </div>
                         </div>
 
-                        <!-- صورة الملف الشخصي -->
+                        {{-- الصورة الشخصية (اختياري) --}}
                         <div class="row mb-3">
-                            <label for="profile_photo" class="col-md-4 col-form-label text-md-end">الصورة الشخصية</label>
+                            <label for="profile_photo" class="col-md-4 col-form-label text-md-end">
+                                الصورة الشخصية
+                                <span class="badge bg-secondary fw-normal">اختياري</span>
+                            </label>
                             <div class="col-md-6">
-                                <input id="profile_photo" type="file" accept="image/*"
-                                    class="form-control @error('profile_photo') is-invalid @enderror"
-                                    name="profile_photo" required>
+                                <input id="profile_photo" type="file" accept="image/jpeg,image/png,image/jpg"
+                                       class="form-control @error('profile_photo') is-invalid @enderror"
+                                       name="profile_photo">
                                 @error('profile_photo')
-                                    <span class="invalid-feedback" role="alert"><strong>{{ $message }}</strong></span>
+                                    <span class="invalid-feedback"><strong>{{ $message }}</strong></span>
                                 @enderror
+                                <div class="form-text text-end">JPG أو PNG — حد أقصى 2 ميجابايت</div>
 
-                                <!-- Circular Preview -->
-                                <div class="mt-3 text-center">
-                                    <img id="profilePreview" src="#" alt="صورة المعاينة"
-                                        class="rounded-circle border shadow" style="width: 120px; height: 120px; object-fit: cover; display: none;">
+                                <div class="mt-3 text-center" id="previewWrap" style="display:none;">
+                                    <img id="profilePreview" src="#" alt="معاينة الصورة"
+                                         class="rounded-circle border shadow"
+                                         style="width:120px;height:120px;object-fit:cover;">
                                 </div>
                             </div>
                         </div>
 
-
-                        <!-- زر التسجيل -->
+                        {{-- زر التسجيل --}}
                         <div class="row mb-0">
                             <div class="col-md-6 offset-md-4 d-grid">
                                 <button type="submit" class="btn btn-success">
@@ -182,148 +222,120 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('profile_photo');
-    const preview = document.getElementById('profilePreview');
 
-    input.addEventListener('change', function () {
-        const file = input.files[0];
+    // ── Profile photo preview ─────────────────────────────────────────
+    const photoInput = document.getElementById('profile_photo');
+    const preview    = document.getElementById('profilePreview');
+    const wrap       = document.getElementById('previewWrap');
 
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                preview.src = e.target.result;
-                preview.style.display = 'inline-block';
-            };
-            reader.readAsDataURL(file);
+    photoInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) { wrap.style.display = 'none'; return; }
+
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!allowed.includes(file.type)) {
+            photoInput.classList.add('is-invalid');
+            wrap.style.display = 'none';
+            return;
         }
+        if (file.size > 2 * 1024 * 1024) {
+            photoInput.classList.add('is-invalid');
+            wrap.style.display = 'none';
+            return;
+        }
+
+        photoInput.classList.remove('is-invalid');
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            wrap.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
     });
-});
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const arabicRegex = /^[\u0621-\u064A\s]+$/;
-        const nationalIdRegex = /^\d{14}$/;
-        const mobileRegex = /^\d{10}$/;
 
-        function showError(input, message) {
-            let feedback = input.parentElement.querySelector('.instant-feedback');
-            if (!feedback) {
-                feedback = document.createElement('div');
-                feedback.classList.add('text-danger', 'instant-feedback', 'mt-1');
-                input.parentElement.appendChild(feedback);
-            }
-            feedback.innerText = message;
-            input.classList.add('is-invalid');
-        }
+    // ── Date of birth: dd/MM/YYYY display → YYYY-MM-DD hidden field ──
+    const dobDisplay = document.getElementById('dob_display');
+    const dobHidden  = document.getElementById('date_of_birth');
 
-        function clearError(input) {
-            const feedback = input.parentElement.querySelector('.instant-feedback');
-            if (feedback) feedback.remove();
-            input.classList.remove('is-invalid');
-        }
-
-        function validateArabic(input, label) {
-            if (!arabicRegex.test(input.value.trim())) {
-                showError(input, `الرجاء إدخال ${label} باللغة العربية فقط`);
-            } else {
-                clearError(input);
-            }
-        }
-
-        function validateNationalId(input) {
-            if (!nationalIdRegex.test(input.value.trim())) {
-                showError(input, 'الرقم القومي يجب أن يكون 14 رقمًا');
-            } else {
-                clearError(input);
-            }
-        }
-
-        function validateEmail(input) {
-            if (!input.validity.valid) {
-                showError(input, 'الرجاء إدخال بريد إلكتروني صالح');
-            } else {
-                clearError(input);
-            }
-        }
-
-        document.getElementById('first_name').addEventListener('input', function () {
-            validateArabic(this, 'الاسم الأول');
-        });
-
-        document.getElementById('second_name').addEventListener('input', function () {
-            validateArabic(this, 'الاسم الثاني');
-        });
-
-        document.getElementById('third_name').addEventListener('input', function () {
-            validateArabic(this, 'الاسم الثالث');
-        });
-
-        document.getElementById('national_id').addEventListener('input', function () {
-            validateNationalId(this);
-        });
-
-        
-
-        document.getElementById('email').addEventListener('input', function () {
-            validateEmail(this);
-        });
-    });
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // File type validation
-    function validateFile(inputId) {
-        const input = document.getElementById(inputId);
-        const errorDiv = document.getElementById(inputId + '_error');
-        input.addEventListener('change', function () {
-            const file = input.files[0];
-            if (file) {
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-                if (!allowedTypes.includes(file.type)) {
-                    input.classList.add('is-invalid');
-                    errorDiv.classList.remove('d-none');
-                } else {
-                    input.classList.remove('is-invalid');
-                    errorDiv.classList.add('d-none');
-                }
-            }
-        });
+    // Populate display from old() value (YYYY-MM-DD) on validation error
+    if (dobHidden.value && /^\d{4}-\d{2}-\d{2}$/.test(dobHidden.value)) {
+        const [y, m, d] = dobHidden.value.split('-');
+        dobDisplay.value = `${d}/${m}/${y}`;
     }
 
-    validateFile('profile_photo');
-});
-</script>
+    dobDisplay.addEventListener('input', function () {
+        // Strip non-digits
+        let digits = this.value.replace(/\D/g, '');
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    function validateFile(inputId) {
-        const input = document.getElementById(inputId);
-        const errorDiv = document.getElementById(inputId + '_error');
-        const maxSize = 2 * 1024 * 1024; // 2MB
+        // Auto-insert slashes
+        let formatted = digits;
+        if (digits.length > 2)  formatted = digits.slice(0, 2) + '/' + digits.slice(2);
+        if (digits.length > 4)  formatted = formatted.slice(0, 5) + '/' + digits.slice(4, 8);
+        this.value = formatted;
 
-        input.addEventListener('change', function () {
-            const file = input.files[0];
-            if (file) {
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-                const isValidType = allowedTypes.includes(file.type);
-                const isValidSize = file.size <= maxSize;
+        // Update hidden field when complete
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(formatted)) {
+            const [day, month, year] = formatted.split('/');
+            dobHidden.value = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+            dobDisplay.setCustomValidity('');
+        } else {
+            dobHidden.value = '';
+            if (formatted.length > 0) {
+                dobDisplay.setCustomValidity('أدخل التاريخ بتنسيق DD/MM/YYYY');
+            }
+        }
+    });
 
-                if (!isValidType || !isValidSize) {
-                    input.classList.add('is-invalid');
-                    errorDiv.innerText = !isValidType 
-                        ? 'يسمح فقط بصور أو ملفات PDF' 
-                        : 'الملف يجب ألا يتجاوز 2 ميجا بايت';
-                    errorDiv.classList.remove('d-none');
-                } else {
-                    input.classList.remove('is-invalid');
-                    errorDiv.classList.add('d-none');
-                }
+    // Ensure hidden field is submitted when form submits
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+        const display = dobDisplay.value.trim();
+        if (display && !/^\d{2}\/\d{2}\/\d{4}$/.test(display)) {
+            e.preventDefault();
+            dobDisplay.setCustomValidity('أدخل التاريخ بتنسيق DD/MM/YYYY');
+            dobDisplay.reportValidity();
+            return;
+        }
+        dobDisplay.setCustomValidity('');
+    });
+
+    // ── Phone: digits only, min 9 ─────────────────────────────────────
+    const mobileInput = document.getElementById('mobile_number');
+    mobileInput.addEventListener('input', function () {
+        // Strip non-digits
+        this.value = this.value.replace(/\D/g, '');
+
+        if (this.value.length > 0 && this.value.length < 9) {
+            this.setCustomValidity('رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+
+    // ── Arabic name validation ────────────────────────────────────────
+    const arabicRegex = /^[ء-ي\s]+$/;
+
+    ['first_name', 'second_name', 'third_name'].forEach(id => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        input.addEventListener('input', function () {
+            if (this.value && !arabicRegex.test(this.value)) {
+                this.setCustomValidity('الرجاء الكتابة باللغة العربية فقط');
+            } else {
+                this.setCustomValidity('');
             }
         });
-    }
+    });
 
-    validateFile('profile_photo');
+    // ── National ID: exactly 14 digits ───────────────────────────────
+    const natId = document.getElementById('national_id');
+    natId.addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '');
+        if (this.value.length > 0 && this.value.length !== 14) {
+            this.setCustomValidity('الرقم القومي يجب أن يكون 14 رقمًا بالضبط');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
 });
 </script>
 @endpush

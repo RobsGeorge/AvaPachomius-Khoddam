@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\OtpCode;
 use App\Models\UserCourseRole;
+use App\Models\Course;
+use App\Models\Role;
+use App\Mail\SendOTPEmail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
@@ -14,8 +17,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use App\Models\Role;
-use App\Mail\SendOTPEmail;
+use Illuminate\Database\QueryException;
 
 class RegisterController extends Controller
 {
@@ -43,9 +45,10 @@ class RegisterController extends Controller
         return $this->createAndSendOtp($request);
     }
 
+    // ── Re-registration (unverified user exists) ──────────────────────────────
+
     private function updateAndResendOtp(Request $request, User $user)
     {
-        // Check the new mobile number isn't taken by a *different* user
         $mobileTaken = User::where('mobile_number', $request->mobile_number)
             ->where('user_id', '!=', $user->user_id)
             ->exists();
@@ -58,10 +61,9 @@ class RegisterController extends Controller
 
         DB::beginTransaction();
         try {
-            // Replace profile photo if a new one was uploaded
             $profilePhotoPath = $user->profile_photo;
             if ($request->hasFile('profile_photo')) {
-                Storage::delete("public/{$user->profile_photo}");
+                if ($profilePhotoPath) Storage::delete("public/{$profilePhotoPath}");
                 $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
             }
 
@@ -73,10 +75,9 @@ class RegisterController extends Controller
                 'mobile_number' => $request->mobile_number,
                 'job'           => $request->job,
                 'date_of_birth' => $request->date_of_birth,
-                'profile_photo' => $profilePhotoPath,
+                'profile_photo' => $profilePhotoPath ?? '',
             ]);
 
-            // Invalidate any previous OTPs and issue a fresh one
             OtpCode::where('user_id', $user->user_id)->delete();
 
             $otp = rand(100000, 999999);
@@ -97,16 +98,21 @@ class RegisterController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Re-registration failed: ' . $e->getMessage());
-            return response()->view('errors.registration', [
-                'message' => 'حدث خطأ أثناء إعادة الإرسال. الرجاء المحاولة مرة أخرى.',
-                'details' => $e->getMessage(),
-            ], 500);
+            return back()
+                ->withErrors(['general' => $this->friendlyError($e)])
+                ->withInput();
         }
     }
 
+    // ── New user registration ─────────────────────────────────────────────────
+
     private function createAndSendOtp(Request $request)
     {
-        $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
+        // Profile photo is optional — store if uploaded, otherwise use empty string
+        $profilePhotoPath = null;
+        if ($request->hasFile('profile_photo')) {
+            $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
+        }
 
         DB::beginTransaction();
         try {
@@ -119,22 +125,30 @@ class RegisterController extends Controller
                 'email'         => $request->email,
                 'job'           => $request->job,
                 'date_of_birth' => $request->date_of_birth,
-                'profile_photo' => $profilePhotoPath,
+                'profile_photo' => $profilePhotoPath ?? '',
                 'password'      => Hash::make(Str::random(12)),
                 'is_verified'   => false,
             ]);
 
-            UserCourseRole::create([
-                'user_id'   => $user->user_id,
-                'course_id' => 1,
-                'role_id'   => 1,
-            ]);
+            // Assign student role if the default course and Student role both exist.
+            // Non-fatal: registration proceeds even if this setup hasn't been done yet.
+            $studentRole   = Role::where('role_name', 'Student')->first();
+            $defaultCourse = Course::find(1);
+            if ($studentRole && $defaultCourse) {
+                $alreadyAssigned = UserCourseRole::where([
+                    'user_id'   => $user->user_id,
+                    'course_id' => 1,
+                    'role_id'   => $studentRole->role_id,
+                ])->exists();
 
-            $studentRole = Role::where('role_name', 'Student')->first();
-            if (!$studentRole) {
-                throw new \Exception('Student role not found.');
+                if (!$alreadyAssigned) {
+                    UserCourseRole::create([
+                        'user_id'   => $user->user_id,
+                        'course_id' => 1,
+                        'role_id'   => $studentRole->role_id,
+                    ]);
+                }
             }
-            $user->roles()->attach($studentRole->role_id);
 
             $otp = rand(100000, 999999);
             OtpCode::create([
@@ -151,16 +165,33 @@ class RegisterController extends Controller
                 ->with('user_id', $user->user_id)
                 ->with('success', 'تم إرسال رمز التحقق إلى بريدك الإلكتروني. يرجى التحقق منه.');
 
+        } catch (QueryException $e) {
+            DB::rollBack();
+            if ($profilePhotoPath) Storage::delete("public/{$profilePhotoPath}");
+            Log::error('Registration DB error: ' . $e->getMessage());
+
+            if (str_contains($e->getMessage(), 'mobile_number')) {
+                return back()
+                    ->withErrors(['mobile_number' => 'رقم الهاتف مستخدم بالفعل. يرجى استخدام رقم آخر.'])
+                    ->withInput();
+            }
+
+            return back()
+                ->withErrors(['general' => 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.'])
+                ->withInput();
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Storage::delete("public/{$profilePhotoPath}");
+            if ($profilePhotoPath) Storage::delete("public/{$profilePhotoPath}");
             Log::error('Registration failed: ' . $e->getMessage());
-            return response()->view('errors.registration', [
-                'message' => 'حدث خطأ أثناء عملية التسجيل. الرجاء المحاولة مرة أخرى.',
-                'details' => $e->getMessage(),
-            ], 500);
+
+            return back()
+                ->withErrors(['general' => $this->friendlyError($e)])
+                ->withInput();
         }
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     protected function validator(array $data)
     {
@@ -172,40 +203,58 @@ class RegisterController extends Controller
             'email'         => ['required', 'email', 'max:100'],
             'job'           => ['required', 'string', 'max:100'],
             'date_of_birth' => ['required', 'date'],
-            'mobile_number' => ['required'],
-            'profile_photo' => ['required', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
+            'mobile_number' => ['required', 'min_digits:9'],
+            'profile_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
-            'first_name.regex'  => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
-            'second_name.regex' => 'الاسم الثاني يجب أن يحتوي على أحرف عربية فقط.',
-            'third_name.regex'  => 'الاسم الثالث يجب أن يحتوي على أحرف عربية فقط.',
-            'mobile_number.regex' => 'رقم الهاتف يجب أن يحتوي على 10 أرقام ويبدأ بـ 10.',
+            'first_name.regex'       => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
+            'second_name.regex'      => 'الاسم الثاني يجب أن يحتوي على أحرف عربية فقط.',
+            'third_name.regex'       => 'الاسم الثالث يجب أن يحتوي على أحرف عربية فقط.',
+            'mobile_number.min_digits' => 'رقم الهاتف يجب أن يحتوي على 9 أرقام على الأقل.',
         ]);
     }
 
-    protected function storeFile($file, $directory)
+    protected function storeFile($file, $directory): string
     {
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
         $file->storeAs("public/{$directory}", $filename);
         return "{$directory}/{$filename}";
     }
 
+    /** Map exception types to Arabic user-friendly messages */
+    private function friendlyError(\Exception $e): string
+    {
+        $msg = $e->getMessage();
+
+        if (str_contains($msg, 'Connection refused')
+            || str_contains($msg, 'SMTP')
+            || str_contains($msg, 'Failed to authenticate')
+            || str_contains($msg, 'Expected response code')
+            || str_contains($msg, 'getaddrinfo')
+            || $e instanceof \Symfony\Component\Mailer\Exception\TransportException) {
+            return 'تعذر إرسال رمز التحقق بالبريد الإلكتروني. تأكد من صحة البريد الإلكتروني وحاول مرة أخرى، أو تواصل مع المشرف.';
+        }
+
+        return 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو التواصل مع المشرف.';
+    }
+
+    // ── Password setup ────────────────────────────────────────────────────────
+
     public function showSetPasswordForm($user_id)
-{
-    return view('auth.set_password', compact('user_id'));
-}
+    {
+        return view('auth.set_password', compact('user_id'));
+    }
 
     public function storePassword(Request $request)
     {
         $request->validate([
-            'user_id' => 'required|exists:user,user_id',
+            'user_id'  => 'required|exists:user,user_id',
             'password' => 'required|min:8|confirmed',
         ]);
 
-        $user = User::where('user_id', $request->user_id)->first();
+        $user           = User::where('user_id', $request->user_id)->firstOrFail();
         $user->password = Hash::make($request->password);
         $user->save();
 
-        return redirect()->route('login')->with('success', 'تم تعيين كلمة المرور بنجاح!');
+        return redirect()->route('login')->with('success', 'تم تعيين كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.');
     }
 }
-?>
