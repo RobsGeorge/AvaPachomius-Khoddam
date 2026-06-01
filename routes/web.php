@@ -200,4 +200,6 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/assignments/{id}',       [SuperAdminController::class, 'destroy'])->name('destroy');
     Route::post('/roles',                    [SuperAdminController::class, 'storeRole'])->name('roles.store');
     Route::delete('/roles/{id}',             [SuperAdminController::class, 'destroyRole'])->name('roles.destroy');
+    Route::post('/courses',                  [SuperAdminController::class, 'storeCourse'])->name('courses.store');
+    Route::delete('/courses/{id}',           [SuperAdminController::class, 'destroyCourse'])->name('courses.destroy');
 });

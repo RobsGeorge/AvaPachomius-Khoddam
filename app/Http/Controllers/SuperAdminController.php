@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
-use App\Models\Role;
 use App\Models\Course;
+use App\Models\Role;
+use App\Models\User;
 use App\Models\UserCourseRole;
+use Illuminate\Http\Request;
 
 class SuperAdminController extends Controller
 {
     public function index()
     {
         $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
-        $users        = User::orderBy('first_name')->get();
-        $courses      = Course::orderBy('title')->get();
-        $roles        = Role::all();
+        $users       = User::orderBy('first_name')->get();
+        $courses     = Course::orderBy('year', 'desc')->orderBy('title')->get();
+        $roles       = Role::all();
 
         return view('superadmin.index', compact('assignments', 'users', 'courses', 'roles'));
     }
@@ -35,19 +35,20 @@ class SuperAdminController extends Controller
 
         if ($exists) {
             return back()
-                ->withErrors(['duplicate' => 'هذا المستخدم لديه هذا الدور في هذه الدورة بالفعل.'])
+                ->withErrors(['duplicate' => __('pages.duplicate_role_assignment')])
                 ->withInput();
         }
 
         UserCourseRole::create($request->only('user_id', 'course_id', 'role_id'));
 
-        return redirect()->route('superadmin.index')->with('success', 'تم تعيين الدور بنجاح');
+        return redirect()->route('superadmin.index')->with('success', __('pages.role_assigned'));
     }
 
     public function destroy(string $id)
     {
         UserCourseRole::findOrFail($id)->delete();
-        return redirect()->route('superadmin.index')->with('success', 'تم إلغاء تعيين الدور');
+
+        return redirect()->route('superadmin.index')->with('success', __('pages.role_unassigned'));
     }
 
     public function storeRole(Request $request)
@@ -59,12 +60,43 @@ class SuperAdminController extends Controller
 
         Role::create($request->only('role_name', 'role_decription'));
 
-        return redirect()->route('superadmin.index')->with('success', 'تم إضافة الدور بنجاح');
+        return redirect()->route('superadmin.index')->with('success', __('pages.role_created'));
     }
 
     public function destroyRole(string $id)
     {
         Role::findOrFail($id)->delete();
-        return redirect()->route('superadmin.index')->with('success', 'تم حذف الدور بنجاح');
+
+        return redirect()->route('superadmin.index')->with('success', __('pages.role_deleted'));
+    }
+
+    public function storeCourse(Request $request)
+    {
+        $request->validate([
+            'title'       => 'required|string|max:30',
+            'description' => 'required|string|max:255',
+            'year'        => 'required|integer|min:2000|max:2100',
+        ]);
+
+        Course::create($request->only('title', 'description', 'year'));
+
+        return redirect()->route('superadmin.index')->with('success', __('pages.course_created'));
+    }
+
+    public function destroyCourse(string $id)
+    {
+        $course = Course::findOrFail($id);
+
+        if (UserCourseRole::where('course_id', $course->course_id)->exists()) {
+            return back()->withErrors(['course' => __('pages.course_delete_has_assignments')]);
+        }
+
+        if ($course->sessions()->exists()) {
+            return back()->withErrors(['course' => __('pages.course_delete_has_sessions')]);
+        }
+
+        $course->delete();
+
+        return redirect()->route('superadmin.index')->with('success', __('pages.course_deleted'));
     }
 }

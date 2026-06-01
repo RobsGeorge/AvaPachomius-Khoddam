@@ -27,8 +27,103 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show">
+            @foreach($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($courses->isEmpty())
+        <div class="alert alert-warning d-flex gap-3 align-items-start mb-4">
+            <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>
+            <div>
+                <strong>{{ __('pages.create_first_course') }}</strong>
+                <p class="mb-1 mt-1">{{ __('pages.create_first_course_hint') }}</p>
+                <p class="mb-0 small text-muted-theme">{{ __('pages.setup_order_hint') }}</p>
+            </div>
+        </div>
+    @else
+        <p class="text-muted-theme small mb-4">{{ __('pages.setup_order_hint') }}</p>
+    @endif
+
     <div class="row g-4">
         <div class="col-lg-4">
+            <div class="app-card card shadow-sm mb-4 border-primary">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    <i class="bi bi-journal-bookmark-fill"></i> {{ __('pages.manage_courses') }}
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ __('pages.course_title') }}</th>
+                                <th>{{ __('pages.year') }}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($courses as $course)
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ $course->title }}</div>
+                                        <div class="text-muted-theme small text-truncate" style="max-width:160px;" title="{{ $course->description }}">
+                                            {{ $course->description }}
+                                        </div>
+                                    </td>
+                                    <td>{{ $course->year }}</td>
+                                    <td>
+                                        <form method="POST"
+                                              action="{{ route('superadmin.courses.destroy', $course->course_id) }}"
+                                              onsubmit="return confirm(@json(__('pages.confirm_delete_course')))">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted-theme py-3">
+                                        {{ __('pages.no_courses_yet') }}
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer">
+                    <form method="POST" action="{{ route('superadmin.courses.store') }}">
+                        @csrf
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">{{ __('pages.course_title') }}</label>
+                            <input type="text" name="title" class="form-control form-control-sm @error('title') is-invalid @enderror"
+                                   value="{{ old('title') }}" maxlength="30"
+                                   placeholder="{{ __('pages.course_title_placeholder') }}" required>
+                            @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold mb-1">{{ __('pages.description') }}</label>
+                            <textarea name="description" rows="2" class="form-control form-control-sm @error('description') is-invalid @enderror"
+                                      maxlength="255" placeholder="{{ __('pages.course_description_placeholder') }}" required>{{ old('description') }}</textarea>
+                            @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold mb-1">{{ __('pages.year') }}</label>
+                            <input type="number" name="year" class="form-control form-control-sm @error('year') is-invalid @enderror"
+                                   value="{{ old('year', date('Y')) }}" min="2000" max="2100" required>
+                            @error('year')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-sm">
+                            <i class="bi bi-plus-circle"></i> {{ __('pages.create_course') }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
             <div class="app-card card shadow-sm mb-4 border-danger">
                 <div class="card-header bg-danger text-white fw-semibold">
                     <i class="bi bi-person-plus-fill"></i> {{ __('pages.assign_role_to_user') }}
@@ -51,8 +146,8 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">{{ __('pages.course') }}</label>
-                            <select name="course_id" class="form-select" required>
-                                <option value="">{{ __('pages.select_option') }}</option>
+                            <select name="course_id" class="form-select" required @disabled($courses->isEmpty())>
+                                <option value="">{{ __('pages.select_course') }}</option>
                                 @foreach($courses as $course)
                                     <option value="{{ $course->course_id }}"
                                         {{ old('course_id') == $course->course_id ? 'selected' : '' }}>
@@ -60,6 +155,9 @@
                                     </option>
                                 @endforeach
                             </select>
+                            @if($courses->isEmpty())
+                                <div class="form-text text-warning">{{ __('pages.create_first_course_hint') }}</div>
+                            @endif
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-semibold">{{ __('pages.role') }}</label>
@@ -73,7 +171,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <button type="submit" class="btn btn-danger w-100">
+                        <button type="submit" class="btn btn-danger w-100" @disabled($courses->isEmpty() || $roles->isEmpty())>
                             <i class="bi bi-check-circle"></i> {{ __('pages.assign_role') }}
                         </button>
                     </form>
