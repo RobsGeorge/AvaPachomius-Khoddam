@@ -7,7 +7,7 @@
     .content-container {
         font-family: 'Cairo', sans-serif;
         text-align: right;
-        direction: rtl;
+        ;
         max-width: 1200px;
         margin: 0 auto;
         padding: 2rem;
@@ -148,11 +148,11 @@
 </style>
 
 <div class="content-container">
-    <h1 class="content-title">المحتوى التعليمي</h1>
+    <h1 class="content-title">{{ __('pages.learning_content') }}</h1>
 
     @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
         <a href="{{ route('contents.create') }}" class="add-content-btn">
-            <i class="fas fa-plus"></i> إضافة محتوى جديد
+            <i class="fas fa-plus"></i> {{ __('pages.add_new_content') }}
         </a>
     @endif
 
@@ -168,14 +168,14 @@
             <table>
                 <thead>
                     <tr>
-                        <th>عنوان الجلسة</th>
-                        <th>تاريخ الجلسة</th>
-                        <th>اسم المحاضرة</th>
-                        <th>اسم المحاضر</th>
-                        <th>الروابط</th>
-                        <th>التغذية الراجعة</th>
+                        <th>{{ __('pages.session_title_col') }}</th>
+                        <th>{{ __('pages.session_date_col') }}</th>
+                        <th>{{ __('pages.lecture_name_col') }}</th>
+                        <th>{{ __('pages.instructor_name') }}</th>
+                        <th>{{ __('pages.links_col') }}</th>
+                        <th>{{ __('pages.feedback_title') }}</th>
                         @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                            <th>الإجراءات</th>
+                            <th>{{ __('pages.actions') }}</th>
                         @endif
                     </tr>
                 </thead>
@@ -183,22 +183,22 @@
                     @foreach($contents as $content)
                         <tr>
                             <td class="session-title">{{ $content->session_title }}</td>
-                            <td class="session-date">{{ $content->session_date ? $content->session_date->format('Y-m-d') : 'غير محدد' }}</td>
+                            <td class="session-date">{{ $content->session_date ? $content->session_date->format('Y-m-d') : '{{ __('pages.unspecified') }}' }}</td>
                             <td class="lecture-name">{{ $content->lecture_name }}</td>
                             <td class="speaker-name">{{ $content->speaker_name }}</td>
                             <td>
                                 @if($content->audio_link)
                                     <a href="{{ $content->audio_link }}" target="_blank" class="btn-link btn-audio">
-                                        <i class="fas fa-headphones"></i> الصوت
+                                        <i class="fas fa-headphones"></i> {{ __('pages.audio') }}
                                     </a>
                                 @endif
                                 @if($content->slides_link)
                                     <a href="{{ $content->slides_link }}" target="_blank" class="btn-link btn-slides">
-                                        <i class="fas fa-file-powerpoint"></i> الشرائح
+                                        <i class="fas fa-file-powerpoint"></i> {{ __('pages.slides') }}
                                     </a>
                                 @endif
                                 @if(!$content->audio_link && !$content->slides_link)
-                                    <span class="text-muted">لا توجد روابط</span>
+                                    <span class="text-muted">{{ __('pages.no_links') }}</span>
                                 @endif
                             </td>
                             <td>
@@ -207,24 +207,24 @@
                                 @endphp
                                 @if($userFeedback)
                                     <a href="{{ route('contents.feedback', $content->content_id) }}" class="btn-link btn-feedback-submitted">
-                                        <i class="fas fa-edit"></i> تعديل التغذية الراجعة
+                                        <i class="fas fa-edit"></i> {{ __('pages.edit_feedback') }}
                                     </a>
                                 @else
                                     <a href="{{ route('contents.feedback', $content->content_id) }}" class="btn-link btn-feedback">
-                                        <i class="fas fa-comment"></i> إرسال تغذية راجعة
+                                        <i class="fas fa-comment"></i> {{ __('pages.send_feedback') }}
                                     </a>
                                 @endif
                             </td>
                             @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                                 <td>
                                     <a href="{{ route('contents.edit', $content->content_id) }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i> تعديل
+                                        <i class="fas fa-edit"></i> {{ __('pages.edit') }}
                                     </a>
                                     <form action="{{ route('contents.destroy', $content->content_id) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا المحتوى؟')">
-                                            <i class="fas fa-trash"></i> حذف
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm(@json(__('pages.confirm_delete_content')))">
+                                            <i class="fas fa-trash"></i> {{ __('pages.delete') }}
                                         </button>
                                     </form>
                                 </td>
@@ -236,9 +236,9 @@
         @else
             <div class="no-content">
                 <i class="fas fa-book-open fa-3x mb-3"></i>
-                <p>لا يوجد محتوى تعليمي متاح حالياً</p>
+                <p>{{ __('pages.no_learning_content') }}</p>
                 @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                    <a href="{{ route('contents.create') }}" class="btn btn-primary">إضافة أول محتوى</a>
+                    <a href="{{ route('contents.create') }}" class="btn btn-primary">{{ __('pages.add_first_content') }}</a>
                 @endif
             </div>
         @endif

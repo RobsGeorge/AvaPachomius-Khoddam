@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'first_name'             => 'First name',
+    'second_name'            => 'Second name',
+    'third_name'             => 'Third name',
+    'national_id'            => 'National ID',
+    'phone'                  => 'Phone number',
+    'email'                  => 'Email address',
+    'job'                    => 'Job title',
+    'birth_date'             => 'Date of birth',
+    'profile_photo'          => 'Profile photo',
+    'optional'               => 'Optional',
+    'required'               => 'Required',
+    'fix_errors'             => 'Please fix the following errors:',
+    'submit'                 => 'Register & create account',
+    'have_account'           => 'Already have an account? Log in',
+    'phone_hint'             => '9–11 digits (e.g. 1012345678)',
+    'birth_hint'             => 'Example: 15/06/1990',
+    'photo_hint'             => 'JPG or PNG — max 2 MB',
+    'photo_preview'          => 'Photo preview',
+    'arabic_only'            => 'Please enter the name in Arabic only',
+    'national_id_hint'       => 'National ID must be exactly 14 digits',
+    'phone_validation'       => 'Phone number must be between 9 and 11 digits',
+    'birth_format'           => 'Enter date of birth as day/month/year',
+    'date_format_invalid'    => 'Enter the date in DD/MM/YYYY format',
+    'arabic_validation'      => 'Please write in Arabic only',
+];

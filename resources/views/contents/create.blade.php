@@ -7,7 +7,7 @@
     .content-form-container {
         font-family: 'Cairo', sans-serif;
         text-align: right;
-        direction: rtl;
+        ;
         max-width: 800px;
         margin: 0 auto;
         padding: 2rem;
@@ -122,10 +122,10 @@
 
 <div class="content-form-container">
     <a href="{{ route('contents.index') }}" class="btn-back">
-        <i class="fas fa-arrow-right"></i> العودة إلى المحتوى
+        <i class="fas fa-arrow-right"></i> {{ __('pages.back_to_content') }}
     </a>
 
-    <h1 class="form-title">إضافة محتوى جديد</h1>
+    <h1 class="form-title">{{ __('pages.add_new_content') }}</h1>
 
     @if($errors->any())
         <div class="alert alert-danger">
@@ -142,7 +142,7 @@
             @csrf
 
             <div class="form-group">
-                <label for="title" class="form-label required-field">عنوان المحتوى</label>
+                <label for="title" class="form-label required-field">{{ __('pages.content_title_label') }}</label>
                 <input type="text" class="form-control @error('title') is-invalid @enderror" 
                        id="title" name="title" value="{{ old('title') }}" required>
                 @error('title')
@@ -151,7 +151,7 @@
             </div>
 
             <div class="form-group">
-                <label for="session_title" class="form-label required-field">عنوان الجلسة</label>
+                <label for="session_title" class="form-label required-field">{{ __('pages.session_title_col') }}</label>
                 <input type="text" class="form-control @error('session_title') is-invalid @enderror" 
                        id="session_title" name="session_title" value="{{ old('session_title') }}" required>
                 @error('session_title')
@@ -160,7 +160,7 @@
             </div>
 
             <div class="form-group">
-                <label for="session_date" class="form-label required-field">تاريخ الجلسة</label>
+                <label for="session_date" class="form-label required-field">{{ __('pages.session_date_col') }}</label>
                 <input type="date" class="form-control @error('session_date') is-invalid @enderror" 
                        id="session_date" name="session_date" value="{{ old('session_date') }}" required>
                 @error('session_date')
@@ -169,7 +169,7 @@
             </div>
 
             <div class="form-group">
-                <label for="lecture_name" class="form-label required-field">اسم المحاضرة</label>
+                <label for="lecture_name" class="form-label required-field">{{ __('pages.lecture_name_col') }}</label>
                 <input type="text" class="form-control @error('lecture_name') is-invalid @enderror" 
                        id="lecture_name" name="lecture_name" value="{{ old('lecture_name') }}" required>
                 @error('lecture_name')
@@ -178,7 +178,7 @@
             </div>
 
             <div class="form-group">
-                <label for="speaker_name" class="form-label required-field">اسم المحاضر</label>
+                <label for="speaker_name" class="form-label required-field">{{ __('pages.instructor_name') }}</label>
                 <input type="text" class="form-control @error('speaker_name') is-invalid @enderror" 
                        id="speaker_name" name="speaker_name" value="{{ old('speaker_name') }}" required>
                 @error('speaker_name')
@@ -187,7 +187,7 @@
             </div>
 
             <div class="form-group">
-                <label for="audio_link" class="form-label">رابط الصوت</label>
+                <label for="audio_link" class="form-label">{{ __('pages.audio_link_label') }}</label>
                 <input type="url" class="form-control @error('audio_link') is-invalid @enderror" 
                        id="audio_link" name="audio_link" value="{{ old('audio_link') }}" 
                        placeholder="https://example.com/audio.mp3">
@@ -197,7 +197,7 @@
             </div>
 
             <div class="form-group">
-                <label for="slides_link" class="form-label">رابط الشرائح</label>
+                <label for="slides_link" class="form-label">{{ __('pages.slides_link_label') }}</label>
                 <input type="url" class="form-control @error('slides_link') is-invalid @enderror" 
                        id="slides_link" name="slides_link" value="{{ old('slides_link') }}" 
                        placeholder="https://example.com/slides.pdf">
@@ -207,17 +207,17 @@
             </div>
 
             <div class="form-group">
-                <label for="description" class="form-label">وصف المحتوى</label>
+                <label for="description" class="form-label">{{ __('pages.content_description_label') }}</label>
                 <textarea class="form-control @error('description') is-invalid @enderror" 
                           id="description" name="description" rows="4" 
-                          placeholder="اكتب وصفاً مختصراً للمحتوى...">{{ old('description') }}</textarea>
+                          placeholder="{{ __('pages.content_description_long') }}">{{ old('description') }}</textarea>
                 @error('description')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
 
             <button type="submit" class="btn-submit">
-                <i class="fas fa-save"></i> حفظ المحتوى
+                <i class="fas fa-save"></i> {{ __('pages.save_content') }}
             </button>
         </form>
     </div>

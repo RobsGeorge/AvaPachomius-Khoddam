@@ -1,146 +1,118 @@
-<nav class="bg-white border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}" class="text-xl font-bold text-gray-800">
-                        إعداد خدام 2026
-                    </a>
-                </div>
+<nav class="app-nav sticky-top">
+    <div class="container py-2">
+        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <a href="{{ auth()->check() ? route('dashboard') : route('login') }}" class="brand-link">
+                    <i class="bi bi-mortarboard-fill ms-1"></i>
+                    {{ __('app.name') }}
+                </a>
 
                 @auth
-                    <!-- Navigation Links -->
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8 sm:space-x-reverse">
-                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                            الرئيسية
-                        </x-nav-link>
+                    <div class="d-none d-md-flex align-items-center gap-1 nav-links">
+                        <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                            {{ __('nav.home') }}
+                        </a>
+
                         @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
-                            <x-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
-                                الحضور
-                            </x-nav-link>
+                            <a href="{{ route('attendance.all') }}" class="app-nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
+                                {{ __('nav.attendance') }}
+                            </a>
                         @else
-                            <x-nav-link :href="route('attendance.my')" :active="request()->routeIs('attendance.my')">
-                                سجل الحضور
-                            </x-nav-link>
+                            <a href="{{ route('attendance.my') }}" class="app-nav-link {{ request()->routeIs('attendance.my') ? 'active' : '' }}">
+                                {{ __('nav.my_attendance') }}
+                            </a>
                         @endif
-                        <x-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">
-                            المحاضرات
-                        </x-nav-link>
+
+                        <a href="{{ route('sessions.index') }}" class="app-nav-link {{ request()->routeIs('sessions.*') ? 'active' : '' }}">
+                            {{ __('nav.sessions') }}
+                        </a>
+
                         @if(auth()->user()->roles->contains('role_name', 'admin'))
-                            <x-nav-link :href="route('user-course-roles.index')" :active="request()->routeIs('user-course-roles.*', 'roles.*')">
-                                إدارة الأدوار
-                            </x-nav-link>
+                            <a href="{{ route('user-course-roles.index') }}" class="app-nav-link {{ request()->routeIs('user-course-roles.*', 'roles.*') ? 'active' : '' }}">
+                                {{ __('nav.roles') }}
+                            </a>
+                            <a href="{{ route('admin.translations.index') }}" class="app-nav-link {{ request()->routeIs('admin.translations.*') ? 'active' : '' }}">
+                                {{ __('nav.translations') }}
+                            </a>
                         @endif
+
                         @if(auth()->user()->is_superadmin)
-                            <x-nav-link :href="route('superadmin.index')" :active="request()->routeIs('superadmin.*')"
-                                        style="color: #dc3545; font-weight: 700;">
-                                <i class="bi bi-shield-lock-fill"></i> المشرف العام
-                            </x-nav-link>
+                            <a href="{{ route('superadmin.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.*') ? 'active' : '' }}">
+                                <i class="bi bi-shield-lock-fill"></i> {{ __('nav.superadmin') }}
+                            </a>
                         @endif
                     </div>
                 @endauth
             </div>
 
-            @auth
-                <!-- Settings Dropdown -->
-                <div class="hidden sm:ml-6 sm:flex sm:items-center">
-                    <x-dropdown align="right" width="48">
-                        <x-slot name="trigger">
-                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
-                                <div>{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</div>
-
-                                <div class="ml-1">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </button>
-                        </x-slot>
-
-                        <x-slot name="content">
-                            <x-dropdown-link :href="route('profile')">
-                                الملف الشخصي
-                            </x-dropdown-link>
-
-                            <x-dropdown-link :href="route('logout')">
-                                تسجيل الخروج
-                            </x-dropdown-link>
-                        </x-slot>
-                    </x-dropdown>
+            <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <button class="app-toolbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-translate"></i>
+                        {{ config('translation.locale_labels.' . app()->getLocale()) }}
+                    </button>
+                    <ul class="dropdown-menu app-dropdown-panel dropdown-menu-end">
+                        @foreach(config('translation.supported_locales', ['ar', 'en']) as $localeCode)
+                            <li>
+                                <a class="dropdown-item app-dropdown-link {{ app()->getLocale() === $localeCode ? 'fw-bold' : '' }}"
+                                   href="{{ route('locale.switch', $localeCode) }}">
+                                    {{ config('translation.locale_labels.' . $localeCode) }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
                 </div>
-            @endauth
 
-            <!-- Hamburger -->
-            <div class="-mr-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                <button type="button" class="app-toolbar-btn" data-theme-toggle
+                        data-label-light="{{ __('app.theme_light') }}"
+                        data-label-dark="{{ __('app.theme_dark') }}"
+                        aria-pressed="false">
+                    <i class="bi bi-moon-stars"></i>
+                    <span data-theme-label>{{ __('app.theme_dark') }}</span>
                 </button>
+
+                @auth
+                    <div class="dropdown d-none d-md-block">
+                        <button class="app-toolbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i>
+                            {{ auth()->user()->first_name }}
+                        </button>
+                        <ul class="dropdown-menu app-dropdown-panel dropdown-menu-end">
+                            <li><a class="dropdown-item app-dropdown-link" href="{{ route('profile') }}">{{ __('nav.profile') }}</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item app-dropdown-link" href="{{ route('logout') }}">{{ __('nav.logout') }}</a></li>
+                        </ul>
+                    </div>
+                @else
+                    <a href="{{ route('login') }}" class="app-nav-link">{{ __('nav.login') }}</a>
+                @endauth
+
+                @auth
+                    <button class="app-toolbar-btn d-md-none" type="button" @click="navOpen = !navOpen" aria-label="Menu">
+                        <i class="bi bi-list"></i>
+                    </button>
+                @endauth
             </div>
         </div>
-    </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         @auth
-            <div class="pt-2 pb-3 space-y-1">
-                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                    الرئيسية
-                </x-responsive-nav-link>
-                @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
-                    <x-responsive-nav-link :href="route('attendance.all')" :active="request()->routeIs('attendance.*')">
-                        الحضور
-                    </x-responsive-nav-link>
-                @else
-                    <x-responsive-nav-link :href="route('attendance.my')" :active="request()->routeIs('attendance.my')">
-                        سجل الحضور
-                    </x-responsive-nav-link>
-                @endif
-                <x-responsive-nav-link :href="route('sessions.index')" :active="request()->routeIs('sessions.*')">
-                    المحاضرات
-                </x-responsive-nav-link>
-                @if(auth()->user()->roles->contains('role_name', 'admin'))
-                    <x-responsive-nav-link :href="route('user-course-roles.index')" :active="request()->routeIs('user-course-roles.*', 'roles.*')">
-                        إدارة الأدوار
-                    </x-responsive-nav-link>
-                @endif
-                @if(auth()->user()->is_superadmin)
-                    <x-responsive-nav-link :href="route('superadmin.index')" :active="request()->routeIs('superadmin.*')">
-                        <i class="bi bi-shield-lock-fill"></i> المشرف العام
-                    </x-responsive-nav-link>
-                @endif
-            </div>
-
-            <!-- Responsive Settings Options -->
-            <div class="pt-4 pb-1 border-t border-gray-200">
-                <div class="px-4">
-                    <div class="font-medium text-base text-gray-800">{{ auth()->user()->first_name }} {{ auth()->user()->last_name }}</div>
-                    <div class="font-medium text-sm text-gray-500">{{ auth()->user()->email }}</div>
-                </div>
-
-                <div class="mt-3 space-y-1">
-                    <x-responsive-nav-link :href="route('profile')">
-                        الملف الشخصي
-                    </x-responsive-nav-link>
-
-                    <x-responsive-nav-link :href="route('logout')">
-                        تسجيل الخروج
-                    </x-responsive-nav-link>
+            <div class="d-md-none nav-links mt-2" x-show="navOpen" x-transition>
+                <div class="d-flex flex-column gap-1">
+                    <a href="{{ route('dashboard') }}" class="app-nav-link">{{ __('nav.home') }}</a>
+                    @if(auth()->user()->role === 'admin' || auth()->user()->role === 'instructor')
+                        <a href="{{ route('attendance.all') }}" class="app-nav-link">{{ __('nav.attendance') }}</a>
+                    @else
+                        <a href="{{ route('attendance.my') }}" class="app-nav-link">{{ __('nav.my_attendance') }}</a>
+                    @endif
+                    <a href="{{ route('sessions.index') }}" class="app-nav-link">{{ __('nav.sessions') }}</a>
+                    @if(auth()->user()->roles->contains('role_name', 'admin'))
+                        <a href="{{ route('user-course-roles.index') }}" class="app-nav-link">{{ __('nav.roles') }}</a>
+                        <a href="{{ route('admin.translations.index') }}" class="app-nav-link">{{ __('nav.translations') }}</a>
+                    @endif
+                    <a href="{{ route('profile') }}" class="app-nav-link">{{ __('nav.profile') }}</a>
+                    <a href="{{ route('logout') }}" class="app-nav-link">{{ __('nav.logout') }}</a>
                 </div>
             </div>
         @endauth
     </div>
 </nav>
-
-@push('scripts')
-<script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('navigation', () => ({
-            open: false
-        }))
-    })
-</script>
-@endpush 

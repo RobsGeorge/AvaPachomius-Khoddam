@@ -7,7 +7,7 @@
     .feedback-container {
         font-family: 'Cairo', sans-serif;
         text-align: right;
-        direction: rtl;
+        ;
         max-width: 800px;
         margin: 0 auto;
         padding: 2rem;
@@ -181,16 +181,16 @@
 
 <div class="feedback-container">
     <a href="{{ route('contents.index') }}" class="btn-back">
-        <i class="fas fa-arrow-right"></i> العودة إلى المحتوى
+        <i class="fas fa-arrow-right"></i> {{ __('pages.back_to_content') }}
     </a>
 
-    <h1 class="feedback-title">التغذية الراجعة</h1>
+    <h1 class="feedback-title">{{ __('pages.feedback_title') }}</h1>
 
     <div class="content-info">
         <h3>{{ $content->session_title }}</h3>
-        <p><strong>المحاضرة:</strong> {{ $content->lecture_name }}</p>
-        <p><strong>المحاضر:</strong> {{ $content->speaker_name }}</p>
-        <p><strong>التاريخ:</strong> {{ $content->session_date ? $content->session_date->format('Y-m-d') : 'غير محدد' }}</p>
+        <p><strong>{{ __('pages.lecture') }}:</strong> {{ $content->lecture_name }}</p>
+        <p><strong>{{ __('pages.lecturer') }}:</strong> {{ $content->speaker_name }}</p>
+        <p><strong>{{ __('pages.date') }}:</strong> {{ $content->session_date ? $content->session_date->format('Y-m-d') : '{{ __('pages.unspecified') }}' }}</p>
     </div>
 
     @if(session('success'))
@@ -216,11 +216,11 @@
             <div class="form-section">
                 <h3 class="section-title">
                     <i class="fas fa-chalkboard-teacher"></i>
-                    تقييم المحاضرة
+                    {{ __('pages.rate_lecture') }}
                 </h3>
 
                 <div class="rating-group">
-                    <label class="rating-label">تقييم المحاضرة (من 5 نجوم)</label>
+                    <label class="rating-label">{{ __('pages.rate_lecture') }} {{ __('pages.rating_out_of_5') }}</label>
                     <div class="star-rating">
                         @for($i = 5; $i >= 1; $i--)
                             <input type="radio" name="lecture_rating" value="{{ $i }}" id="lecture_{{ $i }}" 
@@ -231,20 +231,20 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="lecture_comments" class="form-label">تعليقات على المحاضرة</label>
-                    <textarea class="form-control" id="lecture_comments" name="lecture_comments" rows="4" 
-                              placeholder="اكتب تعليقاتك على المحاضرة...">{{ old('lecture_comments', $userFeedback ? $userFeedback->lecture_comments : '') }}</textarea>
+                    <label for="lecture_comments" class="form-label">{{ __('pages.lecture_comments') }}</label>
+                    <textarea class="form-control" id="lecture_comments" name="lecture_comments" rows="4"
+                              placeholder="{{ __('pages.lecture_comments_placeholder') }}">{{ old('lecture_comments', $userFeedback ? $userFeedback->lecture_comments : '') }}</textarea>
                 </div>
             </div>
 
             <div class="form-section">
                 <h3 class="section-title">
                     <i class="fas fa-user-tie"></i>
-                    تقييم المحاضر
+                    {{ __('pages.rate_lecturer') }}
                 </h3>
 
                 <div class="rating-group">
-                    <label class="rating-label">تقييم المحاضر (من 5 نجوم)</label>
+                    <label class="rating-label">{{ __('pages.rate_lecturer') }} {{ __('pages.rating_out_of_5') }}</label>
                     <div class="star-rating">
                         @for($i = 5; $i >= 1; $i--)
                             <input type="radio" name="speaker_rating" value="{{ $i }}" id="speaker_{{ $i }}"
@@ -255,28 +255,28 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="speaker_comments" class="form-label">تعليقات على المحاضر</label>
+                    <label for="speaker_comments" class="form-label">{{ __('pages.speaker_comments') }}</label>
                     <textarea class="form-control" id="speaker_comments" name="speaker_comments" rows="4"
-                              placeholder="اكتب تعليقاتك على المحاضر...">{{ old('speaker_comments', $userFeedback ? $userFeedback->speaker_comments : '') }}</textarea>
+                              placeholder="{{ __('pages.speaker_comments_placeholder') }}">{{ old('speaker_comments', $userFeedback ? $userFeedback->speaker_comments : '') }}</textarea>
                 </div>
             </div>
 
             <div class="form-section">
                 <h3 class="section-title">
                     <i class="fas fa-comments"></i>
-                    تغذية راجعة عامة
+                    {{ __('pages.general_feedback') }}
                 </h3>
 
                 <div class="mb-3">
-                    <label for="general_feedback" class="form-label">تغذية راجعة عامة</label>
+                    <label for="general_feedback" class="form-label">{{ __('pages.general_feedback') }}</label>
                     <textarea class="form-control" id="general_feedback" name="general_feedback" rows="4"
-                              placeholder="اكتب أي تعليقات أو اقتراحات عامة...">{{ old('general_feedback', $userFeedback ? $userFeedback->general_feedback : '') }}</textarea>
+                              placeholder="{{ __('pages.general_feedback_placeholder') }}">{{ old('general_feedback', $userFeedback ? $userFeedback->general_feedback : '') }}</textarea>
                 </div>
             </div>
 
             <button type="submit" class="btn-submit">
                 <i class="fas fa-paper-plane"></i>
-                {{ $userFeedback ? 'تحديث التغذية الراجعة' : 'إرسال التغذية الراجعة' }}
+                {{ $userFeedback ? '{{ __('pages.update_feedback') }}' : '{{ __('pages.submit_feedback') }}' }}
             </button>
         </form>
     </div>

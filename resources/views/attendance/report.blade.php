@@ -7,7 +7,7 @@
     .report-container {
         font-family: 'Cairo', sans-serif;
         text-align: right;
-        direction: rtl;
+        ;
         max-width: 1400px;
         margin: 0 auto;
         padding: 2rem;
@@ -173,32 +173,32 @@
 
 <div class="report-container">
     <a href="{{ route('dashboard') }}" class="btn-back">
-        <i class="fas fa-arrow-right"></i> العودة إلى لوحة التحكم
+        <i class="fas fa-arrow-right"></i> {{ __('pages.back_to_dashboard') }}
     </a>
 
-    <h1 class="report-title">تقرير الحضور والغياب الإجمالي</h1>
+    <h1 class="report-title">{{ __('pages.attendance_report_title') }}</h1>
 
     <!-- Overall Statistics Cards -->
     <div class="stats-cards">
         <div class="stat-card">
             <div class="stat-number">{{ $overallStats['total_users'] }}</div>
-            <div class="stat-label">إجمالي الطلاب</div>
+            <div class="stat-label">{{ __('pages.total_students') }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ $overallStats['total_sessions'] }}</div>
-            <div class="stat-label">إجمالي المحاضرات</div>
+            <div class="stat-label">{{ __('pages.total_lectures') }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ $overallStats['total_attended'] }}</div>
-            <div class="stat-label">إجمالي الحضور</div>
+            <div class="stat-label">{{ __('pages.total_present') }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ $overallStats['total_absent'] }}</div>
-            <div class="stat-label">إجمالي الغياب</div>
+            <div class="stat-label">{{ __('pages.total_absent') }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-number">{{ number_format($overallStats['average_attendance'], 1) }}%</div>
-            <div class="stat-label">متوسط نسبة الحضور</div>
+            <div class="stat-label">{{ __('pages.avg_attendance_rate') }}</div>
         </div>
     </div>
 
@@ -218,13 +218,13 @@
             <table>
                 <thead>
                     <tr>
-                        <th>اسم الطالب</th>
-                        <th>رقم الهاتف</th>
-                        <th>إجمالي عدد المحاضرات</th>
-                        <th>عدد مرات الحضور</th>
-                        <th>عدد مرات الغياب</th>
-                        <th>عدد مرات التأخير</th>
-                        <th>نسبة الحضور</th>
+                        <th>{{ __('pages.student_name') }}</th>
+                        <th>{{ __('pages.phone_number') }}</th>
+                        <th>{{ __('pages.total_sessions_count') }}</th>
+                        <th>{{ __('pages.present_times') }}</th>
+                        <th>{{ __('pages.absent_times') }}</th>
+                        <th>{{ __('pages.late_times') }}</th>
+                        <th>{{ __('pages.attendance_rate') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -269,7 +269,7 @@
         @else
             <div class="no-data">
                 <i class="fas fa-users fa-3x mb-3"></i>
-                <p>لا يوجد طلاب مسجلين حالياً</p>
+                <p>{{ __('pages.no_students_registered') }}</p>
             </div>
         @endif
     </div>
@@ -277,10 +277,10 @@
     <!-- Summary -->
     @if($users->count() > 0)
         <div class="mt-4">
-            <h3 class="text-center mb-3">ملخص التقرير</h3>
+            <h3 class="text-center mb-3">{{ __('pages.report_summary') }}</h3>
             <div class="row">
                 <div class="col-md-6">
-                    <h5>أفضل 5 طلاب من حيث الحضور:</h5>
+                    <h5>{{ __('pages.top_5_students') }}:</h5>
                     <ul class="list-group">
                         @foreach($users->take(5) as $index => $user)
                             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -291,7 +291,7 @@
                     </ul>
                 </div>
                 <div class="col-md-6">
-                    <h5>أدنى 5 طلاب من حيث الحضور:</h5>
+                    <h5>{{ __('pages.bottom_5_students') }}:</h5>
                     <ul class="list-group">
                         @foreach($users->sortBy('attendance_percentage')->take(5) as $index => $user)
                             <li class="list-group-item d-flex justify-content-between align-items-center">

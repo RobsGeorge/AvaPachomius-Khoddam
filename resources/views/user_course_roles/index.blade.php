@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
+@section('title', __('pages.assign_roles'))
+
 @section('content')
-<div class="container py-4">
+<div class="container py-4 animate-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">تعيين الأدوار</h1>
+        <h1 class="page-title mb-0">{{ __('pages.assign_roles') }}</h1>
         <a href="{{ route('user-course-roles.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> تعيين دور جديد
+            <i class="bi bi-plus-circle"></i> {{ __('pages.assign_role_to_user') }} {{ __('pages.new_assignment') }}
         </a>
     </div>
 
@@ -16,17 +18,17 @@
         </div>
     @endif
 
-    <div class="card shadow-sm">
+    <div class="app-card card shadow-sm">
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>#</th>
-                        <th>المستخدم</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الدورة</th>
-                        <th>الدور</th>
-                        <th>الإجراءات</th>
+                        <th>{{ __('pages.number') }}</th>
+                        <th>{{ __('pages.user') }}</th>
+                        <th>{{ __('pages.email') }}</th>
+                        <th>{{ __('pages.course') }}</th>
+                        <th>{{ __('pages.role') }}</th>
+                        <th>{{ __('pages.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,18 +49,18 @@
                             <td>
                                 <form method="POST"
                                       action="{{ route('user-course-roles.destroy', $assignment->user_course_role_id) }}"
-                                      onsubmit="return confirm('هل أنت متأكد من إلغاء هذا التعيين؟')">
+                                      onsubmit="return confirm(@json(__('pages.confirm_cancel_assignment')))">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
-                                        <i class="bi bi-x-circle"></i> إلغاء
+                                        <i class="bi bi-x-circle"></i> {{ __('pages.cancel') }}
                                     </button>
                                 </form>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">لا توجد تعيينات بعد.</td>
+                            <td colspan="6" class="text-center text-muted-theme py-4">{{ __('pages.no_role_assignments') }}</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -67,8 +69,8 @@
     </div>
 
     <div class="mt-3">
-        <a href="{{ route('roles.index') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-shield"></i> إدارة الأدوار
+        <a href="{{ route('roles.index') }}" class="btn btn-outline-theme">
+            <i class="bi bi-shield"></i> {{ __('pages.manage_roles') }}
         </a>
     </div>
 </div>

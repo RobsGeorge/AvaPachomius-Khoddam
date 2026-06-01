@@ -1,26 +1,20 @@
 @extends('layouts.app')
 
+@section('title', __('auth.recover_title'))
+
 @section('content')
-<div class="container">
-    <h1>استعادة كلمة المرور</h1>
+<div class="container py-4 animate-in" style="max-width:520px;">
+    <h1 class="page-title mb-4">{{ __('auth.recover_title') }}</h1>
 
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
-    <form method="POST" action="{{ route('password.email') }}">
-        @csrf
-
-        <div class="mb-3">
-            <label for="email" class="form-label">البريد الإلكتروني</label>
-            <input id="email" type="email" class="form-control @error('email') is-invalid @enderror" name="email" required autofocus>
-
-            @error('email')
-                <span class="text-danger">{{ $message }}</span>
-            @enderror
+    <div class="app-card card">
+        <div class="card-body p-4">
+            <p class="text-muted-theme mb-2">{{ __('auth.contact_reset_info') }}</p>
+            <p class="text-muted-theme mb-0">{{ __('auth.contact_support') }}</p>
         </div>
-
-        <button type="submit" class="btn btn-primary">إرسال رابط إعادة التعيين</button>
-    </form>
+    </div>
 </div>
 @endsection

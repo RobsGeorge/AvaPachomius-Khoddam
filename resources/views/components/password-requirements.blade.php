@@ -4,28 +4,28 @@
     'formId' => null,
 ])
 
-<div id="{{ $passwordId }}-requirements" class="password-requirements mt-2 mb-3" dir="rtl">
-    <p class="form-text mb-2 fw-semibold">يجب أن تحتوي كلمة المرور على:</p>
+<div id="{{ $passwordId }}-requirements" class="password-requirements mt-2 mb-3">
+    <p class="form-text mb-2 fw-semibold text-muted-theme">{{ __('password.requirements_title') }}</p>
     <ul class="list-unstyled small mb-0">
         <li class="password-rule d-flex align-items-center gap-2 mb-1" data-rule="length">
             <i class="bi bi-circle text-muted rule-icon" aria-hidden="true"></i>
-            <span>8 أحرف على الأقل</span>
+            <span>{{ __('password.min_length') }}</span>
         </li>
         <li class="password-rule d-flex align-items-center gap-2 mb-1" data-rule="uppercase">
             <i class="bi bi-circle text-muted rule-icon" aria-hidden="true"></i>
-            <span>حرف كبير واحد على الأقل (A–Z)</span>
+            <span>{{ __('password.uppercase') }}</span>
         </li>
         <li class="password-rule d-flex align-items-center gap-2 mb-1" data-rule="number">
             <i class="bi bi-circle text-muted rule-icon" aria-hidden="true"></i>
-            <span>رقم واحد على الأقل (0–9)</span>
+            <span>{{ __('password.digit') }}</span>
         </li>
         <li class="password-rule d-flex align-items-center gap-2 mb-1" data-rule="special">
             <i class="bi bi-circle text-muted rule-icon" aria-hidden="true"></i>
-            <span>رمز خاص واحد على الأقل (! @ # $ …)</span>
+            <span>{{ __('password.special') }}</span>
         </li>
         <li class="password-rule d-flex align-items-center gap-2" data-rule="match">
             <i class="bi bi-circle text-muted rule-icon" aria-hidden="true"></i>
-            <span>تطابق كلمة المرور مع التأكيد</span>
+            <span>{{ __('password.match') }}</span>
         </li>
     </ul>
     <div id="{{ $passwordId }}-feedback" class="invalid-feedback d-block" style="display: none;"></div>
@@ -34,6 +34,14 @@
 @once
     @push('scripts')
         <script>
+            window.PasswordValidatorMessages = {
+                required: @json(__('password.required')),
+                notMet: @json(__('password.not_met')),
+                confirmRequired: @json(__('password.confirm_required')),
+                mismatch: @json(__('password.mismatch')),
+                fixBeforeSubmit: @json(__('password.fix_before_submit')),
+            };
+
             window.PasswordValidator = {
                 checks: {
                     length: (value) => value.length >= 8,
@@ -63,6 +71,7 @@
                     const confirmInput = document.getElementById(confirmId);
                     const form = document.getElementById(formId);
                     const requirements = document.getElementById(requirementsId);
+                    const messages = window.PasswordValidatorMessages;
 
                     if (!passwordInput || !confirmInput || !form || !requirements) {
                         return;
@@ -107,17 +116,17 @@
                         const valid = updateUi();
 
                         if (passwordInput.value.length === 0) {
-                            passwordInput.setCustomValidity('كلمة المرور مطلوبة.');
+                            passwordInput.setCustomValidity(messages.required);
                         } else if (!valid) {
-                            passwordInput.setCustomValidity('كلمة المرور لا تستوفي جميع الشروط المطلوبة.');
+                            passwordInput.setCustomValidity(messages.notMet);
                         } else {
                             passwordInput.setCustomValidity('');
                         }
 
                         if (confirmInput.value.length === 0) {
-                            confirmInput.setCustomValidity('تأكيد كلمة المرور مطلوب.');
+                            confirmInput.setCustomValidity(messages.confirmRequired);
                         } else if (passwordInput.value !== confirmInput.value) {
-                            confirmInput.setCustomValidity('كلمتا المرور غير متطابقتين.');
+                            confirmInput.setCustomValidity(messages.mismatch);
                         } else {
                             confirmInput.setCustomValidity('');
                         }
@@ -134,7 +143,7 @@
                             event.stopPropagation();
 
                             if (feedback) {
-                                feedback.textContent = 'يرجى استيفاء جميع شروط كلمة المرور قبل المتابعة.';
+                                feedback.textContent = messages.fixBeforeSubmit;
                                 feedback.style.display = 'block';
                             }
                         } else if (feedback) {

@@ -1,64 +1,56 @@
 @extends('layouts.app')
 
+@section('title', __('pages.assignments_dashboard'))
+
 @section('content')
-<div class="container">
+<div class="container animate-in">
     <div class="row justify-content-center">
         <div class="col-md-12">
-            <div class="card">
+            <div class="app-card card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0">لوحة إدارة الواجبات</h2>
-                    <a href="{{ route('assignments.create') }}" class="btn btn-primary">إضافة واجب جديد</a>
+                    <h2 class="page-title mb-0">{{ __('pages.assignments_dashboard') }}</h2>
+                    <a href="{{ route('assignments.create') }}" class="btn btn-primary">{{ __('pages.add_assignment') }}</a>
                 </div>
 
                 <div class="card-body">
                     @if(session('success'))
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
+                        <div class="alert alert-success">{{ session('success') }}</div>
                     @endif
 
-                    <!-- Statistics Cards -->
-                    <div class="row mb-4">
+                    <div class="row mb-4 g-3">
                         <div class="col-md-4">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body">
-                                    <h5 class="card-title">إجمالي الواجبات</h5>
-                                    <p class="card-text display-4">{{ $totalAssignments }}</p>
-                                </div>
+                            <div class="app-tile h-100">
+                                <h5 class="text-muted-theme">{{ __('pages.total_assignments') }}</h5>
+                                <p class="display-6 mb-0">{{ $totalAssignments }}</p>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card bg-success text-white">
-                                <div class="card-body">
-                                    <h5 class="card-title">الواجبات القادمة</h5>
-                                    <p class="card-text display-4">{{ $upcomingAssignments }}</p>
-                                </div>
+                            <div class="app-tile h-100">
+                                <h5 class="text-muted-theme">{{ __('pages.upcoming_assignments') }}</h5>
+                                <p class="display-6 mb-0">{{ $upcomingAssignments }}</p>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h5 class="card-title">الواجبات المكتملة</h5>
-                                    <p class="card-text display-4">{{ $completedAssignments }}</p>
-                                </div>
+                            <div class="app-tile h-100">
+                                <h5 class="text-muted-theme">{{ __('pages.completed_assignments') }}</h5>
+                                <p class="display-6 mb-0">{{ $completedAssignments }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Upcoming Assignments -->
-                    <div class="card mb-4">
+                    <div class="app-card card mb-4">
                         <div class="card-header">
-                            <h3 class="mb-0">الواجبات القادمة</h3>
+                            <h3 class="page-title mb-0 h5">{{ __('pages.upcoming_assignments') }}</h3>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
+                                <table class="table mb-0">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th>اسم الواجب</th>
-                                            <th>تاريخ التسليم</th>
-                                            <th>الدرجة الكلية</th>
-                                            <th>الإجراءات</th>
+                                            <th>{{ __('pages.assignment_name') }}</th>
+                                            <th>{{ __('pages.due_date') }}</th>
+                                            <th>{{ __('pages.total_points') }}</th>
+                                            <th>{{ __('pages.actions') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -68,13 +60,13 @@
                                                 <td>{{ $assignment->due_date->format('Y-m-d H:i') }}</td>
                                                 <td>{{ $assignment->total_points }}</td>
                                                 <td>
-                                                    <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">عرض</a>
-                                                    <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">تعديل</a>
+                                                    <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                                    <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
                                                 </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="4" class="text-center">لا توجد واجبات قادمة</td>
+                                                <td colspan="4" class="text-center text-muted-theme">{{ __('pages.no_upcoming_assignments') }}</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -83,21 +75,20 @@
                         </div>
                     </div>
 
-                    <!-- Recent Submissions -->
-                    <div class="card">
+                    <div class="app-card card">
                         <div class="card-header">
-                            <h3 class="mb-0">آخر التسليمات</h3>
+                            <h3 class="page-title mb-0 h5">{{ __('pages.recent_submissions') }}</h3>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body p-0">
                             <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
+                                <table class="table mb-0">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th>الطالب</th>
-                                            <th>الواجب</th>
-                                            <th>تاريخ التسليم</th>
-                                            <th>الدرجة</th>
-                                            <th>الإجراءات</th>
+                                            <th>{{ __('pages.student') }}</th>
+                                            <th>{{ __('pages.assignments') }}</th>
+                                            <th>{{ __('pages.submission_date') }}</th>
+                                            <th>{{ __('pages.grade') }}</th>
+                                            <th>{{ __('pages.actions') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -110,16 +101,16 @@
                                                     @if($submission->points_earned !== null)
                                                         {{ $submission->points_earned }}/{{ $submission->assignment->total_points }}
                                                     @else
-                                                        لم يتم التقييم
+                                                        {{ __('pages.not_graded') }}
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    <a href="{{ route('assignments.show', $submission->assignment) }}" class="btn btn-info btn-sm">عرض</a>
+                                                    <a href="{{ route('assignments.show', $submission->assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
                                                 </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="5" class="text-center">لا توجد تسليمات حديثة</td>
+                                                <td colspan="5" class="text-center text-muted-theme">{{ __('pages.no_recent_submissions') }}</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -132,4 +123,4 @@
         </div>
     </div>
 </div>
-@endsection 
+@endsection

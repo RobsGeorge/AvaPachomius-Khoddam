@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container animate-in mx-auto px-4 py-8">
     <div class="bg-white shadow rounded-lg p-6">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">إدارة الامتحانات</h2>
+            <h2 class="text-2xl font-bold text-gray-900">{{ __('pages.exams_management') }}</h2>
             <button onclick="showAddExamModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                إضافة امتحان جديد
+                {{ __('pages.add_new_exam') }}
             </button>
         </div>
 
@@ -14,44 +14,44 @@
             <table class="w-full table-auto">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">اسم الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">مدة الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">مواعيد الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">مصادر المذاكرة</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الإجراءات</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_name') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.duration') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_schedules') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.study_resources') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @foreach($exams as $exam)
                         <tr>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->exam_name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->duration_minutes }} دقيقة</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">
                                 @foreach($exam->schedules as $schedule)
                                     <div class="mb-2">
                                         {{ $schedule->scheduled_date->format('Y-m-d H:i') }}
                                         @if($schedule->is_completed)
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">تم</span>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ __('pages.done') }}</span>
                                         @else
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">لم يتم</span>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ __('pages.not_done') }}</span>
                                         @endif
                                     </div>
                                 @endforeach
                                 <button onclick="showAddScheduleModal({{ $exam->exam_id }})" class="text-blue-500 hover:text-blue-700">
-                                    + إضافة موعد
+                                    + {{ __('pages.add_schedule') }}
                                 </button>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->study_resources }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">
                                 <div class="flex space-x-2">
                                     <button onclick="showEditExamModal({{ $exam->exam_id }})" class="text-blue-500 hover:text-blue-700">
-                                        تعديل
+                                        {{ __('pages.edit') }}
                                     </button>
                                     <button onclick="showResultsModal({{ $exam->exam_id }})" class="text-green-500 hover:text-green-700">
-                                        النتائج
+                                        {{ __('pages.results') }}
                                     </button>
                                     <button onclick="deleteExam({{ $exam->exam_id }})" class="text-red-500 hover:text-red-700">
-                                        حذف
+                                        {{ __('pages.delete') }}
                                     </button>
                                 </div>
                             </td>
@@ -67,23 +67,23 @@
 <div id="addExamModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">إضافة امتحان جديد</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('pages.add_new_exam') }}</h3>
             <form id="addExamForm" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">اسم الامتحان</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.exam_name') }}</label>
                     <input type="text" name="exam_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">مدة الامتحان (بالدقائق)</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.exam_duration_minutes') }}</label>
                     <input type="number" name="duration_minutes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">مصادر المذاكرة</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.study_resources') }}</label>
                     <textarea name="study_resources" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
                 </div>
                 <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="hideAddExamModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">إلغاء</button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">حفظ</button>
+                    <button type="button" onclick="hideAddExamModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">{{ __('pages.cancel') }}</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">{{ __('pages.save') }}</button>
                 </div>
             </form>
         </div>
@@ -94,16 +94,16 @@
 <div id="addScheduleModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
         <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">إضافة موعد امتحان</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('pages.add_schedule') }} {{ __('pages.add_exam_suffix') }}</h3>
             <form id="addScheduleForm" class="space-y-4">
                 <input type="hidden" name="exam_id" id="scheduleExamId">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">موعد الامتحان</label>
+                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.exam_schedule_datetime') }}</label>
                     <input type="datetime-local" name="scheduled_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="hideAddScheduleModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">إلغاء</button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">حفظ</button>
+                    <button type="button" onclick="hideAddScheduleModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">{{ __('pages.cancel') }}</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">{{ __('pages.save') }}</button>
                 </div>
             </form>
         </div>
@@ -114,14 +114,14 @@
 <div id="resultsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
     <div class="relative top-20 mx-auto p-5 border w-3/4 shadow-lg rounded-md bg-white">
         <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">نتائج الامتحان</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('pages.exam_results') }}</h3>
             <div class="overflow-x-auto">
                 <table class="w-full table-auto">
                     <thead>
                         <tr class="bg-gray-100">
-                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الطالب</th>
-                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الدرجة</th>
-                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الإجراءات</th>
+                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.student') }}</th>
+                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.grade') }}</th>
+                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.actions') }}</th>
                         </tr>
                     </thead>
                     <tbody id="resultsTableBody" class="divide-y divide-gray-200">
@@ -129,7 +129,7 @@
                 </table>
             </div>
             <div class="flex justify-end mt-4">
-                <button onclick="hideResultsModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">إغلاق</button>
+                <button onclick="hideResultsModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">{{ __('pages.close') }}</button>
             </div>
         </div>
     </div>
@@ -164,9 +164,9 @@ function hideResultsModal() {
 }
 
 function deleteExam(examId) {
-    if (confirm('هل أنت متأكد من حذف هذا الامتحان؟')) {
+    if (confirm(@json(__('pages.confirm_delete_exam_js')))) {
         // Here you would typically send a delete request to the server
-        alert('تم حذف الامتحان بنجاح');
+        alert(@json(__('pages.exam_deleted_success')));
     }
 }
 
@@ -175,14 +175,14 @@ document.getElementById('addExamForm').addEventListener('submit', function(e) {
     e.preventDefault();
     // Here you would typically send the form data to the server
     hideAddExamModal();
-    alert('تم إضافة الامتحان بنجاح');
+    alert(@json(__('pages.exam_added_success')));
 });
 
 document.getElementById('addScheduleForm').addEventListener('submit', function(e) {
     e.preventDefault();
     // Here you would typically send the form data to the server
     hideAddScheduleModal();
-    alert('تم إضافة موعد الامتحان بنجاح');
+    alert(@json(__('pages.schedule_added_success')));
 });
 </script>
 @endpush

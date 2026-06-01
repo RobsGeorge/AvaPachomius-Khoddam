@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container animate-in mx-auto px-4 py-8">
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
@@ -12,7 +12,7 @@
                     </svg>
                 </div>
                 <div class="mr-4">
-                    <h3 class="text-lg font-semibold text-gray-900">إجمالي الامتحانات</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('pages.total_exams') }}</h3>
                     <p class="text-2xl font-bold text-gray-900">{{ $totalExams }}</p>
                 </div>
             </div>
@@ -26,7 +26,7 @@
                     </svg>
                 </div>
                 <div class="mr-4">
-                    <h3 class="text-lg font-semibold text-gray-900">الامتحانات القادمة</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('pages.upcoming_exams') }}</h3>
                     <p class="text-2xl font-bold text-gray-900">{{ $upcomingExams }}</p>
                 </div>
             </div>
@@ -40,7 +40,7 @@
                     </svg>
                 </div>
                 <div class="mr-4">
-                    <h3 class="text-lg font-semibold text-gray-900">الامتحانات المكتملة</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">{{ __('pages.completed_exams') }}</h3>
                     <p class="text-2xl font-bold text-gray-900">{{ $completedExams }}</p>
                 </div>
             </div>
@@ -49,25 +49,25 @@
 
     <!-- Quick Actions -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">إجراءات سريعة</h2>
+        <h2 class="text-xl font-bold text-gray-900 mb-4">{{ __('pages.quick_actions') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button onclick="showAddExamModal()" class="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <svg class="h-6 w-6 text-blue-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                <span>إضافة امتحان جديد</span>
+                <span>{{ __('pages.add_new_exam') }}</span>
             </button>
             <button onclick="showScheduleExamModal()" class="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <svg class="h-6 w-6 text-green-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                <span>جدولة امتحان</span>
+                <span>{{ __('pages.schedule_exam') }}</span>
             </button>
             <button onclick="showResultsModal()" class="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <svg class="h-6 w-6 text-yellow-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
-                <span>عرض النتائج</span>
+                <span>{{ __('pages.view_results') }}</span>
             </button>
         </div>
     </div>
@@ -75,18 +75,18 @@
     <!-- Upcoming Exams -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold text-gray-900">الامتحانات القادمة</h2>
-            <a href="{{ route('exams.dashboard') }}" class="text-blue-500 hover:text-blue-700">عرض الكل</a>
+            <h2 class="text-xl font-bold text-gray-900">{{ __('pages.upcoming_exams') }}</h2>
+            <a href="{{ route('exams.dashboard') }}" class="text-blue-500 hover:text-blue-700">{{ __('pages.view') }} {{ __('pages.view_all') }}</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full table-auto">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">اسم الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">التاريخ</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">المدة</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">عدد المسجلين</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الإجراءات</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_name') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.date') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.duration') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.registered_count') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -94,13 +94,13 @@
                         <tr>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->exam->exam_name }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->scheduled_date->format('Y-m-d H:i') }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->exam->duration_minutes }} دقيقة</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->exam->duration_minutes }} {{ __('pages.minutes') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->results->count() }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">
                                 <div class="flex space-x-2">
-                                    <button onclick="editSchedule({{ $schedule->schedule_id }})" class="text-blue-500 hover:text-blue-700">تعديل</button>
-                                    <button onclick="viewRegistrations({{ $schedule->schedule_id }})" class="text-green-500 hover:text-green-700">المسجلين</button>
-                                    <button onclick="deleteSchedule({{ $schedule->schedule_id }})" class="text-red-500 hover:text-red-700">حذف</button>
+                                    <button onclick="editSchedule({{ $schedule->schedule_id }})" class="text-blue-500 hover:text-blue-700">{{ __('pages.edit') }}</button>
+                                    <button onclick="viewRegistrations({{ $schedule->schedule_id }})" class="text-green-500 hover:text-green-700">{{ __('pages.registered') }}</button>
+                                    <button onclick="deleteSchedule({{ $schedule->schedule_id }})" class="text-red-500 hover:text-red-700">{{ __('pages.delete') }}</button>
                                 </div>
                             </td>
                         </tr>
@@ -113,18 +113,18 @@
     <!-- Recent Results -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-bold text-gray-900">آخر النتائج</h2>
-            <a href="{{ route('exams.dashboard') }}" class="text-blue-500 hover:text-blue-700">عرض الكل</a>
+            <h2 class="text-xl font-bold text-gray-900">{{ __('pages.recent_results') }}</h2>
+            <a href="{{ route('exams.dashboard') }}" class="text-blue-500 hover:text-blue-700">{{ __('pages.view') }} {{ __('pages.view_all') }}</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full table-auto">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الطالب</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">التاريخ</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الدرجة</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الإجراءات</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.student') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_name') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.date') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.grade') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -135,7 +135,7 @@
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $result->schedule->scheduled_date->format('Y-m-d') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $result->score }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">
-                                <button onclick="editResult({{ $result->result_id }})" class="text-blue-500 hover:text-blue-700">تعديل</button>
+                                <button onclick="editResult({{ $result->result_id }})" class="text-blue-500 hover:text-blue-700">{{ __('pages.edit') }}</button>
                             </td>
                         </tr>
                     @endforeach
@@ -168,7 +168,7 @@ function viewRegistrations(scheduleId) {
 }
 
 function deleteSchedule(scheduleId) {
-    if (confirm('هل أنت متأكد من حذف هذا الموعد؟')) {
+    if (confirm(@json(__('pages.confirm_delete_schedule')))) {
         // Implementation for deleting schedule
     }
 }

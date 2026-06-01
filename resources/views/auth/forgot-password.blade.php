@@ -1,49 +1,53 @@
 @extends('layouts.app')
 
+@section('title', __('auth.forgot_title'))
+
 @section('content')
-<div class="container max-w-md mx-auto p-6 bg-white rounded shadow-md" dir="rtl">
-    <h2 class="text-2xl font-bold mb-6 text-right">نسيت كلمة المرور</h2>
+<div class="container py-5 animate-in" style="max-width:460px;">
+    <h2 class="page-title mb-4">{{ __('auth.forgot_title') }}</h2>
 
     @if(session('status'))
-        <div class="mb-4 p-3 bg-green-100 text-green-700 rounded text-right">
-            {{ session('status') }}
-        </div>
+        <div class="alert alert-success">{{ session('status') }}</div>
     @endif
 
     @if ($errors->any())
-        <div class="mb-4 text-red-600 text-right">
-            <ul>
+        <div class="alert alert-danger">
+            <ul class="mb-0">
                 @foreach ($errors->all() as $error)
-                    <li>- {{ $error }}</li>
+                    <li>{{ $error }}</li>
                 @endforeach
             </ul>
         </div>
     @endif
 
-    <form action="{{ route('password.email') }}" method="POST" novalidate>
-        @csrf
+    <div class="app-card card">
+        <div class="card-body p-4">
+            <form action="{{ route('password.email') }}" method="POST" novalidate>
+                @csrf
 
-        <div class="mb-4 text-right">
-            <label for="email" class="block mb-1 font-semibold">البريد الإلكتروني</label>
-            <input
-                type="email"
-                name="email"
-                id="email"
-                value="{{ old('email') }}"
-                required
-                class="w-full border rounded px-3 py-2"
-                placeholder="أدخل بريدك الإلكتروني"
-                autofocus
-            >
+                <div class="mb-4">
+                    <label for="email" class="form-label">{{ __('auth.email') }}</label>
+                    <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        value="{{ old('email') }}"
+                        required
+                        class="form-control"
+                        placeholder="{{ __('auth.email_placeholder') }}"
+                        autofocus
+                    >
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    {{ __('auth.send_otp') }}
+                </button>
+            </form>
         </div>
+    </div>
 
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full">
-            إرسال رمز التحقق
-        </button>
-    </form>
-
-    <p class="mt-4 text-sm text-gray-600 text-right">
-        إذا تم العثور على البريد الإلكتروني في قاعدة بياناتنا، سوف نرسل لك رسالة. يرجى التحقق من صندوق الرسائل غير المرغوب فيها أيضًا.
+    <p class="mt-4 text-muted-theme small">
+        {{ __('auth.forgot_hint') }}
     </p>
 </div>
 @endsection

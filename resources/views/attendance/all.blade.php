@@ -1,28 +1,28 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div class="container animate-in mx-auto px-4 py-8">
     <div class="bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">سجل الحضور الكامل</h1>
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">{{ __('pages.all_records') }}</h1>
 
         @if(session('success'))
             <div class="alert alert-success mb-3">{{ session('success') }}</div>
         @endif
 
         @if($attendanceRecords->count() === 0)
-            <p class="text-right">لا توجد سجلات حضور.</p>
+            <p class="text-right">{{ __('pages.no_attendance_records') }}.</p>
         @else
             <div class="w-full overflow-x-auto">
                 <table class="w-full table-auto">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">المستخدم</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">المحاضرة</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">التاريخ</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">الحالة</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">سبب الإذن</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">تم التسجيل بواسطة</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">وقت التسجيل</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.user') }}</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.lecture') }}</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.date') }}</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.status') }}</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.permission_reason') }}</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.recorded_by') }}</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.recorded_at') }}</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -47,10 +47,10 @@
                                         data-attendance-id="{{ $record->attendance_id }}"
                                         data-current-status="{{ $record->status }}"
                                         onchange="updateStatus(this)">
-                                        <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>حاضر</option>
-                                        <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>غائب</option>
-                                        <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>متأخر</option>
-                                        <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>إذن</option>
+                                        <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>{{ __('pages.present') }}</option>
+                                        <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>{{ __('pages.absent') }}</option>
+                                        <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
+                                        <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
                                     </select>
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
@@ -58,7 +58,7 @@
                                         <input 
                                             type="text" 
                                             class="permission-reason bg-white border border-gray-300 rounded-md px-3 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="سبب الإذن"
+                                            placeholder="{{ __('pages.permission_reason') }}"
                                             value="{{ $record->permission_reason }}"
                                             onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
                                     </div>
@@ -78,24 +78,24 @@
             <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <!-- Overall Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات عامة</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">{{ __('pages.general_stats') }}</h3>
                     <div class="space-y-2">
-                        <p class="text-gray-600">إجمالي السجلات: <span class="font-semibold">{{ $overallStats->total }}</span></p>
-                        <p class="text-gray-600">الحاضرين: <span class="font-semibold text-green-600">{{ $overallStats->present }}</span></p>
-                        <p class="text-gray-600">الغائبين: <span class="font-semibold text-red-600">{{ $overallStats->absent }}</span></p>
-                        <p class="text-gray-600">المتأخرين: <span class="font-semibold text-yellow-600">{{ $overallStats->late }}</span></p>
-                        <p class="text-gray-600">نسبة الحضور: <span class="font-semibold">{{ round(($overallStats->present / $overallStats->total) * 100) }}%</span></p>
+                        <p class="text-gray-600">{{ __('pages.total_records') }}: <span class="font-semibold">{{ $overallStats->total }}</span></p>
+                        <p class="text-gray-600">{{ __('pages.present_plural') }}: <span class="font-semibold text-green-600">{{ $overallStats->present }}</span></p>
+                        <p class="text-gray-600">{{ __('pages.absent_count') }}: <span class="font-semibold text-red-600">{{ $overallStats->absent }}</span></p>
+                        <p class="text-gray-600">{{ __('pages.late_count') }}: <span class="font-semibold text-yellow-600">{{ $overallStats->late }}</span></p>
+                        <p class="text-gray-600">{{ __('pages.attendance_rate') }}: <span class="font-semibold">{{ round(($overallStats->present / $overallStats->total) * 100) }}%</span></p>
                     </div>
                 </div>
 
                 <!-- Daily Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">إحصائيات يومية</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">{{ __('pages.daily_stats') }}</h3>
                     <div class="space-y-2">
                         @foreach($dailyStats as $stat)
                             <div class="border-b pb-2">
                                 <p class="text-gray-800 font-medium">{{ $stat->date }}</p>
-                                <p class="text-sm text-gray-600">الحضور: {{ $stat->present }} ({{ round(($stat->present / $stat->total) * 100) }}%)</p>
+                                <p class="text-sm text-gray-600">{{ __('pages.attendance_label') }} {{ $stat->present }} ({{ round(($stat->present / $stat->total) * 100) }}%)</p>
                             </div>
                         @endforeach
                     </div>
@@ -103,12 +103,12 @@
 
                 <!-- User Statistics -->
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-800">أعلى نسبة حضور</h3>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-800">{{ __('pages.highest_attendance') }}</h3>
                     <div class="space-y-2">
                         @foreach($userStats as $stat)
                             <div class="border-b pb-2">
                                 <p class="text-gray-800 font-medium">{{ $stat->first_name . ' ' . $stat->second_name }}</p>
-                                <p class="text-sm text-gray-600">نسبة الحضور: {{ round(($stat->present / $stat->total) * 100) }}%</p>
+                                <p class="text-sm text-gray-600">{{ __('pages.attendance_rate') }}: {{ round(($stat->present / $stat->total) * 100) }}%</p>
                             </div>
                         @endforeach
                     </div>
@@ -157,7 +157,7 @@ function updateStatus(select) {
     if (status === 'Permission') {
         permissionReasonDiv.classList.remove('hidden');
         if (!permissionReasonInput.value) {
-            showAlert('الرجاء إدخال سبب الإذن', 'error');
+            showAlert(@json(__('pages.enter_permission_reason')), 'error');
             select.value = select.getAttribute('data-current-status') || 'Present';
             return;
         }
@@ -182,12 +182,12 @@ function updateStatus(select) {
             showAlert(data.message);
             select.setAttribute('data-current-status', status);
         } else {
-            showAlert('حدث خطأ أثناء تحديث الحالة', 'error');
+            showAlert(@json(__('pages.status_update_error')), 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('حدث خطأ أثناء تحديث الحالة', 'error');
+        showAlert(@json(__('pages.status_update_error')), 'error');
     });
 }
 
@@ -196,7 +196,7 @@ function updatePermissionReason(input, attendanceId) {
     const status = select.value;
 
     if (status === 'Permission' && !input.value) {
-        showAlert('الرجاء إدخال سبب الإذن', 'error');
+        showAlert(@json(__('pages.enter_permission_reason')), 'error');
         return;
     }
 
@@ -216,12 +216,12 @@ function updatePermissionReason(input, attendanceId) {
         if (data.success) {
             showAlert(data.message);
         } else {
-            showAlert('حدث خطأ أثناء تحديث سبب الإذن', 'error');
+            showAlert(@json(__('pages.permission_update_error')), 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert('حدث خطأ أثناء تحديث سبب الإذن', 'error');
+        showAlert(@json(__('pages.permission_update_error')), 'error');
     });
 }
 </script>

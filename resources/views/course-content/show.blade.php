@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-4">
+<div class="container animate-in py-4">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -10,7 +10,7 @@
         </div>
         @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
             <a href="{{ route('course-content.admin', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-pencil-square"></i> إدارة المحتوى
+                <i class="bi bi-pencil-square"></i> {{ __('pages.manage_content') }}
             </a>
         @endif
     </div>
@@ -24,7 +24,7 @@
                     <i class="bi bi-collection-fill me-2"></i>{{ $module->title }}
                 </span>
                 <span class="badge bg-white text-dark">
-                    {{ $module->lectures->count() }} محاضرة
+                    {{ $module->lectures->count() }} {{ __('pages.lecture') }}
                 </span>
             </div>
 
@@ -34,20 +34,20 @@
 
             <div class="card-body p-0">
                 @if($module->lectures->isEmpty())
-                    <p class="text-center text-muted py-4 mb-0">لا توجد محاضرات بعد لهذا الوحدة.</p>
+                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_lectures') }}</p>
                 @else
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
                                     <th class="text-center" style="width:50px;">#</th>
-                                    <th class="text-center" style="width:80px;">الأسبوع</th>
-                                    <th style="width:110px;">التاريخ</th>
-                                    <th>المحاضرة</th>
-                                    <th class="text-center" style="width:80px;">الفيديو</th>
-                                    <th class="text-center" style="width:80px;">الشرائح</th>
-                                    <th>المواد الإضافية</th>
-                                    <th>الملاحظات</th>
+                                    <th class="text-center" style="width:80px;">{{ __('pages.week_col') }}</th>
+                                    <th style="width:110px;">{{ __('pages.date') }}</th>
+                                    <th>{{ __('pages.lecture') }}</th>
+                                    <th class="text-center" style="width:80px;">{{ __('pages.video_col') }}</th>
+                                    <th class="text-center" style="width:80px;">{{ __('pages.slides') }}</th>
+                                    <th>{{ __('pages.additional_materials') }}</th>
+                                    <th>{{ __('pages.notes') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -56,7 +56,7 @@
                                         <td class="text-center text-muted small">{{ $i + 1 }}</td>
                                         <td class="text-center">
                                             <span class="badge bg-secondary rounded-pill">
-                                                أسبوع {{ $lecture->week_number }}
+                                                {{ __('pages.week') }} {{ $lecture->week_number }}
                                             </span>
                                         </td>
                                         <td class="text-muted small">
@@ -69,7 +69,7 @@
                                             @if($lecture->video_link)
                                                 <a href="{{ $lecture->video_link }}" target="_blank"
                                                    class="btn btn-sm btn-danger rounded-circle p-1 lh-1"
-                                                   title="مشاهدة الفيديو">
+                                                   title="{{ __('pages.watch_video') }}">
                                                     <i class="bi bi-play-fill"></i>
                                                 </a>
                                             @else
@@ -80,7 +80,7 @@
                                             @if($lecture->slides_link)
                                                 <a href="{{ $lecture->slides_link }}" target="_blank"
                                                    class="btn btn-sm btn-primary rounded-circle p-1 lh-1"
-                                                   title="تنزيل الشرائح">
+                                                   title="{{ __('pages.download_slides') }}">
                                                     <i class="bi bi-file-earmark-slides-fill"></i>
                                                 </a>
                                             @else
@@ -106,7 +106,7 @@
                                                 @if(strlen($lecture->notes) > 80)
                                                     <a href="#" data-bs-toggle="modal"
                                                        data-bs-target="#notes-{{ $lecture->lecture_id }}"
-                                                       class="small">المزيد</a>
+                                                       class="small">{{ __('pages.more') }}</a>
                                                     <div class="modal fade" id="notes-{{ $lecture->lecture_id }}" tabindex="-1">
                                                         <div class="modal-dialog">
                                                             <div class="modal-content">
@@ -132,7 +132,7 @@
             </div>
         </div>
     @empty
-        <div class="alert alert-info">لا توجد وحدات مضافة لهذه الدورة بعد.</div>
+        <div class="alert alert-info">{{ __('pages.no_modules_for_course') }}</div>
     @endforelse
 
 </div>

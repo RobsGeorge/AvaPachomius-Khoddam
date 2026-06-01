@@ -1,12 +1,14 @@
 @extends('layouts.app')
 
+@section('title', __('pages.sessions'))
+
 @section('content')
-<div class="container py-4">
+<div class="container py-4 animate-in">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">المحاضرات</h1>
+        <h1 class="page-title mb-0">{{ __('pages.sessions') }}</h1>
         @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
             <a href="{{ route('sessions.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> إنشاء محاضرات
+                <i class="bi bi-plus-circle"></i> {{ __('pages.create_sessions') }}
             </a>
         @endif
     </div>
@@ -18,18 +20,18 @@
         </div>
     @endif
 
-    <div class="card shadow-sm">
+    <div class="app-card card shadow-sm">
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>#</th>
-                        <th>التاريخ</th>
-                        <th>عنوان الجلسة</th>
-                        <th>الدورة</th>
-                        <th>عدد الحضور</th>
+                        <th>{{ __('pages.number') }}</th>
+                        <th>{{ __('pages.date') }}</th>
+                        <th>{{ __('pages.session_title') }}</th>
+                        <th>{{ __('pages.course') }}</th>
+                        <th>{{ __('pages.attendance_count') }}</th>
                         @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
-                            <th>الإجراءات</th>
+                            <th>{{ __('pages.actions') }}</th>
                         @endif
                     </tr>
                 </thead>
@@ -52,11 +54,11 @@
                             @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
                                 <td class="d-flex gap-2">
                                     <a href="{{ route('sessions.edit', $session->session_id) }}"
-                                       class="btn btn-sm btn-outline-primary">
+                                       class="btn btn-sm btn-outline-theme">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form method="POST" action="{{ route('sessions.destroy', $session->session_id) }}"
-                                          onsubmit="return confirm('هل أنت متأكد من حذف هذه الجلسة؟')">
+                                          onsubmit="return confirm(@json(__('pages.confirm_delete_session')))">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -68,10 +70,10 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">
-                                لا توجد جلسات بعد.
+                            <td colspan="6" class="text-center text-muted-theme py-4">
+                                {{ __('pages.no_sessions_yet') }}
                                 @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
-                                    <a href="{{ route('sessions.create') }}">أنشئ الآن</a>
+                                    <a href="{{ route('sessions.create') }}">{{ __('pages.create_now') }}</a>
                                 @endif
                             </td>
                         </tr>

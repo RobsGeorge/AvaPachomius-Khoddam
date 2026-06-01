@@ -1,19 +1,21 @@
 @extends('layouts.app')
 
+@section('title', $assignment->assignment_name)
+
 @section('content')
-<div class="container">
+<div class="container animate-in">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card">
+            <div class="app-card card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="mb-0">{{ $assignment->assignment_name }}</h2>
+                    <h2 class="page-title mb-0">{{ $assignment->assignment_name }}</h2>
                     @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                     <div>
-                        <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning">تعديل</a>
+                        <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning">{{ __('pages.edit') }}</a>
                         <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من حذف هذا الواجب؟')">حذف</button>
+                            <button type="submit" class="btn btn-danger" onclick="return confirm(@json(__('pages.confirm_delete_assignment')))">{{ __('pages.delete') }}</button>
                         </form>
                     </div>
                     @endif
@@ -33,31 +35,31 @@
                     @endif
 
                     <div class="mb-4">
-                        <h4>الوصف</h4>
+                        <h4>{{ __('pages.description') }}</h4>
                         <p>{{ $assignment->assignment_description }}</p>
                     </div>
 
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <h4>الدرجة الكلية</h4>
+                            <h4>{{ __('pages.total_points') }}</h4>
                             <p>{{ $assignment->total_points }}</p>
                         </div>
                         <div class="col-md-6">
-                            <h4>تاريخ التسليم</h4>
+                            <h4>{{ __('pages.due_date') }}</h4>
                             <p>{{ $assignment->due_date->format('Y-m-d H:i') }}</p>
                         </div>
                     </div>
 
                     @if($assignment->instructions)
                     <div class="mb-4">
-                        <h4>التعليمات</h4>
+                        <h4>{{ __('pages.instructions') }}</h4>
                         <p>{{ $assignment->instructions }}</p>
                     </div>
                     @endif
 
                     @if($assignment->resources)
                     <div class="mb-4">
-                        <h4>الموارد</h4>
+                        <h4>{{ __('pages.resources') }}</h4>
                         <p>{{ $assignment->resources }}</p>
                     </div>
                     @endif
@@ -65,11 +67,11 @@
                     @if(Auth::user()->roles->contains('role_name', 'student'))
                         @if(!$currentSubmission)
                     <div class="mb-4">
-                        <h4>تقديم الواجب</h4>
+                        <h4>{{ __('pages.submit_assignment') }}</h4>
                         <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             <div class="form-group mb-3">
-                                <label for="submission_content">المحتوى</label>
+                                <label for="submission_content">{{ __('pages.content_label') }}</label>
                                 <textarea class="form-control @error('submission_content') is-invalid @enderror" 
                                           id="submission_content" name="submission_content" rows="5" required>{{ old('submission_content') }}</textarea>
                                 @error('submission_content')
@@ -78,21 +80,21 @@
                             </div>
 
                             <div class="form-group mb-3">
-                                <label for="file">ملف مرفق (PDF فقط) <span class="text-danger">*</span></label>
+                                <label for="file">{{ __('pages.attachment_pdf') }} <span class="text-danger">*</span></label>
                                 <input type="file" class="form-control @error('file') is-invalid @enderror" 
                                        id="file" name="file" accept=".pdf" required>
-                                <small class="form-text text-muted">يجب رفع ملف PDF. الحد الأقصى للحجم هو 10 ميجابايت</small>
+                                <small class="form-text text-muted-theme">{{ __('pages.pdf_max_size') }}</small>
                                 @error('file')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <button type="submit" class="btn btn-primary">تقديم الواجب</button>
+                            <button type="submit" class="btn btn-primary">{{ __('pages.submit_assignment') }}</button>
                         </form>
                     </div>
                         @endif
 
                     <div class="mb-4">
-                        <h4>تسليماتي</h4>
+                        <h4>{{ __('pages.my_submissions') }}</h4>
                             @if($currentSubmission)
                             <div class="card mb-3">
                                 <div class="card-body">
@@ -102,26 +104,26 @@
                                     </div>
                                     
                                     <div class="mb-3">
-                                        <h6 class="fw-bold">المحتوى:</h6>
+                                        <h6 class="fw-bold">{{ __('pages.content_label') }}:</h6>
                                             <p class="card-text">{{ $currentSubmission->submission_content }}</p>
                                     </div>
 
                                         @if($currentSubmission->file_path)
                                         <div class="mb-3">
-                                            <h6 class="fw-bold">الملف المرفق:</h6>
+                                            <h6 class="fw-bold">{{ __('pages.file_attachment') }}</h6>
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-file-pdf text-danger me-2"></i>
                                                     <a href="{{ Storage::url($currentSubmission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-download me-1"></i>
-                                                    تحميل الملف
+                                                    {{ __('pages.download_file') }}
                                                 </a>
                                                     <a href="{{ Storage::url($currentSubmission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-info btn-sm ms-2">
                                                     <i class="fas fa-eye me-1"></i>
-                                                    عرض الملف
+                                                    {{ __('pages.view_file') }}
                                                 </a>
                                             </div>
                                         </div>
@@ -131,14 +133,14 @@
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group mb-3">
-                                                        <label class="form-label">الدرجة</label>
+                                                        <label class="form-label">{{ __('pages.grade') }}</label>
                                                         <p class="form-control-static">{{ $currentSubmission->points_earned }} / {{ $assignment->total_points }}</p>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group mb-3">
-                                                        <label class="form-label">التغذية الراجعة</label>
-                                                        <p class="form-control-static">{{ $currentSubmission->feedback ?? 'لا توجد تغذية راجعة' }}</p>
+                                                        <label class="form-label">{{ __('pages.feedback_title') }}</label>
+                                                        <p class="form-control-static">{{ $currentSubmission->feedback ?? __('pages.no_feedback') }}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -146,12 +148,12 @@
 
                                         @if(now()->addHours(3) < $assignment->due_date)
                                             <div class="mt-3">
-                                                <h6 class="fw-bold">تحديث التسليم</h6>
+                                                <h6 class="fw-bold">{{ __('pages.update_submission') }}</h6>
                                                 <form action="{{ route('assignments.update-submission', $currentSubmission) }}" method="POST" enctype="multipart/form-data">
                                                     @csrf
                                                     @method('PUT')
                                                     <div class="form-group mb-3">
-                                                        <label for="submission_content">المحتوى</label>
+                                                        <label for="submission_content">{{ __('pages.content_label') }}</label>
                                                         <textarea class="form-control @error('submission_content') is-invalid @enderror" 
                                                                   id="submission_content" 
                                                                   name="submission_content" 
@@ -163,27 +165,27 @@
                                                     </div>
 
                                                     <div class="form-group mb-3">
-                                                        <label for="file">ملف مرفق (PDF فقط)</label>
+                                                        <label for="file">{{ __('pages.attachment_pdf') }}</label>
                                                         <input type="file" 
                                                                class="form-control @error('file') is-invalid @enderror" 
                                                                id="file" 
                                                                name="file" 
                                                                accept=".pdf">
-                                                        <small class="form-text text-muted">اختياري. إذا لم تقم باختيار ملف جديد، سيتم الاحتفاظ بالملف الحالي. الحد الأقصى للحجم هو 10 ميجابايت</small>
+                                                        <small class="form-text text-muted-theme">{{ __('pages.optional_resubmit_extended') }}</small>
                                                         @error('file')
                                                             <div class="invalid-feedback">{{ $message }}</div>
                                                         @enderror
                                                     </div>
                                                     <button type="submit" class="btn btn-primary">
                                                         <i class="fas fa-save me-1"></i>
-                                                        تحديث التسليم
+                                                        {{ __('pages.update_submission') }}
                                                     </button>
                                                 </form>
                                             </div>
                                         @else
                                             <div class="alert alert-warning mt-3">
                                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                                انتهى موعد التسليم في {{ $assignment->due_date->addHours(3)->format('Y-m-d H:i') }}
+                                                {{ __('pages.deadline_passed', ['date' => $assignment->due_date->addHours(3)->format('Y-m-d H:i')]) }}
                                         </div>
                                         @endif
                                     </div>
@@ -191,7 +193,7 @@
                             @else
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                لا توجد تسليمات حتى الآن
+                                {{ __('pages.no_submissions_yet') }}
                             </div>
                         @endif
                     </div>
@@ -200,7 +202,7 @@
 
                     @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
                     <div class="mb-4">
-                        <h4>التسليمات</h4>
+                        <h4>{{ __('pages.submissions') }}</h4>
                         @forelse($submissions as $submission)
                             <div class="card mb-3">
                                 <div class="card-body">
@@ -210,26 +212,26 @@
                                     </div>
                                     
                                     <div class="mb-3">
-                                        <h6 class="fw-bold">المحتوى:</h6>
+                                        <h6 class="fw-bold">{{ __('pages.content_label') }}:</h6>
                                         <p class="card-text">{{ $submission->submission_content }}</p>
                                     </div>
 
                                     @if($submission->file_path)
                                         <div class="mb-3">
-                                            <h6 class="fw-bold">الملف المرفق:</h6>
+                                            <h6 class="fw-bold">{{ __('pages.file_attachment') }}</h6>
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-file-pdf text-danger me-2"></i>
                                                 <a href="{{ Storage::url($submission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-download me-1"></i>
-                                                    تحميل الملف
+                                                    {{ __('pages.download_file') }}
                                                 </a>
                                                 <a href="{{ Storage::url($submission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-info btn-sm ms-2">
                                                     <i class="fas fa-eye me-1"></i>
-                                                    عرض الملف
+                                                    {{ __('pages.view_file') }}
                                                 </a>
                                             </div>
                                         </div>
@@ -240,7 +242,7 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group mb-3">
-                                                    <label for="points_earned" class="form-label">الدرجة</label>
+                                                    <label for="points_earned" class="form-label">{{ __('pages.grade') }}</label>
                                                     <input type="number" 
                                                            class="form-control @error('points_earned') is-invalid @enderror" 
                                                            id="points_earned" 
@@ -255,7 +257,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group mb-3">
-                                                    <label for="feedback" class="form-label">التغذية الراجعة</label>
+                                                    <label for="feedback" class="form-label">{{ __('pages.feedback_title') }}</label>
                                                     <textarea class="form-control @error('feedback') is-invalid @enderror" 
                                                               id="feedback" 
                                                               name="feedback" 
@@ -268,7 +270,7 @@
                                         </div>
                                         <button type="submit" class="btn btn-primary">
                                             <i class="fas fa-check me-1"></i>
-                                            تقييم
+                                            {{ __('pages.grade_action') }}
                                         </button>
                                     </form>
                                 </div>
@@ -276,7 +278,7 @@
                         @empty
                             <div class="alert alert-info">
                                 <i class="fas fa-info-circle me-2"></i>
-                                لا توجد تسليمات حتى الآن
+                                {{ __('pages.no_submissions_yet') }}
                             </div>
                         @endforelse
                     </div>
@@ -297,15 +299,14 @@
 <script>
     $(document).ready(function() {
         $('.select2').select2({
-            placeholder: 'اختر أعضاء الفريق',
+            placeholder: @json(__('pages.select_team_members')),
             allowClear: true,
-            dir: 'rtl',
             language: {
                 noResults: function() {
-                    return "لا توجد نتائج";
+                    return @json(__('pages.no_results'));
                 },
                 searching: function() {
-                    return "جاري البحث...";
+                    return @json(__('pages.searching'));
                 }
             },
             templateResult: formatUser,

@@ -1,8 +1,10 @@
 @extends('layouts.app')
 
+@section('title', __('pages.roles_management'))
+
 @section('content')
-<div class="container py-4">
-    <h1 class="mb-4">إدارة الأدوار</h1>
+<div class="container py-4 animate-in">
+    <h1 class="page-title mb-4">{{ __('pages.roles_management') }}</h1>
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -20,16 +22,16 @@
         </div>
     @endif
 
-    <div class="card shadow-sm mb-5">
-        <div class="card-header fw-semibold">قائمة الأدوار</div>
+    <div class="app-card card shadow-sm mb-5">
+        <div class="card-header fw-semibold">{{ __('pages.roles_list') }}</div>
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>#</th>
-                        <th>اسم الدور</th>
-                        <th>الوصف</th>
-                        <th>الإجراءات</th>
+                        <th>{{ __('pages.number') }}</th>
+                        <th>{{ __('pages.role_name') }}</th>
+                        <th>{{ __('pages.description') }}</th>
+                        <th>{{ __('pages.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,18 +42,18 @@
                             <td>{{ $role->role_decription }}</td>
                             <td>
                                 <form method="POST" action="{{ route('roles.destroy', $role->role_id) }}"
-                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا الدور؟')">
+                                      onsubmit="return confirm(@json(__('pages.confirm_delete_role')))">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
-                                        <i class="bi bi-trash"></i> حذف
+                                        <i class="bi bi-trash"></i> {{ __('pages.delete') }}
                                     </button>
                                 </form>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="text-center text-muted py-4">لا توجد أدوار بعد.</td>
+                            <td colspan="4" class="text-center text-muted-theme py-4">{{ __('pages.no_roles_yet') }}</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -59,14 +61,14 @@
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header fw-semibold">إضافة دور جديد</div>
+    <div class="app-card card shadow-sm">
+        <div class="card-header fw-semibold">{{ __('pages.add_new_role') }}</div>
         <div class="card-body">
             <form method="POST" action="{{ route('roles.store') }}">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">اسم الدور <span class="text-danger">*</span></label>
+                        <label class="form-label">{{ __('pages.role_name') }} <span class="text-danger">*</span></label>
                         <input type="text" name="role_name"
                                class="form-control @error('role_name') is-invalid @enderror"
                                value="{{ old('role_name') }}" maxlength="30" required>
@@ -75,7 +77,7 @@
                         @enderror
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label">الوصف <span class="text-danger">*</span></label>
+                        <label class="form-label">{{ __('pages.description') }} <span class="text-danger">*</span></label>
                         <input type="text" name="role_decription"
                                class="form-control @error('role_decription') is-invalid @enderror"
                                value="{{ old('role_decription') }}" maxlength="25" required>
@@ -85,7 +87,7 @@
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-plus-circle"></i> إضافة
+                            <i class="bi bi-plus-circle"></i> {{ __('pages.add') }}
                         </button>
                     </div>
                 </div>
@@ -94,8 +96,8 @@
     </div>
 
     <div class="mt-3">
-        <a href="{{ route('user-course-roles.index') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-people"></i> تعيين الأدوار للمستخدمين
+        <a href="{{ route('user-course-roles.index') }}" class="btn btn-outline-theme">
+            <i class="bi bi-people"></i> {{ __('pages.assign_roles_to_users') }}
         </a>
     </div>
 </div>

@@ -30,6 +30,9 @@ use App\Http\Controllers\LectureMaterialController;
 use App\Http\Controllers\GradeCategoryController;
 use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
+use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\Admin\TranslationController;
 
 
 
@@ -38,9 +41,8 @@ use App\Http\Controllers\StudentGradeController;
 
 
 
-Route::get('/', function () {
-    return ['Laravel' => app()->version()];
-});
+Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
+Route::post('/theme', [ThemeController::class, 'update'])->name('theme.update');
 
 require __DIR__.'/auth.php';
 
@@ -116,9 +118,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/my', [AttendanceController::class, 'viewMyAttendance'])->name('attendance.my');
 });
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
-    Route::get('/users/unverified', [UserManagementController::class, 'index'])->name('admin.users.unverified');
-    Route::post('/users/{id}/approve', [UserManagementController::class, 'approve'])->name('admin.users.approve');
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users/unverified', [UserManagementController::class, 'index'])->name('users.unverified');
+    Route::post('/users/{id}/approve', [UserManagementController::class, 'approve'])->name('users.approve');
+    Route::get('/translations', [TranslationController::class, 'index'])->name('translations.index');
+    Route::post('/translations', [TranslationController::class, 'store'])->name('translations.store');
+    Route::post('/translations/auto', [TranslationController::class, 'autoTranslate'])->name('translations.auto');
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');

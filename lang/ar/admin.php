@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'translations'         => 'إدارة الترجمات',
+    'group'                => 'المجموعة',
+    'key'                  => 'المفتاح',
+    'value'                => 'النص',
+    'locale'               => 'اللغة',
+    'file_default'         => 'القيمة الافتراضية (ملف)',
+    'db_override'          => 'تعديل من قاعدة البيانات',
+    'add_override'         => 'حفظ التعديل',
+    'auto_translate'       => 'ترجمة تلقائية',
+    'auto_translate_from'  => 'ترجمة من',
+    'translation_saved'    => 'تم حفظ الترجمة.',
+    'auto_translate_done'  => 'تمت الترجمة التلقائية بنجاح.',
+    'auto_translate_failed'=> 'فشلت الترجمة التلقائية. تحقق من الاتصال أو إعدادات المترجم.',
+    'no_source_text'       => 'لا يوجد نص مصدر للترجمة.',
+    'search_placeholder'   => 'ابحث في المفاتيح أو النصوص...',
+    'unverified_users'     => 'المستخدمون غير الموثقين',
+    'no_unverified_users'  => 'لا يوجد مستخدمون غير موثقين حالياً.',
+    'user_id'              => 'المعرف',
+    'user_name'            => 'الاسم',
+    'user_email'           => 'البريد الإلكتروني',
+    'user_action'          => 'الإجراء',
+];

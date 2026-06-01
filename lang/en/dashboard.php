@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'title'                  => 'Dashboard',
+    'hello'                  => 'Welcome, :name',
+    'user_fallback'          => 'User',
+    'profile'                => 'Profile',
+    'profile_desc'           => 'View and update your personal information.',
+    'view_profile'           => 'View profile',
+    'attendance'             => 'Attendance',
+    'attendance_desc'        => 'Track your attendance in lectures and sessions.',
+    'my_attendance'          => 'View my attendance record',
+    'all_attendance'         => 'View full attendance record',
+    'attendance_report'      => 'Overall attendance report',
+    'assignments'            => 'Research & assignments',
+    'view_assignments'       => 'View research & assignments',
+    'manage_assignments'     => 'Manage research & assignments',
+    'content'                => 'Learning content',
+    'view_content'           => 'View learning content',
+    'add_content'            => 'Add new content',
+    'curriculum'             => 'Curriculum',
+    'curriculum_desc'        => 'Curriculum details and educational content.',
+    'exams'                  => 'Exams',
+    'view_exams'             => 'View exam schedules and results',
+    'manage_exams'           => 'Manage exams',
+    'courses'                => 'Courses',
+    'courses_desc'           => 'Browse courses and learning content available to you.',
+];

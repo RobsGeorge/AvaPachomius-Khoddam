@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'translations'         => 'Translation management',
+    'group'                => 'Group',
+    'key'                  => 'Key',
+    'value'                => 'Text',
+    'locale'               => 'Language',
+    'file_default'         => 'Default (file)',
+    'db_override'          => 'Database override',
+    'add_override'         => 'Save override',
+    'auto_translate'       => 'Auto translate',
+    'auto_translate_from'  => 'Translate from',
+    'translation_saved'    => 'Translation saved.',
+    'auto_translate_done'  => 'Auto translation completed.',
+    'auto_translate_failed'=> 'Auto translation failed. Check connection or translator settings.',
+    'no_source_text'       => 'No source text available to translate.',
+    'search_placeholder'   => 'Search keys or text...',
+    'unverified_users'     => 'Unverified users',
+    'no_unverified_users'  => 'No unverified users at the moment.',
+    'user_id'              => 'ID',
+    'user_name'            => 'Name',
+    'user_email'           => 'Email',
+    'user_action'          => 'Action',
+];

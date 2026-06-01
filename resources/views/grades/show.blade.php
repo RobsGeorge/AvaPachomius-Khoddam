@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
+@section('title', __('pages.my_grades'))
+
 @section('content')
-<div class="container py-4">
+<div class="container py-4 animate-in">
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="mb-0">درجاتي</h1>
+            <h1 class="page-title mb-0">{{ __('pages.my_grades') }}</h1>
             <small class="text-muted fw-semibold">{{ $course->title }} — {{ $course->year }}</small>
         </div>
     </div>
@@ -20,9 +22,9 @@
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card shadow-sm text-center border-{{ $color }}">
+            <div class="app-card card shadow-sm text-center border-{{ $color }}">
                 <div class="card-body py-3">
-                    <div class="small text-muted mb-1">الدرجة الإجمالية</div>
+                    <div class="small text-muted-theme mb-1">{{ __('pages.overall_grade') }}</div>
                     <div class="display-5 fw-bold text-{{ $color }}">{{ number_format($total, 1) }}<small class="fs-5 text-muted">/100</small></div>
                     <div class="mt-1">
                         <span class="badge bg-{{ $color }} fs-6 px-3">{{ $letter }} — {{ $letterAr }}</span>
@@ -36,9 +38,9 @@
             </div>
         </div>
         <div class="col-md-8">
-            <div class="card shadow-sm h-100">
+            <div class="app-card card shadow-sm h-100">
                 <div class="card-body">
-                    <div class="small text-muted fw-semibold mb-2">ملخص الفئات</div>
+                    <div class="small text-muted-theme fw-semibold mb-2">{{ __('pages.category_summary') }}</div>
                     @foreach($course->gradeCategories as $cat)
                         @php
                             $contrib = $cat->studentContribution($userId);
@@ -77,7 +79,7 @@
             $contrib  = $cat->studentContribution($userId);
             $catPct   = $cat->studentCategoryPercentage($userId);
         @endphp
-        <div class="card shadow-sm mb-3">
+        <div class="app-card card shadow-sm mb-3">
             <div class="card-header d-flex justify-content-between align-items-center bg-{{ $catColor }} bg-opacity-10">
                 <span class="fw-bold">
                     <i class="bi {{ $catIcon }} text-{{ $catColor }}"></i>
@@ -86,7 +88,7 @@
                 </span>
                 <div class="text-end">
                     <div class="fw-semibold">{{ number_format($rawScore, 1) }} / {{ number_format($maxScore, 1) }}</div>
-                    <small class="text-muted">{{ number_format($catPct, 1) }}% — مساهمة: <strong>{{ number_format($contrib, 2) }}</strong></small>
+                    <small class="text-muted-theme">{{ number_format($catPct, 1) }}% — {{ __('pages.contribution') }} <strong>{{ number_format($contrib, 2) }}</strong></small>
                 </div>
             </div>
 
@@ -95,12 +97,12 @@
                     <table class="table table-sm align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>البند</th>
-                                <th>التاريخ</th>
-                                <th class="text-center">درجتك</th>
-                                <th class="text-center">الدرجة القصوى</th>
-                                <th class="text-center">النسبة</th>
-                                <th>ملاحظات المصحح</th>
+                                <th>{{ __('pages.item_name') }}</th>
+                                <th>{{ __('pages.date') }}</th>
+                                <th class="text-center">{{ __('pages.your_score') }}</th>
+                                <th class="text-center">{{ __('pages.max_score') }}</th>
+                                <th class="text-center">{{ __('pages.percentage') }}</th>
+                                <th>{{ __('pages.grader_notes') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -133,7 +135,7 @@
                                                 {{ $itemPct }}%
                                             </span>
                                         @else
-                                            <span class="text-muted small">لم يُصحَّح</span>
+                                            <span class="text-muted-theme small">{{ __('pages.not_corrected') }}</span>
                                         @endif
                                     </td>
                                     <td class="text-muted small">{{ $grade?->notes ?? '—' }}</td>
@@ -142,27 +144,27 @@
                         </tbody>
                         <tfoot class="table-light fw-semibold">
                             <tr>
-                                <td colspan="2">المجموع</td>
+                                <td colspan="2">{{ __('pages.total') }}</td>
                                 <td class="text-center">{{ number_format($rawScore, 1) }}</td>
                                 <td class="text-center">{{ number_format($maxScore, 1) }}</td>
                                 <td class="text-center">
                                     <span class="badge bg-{{ $catColor }}">{{ number_format($catPct, 1) }}%</span>
                                 </td>
-                                <td>مساهمة: {{ number_format($contrib, 2) }} / {{ number_format($cat->weight_percentage, 1) }}</td>
+                                <td>{{ __('pages.contribution') }} {{ number_format($contrib, 2) }} / {{ number_format($cat->weight_percentage, 1) }}</td>
                             </tr>
                         </tfoot>
                     </table>
                 </div>
             @else
-                <div class="card-body text-muted small py-2">لا توجد بنود بعد لهذه الفئة.</div>
+                <div class="card-body text-muted-theme small py-2">{{ __('pages.no_items_in_category') }}</div>
             @endif
         </div>
     @endforeach
 
     {{-- Grand total footer --}}
-    <div class="card border-{{ $color }} shadow">
+    <div class="app-card card border-{{ $color }} shadow">
         <div class="card-body d-flex justify-content-between align-items-center py-3">
-            <span class="fs-5 fw-bold">المجموع الكلي</span>
+            <span class="fs-5 fw-bold page-title h5 mb-0">{{ __('pages.grand_total') }}</span>
             <div class="text-end">
                 <span class="display-6 fw-bold text-{{ $color }}">{{ number_format($total, 2) }} / 100</span>
                 <div><span class="badge bg-{{ $color }} fs-6 px-3">{{ $letter }} — {{ $letterAr }}</span></div>

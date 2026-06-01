@@ -1,57 +1,54 @@
 @extends('layouts.app')
 
+@section('title', __('pages.exams_schedule_results'))
+
 @section('content')
-<div class="container mx-auto px-4 py-8">
-    <div class="bg-white shadow rounded-lg p-6">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">مواعيد ونتائج الامتحانات</h2>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full table-auto">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">اسم الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">مدة الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">مواعيد الامتحان</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">تم الامتحان؟</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">مصادر المذاكرة</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">درجتي</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($exams as $exam)
-                        @foreach($exam->schedules as $schedule)
-                            <tr>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->exam_name }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->duration_minutes }} دقيقة</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->scheduled_date->format('Y-m-d H:i') }}</td>
-                                <td class="px-6 py-4 text-sm">
-                                    @if($schedule->is_completed)
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">تم</span>
-                                    @else
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">لم يتم</span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->study_resources }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">
-                                    @php
-                                        $result = $exam->results->where('schedule_id', $schedule->schedule_id)->first();
-                                    @endphp
-                                    {{ $result ? $result->score : '-' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-900">
-                                    @if(!$schedule->is_completed)
-                                        <!--<button onclick="selectSchedule({{ $schedule->schedule_id }})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                                            اختيار المعاد المناسب للامتحان
-                                        </button>
--->
-                                    @endif
-                                </td>
-                            </tr>
+<div class="container py-4 animate-in">
+    <div class="app-card card">
+        <div class="card-body">
+            <h2 class="page-title mb-4">{{ __('pages.exams_schedule_results') }}</h2>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{{ __('pages.exam_name') }}</th>
+                            <th>{{ __('pages.duration') }}</th>
+                            <th>{{ __('pages.exam_date') }}</th>
+                            <th>{{ __('pages.done') }}?</th>
+                            <th>{{ __('pages.resources') }}</th>
+                            <th>{{ __('pages.my_grades') }}</th>
+                            <th>{{ __('pages.actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($exams as $exam)
+                            @foreach($exam->schedules as $schedule)
+                                <tr>
+                                    <td>{{ $exam->exam_name }}</td>
+                                    <td>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
+                                    <td>{{ $schedule->scheduled_date->format('Y-m-d H:i') }}</td>
+                                    <td>
+                                        @if($schedule->is_completed)
+                                            <span class="badge bg-success">{{ __('pages.done') }}</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark">{{ __('pages.not_done') }}</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $exam->study_resources }}</td>
+                                    <td>
+                                        @php
+                                            $result = $exam->results->where('schedule_id', $schedule->schedule_id)->first();
+                                        @endphp
+                                        {{ $result ? $result->score : '-' }}
+                                    </td>
+                                    <td></td>
+                                </tr>
+                            @endforeach
                         @endforeach
-                    @endforeach
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -59,10 +56,8 @@
 @push('scripts')
 <script>
 function selectSchedule(scheduleId) {
-    // Here you can implement the logic to handle schedule selection
-    // For example, show a modal or redirect to a confirmation page
-    alert('تم اختيار المعاد بنجاح');
+    alert(@json(__('pages.reschedule_success')));
 }
 </script>
 @endpush
-@endsection 
+@endsection
