@@ -32,4 +32,13 @@ return [
     'contact_support'   => 'If you have a problem, contact support directly.',
     'otp_email_title'   => 'Your verification code is:',
     'otp_valid_minutes' => 'This code is valid for 10 minutes only.',
+    'reset_form_intro'  => 'Enter your email to receive a password reset link.',
+    'reset_form_info_title' => 'What happens next?',
+    'reset_form_info_body'  => 'If your email is registered with us, we will send you a secure link to reset your password.',
+    'reset_link_sent'   => 'If your email is registered with us, we have sent you a password reset link.',
+    'check_spam'        => 'If you do not see the message in your inbox, please check your spam or junk folder.',
+    'back_to_login'     => 'Back to log in',
+    'password_reset_success' => 'Your password has been reset successfully! You can now log in.',
+    'registration_email_sent' => 'A verification code has been sent to your email. Please check your inbox.',
+    'registration_email_resent' => 'A new verification code has been sent to your email.',
 ];

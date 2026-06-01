@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Attendance;
 use App\Models\UserAssessment;
 use App\Models\Role;
+use App\Mail\ResetPasswordMail;
+use Illuminate\Support\Facades\Mail;
 
 
 
@@ -67,5 +69,15 @@ class User extends Authenticatable
     // Override the "must verify email" behavior since we have custom OTP
     public function hasVerifiedEmail() {
         return $this->is_verified;  // admin verified flag instead of default email_verified_at
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $resetUrl = url(route('password.reset', [
+            'token' => $token,
+            'email' => $this->getEmailForPasswordReset(),
+        ], false));
+
+        Mail::to($this->email)->send(new ResetPasswordMail($this, $resetUrl));
     }
 }

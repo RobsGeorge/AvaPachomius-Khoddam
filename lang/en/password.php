@@ -16,4 +16,11 @@ return [
     'reset_button'           => 'Reset password',
     'placeholder_new'        => 'Enter new password',
     'placeholder_confirm'    => 'Re-enter password',
+    'reset_email_subject'    => 'Reset your password',
+    'reset_email_greeting'   => 'Hello :name,',
+    'reset_email_body'       => 'We received a request to reset the password for your account. Click the button below to choose a new password.',
+    'reset_email_button'     => 'Reset password',
+    'reset_email_expiry'     => 'This link expires in :minutes minutes.',
+    'reset_email_ignore'     => 'If you did not request a password reset, you can safely ignore this email.',
+    'reset_email_link_fallback' => 'If the button does not work, copy and paste this link into your browser:',
 ];

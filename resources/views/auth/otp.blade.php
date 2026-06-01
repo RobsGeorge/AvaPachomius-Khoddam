@@ -7,7 +7,11 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
+                <div class="alert alert-success">
+                    <i class="bi bi-envelope-check me-1"></i>
+                    {{ session('success') }}
+                    <div class="mt-2 small">{{ __('auth.check_spam') }}</div>
+                </div>
             @endif
             @if($errors->any())
                 <div class="alert alert-danger">

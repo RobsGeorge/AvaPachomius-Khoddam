@@ -94,7 +94,7 @@ class RegisterController extends Controller
 
             return redirect()->route('otp.verify')
                 ->with('user_id', $user->user_id)
-                ->with('success', 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.');
+                ->with('success', __('auth.registration_email_resent'));
 
         } catch (QueryException $e) {
             DB::rollBack();
@@ -181,7 +181,7 @@ class RegisterController extends Controller
 
             return redirect()->route('otp.verify')
                 ->with('user_id', $user->user_id)
-                ->with('success', 'تم إرسال رمز التحقق إلى بريدك الإلكتروني. يرجى التحقق منه.');
+                ->with('success', __('auth.registration_email_sent'));
 
         } catch (QueryException $e) {
             DB::rollBack();

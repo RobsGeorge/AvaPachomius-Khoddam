@@ -3,29 +3,38 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\RateLimiter;
 
 class ForgotPasswordController extends Controller
 {
-    // Show the form to request a password reset link
     public function showLinkRequestForm()
     {
-        return view('auth.passwords.email');
+        return view('auth.forgot-password');
     }
 
-    // Handle sending the reset link email
     public function sendResetLinkEmail(Request $request)
     {
-        // Validate email
-        $request->validate(['email' => 'required|email']);
+        $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        $email = strtolower($request->input('email'));
+        $throttleSeconds = (int) config('auth.passwords.users.throttle', 300);
+        $rateLimitKey = 'password-reset:' . sha1($email);
 
-        return $status === Password::RESET_LINK_SENT
-            ? back()->with(['status' => __($status)])
-            : back()->withErrors(['email' => __($status)]);
+        if (! RateLimiter::tooManyAttempts($rateLimitKey, 1)) {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user) {
+                Password::sendResetLink(['email' => $request->email]);
+            }
+
+            RateLimiter::hit($rateLimitKey, $throttleSeconds);
+        }
+
+        return back()->with('status', __('auth.reset_link_sent'));
     }
 }

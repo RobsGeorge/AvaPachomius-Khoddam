@@ -7,5 +7,6 @@
     <h2>{{ __('auth.otp_email_title') }}</h2>
     <h2 style="color: #2e6da4;">{{ $otp }}</h2>
     <p>{{ __('auth.otp_valid_minutes') }}</p>
+    <p style="color:#64748b;font-size:14px;">{{ __('auth.check_spam') }}</p>
 </body>
 </html>

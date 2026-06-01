@@ -72,7 +72,7 @@ class OTPController extends Controller
         Mail::to(User::find($request->user_id)->email)->send(new \App\Mail\SendOTPEmail($otp));
         RateLimiter::hit($key, 60);
 
-        return back()->with('success', 'تم إرسال رمز التحقق مجددًا.');
+        return back()->with('success', __('auth.registration_email_resent'));
     }
 
     public function sendOtp(Request $request) //For tthe forgot Password Section

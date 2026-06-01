@@ -19,7 +19,7 @@ use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\AssignmentController;
@@ -68,9 +68,10 @@ Route::post('register', [RegisterController::class, 'register'])->name('register
 
 Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('password/reset/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
+Route::post('password/reset', [NewPasswordController::class, 'store'])->name('password.update');
 
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
-
 
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
@@ -80,7 +81,7 @@ Route::post('/verify-otp', [OTPController::class, 'verify']);
 Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend');
 
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
-Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.store');
+Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
 
 Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     // Page that shows today's sessions after scanning QR

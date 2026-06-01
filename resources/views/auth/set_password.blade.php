@@ -26,7 +26,7 @@
 
     <div class="app-card card">
         <div class="card-body p-4">
-            <form id="set-password-form" action="{{ route('password.store') }}" method="POST" novalidate>
+            <form id="set-password-form" action="{{ route('password.set.store') }}" method="POST" novalidate>
                 @csrf
                 <input type="hidden" name="user_id" value="{{ $user_id }}">
 
