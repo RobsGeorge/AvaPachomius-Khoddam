@@ -102,8 +102,6 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 
 Route::get('/attendance/user-report/{userId}', [AttendanceController::class, 'userReport'])->name('attendance.user-report');
 
-Auth::routes(['verify' => false]);  // disable default verify because we use custom OTP
-
 Route::middleware('auth')->group(function () {
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
