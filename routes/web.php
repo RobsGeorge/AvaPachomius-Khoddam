@@ -29,6 +29,9 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\CourseContentController;
 use App\Http\Controllers\LectureController;
 use App\Http\Controllers\LectureMaterialController;
+use App\Http\Controllers\GradeCategoryController;
+use App\Http\Controllers\GradeItemController;
+use App\Http\Controllers\StudentGradeController;
 
 
 
@@ -155,18 +158,37 @@ Route::post('/assignment-submissions/{submission}/grade', [AssignmentController:
 Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
 Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
 
-// Course content — student read-only view
-Route::middleware('auth')->get('/courses/{course}/content', [CourseContentController::class, 'show'])->name('course-content.show');
+// Course content — student read-only views
+Route::middleware('auth')->group(function () {
+    Route::get('/courses/{course}/content',         [CourseContentController::class, 'show'])->name('course-content.show');
+    Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
+});
 
-// Course content — admin/instructor management panel
+// Course content & grades — admin/instructor management
 Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
-    Route::get('/courses/{course}/content/manage', [CourseContentController::class, 'admin'])->name('course-content.admin');
-    Route::post('/lectures',                        [LectureController::class, 'store'])->name('lectures.store');
-    Route::get('/lectures/{lecture}/edit',          [LectureController::class, 'edit'])->name('lectures.edit');
-    Route::put('/lectures/{lecture}',               [LectureController::class, 'update'])->name('lectures.update');
-    Route::delete('/lectures/{lecture}',            [LectureController::class, 'destroy'])->name('lectures.destroy');
-    Route::post('/lecture-materials',               [LectureMaterialController::class, 'store'])->name('lecture-materials.store');
-    Route::delete('/lecture-materials/{material}',  [LectureMaterialController::class, 'destroy'])->name('lecture-materials.destroy');
+    // Content
+    Route::get('/courses/{course}/content/manage',              [CourseContentController::class, 'admin'])->name('course-content.admin');
+    Route::post('/courses/{course}/modules/attach',             [CourseContentController::class, 'attachModule'])->name('course-content.attach-module');
+    Route::post('/courses/{course}/modules/create-attach',      [CourseContentController::class, 'createAndAttachModule'])->name('course-content.create-attach-module');
+    Route::delete('/courses/{course}/modules/{module}/detach',  [CourseContentController::class, 'detachModule'])->name('course-content.detach-module');
+    Route::post('/lectures',                                    [LectureController::class, 'store'])->name('lectures.store');
+    Route::get('/lectures/{lecture}/edit',                      [LectureController::class, 'edit'])->name('lectures.edit');
+    Route::put('/lectures/{lecture}',                           [LectureController::class, 'update'])->name('lectures.update');
+    Route::delete('/lectures/{lecture}',                        [LectureController::class, 'destroy'])->name('lectures.destroy');
+    Route::post('/lecture-materials',                           [LectureMaterialController::class, 'store'])->name('lecture-materials.store');
+    Route::delete('/lecture-materials/{material}',              [LectureMaterialController::class, 'destroy'])->name('lecture-materials.destroy');
+
+    // Grades management
+    Route::get('/courses/{course}/grades/manage',               [GradeCategoryController::class, 'admin'])->name('grades.admin');
+    Route::get('/courses/{course}/grades/report',               [StudentGradeController::class, 'courseReport'])->name('grades.report');
+    Route::post('/courses/{course}/grade-categories',           [GradeCategoryController::class, 'store'])->name('grade-categories.store');
+    Route::put('/grade-categories/{category}',                  [GradeCategoryController::class, 'update'])->name('grade-categories.update');
+    Route::delete('/grade-categories/{category}',               [GradeCategoryController::class, 'destroy'])->name('grade-categories.destroy');
+    Route::post('/grade-categories/{category}/items',           [GradeItemController::class, 'store'])->name('grade-items.store');
+    Route::put('/grade-items/{item}',                           [GradeItemController::class, 'update'])->name('grade-items.update');
+    Route::delete('/grade-items/{item}',                        [GradeItemController::class, 'destroy'])->name('grade-items.destroy');
+    Route::get('/grade-items/{item}/scores',                    [StudentGradeController::class, 'itemScores'])->name('grade-items.scores');
+    Route::post('/grade-items/{item}/scores',                   [StudentGradeController::class, 'bulkSave'])->name('grade-items.scores.save');
 });
 
 // Superadmin routes — accessible only by users with is_superadmin = true

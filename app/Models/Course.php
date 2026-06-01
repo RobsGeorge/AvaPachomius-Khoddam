@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Module;
 use App\Models\Session;
 use App\Models\CourseAssessment;
+use App\Models\GradeCategory;
 
 class Course extends Model
 {
@@ -36,5 +37,17 @@ class Course extends Model
     {
         return $this->belongsToMany(User::class, 'user_course_role', 'course_id', 'user_id')
                     ->withPivot('role_id');
+    }
+
+    public function gradeCategories()
+    {
+        return $this->hasMany(GradeCategory::class, 'course_id', 'course_id')
+                    ->orderBy('ordering');
+    }
+
+    /** Total weighted grade for a student (0–100). Requires gradeCategories.items.grades loaded. */
+    public function studentTotalGrade(int $userId): float
+    {
+        return round($this->gradeCategories->sum(fn ($cat) => $cat->studentContribution($userId)), 2);
     }
 }

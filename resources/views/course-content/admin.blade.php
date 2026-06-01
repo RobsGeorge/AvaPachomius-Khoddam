@@ -4,14 +4,61 @@
 <div class="container py-4">
 
     {{-- Page header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h1 class="mb-0">إدارة محتوى الدورة</h1>
             <small class="text-muted fw-semibold">{{ $course->title }} — {{ $course->year }}</small>
         </div>
-        <a href="{{ route('course-content.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-eye"></i> معاينة كما يراها الطالب
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('grades.admin', $course->course_id) }}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-bar-chart-line"></i> درجات التقييم
+            </a>
+            <a href="{{ route('course-content.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-eye"></i> معاينة الطالب
+            </a>
+        </div>
+    </div>
+
+    {{-- Module management strip --}}
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-header fw-semibold text-primary">
+            <i class="bi bi-collection"></i> إدارة الوحدات
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                {{-- Link existing module --}}
+                @if($availableModules->isNotEmpty())
+                    <div class="col-md-5">
+                        <form method="POST" action="{{ route('course-content.attach-module', $course->course_id) }}" class="d-flex gap-2">
+                            @csrf
+                            <select name="module_id" class="form-select form-select-sm" required>
+                                <option value="">-- ربط وحدة موجودة --</option>
+                                @foreach($availableModules as $m)
+                                    <option value="{{ $m->module_id }}">{{ $m->title }}</option>
+                                @endforeach
+                            </select>
+                            <button class="btn btn-sm btn-outline-primary text-nowrap">
+                                <i class="bi bi-link-45deg"></i> ربط
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-auto d-flex align-items-center text-muted">أو</div>
+                @endif
+                {{-- Create new module --}}
+                <div class="col">
+                    <form method="POST" action="{{ route('course-content.create-attach-module', $course->course_id) }}" class="d-flex gap-2 flex-wrap">
+                        @csrf
+                        <input type="text" name="title" class="form-control form-control-sm"
+                               placeholder="اسم وحدة جديدة *" maxlength="30" required style="min-width:150px;">
+                        <input type="text" name="description" class="form-control form-control-sm"
+                               placeholder="الوصف *" maxlength="255" required style="min-width:180px;">
+                        <button class="btn btn-sm btn-success text-nowrap">
+                            <i class="bi bi-plus-circle"></i> إنشاء وربط
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if(session('success'))
@@ -34,8 +81,25 @@
                  style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;">
                 <span class="fw-bold fs-5">
                     <i class="bi bi-collection-fill me-2"></i>{{ $module->title }}
+                    @if($module->description)
+                        <small class="fw-normal opacity-75 ms-2">{{ $module->description }}</small>
+                    @endif
                 </span>
-                <span class="badge bg-white text-dark">{{ $module->lectures->count() }} محاضرة</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-white text-dark">{{ $module->lectures->count() }} محاضرة</span>
+                    <a href="{{ route('modules.edit', $module->module_id) }}"
+                       class="btn btn-sm btn-light py-0 px-2" title="تعديل الوحدة">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="POST"
+                          action="{{ route('course-content.detach-module', [$course->course_id, $module->module_id]) }}"
+                          onsubmit="return confirm('فصل هذه الوحدة عن الدورة؟ لن تُحذف الوحدة نفسها.')">
+                        @csrf @method('DELETE')
+                        <button class="btn btn-sm btn-outline-light py-0 px-2" title="فصل عن الدورة">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </form>
+                </div>
             </div>
 
             {{-- Existing lectures --}}
