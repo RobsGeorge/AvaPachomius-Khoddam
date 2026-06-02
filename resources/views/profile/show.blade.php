@@ -48,7 +48,7 @@
                 <p><strong>{{ __('pages.birth_date') }}:</strong>
                     {{ $user->date_of_birth?->format('Y-m-d') ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.national_id') }}:</strong> {{ $user->national_id ?? __('pages.not_available') }}</p>
-                <p><strong>{{ __('pages.phone') }}:</strong> {{ $user->mobile_number ?? __('pages.not_available') }}</p>
+                <p><strong>{{ __('pages.phone') }}:</strong> 0{{ $user->mobile_number ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.job') }}:</strong> {{ $user->job ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.email') }}:</strong> {{ $user->email }}</p>
                 <p><strong>{{ __('pages.registration_date') }}:</strong>
