@@ -24,7 +24,21 @@ class TranslationRepository
         });
 
         foreach ($lines as $group => $groupLines) {
-            Lang::addLines($groupLines, $locale, $group);
+            if (! is_array($groupLines)) {
+                continue;
+            }
+
+            $dottedLines = [];
+
+            foreach ($groupLines as $key => $value) {
+                if (is_string($value)) {
+                    $dottedLines["{$group}.{$key}"] = $value;
+                }
+            }
+
+            if ($dottedLines !== []) {
+                Lang::addLines($dottedLines, $locale, '*');
+            }
         }
     }
 
