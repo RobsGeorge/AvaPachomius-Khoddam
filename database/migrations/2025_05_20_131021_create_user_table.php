@@ -7,12 +7,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        SchemaGuards::createTableIfMissing('user', function (Blueprint $table) {
+        SchemaGuards::createLegacyTable('user', 'user_id', function (Blueprint $table) {
             $table->id('user_id');
             $table->string('first_name', 30);
             $table->string('second_name', 30);
@@ -30,12 +27,8 @@ return new class extends Migration
             $table->timestamp('otp_expires_at')->nullable();
             $table->timestamps();
         });
-        
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('user');

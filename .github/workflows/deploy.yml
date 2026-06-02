@@ -41,7 +41,7 @@ jobs:
               --optimize-autoloader \
               --no-dev
 
-            $PHP_BIN artisan migrate --force
+            $PHP_BIN artisan migrate:deploy --force
 
             $PHP_BIN artisan optimize:clear
             $PHP_BIN artisan config:cache
