@@ -166,16 +166,19 @@
 @endsection
 
 @push('scripts')
+@php
+    $weekDayNames = [
+        __('pages.day_sun'),
+        __('pages.day_mon'),
+        __('pages.day_tue'),
+        __('pages.day_wed'),
+        __('pages.day_thu'),
+        __('pages.day_fri'),
+        __('pages.day_sat'),
+    ];
+@endphp
 <script>
-const dayNames = @json([
-    __('pages.day_sun'),
-    __('pages.day_mon'),
-    __('pages.day_tue'),
-    __('pages.day_wed'),
-    __('pages.day_thu'),
-    __('pages.day_fri'),
-    __('pages.day_sat'),
-]);
+const dayNames = @json($weekDayNames);
 
 function switchMode(mode) {
     document.querySelectorAll('.mode-panel').forEach(p => p.style.display = 'none');
