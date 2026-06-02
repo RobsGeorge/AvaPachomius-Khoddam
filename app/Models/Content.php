@@ -10,6 +10,8 @@ class Content extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     protected $table = 'content';
 
     protected $primaryKey = 'content_id';

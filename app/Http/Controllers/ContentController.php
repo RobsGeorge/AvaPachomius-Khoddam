@@ -15,7 +15,7 @@ class ContentController extends Controller
     public function index()
     {
         $contents = Content::orderBy('session_date', 'desc')
-                          ->orderBy('created_at', 'desc')
+                          ->orderBy('content_id', 'desc')
                           ->get();
 
         return view('contents.index', compact('contents'));
