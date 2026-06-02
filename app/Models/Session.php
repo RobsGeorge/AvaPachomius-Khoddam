@@ -16,6 +16,10 @@ class Session extends Model
 
     protected $fillable = ['course_id', 'session_title', 'session_date'];
 
+    protected $casts = [
+        'session_date' => 'date',
+    ];
+
     public function course()
     {
         return $this->belongsTo(Course::class, 'course_id', 'course_id');

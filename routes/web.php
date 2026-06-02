@@ -83,13 +83,12 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
 
-Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
-    // Page that shows today's sessions after scanning QR
+Route::middleware(['auth', 'attendance.staff'])->group(function () {
     Route::get('/attendance/sessions', [AttendanceController::class, 'showTodaySessions'])->name('attendance.sessions');
-
-    // Record attendance for a given session
     Route::post('/attendance/record/{session}', [AttendanceController::class, 'recordAttendance'])->name('attendance.record');
+});
 
+Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     // View all attendance records
     Route::get('/attendance/all', [AttendanceController::class, 'viewAllAttendance'])->name('attendance.all');
 

@@ -8,62 +8,84 @@ use Illuminate\Http\Request;
 use App\Models\Session;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 
 class AttendanceController extends Controller
 {
-    // Show today's sessions page with the scanned user_id
+    /** QR scan landing: today's session(s) + student confirmation. */
     public function showTodaySessions(Request $request)
     {
         $userId = $request->query('user_id');
-        $user = User::find($userId);
 
-
-
-        // Optional: validate user exists
-        if (!$userId || !User::find($userId)) {
-            abort(404, 'المستخدم غير موجود');
+        if (! $userId || ! User::find($userId)) {
+            abort(404, __('pages.student_not_found'));
         }
 
-        // Optional: ensure current user is admin/instructor (middleware)
-        // Or add extra validation if needed
+        $student = User::find($userId);
+        $today = now()->toDateString();
 
-        $today = date('Y-m-d');
-        $sessions = Session::whereDate('session_date', $today)->get();
+        $sessions = Session::with('course')
+            ->whereDate('session_date', $today)
+            ->orderBy('session_title')
+            ->get();
 
-        return view('attendance.sessions', compact('sessions', 'userId', 'user'));
+        $existingAttendance = collect();
+        if ($sessions->isNotEmpty()) {
+            $existingAttendance = Attendance::with('takenBy')
+                ->where('user_id', $userId)
+                ->whereIn('session_id', $sessions->pluck('session_id'))
+                ->get()
+                ->keyBy('session_id');
+        }
+
+        return view('attendance.sessions', [
+            'user' => $student,
+            'userId' => $userId,
+            'today' => $today,
+            'sessions' => $sessions,
+            'existingAttendance' => $existingAttendance,
+        ]);
     }
 
-    // Record attendance for the student (userId) for a given session
     public function recordAttendance(Request $request, Session $session)
     {
-        if (!auth()->check()) {
-            // Not logged in — redirect or throw error
-            return redirect()->route('login')->withErrors('يرجى تسجيل الدخول أولاً');
-        }
-
-        $userTakingAttendanceId = auth()->id();
         $studentUserId = $request->input('student_user_id');
 
-        if (!$studentUserId || !User::find($studentUserId)) {
-            return redirect()->back()->withErrors('لم يتم تحديد المستخدم لتسجيل الحضور أو المستخدم غير موجود.');
+        if (! $studentUserId || ! User::find($studentUserId)) {
+            return redirect()->back()->with('error', __('pages.student_not_found'));
         }
 
-        // Prevent duplicate attendance record
+        if (! $session->session_date || $session->session_date->toDateString() !== now()->toDateString()) {
+            return redirect()->back()->with('error', __('pages.attendance_not_today_session'));
+        }
+
         $exists = Attendance::where('session_id', $session->session_id)
-                    ->where('user_id', $studentUserId)
-                    ->exists();
+            ->where('user_id', $studentUserId)
+            ->exists();
 
         if ($exists) {
-            return redirect()->back()->with('error', 'تم تسجيل الحضور لهذا المستخدم بالفعل.');
+            return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
         }
 
-        Attendance::create([
-            'session_id' => $session->session_id,
-            'user_id' => $studentUserId,
-            'taken_by_id' => $userTakingAttendanceId,
-        ]);
+        try {
+            Attendance::create([
+                'session_id' => $session->session_id,
+                'user_id' => $studentUserId,
+                'taken_by_id' => auth()->user()->user_id,
+                'status' => 'Present',
+                'attendance_time' => now(),
+            ]);
+        } catch (QueryException $e) {
+            report($e);
 
-        return redirect()->back()->with('success', 'تم تسجيل الحضور بنجاح.');
+            return redirect()->back()->with('error', __('pages.attendance_record_failed'));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->back()->with('error', __('pages.attendance_record_failed'));
+        }
+
+        return redirect()->back()->with('success', __('pages.attendance_record_success'));
     }
 
     // View all attendance records (for admin and instructor)

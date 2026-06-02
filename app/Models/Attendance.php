@@ -19,6 +19,10 @@ class Attendance extends Model
         'permission_reason', 'attendance_time',
     ];
 
+    protected $casts = [
+        'attendance_time' => 'datetime',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
