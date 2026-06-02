@@ -1,30 +1,60 @@
-name: Deploy to VPS
+name: Deploy to Production
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
+          port: ${{ secrets.SSH_PORT }}
           script: |
-            cd ${{ secrets.VPS_PATH }}
+            set -e
+            cd /var/www/avapakhomios
+
+            PHP_BIN=php8.2
+
+            # Fail early with a clear message if MySQL PDO is missing on the server
+            if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
+              echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
+              echo "On Ubuntu/Debian run:"
+              echo "  sudo apt update"
+              echo "  sudo apt install -y php8.2-mysql php8.2-cli php8.2-fpm php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-gd"
+              echo "  sudo systemctl restart php8.2-fpm"
+              exit 1
+            fi
+
             git pull origin main
-            composer install --no-dev --optimize-autoloader
-            php artisan config:clear
-            php artisan cache:clear
-            php artisan config:cache
-            sudo chown -R www-data:www-data ${{ secrets.VPS_PATH }}
-            sudo chmod -R 775 ${{ secrets.VPS_PATH }}/storage
-            sudo systemctl restart apache2
+
+            $PHP_BIN /usr/local/bin/composer install \
+              --no-interaction \
+              --prefer-dist \
+              --optimize-autoloader \
+              --no-dev
+
+            $PHP_BIN artisan migrate --force
+
+            $PHP_BIN artisan optimize:clear
+            $PHP_BIN artisan config:cache
+            $PHP_BIN artisan route:cache
+            $PHP_BIN artisan view:cache
+            $PHP_BIN artisan event:cache
+
+            $PHP_BIN artisan storage:link || true
+
+            find storage bootstrap/cache -type d -exec chmod 775 {} \;
+            find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
+            sudo systemctl reload php8.2-fpm
 
             echo "Deployment complete: $(date)"
