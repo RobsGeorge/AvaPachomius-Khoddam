@@ -2,11 +2,11 @@
 
 namespace App\Providers;
 
-use App\Database\LegacyPrimaryKeys;
+use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
 use Illuminate\Database\Connection;
-use Illuminate\Database\Events\MigrationStarted;
+use Illuminate\Database\Events\MigrationsStarted;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,8 +25,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Event::listen(MigrationStarted::class, function () {
-            LegacyPrimaryKeys::normalizeAll();
+        Event::listen(MigrationsStarted::class, function () {
+            LegacySchemaSync::syncAll();
         });
     }
 }

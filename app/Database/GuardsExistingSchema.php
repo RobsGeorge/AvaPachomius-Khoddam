@@ -37,6 +37,10 @@ trait GuardsExistingSchema
 
         return str_contains($message, 'Duplicate column name')
             || str_contains($message, '1060')
-            || str_contains($message, 'duplicate column');
+            || str_contains($message, 'duplicate column')
+            || str_contains($message, 'Duplicate key name')
+            || str_contains($message, '1061')
+            || str_contains($message, 'Duplicate foreign key constraint name')
+            || str_contains($message, '1826');
     }
 }

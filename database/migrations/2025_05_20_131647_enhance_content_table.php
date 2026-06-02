@@ -1,7 +1,7 @@
 <?php
 
+use App\Database\MigrationSupport;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -24,7 +24,7 @@ return new class extends Migration
             if ($driver === 'mysql') {
                 DB::statement('ALTER TABLE `content` CHANGE `content_lcation` `content_location` VARCHAR(255) NOT NULL');
             } else {
-                Schema::table('content', function (Blueprint $table) {
+                Schema::table('content', function ($table) {
                     $table->renameColumn('content_lcation', 'content_location');
                 });
             }
@@ -34,15 +34,15 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('content', function (Blueprint $table) {
-            $table->string('session_title')->nullable()->after('title');
-            $table->date('session_date')->nullable()->after('session_title');
-            $table->string('lecture_name')->nullable()->after('session_date');
-            $table->string('speaker_name')->nullable()->after('lecture_name');
-            $table->string('audio_link')->nullable()->after('speaker_name');
-            $table->string('slides_link')->nullable()->after('audio_link');
-            $table->text('description')->nullable()->after('slides_link');
-        });
+        $after = Schema::hasColumn('content', 'title') ? 'title' : null;
+
+        MigrationSupport::addStringColumn('content', 'session_title', 255, true, $after);
+        MigrationSupport::addDateColumn('content', 'session_date', true, 'session_title');
+        MigrationSupport::addStringColumn('content', 'lecture_name', 255, true, 'session_date');
+        MigrationSupport::addStringColumn('content', 'speaker_name', 255, true, 'lecture_name');
+        MigrationSupport::addStringColumn('content', 'audio_link', 255, true, 'speaker_name');
+        MigrationSupport::addStringColumn('content', 'slides_link', 255, true, 'audio_link');
+        MigrationSupport::addTextColumn('content', 'description', true, 'slides_link');
     }
 
     public function down(): void
@@ -64,7 +64,7 @@ return new class extends Migration
         $toDrop = array_filter($columns, fn ($col) => Schema::hasColumn('content', $col));
 
         if ($toDrop !== []) {
-            Schema::table('content', function (Blueprint $table) use ($toDrop) {
+            Schema::table('content', function ($table) use ($toDrop) {
                 $table->dropColumn($toDrop);
             });
         }
@@ -76,7 +76,7 @@ return new class extends Migration
             if ($driver === 'mysql') {
                 DB::statement('ALTER TABLE `content` CHANGE `content_location` `content_lcation` VARCHAR(255) NOT NULL');
             } else {
-                Schema::table('content', function (Blueprint $table) {
+                Schema::table('content', function ($table) {
                     $table->renameColumn('content_location', 'content_lcation');
                 });
             }

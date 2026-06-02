@@ -2,19 +2,19 @@
 
 namespace App\Console\Commands;
 
-use App\Database\LegacyPrimaryKeys;
+use App\Database\LegacySchemaSync;
 use Illuminate\Console\Command;
 
 class MigrateDeploy extends Command
 {
     protected $signature = 'migrate:deploy {--force : Force the operation to run when in production}';
 
-    protected $description = 'Normalize legacy schema, then run pending migrations (production deploy)';
+    protected $description = 'Sync legacy schema, then run pending migrations (production deploy)';
 
     public function handle(): int
     {
-        $this->info('Normalizing legacy primary key columns...');
-        LegacyPrimaryKeys::normalizeAll();
+        $this->info('Syncing legacy schema (primary keys and missing columns)...');
+        LegacySchemaSync::syncAll();
 
         $options = [];
 

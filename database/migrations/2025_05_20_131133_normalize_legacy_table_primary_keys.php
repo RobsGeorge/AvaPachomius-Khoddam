@@ -1,13 +1,13 @@
 <?php
 
-use App\Database\LegacyPrimaryKeys;
+use App\Database\LegacySchemaSync;
 use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        LegacyPrimaryKeys::normalizeAll();
+        LegacySchemaSync::syncAll();
     }
 
     public function down(): void
