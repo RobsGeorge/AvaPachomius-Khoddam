@@ -36,6 +36,15 @@ class User extends Authenticatable
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at'
     ];
 
+    protected $casts = [
+        'date_of_birth' => 'date',
+        'is_verified'   => 'boolean',
+        'is_superadmin' => 'boolean',
+        'created_at'    => 'datetime',
+        'updated_at'    => 'datetime',
+        'otp_expires_at' => 'datetime',
+    ];
+
     public static function fullNameFromParts(string $first, string $second, string $third): string
     {
         return trim(implode(' ', array_filter([$first, $second, $third], fn ($part) => $part !== '')));

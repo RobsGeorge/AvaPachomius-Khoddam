@@ -45,28 +45,24 @@
 
             <div class="text-start">
                 <p><strong>{{ __('pages.full_name') }}:</strong> {{ $fullName }}</p>
-                <p><strong>{{ __('pages.birth_date') }}:</strong> {{ $user->date_of_birth ?? __('pages.not_available') }}</p>
+                <p><strong>{{ __('pages.birth_date') }}:</strong>
+                    {{ $user->date_of_birth?->format('Y-m-d') ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.national_id') }}:</strong> {{ $user->national_id ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.phone') }}:</strong> {{ $user->mobile_number ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.job') }}:</strong> {{ $user->job ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.email') }}:</strong> {{ $user->email }}</p>
-                <p><strong>{{ __('pages.registration_date') }}:</strong> {{ $user->created_at->format('Y-m-d') }}</p>
+                <p><strong>{{ __('pages.registration_date') }}:</strong>
+                    {{ $user->created_at?->format('Y-m-d') ?? __('pages.not_available') }}</p>
             </div>
         </div>
     </div>
-
-    @php
-    use Illuminate\Support\Facades\Auth;
-    $user = Auth::user();
-    $attendanceUrlWithUser = route('attendance.sessions', ['user_id' => $user->user_id], true);
-    @endphp
 
     <div class="app-card card text-center">
         <div class="card-body">
             <h3 class="page-title h5 mb-4">{{ __('pages.qr_attendance_title') }}</h3>
             <div class="d-inline-block p-4 bg-white border rounded shadow">
                 <div class="qr-clickable" style="cursor:pointer;" onclick="openModal()">
-                    {!! QrCode::size(200)->generate($attendanceUrlWithUser) !!}
+                    {!! QrCode::size(200)->generate($attendanceUrl) !!}
                 </div>
             </div>
             <p class="mt-2 text-muted-theme small">{{ __('pages.scan_qr_attendance') }}</p>
@@ -76,7 +72,7 @@
     <div id="qrModal" class="modal" style="display:none;position:fixed;z-index:1000;padding-top:60px;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.7);" onclick="closeModal(event)">
         <span class="close-btn" style="position:fixed;top:20px;right:30px;color:white;font-size:30px;font-weight:bold;cursor:pointer;z-index:1100;" onclick="closeModal(event)">&times;</span>
         <div class="modal-content" style="margin:auto;display:block;max-width:90vw;max-height:90vh;background:white;padding:20px;text-align:center;border-radius:10px;">
-            {!! QrCode::size(400)->generate($attendanceUrlWithUser) !!}
+            {!! QrCode::size(400)->generate($attendanceUrl) !!}
             <p class="mt-2">{{ __('pages.scan_qr_attendance') }}</p>
         </div>
     </div>
