@@ -12,6 +12,6 @@ class SafeMySqlConnection extends MySqlConnection
             $this->useDefaultSchemaGrammar();
         }
 
-        return new SafeSchemaBuilder($this);
+        return new SafeMySqlSchemaBuilder($this);
     }
 }

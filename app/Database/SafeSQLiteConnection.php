@@ -12,6 +12,6 @@ class SafeSQLiteConnection extends SQLiteConnection
             $this->useDefaultSchemaGrammar();
         }
 
-        return new SafeSchemaBuilder($this);
+        return new SafeSQLiteSchemaBuilder($this);
     }
 }

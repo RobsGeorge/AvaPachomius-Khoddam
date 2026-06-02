@@ -4,9 +4,8 @@ namespace App\Database;
 
 use Closure;
 use Illuminate\Database\QueryException;
-use Illuminate\Database\Schema\Builder;
 
-class SafeSchemaBuilder extends Builder
+trait GuardsExistingSchema
 {
     public function create($table, Closure $callback)
     {
