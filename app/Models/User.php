@@ -30,11 +30,16 @@ class User extends Authenticatable
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
-        'first_name', 'second_name', 'third_name', 'profile_photo',
+        'name', 'first_name', 'second_name', 'third_name', 'profile_photo',
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at'
     ];
+
+    public static function fullNameFromParts(string $first, string $second, string $third): string
+    {
+        return trim(implode(' ', array_filter([$first, $second, $third], fn ($part) => $part !== '')));
+    }
 
     public function attendancesTaken()
     {

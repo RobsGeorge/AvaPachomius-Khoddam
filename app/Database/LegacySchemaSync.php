@@ -82,6 +82,20 @@ final class LegacySchemaSync
         if (Schema::hasColumn('user', 'mobile_number')) {
             DB::statement('ALTER TABLE `user` MODIFY `mobile_number` VARCHAR(15) NOT NULL');
         }
+
+        self::ensureLegacyNameColumnDefault();
+    }
+
+    /** Legacy VPS tables may have NOT NULL `name` without a default. */
+    private static function ensureLegacyNameColumnDefault(): void
+    {
+        if (! Schema::hasColumn('user', 'name')) {
+            return;
+        }
+
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE `user` MODIFY `name` VARCHAR(255) NOT NULL DEFAULT ''");
+        }
     }
 
     private static function syncUserTableViaBlueprint(): void

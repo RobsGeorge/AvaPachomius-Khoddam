@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 
@@ -71,16 +72,7 @@ class RegisterController extends Controller
                 $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
             }
 
-            $user->update([
-                'first_name'    => $request->first_name,
-                'second_name'   => $request->second_name,
-                'third_name'    => $request->third_name,
-                'national_id'   => $request->national_id,
-                'mobile_number' => $request->mobile_number,
-                'job'           => $request->job,
-                'date_of_birth' => $request->date_of_birth,
-                'profile_photo' => $profilePhotoPath ?? '',
-            ]);
+            $user->update($this->userProfileAttributes($request, $profilePhotoPath));
 
             OtpCode::where('user_id', $user->user_id)->delete();
 
@@ -133,20 +125,12 @@ class RegisterController extends Controller
 
         DB::beginTransaction();
         try {
-            $user = User::create([
-                'first_name'    => $request->first_name,
-                'second_name'   => $request->second_name,
-                'third_name'    => $request->third_name,
-                'national_id'   => $request->national_id,
-                'mobile_number' => $request->mobile_number,
+            $user = User::create(array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
                 'email'         => $request->email,
-                'job'           => $request->job,
-                'date_of_birth' => $request->date_of_birth,
-                'profile_photo' => $profilePhotoPath ?? '',
                 'password'      => Hash::make(Str::random(12)),
                 'is_verified'   => false,
                 'is_superadmin' => false,
-            ]);
+            ]));
 
             // Assign student role if the default course and Student role both exist.
             // Non-fatal: registration proceeds even if this setup hasn't been done yet.
@@ -188,6 +172,30 @@ class RegisterController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private function userProfileAttributes(Request $request, ?string $profilePhotoPath = null): array
+    {
+        $attributes = [
+            'first_name'    => $request->first_name,
+            'second_name'   => $request->second_name,
+            'third_name'    => $request->third_name,
+            'national_id'   => $request->national_id,
+            'mobile_number' => $request->mobile_number,
+            'job'           => $request->job,
+            'date_of_birth' => $request->date_of_birth,
+            'profile_photo' => $profilePhotoPath ?? '',
+        ];
+
+        if (Schema::hasColumn('user', 'name')) {
+            $attributes['name'] = User::fullNameFromParts(
+                $request->first_name,
+                $request->second_name,
+                $request->third_name
+            );
+        }
+
+        return $attributes;
+    }
 
     protected function validator(array $data)
     {
