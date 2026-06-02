@@ -102,6 +102,96 @@
                 </div>
             </div>
 
+            {{-- Module schedule & sessions --}}
+            <div class="card-body border-bottom bg-light-subtle">
+                <div class="fw-semibold mb-3 text-muted small">
+                    <i class="bi bi-calendar-week"></i> {{ __('pages.module_schedule') }}
+                </div>
+                @php
+                    $pivot = $module->pivot;
+                    $linkedSessionIds = $module->sessions->pluck('session_id')->all();
+                    $status = $pivot->status ?? 'draft';
+                @endphp
+                <form method="POST"
+                      action="{{ route('course-content.update-module', [$course->course_id, $module->module_id]) }}">
+                    @csrf @method('PUT')
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">{{ __('pages.start_date') }}</label>
+                            <input type="date" name="start_date" class="form-control form-control-sm"
+                                   value="{{ $pivot->start_date ? \Illuminate\Support\Carbon::parse($pivot->start_date)->format('Y-m-d') : '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">{{ __('pages.end_date') }}</label>
+                            <input type="date" name="end_date" class="form-control form-control-sm"
+                                   value="{{ $pivot->end_date ? \Illuminate\Support\Carbon::parse($pivot->end_date)->format('Y-m-d') : '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">{{ __('pages.sort_order') }}</label>
+                            <input type="number" name="order_index" class="form-control form-control-sm"
+                                   min="0" value="{{ $pivot->order_index ?? 0 }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small mb-0">{{ __('pages.status') }}</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="draft" @selected($status === 'draft')>{{ __('pages.module_status_draft') }}</option>
+                                <option value="active" @selected($status === 'active')>{{ __('pages.module_status_active') }}</option>
+                                <option value="ended" @selected($status === 'ended')>{{ __('pages.module_status_ended') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-sm btn-primary w-100">
+                                <i class="bi bi-save"></i> {{ __('pages.save_schedule') }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <label class="form-label small mb-0">{{ __('pages.link_weekly_sessions') }}</label>
+                            <select name="session_ids[]" class="form-select form-select-sm" multiple size="4">
+                                @forelse($course->sessions->sortBy('session_date') as $session)
+                                    <option value="{{ $session->session_id }}"
+                                        @selected(in_array($session->session_id, $linkedSessionIds))>
+                                        {{ $session->session_title }}
+                                        — {{ $session->session_date?->format('Y-m-d') ?? __('pages.unspecified') }}
+                                    </option>
+                                @empty
+                                    <option disabled>{{ __('pages.no_sessions_for_course') }}</option>
+                                @endforelse
+                            </select>
+                            <div class="form-text">{{ __('pages.sessions_multiselect_hint') }}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small mb-0">{{ __('pages.module_state') }}</label>
+                            <div class="d-flex flex-column gap-2">
+                                @if($pivot->feedback_open ?? false)
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-chat-square-text"></i> {{ __('pages.feedback_open') }}
+                                    </span>
+                                @elseif($status === 'ended')
+                                    <span class="badge bg-secondary">{{ __('pages.module_status_ended') }}</span>
+                                @else
+                                    <span class="badge bg-info text-dark">{{ __('pages.module_status_' . $status) }}</span>
+                                @endif
+                                @if(!($pivot->feedback_open ?? false))
+                                    <button type="submit"
+                                            formaction="{{ route('course-content.end-module', [$course->course_id, $module->module_id]) }}"
+                                            formmethod="POST"
+                                            class="btn btn-sm btn-warning"
+                                            onclick="return confirm(@json(__('pages.confirm_end_module')))">
+                                        <i class="bi bi-megaphone"></i> {{ __('pages.end_module_open_feedback') }}
+                                    </button>
+                                @else
+                                    <small class="text-muted">
+                                        {{ __('pages.module_ended_on', ['date' => $pivot->ended_at ? \Illuminate\Support\Carbon::parse($pivot->ended_at)->format('Y-m-d H:i') : '—']) }}
+                                    </small>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             {{-- Existing lectures --}}
             @if($module->lectures->isNotEmpty())
                 <div class="table-responsive">

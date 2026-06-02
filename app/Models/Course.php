@@ -32,7 +32,10 @@ class Course extends Model
             'module_id',
             'course_id',
             'module_id'
-        );
+        )->withPivot([
+            'start_date', 'end_date', 'order_index', 'status',
+            'feedback_open', 'ended_at', 'ended_by_user_id',
+        ])->orderByPivot('order_index');
     }
 
     public function assessments()

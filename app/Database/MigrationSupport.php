@@ -13,7 +13,7 @@ final class MigrationSupport
         bool $default = false,
         ?string $after = null
     ): void {
-        self::addColumn($table, $column, function (Blueprint $blueprint) use ($column, $default, $after) {
+        self::addColumn($table, $column, function (Blueprint $blueprint) use ($table, $column, $default, $after) {
             $definition = $blueprint->boolean($column)->default($default);
 
             if ($after !== null && Schema::hasColumn($table, $after)) {
@@ -29,7 +29,7 @@ final class MigrationSupport
         bool $nullable = true,
         ?string $after = null
     ): void {
-        self::addColumn($table, $column, function (Blueprint $blueprint) use ($column, $length, $nullable, $after) {
+        self::addColumn($table, $column, function (Blueprint $blueprint) use ($table, $column, $length, $nullable, $after) {
             $definition = $blueprint->string($column, $length);
 
             if ($nullable) {
@@ -48,7 +48,7 @@ final class MigrationSupport
         bool $nullable = true,
         ?string $after = null
     ): void {
-        self::addColumn($table, $column, function (Blueprint $blueprint) use ($column, $nullable, $after) {
+        self::addColumn($table, $column, function (Blueprint $blueprint) use ($table, $column, $nullable, $after) {
             $definition = $blueprint->text($column);
 
             if ($nullable) {
@@ -67,7 +67,7 @@ final class MigrationSupport
         bool $nullable = true,
         ?string $after = null
     ): void {
-        self::addColumn($table, $column, function (Blueprint $blueprint) use ($column, $nullable, $after) {
+        self::addColumn($table, $column, function (Blueprint $blueprint) use ($table, $column, $nullable, $after) {
             $definition = $blueprint->date($column);
 
             if ($nullable) {

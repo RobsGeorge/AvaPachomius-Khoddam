@@ -15,21 +15,68 @@
         @endif
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show">
+            {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @forelse($course->modules as $module)
         <div class="card shadow-sm mb-4">
             {{-- Module header --}}
-            <div class="card-header d-flex justify-content-between align-items-center"
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"
                  style="background: linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;">
                 <span class="fw-bold fs-5">
                     <i class="bi bi-collection-fill me-2"></i>{{ $module->title }}
                 </span>
-                <span class="badge bg-white text-dark">
-                    {{ $module->lectures->count() }} {{ __('pages.lecture') }}
-                </span>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    @if($module->pivot->start_date || $module->pivot->end_date)
+                        <span class="badge bg-white text-dark">
+                            {{ $module->pivot->start_date ? \Illuminate\Support\Carbon::parse($module->pivot->start_date)->format('Y-m-d') : '…' }}
+                            —
+                            {{ $module->pivot->end_date ? \Illuminate\Support\Carbon::parse($module->pivot->end_date)->format('Y-m-d') : '…' }}
+                        </span>
+                    @endif
+                    <span class="badge bg-white text-dark">
+                        {{ $module->lectures->count() }} {{ __('pages.lecture') }}
+                    </span>
+                    @if($module->pivot->feedback_open ?? false)
+                        @if(isset($userFeedbackIds[$module->module_id]))
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> {{ __('pages.feedback_submitted') }}
+                            </span>
+                        @else
+                            <a href="{{ route('module-feedback.show', [$course->course_id, $module->module_id]) }}"
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-chat-square-text"></i> {{ __('pages.give_feedback') }}
+                            </a>
+                        @endif
+                    @endif
+                </div>
             </div>
 
             @if($module->description)
                 <div class="px-3 pt-2 text-muted small">{{ $module->description }}</div>
+            @endif
+
+            @if($module->sessions->isNotEmpty())
+                <div class="px-3 py-2 border-bottom">
+                    <small class="text-muted fw-semibold">{{ __('pages.linked_sessions') }}:</small>
+                    @foreach($module->sessions as $session)
+                        <span class="badge bg-light text-dark border me-1">
+                            {{ __('pages.week') }} {{ $session->pivot->week_number ?? '?' }} —
+                            {{ $session->session_title }}
+                            ({{ $session->session_date?->format('Y-m-d') ?? '—' }})
+                        </span>
+                    @endforeach
+                </div>
             @endif
 
             <div class="card-body p-0">

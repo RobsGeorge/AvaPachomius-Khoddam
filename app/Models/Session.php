@@ -29,5 +29,17 @@ class Session extends Model
     {
         return $this->hasMany(Attendance::class, 'session_id', 'session_id');
     }
+
+    public function modules()
+    {
+        return $this->belongsToMany(
+            Module::class,
+            'module_session',
+            'session_id',
+            'module_id',
+            'session_id',
+            'module_id'
+        )->withPivot('week_number');
+    }
 }
 

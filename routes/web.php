@@ -25,6 +25,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\CourseContentController;
+use App\Http\Controllers\ModuleFeedbackController;
 use App\Http\Controllers\LectureController;
 use App\Http\Controllers\LectureMaterialController;
 use App\Http\Controllers\GradeCategoryController;
@@ -163,6 +164,8 @@ Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFee
 Route::middleware('auth')->group(function () {
     Route::get('/courses/{course}/content',         [CourseContentController::class, 'show'])->name('course-content.show');
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
+    Route::get('/courses/{course}/modules/{module}/feedback', [ModuleFeedbackController::class, 'show'])->name('module-feedback.show');
+    Route::post('/courses/{course}/modules/{module}/feedback', [ModuleFeedbackController::class, 'store'])->name('module-feedback.store');
 });
 
 // Course content & grades — admin/instructor management
@@ -172,6 +175,8 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::post('/courses/{course}/modules/attach',             [CourseContentController::class, 'attachModule'])->name('course-content.attach-module');
     Route::post('/courses/{course}/modules/create-attach',      [CourseContentController::class, 'createAndAttachModule'])->name('course-content.create-attach-module');
     Route::delete('/courses/{course}/modules/{module}/detach',  [CourseContentController::class, 'detachModule'])->name('course-content.detach-module');
+    Route::put('/courses/{course}/modules/{module}/settings',   [CourseContentController::class, 'updateModuleSettings'])->name('course-content.update-module');
+    Route::post('/courses/{course}/modules/{module}/end',       [CourseContentController::class, 'endModule'])->name('course-content.end-module');
     Route::post('/lectures',                                    [LectureController::class, 'store'])->name('lectures.store');
     Route::get('/lectures/{lecture}/edit',                      [LectureController::class, 'edit'])->name('lectures.edit');
     Route::put('/lectures/{lecture}',                           [LectureController::class, 'update'])->name('lectures.update');

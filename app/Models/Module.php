@@ -25,7 +25,27 @@ class Module extends Model
             'course_id',
             'module_id',
             'course_id'
-        );
+        )->withPivot([
+            'start_date', 'end_date', 'order_index', 'status',
+            'feedback_open', 'ended_at', 'ended_by_user_id',
+        ]);
+    }
+
+    public function sessions()
+    {
+        return $this->belongsToMany(
+            Session::class,
+            'module_session',
+            'module_id',
+            'session_id',
+            'module_id',
+            'session_id'
+        )->withPivot('week_number')->orderByPivot('week_number');
+    }
+
+    public function feedback()
+    {
+        return $this->hasMany(ModuleFeedback::class, 'module_id', 'module_id');
     }
 
     public function contents()
