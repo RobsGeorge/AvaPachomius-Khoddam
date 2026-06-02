@@ -71,7 +71,7 @@
                         <input id="mobile_number" type="tel"
                                class="form-control @error('mobile_number') is-invalid @enderror"
                                name="mobile_number" value="{{ old('mobile_number') }}" required
-                               pattern="\d{9}" minlength="9" maxlength="9"
+                               pattern="\d{10}" minlength="10" maxlength="10"
                                title="{{ __('register.phone_validation') }}"
                                inputmode="numeric"
                                placeholder="{{ __('register.phone_placeholder') }}">
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mobileInput = document.getElementById('mobile_number');
     mobileInput.addEventListener('input', function () {
         this.value = this.value.replace(/\D/g, '').slice(0, 10);
-        this.setCustomValidity(this.value.length > 0 && this.value.length !== 9 ? messages.phoneValidation : '');
+        this.setCustomValidity(this.value.length > 0 && this.value.length !== 10 ? messages.phoneValidation : '');
     });
 
     const arabicRegex = /^[ء-ي\s]+$/;
