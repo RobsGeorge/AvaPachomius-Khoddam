@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Database\LegacySchemaSync;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\OtpCode;
@@ -30,6 +31,8 @@ class RegisterController extends Controller
     public function register(Request $request)
     {
         $this->validator($request->all())->validate();
+
+        LegacySchemaSync::ensureRegistrationSchema();
 
         $existingUser = User::where('email', $request->email)->first();
 
@@ -142,27 +145,12 @@ class RegisterController extends Controller
                 'profile_photo' => $profilePhotoPath ?? '',
                 'password'      => Hash::make(Str::random(12)),
                 'is_verified'   => false,
+                'is_superadmin' => false,
             ]);
 
             // Assign student role if the default course and Student role both exist.
             // Non-fatal: registration proceeds even if this setup hasn't been done yet.
-            $studentRole   = Role::where('role_name', 'Student')->first();
-            $defaultCourse = Course::find(1);
-            if ($studentRole && $defaultCourse) {
-                $alreadyAssigned = UserCourseRole::where([
-                    'user_id'   => $user->user_id,
-                    'course_id' => 1,
-                    'role_id'   => $studentRole->role_id,
-                ])->exists();
-
-                if (!$alreadyAssigned) {
-                    UserCourseRole::create([
-                        'user_id'   => $user->user_id,
-                        'course_id' => 1,
-                        'role_id'   => $studentRole->role_id,
-                    ]);
-                }
-            }
+            $this->assignDefaultStudentRole($user);
 
             $otp = rand(100000, 999999);
             OtpCode::create([
@@ -308,6 +296,36 @@ class RegisterController extends Controller
             'driver_code' => $e->errorInfo[1] ?? null,
             'message'     => $e->getMessage(),
         ]);
+    }
+
+    private function assignDefaultStudentRole(User $user): void
+    {
+        try {
+            $studentRole   = Role::where('role_name', 'Student')->first();
+            $defaultCourse = Course::find(1);
+            if (! $studentRole || ! $defaultCourse) {
+                return;
+            }
+
+            $alreadyAssigned = UserCourseRole::where([
+                'user_id'   => $user->user_id,
+                'course_id' => 1,
+                'role_id'   => $studentRole->role_id,
+            ])->exists();
+
+            if (! $alreadyAssigned) {
+                UserCourseRole::create([
+                    'user_id'   => $user->user_id,
+                    'course_id' => 1,
+                    'role_id'   => $studentRole->role_id,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Student role assignment skipped during registration', [
+                'user_id' => $user->user_id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function storeFile($file, $directory): string

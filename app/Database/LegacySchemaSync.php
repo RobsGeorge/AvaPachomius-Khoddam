@@ -2,6 +2,7 @@
 
 namespace App\Database;
 
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -15,6 +16,29 @@ final class LegacySchemaSync
     {
         LegacyPrimaryKeys::normalizeAll();
         self::syncUserTable();
+        self::ensureOtpCodeTable();
+    }
+
+    /** Run before registration so VPS legacy DB has required columns/tables. */
+    public static function ensureRegistrationSchema(): void
+    {
+        self::syncUserTable();
+        self::ensureOtpCodeTable();
+    }
+
+    private static function ensureOtpCodeTable(): void
+    {
+        if (! Schema::hasTable('user')) {
+            return;
+        }
+
+        SchemaGuards::createTableIfMissing('otp_code', function (Blueprint $table) {
+            $table->unsignedBigInteger('user_id');
+            $table->primary('user_id');
+            $table->foreign('user_id')->references('user_id')->on('user')->cascadeOnDelete();
+            $table->string('code', 10);
+            $table->timestamp('expires_at');
+        });
     }
 
     private static function syncUserTable(): void

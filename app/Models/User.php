@@ -22,6 +22,9 @@ class User extends Authenticatable
 {
     use Notifiable, HasApiTokens, HasFactory;
 
+    /** Legacy `user` table may lack Laravel timestamps until schema sync runs. */
+    public $timestamps = false;
+
     protected $table = 'user';
 
     protected $primaryKey = 'user_id';
