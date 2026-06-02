@@ -22,10 +22,8 @@ jobs:
             set -e
             cd /var/www/avapakhomios
 
-
             PHP_BIN=php8.2
 
-            # Fail early with a clear message if MySQL PDO is missing on the server
             if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
               echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
               echo "On Ubuntu/Debian run:"
@@ -43,7 +41,6 @@ jobs:
               --optimize-autoloader \
               --no-dev
 
-
             $PHP_BIN artisan migrate --force
 
             $PHP_BIN artisan optimize:clear
@@ -53,16 +50,6 @@ jobs:
             $PHP_BIN artisan event:cache
 
             $PHP_BIN artisan storage:link || true
-
-            php artisan migrate --force
-
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan event:cache
-
-            php artisan storage:link
 
             find storage bootstrap/cache -type d -exec chmod 775 {} \;
             find storage bootstrap/cache -type f -exec chmod 664 {} \;
