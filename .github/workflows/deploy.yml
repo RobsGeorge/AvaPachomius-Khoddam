@@ -24,7 +24,7 @@ jobs:
 
             git pull origin main
 
-            composer install \
+            composer install --frozen-lockfile \
               --no-interaction \
               --prefer-dist \
               --optimize-autoloader \
