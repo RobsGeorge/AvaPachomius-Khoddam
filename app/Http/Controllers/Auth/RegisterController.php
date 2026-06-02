@@ -98,14 +98,10 @@ class RegisterController extends Controller
 
         } catch (QueryException $e) {
             DB::rollBack();
-            Log::error('Re-registration DB error: ' . $e->getMessage());
-
-            if ($fieldErrors = $this->mapDbConstraintError($e)) {
-                return back()->withErrors($fieldErrors)->withInput();
-            }
+            $this->logRegistrationDbError('Re-registration', $e, $request);
 
             return back()
-                ->withErrors(['general' => 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.'])
+                ->withErrors($this->registrationDbErrors($e))
                 ->withInput();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -186,14 +182,10 @@ class RegisterController extends Controller
         } catch (QueryException $e) {
             DB::rollBack();
             if ($profilePhotoPath) Storage::delete("public/{$profilePhotoPath}");
-            Log::error('Registration DB error: ' . $e->getMessage());
-
-            if ($fieldErrors = $this->mapDbConstraintError($e)) {
-                return back()->withErrors($fieldErrors)->withInput();
-            }
+            $this->logRegistrationDbError('Registration', $e, $request);
 
             return back()
-                ->withErrors(['general' => 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.'])
+                ->withErrors($this->registrationDbErrors($e))
                 ->withInput();
 
         } catch (\Throwable $e) {
@@ -244,10 +236,13 @@ class RegisterController extends Controller
 
         if ($isDuplicate) {
             if (str_contains($message, 'mobile_number')) {
-                return ['mobile_number' => 'رقم الهاتف مستخدم بالفعل. يرجى استخدام رقم آخر.'];
+                return ['mobile_number' => __('register.mobile_taken')];
             }
             if (str_contains($message, 'email')) {
-                return ['email' => 'هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول أو استخدام بريد آخر.'];
+                return ['email' => __('register.email_taken')];
+            }
+            if (str_contains($message, 'national_id')) {
+                return ['national_id' => __('register.national_id_taken')];
             }
 
             return null;
@@ -257,14 +252,62 @@ class RegisterController extends Controller
 
         if ($isTooLong) {
             if (str_contains($message, 'mobile_number')) {
-                return ['mobile_number' => 'رقم الهاتف طويل جداً. يجب أن يكون 10 أرقام بالضبط.'];
+                return ['mobile_number' => __('register.phone_validation')];
             }
             if (str_contains($message, 'email')) {
-                return ['email' => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).'];
+                return ['email' => __('register.email_too_long')];
+            }
+            if (str_contains($message, 'national_id')) {
+                return ['national_id' => __('register.national_id_hint')];
+            }
+            foreach (['first_name', 'second_name', 'third_name', 'job'] as $field) {
+                if (str_contains($message, $field)) {
+                    return [$field => __('register.field_too_long')];
+                }
             }
         }
 
         return null;
+    }
+
+    /** User-facing errors for registration DB failures (field-specific when possible). */
+    private function registrationDbErrors(QueryException $e): array
+    {
+        if ($mapped = $this->mapDbConstraintError($e)) {
+            return $mapped;
+        }
+
+        $message = $e->getMessage();
+
+        if (str_contains($message, "doesn't exist")
+            || str_contains($message, 'Base table or view not found')) {
+            return ['general' => __('register.db_setup_error')];
+        }
+
+        if (str_contains($message, 'Unknown column')
+            || str_contains($message, 'cannot be null')
+            || str_contains($message, "doesn't have a default value")) {
+            return ['general' => __('register.db_schema_error')];
+        }
+
+        $general = __('register.db_error_generic');
+        if (config('app.debug')) {
+            $hint = $e->errorInfo[2] ?? $message;
+            $general .= ' (' . Str::limit($hint, 160) . ')';
+        }
+
+        return ['general' => $general];
+    }
+
+    private function logRegistrationDbError(string $context, QueryException $e, Request $request): void
+    {
+        Log::error("{$context} DB error", [
+            'email'       => $request->input('email'),
+            'mobile'      => $request->input('mobile_number'),
+            'sql_state'   => $e->errorInfo[0] ?? null,
+            'driver_code' => $e->errorInfo[1] ?? null,
+            'message'     => $e->getMessage(),
+        ]);
     }
 
     protected function storeFile($file, $directory): string

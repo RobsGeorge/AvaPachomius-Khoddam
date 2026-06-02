@@ -29,4 +29,12 @@ return [
     'birth_format'           => 'Enter date of birth as day/month/year',
     'date_format_invalid'    => 'Enter the date in DD/MM/YYYY format',
     'arabic_validation'      => 'Please write in Arabic only',
+    'mobile_taken'           => 'This phone number is already registered. Please use another.',
+    'email_taken'            => 'This email is already registered. Please log in or use another email.',
+    'national_id_taken'      => 'This national ID is already registered.',
+    'email_too_long'         => 'Email is too long (maximum 30 characters).',
+    'field_too_long'         => 'This value is too long. Please shorten it.',
+    'db_error_generic'       => 'A database error occurred. Please try again.',
+    'db_setup_error'         => 'Registration is not fully set up on the server (missing database table). Please contact the administrator.',
+    'db_schema_error'        => 'A server configuration error occurred. Please contact the administrator.',
 ];
