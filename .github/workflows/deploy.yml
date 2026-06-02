@@ -24,7 +24,7 @@ jobs:
 
             git pull origin main
 
-            php8.2 /usr/bin/composer install \
+            composer install \
               --no-interaction \
               --prefer-dist \
               --optimize-autoloader \
