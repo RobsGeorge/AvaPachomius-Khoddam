@@ -33,6 +33,10 @@ jobs:
               exit 1
             fi
 
+            sudo chown -R $USER:www-data storage bootstrap/cache
+            sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
+            sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
             git pull origin main
 
             $PHP_BIN /usr/local/bin/composer install \
