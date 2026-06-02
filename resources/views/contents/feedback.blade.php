@@ -190,7 +190,7 @@
         <h3>{{ $content->session_title }}</h3>
         <p><strong>{{ __('pages.lecture') }}:</strong> {{ $content->lecture_name }}</p>
         <p><strong>{{ __('pages.lecturer') }}:</strong> {{ $content->speaker_name }}</p>
-        <p><strong>{{ __('pages.date') }}:</strong> {{ $content->session_date ? $content->session_date->format('Y-m-d') : '{{ __('pages.unspecified') }}' }}</p>
+        <p><strong>{{ __('pages.date') }}:</strong> {{ $content->session_date ? $content->session_date->format('Y-m-d') : __('pages.unspecified') }}</p>
     </div>
 
     @if(session('success'))
@@ -276,7 +276,7 @@
 
             <button type="submit" class="btn-submit">
                 <i class="fas fa-paper-plane"></i>
-                {{ $userFeedback ? '{{ __('pages.update_feedback') }}' : '{{ __('pages.submit_feedback') }}' }}
+                {{ $userFeedback ? __('pages.update_feedback') : __('pages.submit_feedback') }}
             </button>
         </form>
     </div>

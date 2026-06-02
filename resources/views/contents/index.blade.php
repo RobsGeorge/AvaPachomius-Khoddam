@@ -183,7 +183,7 @@
                     @foreach($contents as $content)
                         <tr>
                             <td class="session-title">{{ $content->session_title }}</td>
-                            <td class="session-date">{{ $content->session_date ? $content->session_date->format('Y-m-d') : '{{ __('pages.unspecified') }}' }}</td>
+                            <td class="session-date">{{ $content->session_date ? $content->session_date->format('Y-m-d') : __('pages.unspecified') }}</td>
                             <td class="lecture-name">{{ $content->lecture_name }}</td>
                             <td class="speaker-name">{{ $content->speaker_name }}</td>
                             <td>
