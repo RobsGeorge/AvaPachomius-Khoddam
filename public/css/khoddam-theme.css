@@ -281,6 +281,64 @@ body.theme-dark .form-select:focus {
     box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.18);
 }
 
+.form-control::placeholder,
+.form-select::placeholder,
+textarea.form-control::placeholder {
+    color: var(--color-text-muted);
+    opacity: 0.85;
+}
+
+body.theme-dark .form-control::placeholder,
+body.theme-dark .form-select::placeholder,
+body.theme-dark textarea.form-control::placeholder {
+    color: #cbd5e1;
+    opacity: 1;
+}
+
+body.theme-dark input[type="date"].form-control,
+body.theme-dark input[type="time"].form-control,
+body.theme-dark input[type="datetime-local"].form-control {
+    color-scheme: dark;
+}
+
+body.theme-dark input[type="date"].form-control::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+}
+
+.input-group-text {
+    background: rgba(255, 255, 255, 0.65);
+    border: 1px solid var(--color-surface-border);
+    color: var(--color-text);
+}
+
+body.theme-dark .input-group-text {
+    background: rgba(7, 15, 31, 0.55);
+    color: var(--color-text);
+    border-color: var(--color-surface-border);
+}
+
+.phone-input-group .form-control {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+}
+
+.dob-picker-input {
+    max-width: 220px;
+    direction: ltr;
+}
+
+.profile-preview-img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-color: var(--color-surface-border) !important;
+}
+
+.app-card .card-footer {
+    background: transparent;
+    border-top: 1px solid var(--color-surface-border);
+}
+
 /* Buttons */
 .btn-primary,
 .btn.app-btn-primary {

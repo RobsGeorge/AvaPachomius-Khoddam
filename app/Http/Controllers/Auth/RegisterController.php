@@ -219,13 +219,13 @@ class RegisterController extends Controller
             'email'         => ['required', 'email', 'max:30'],
             'job'           => ['required', 'string', 'max:50'],
             'date_of_birth' => ['required', 'date'],
-            'mobile_number' => ['required', 'numeric', 'digits_between:9,11'],
+            'mobile_number' => ['required', 'numeric', 'digits:9'],
             'profile_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
             'first_name.regex'       => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
             'second_name.regex'      => 'الاسم الثاني يجب أن يحتوي على أحرف عربية فقط.',
             'third_name.regex'       => 'الاسم الثالث يجب أن يحتوي على أحرف عربية فقط.',
-            'mobile_number.digits_between' => 'رقم الهاتف يجب أن يكون بين 9 و 11 رقمًا.',
+            'mobile_number.digits' => 'رقم الهاتف يجب أن يكون 9 أرقام بالضبط.',
             'email.max'                    => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).',
         ]);
     }
@@ -255,7 +255,7 @@ class RegisterController extends Controller
 
         if ($isTooLong) {
             if (str_contains($message, 'mobile_number')) {
-                return ['mobile_number' => 'رقم الهاتف طويل جداً. يجب ألا يتجاوز 11 رقمًا.'];
+                return ['mobile_number' => 'رقم الهاتف طويل جداً. يجب أن يكون 9 أرقام بالضبط.'];
             }
             if (str_contains($message, 'email')) {
                 return ['email' => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).'];
