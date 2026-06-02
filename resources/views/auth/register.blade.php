@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const mobileInput = document.getElementById('mobile_number');
     mobileInput.addEventListener('input', function () {
-        this.value = this.value.replace(/\D/g, '').slice(0, 9);
+        this.value = this.value.replace(/\D/g, '').slice(0, 10);
         this.setCustomValidity(this.value.length > 0 && this.value.length !== 9 ? messages.phoneValidation : '');
     });
 
