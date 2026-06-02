@@ -1,30 +1,48 @@
-name: Deploy to VPS
+name: Deploy to Production
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
+          port: ${{ secrets.SSH_PORT }}
           script: |
-            cd ${{ secrets.VPS_PATH }}
+            set -e
+            cd /var/www/avapakhomios
+
             git pull origin main
-            composer install --no-dev --optimize-autoloader
-            php artisan config:clear
-            php artisan cache:clear
+
+            composer install \
+              --no-interaction \
+              --prefer-dist \
+              --optimize-autoloader \
+              --no-dev
+
+            php artisan migrate --force
+
+            php artisan optimize:clear
             php artisan config:cache
-            sudo chown -R www-data:www-data ${{ secrets.VPS_PATH }}
-            sudo chmod -R 775 ${{ secrets.VPS_PATH }}/storage
-            sudo systemctl restart apache2
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+
+            php artisan storage:link
+
+            find storage bootstrap/cache -type d -exec chmod 775 {} \;
+            find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
+            sudo systemctl reload php8.2-fpm
 
             echo "Deployment complete: $(date)"
