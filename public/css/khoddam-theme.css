@@ -327,6 +327,20 @@ body.theme-dark .input-group-text {
     direction: ltr;
 }
 
+.dob-flatpickr-alt {
+    direction: ltr;
+    text-align: left;
+    cursor: pointer;
+}
+
+.flatpickr-calendar {
+    font-family: var(--font-sans);
+}
+
+body.theme-dark .flatpickr-calendar {
+    box-shadow: var(--shadow-lg);
+}
+
 .profile-preview-img {
     width: 120px;
     height: 120px;

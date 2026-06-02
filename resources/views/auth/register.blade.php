@@ -107,25 +107,15 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="dob_display" class="form-label">
+                    <label for="date_of_birth" class="form-label">
                         <i class="bi bi-calendar-date-fill"></i> {{ __('register.birth_date') }} <span class="text-danger">*</span>
                     </label>
-                    <input id="dob_display" type="text"
-                           class="form-control @error('date_of_birth') is-invalid @enderror mb-2"
-                           placeholder="{{ __('register.birth_placeholder') }}" maxlength="10"
-                           pattern="\d{2}/\d{2}/\d{4}"
-                           title="{{ __('register.birth_format') }}" required
-                           autocomplete="bday" style="direction:ltr;">
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <span class="text-muted-theme small">{{ __('register.birth_or_picker') }}</span>
-                        <input id="dob_picker" type="date"
-                               class="form-control dob-picker-input @error('date_of_birth') is-invalid @enderror"
-                               max="{{ date('Y-m-d') }}"
-                               min="{{ date('Y-m-d', strtotime('-100 years')) }}"
-                               aria-label="{{ __('register.birth_picker') }}">
-                    </div>
-                    <input type="hidden" id="date_of_birth" name="date_of_birth"
-                           value="{{ old('date_of_birth') }}">
+                    <input id="date_of_birth" name="date_of_birth" type="text"
+                           class="form-control dob-flatpickr @error('date_of_birth') is-invalid @enderror"
+                           value="{{ old('date_of_birth') }}"
+                           placeholder="{{ __('register.birth_placeholder') }}"
+                           required autocomplete="bday"
+                           aria-label="{{ __('register.birth_picker') }}">
                     @error('date_of_birth')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
@@ -165,11 +155,22 @@
     </div>
 </div>
 
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+@if(request()->cookie('theme', 'light') === 'dark')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+@endif
+@endpush
+
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+@if(app()->getLocale() === 'ar')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
+@endif
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const messages = {
-        dateFormatInvalid: @json(__('register.date_format_invalid')),
+        dateRequired: @json(__('register.date_required')),
         phoneValidation: @json(__('register.phone_validation')),
         arabicValidation: @json(__('register.arabic_validation')),
         nationalIdHint: @json(__('register.national_id_hint')),
@@ -194,73 +195,46 @@ document.addEventListener('DOMContentLoaded', function () {
         reader.readAsDataURL(file);
     });
 
-    const dobDisplay = document.getElementById('dob_display');
-    const dobPicker  = document.getElementById('dob_picker');
-    const dobHidden  = document.getElementById('date_of_birth');
+    const dobInput = document.getElementById('date_of_birth');
+    const maxDate = new Date();
+    const minDate = new Date();
+    minDate.setFullYear(minDate.getFullYear() - 100);
 
-    function isoToDisplay(iso) {
-        if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
-        const [y, m, d] = iso.split('-');
-        return `${d}/${m}/${y}`;
+    const fpOptions = {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        altInputClass: 'form-control dob-flatpickr-alt',
+        maxDate: maxDate,
+        minDate: minDate,
+        allowInput: false,
+        disableMobile: true,
+        defaultDate: dobInput.value || null,
+    };
+
+    @if(app()->getLocale() === 'ar')
+    fpOptions.locale = flatpickr.l10ns.ar;
+    @endif
+
+    const dobPicker = flatpickr(dobInput, fpOptions);
+
+    if (dobInput.classList.contains('is-invalid') && dobPicker.altInput) {
+        dobPicker.altInput.classList.add('is-invalid');
     }
-
-    function displayToIso(display) {
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(display)) return '';
-        const [day, month, year] = display.split('/');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    }
-
-    function syncFromIso(iso) {
-        if (!iso) return;
-        dobHidden.value = iso;
-        dobDisplay.value = isoToDisplay(iso);
-        dobPicker.value = iso;
-        dobDisplay.setCustomValidity('');
-    }
-
-    if (dobHidden.value && /^\d{4}-\d{2}-\d{2}$/.test(dobHidden.value)) {
-        syncFromIso(dobHidden.value);
-    }
-
-    dobDisplay.addEventListener('input', function () {
-        let digits = this.value.replace(/\D/g, '');
-        let formatted = digits;
-        if (digits.length > 2)  formatted = digits.slice(0, 2) + '/' + digits.slice(2);
-        if (digits.length > 4)  formatted = formatted.slice(0, 5) + '/' + digits.slice(4, 8);
-        this.value = formatted;
-
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(formatted)) {
-            const iso = displayToIso(formatted);
-            dobHidden.value = iso;
-            dobPicker.value = iso;
-            dobDisplay.setCustomValidity('');
-        } else {
-            dobHidden.value = '';
-            dobPicker.value = '';
-            if (formatted.length > 0) dobDisplay.setCustomValidity(messages.dateFormatInvalid);
-        }
-    });
-
-    dobPicker.addEventListener('change', function () {
-        if (this.value) {
-            syncFromIso(this.value);
-        } else {
-            dobHidden.value = '';
-        }
-    });
 
     document.getElementById('registerForm').addEventListener('submit', function (e) {
-        const display = dobDisplay.value.trim();
-        if (display && !/^\d{2}\/\d{2}\/\d{4}$/.test(display)) {
+        if (!dobInput.value) {
             e.preventDefault();
-            dobDisplay.setCustomValidity(messages.dateFormatInvalid);
-            dobDisplay.reportValidity();
+            if (dobPicker.altInput) {
+                dobPicker.altInput.setCustomValidity(messages.dateRequired);
+                dobPicker.altInput.reportValidity();
+            } else {
+                dobInput.setCustomValidity(messages.dateRequired);
+                dobInput.reportValidity();
+            }
             return;
         }
-        if (dobPicker.value && !dobHidden.value) {
-            dobHidden.value = dobPicker.value;
-        }
-        dobDisplay.setCustomValidity('');
+        if (dobPicker.altInput) dobPicker.altInput.setCustomValidity('');
     });
 
     const mobileInput = document.getElementById('mobile_number');

@@ -218,13 +218,15 @@ class RegisterController extends Controller
             'national_id'   => ['required', 'digits:14'],
             'email'         => ['required', 'email', 'max:30'],
             'job'           => ['required', 'string', 'max:50'],
-            'date_of_birth' => ['required', 'date'],
+            'date_of_birth' => ['required', 'date', 'before:today', 'after:'.now()->subYears(100)->format('Y-m-d')],
             'mobile_number' => ['required', 'numeric', 'digits:9'],
             'profile_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:2048'],
         ], [
             'first_name.regex'       => 'الاسم الأول يجب أن يحتوي على أحرف عربية فقط.',
             'second_name.regex'      => 'الاسم الثاني يجب أن يحتوي على أحرف عربية فقط.',
             'third_name.regex'       => 'الاسم الثالث يجب أن يحتوي على أحرف عربية فقط.',
+            'date_of_birth.before' => 'تاريخ الميلاد يجب أن يكون في الماضي.',
+            'date_of_birth.after'  => 'تاريخ الميلاد غير صالح.',
             'mobile_number.digits' => 'رقم الهاتف يجب أن يكون 9 أرقام بالضبط.',
             'email.max'                    => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).',
         ]);
