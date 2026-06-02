@@ -51,8 +51,9 @@ jobs:
 
             $PHP_BIN artisan storage:link || true
 
-            find storage bootstrap/cache -type d -exec chmod 775 {} \;
-            find storage bootstrap/cache -type f -exec chmod 664 {} \;
+            sudo chown -R $USER:www-data storage bootstrap/cache
+            sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
+            sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
 
             sudo systemctl reload php8.2-fpm
 
