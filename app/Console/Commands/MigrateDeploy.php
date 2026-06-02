@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Database\LegacyPrimaryKeys;
-use App\Database\LegacySchemaPatches;
 use Illuminate\Console\Command;
 
 class MigrateDeploy extends Command
