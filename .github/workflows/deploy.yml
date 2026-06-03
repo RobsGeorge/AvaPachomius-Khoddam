@@ -30,6 +30,7 @@ jobs:
             cd /var/www/avapakhomios
 
             PHP_BIN=php8.2
+            DEPLOY_USER="$(whoami)"
 
             if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
               echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
@@ -57,13 +58,29 @@ jobs:
             echo "==> optimize"
             $PHP_BIN artisan optimize:clear
             $PHP_BIN artisan optimize
-            $PHP_BIN artisan storage:link || true
+
+            echo "==> storage link"
+            if [ ! -L public/storage ]; then
+              $PHP_BIN artisan storage:link
+            else
+              echo "public/storage link already exists, skipping"
+            fi
 
             echo "==> permissions"
-            sudo chown -R $USER:www-data storage bootstrap/cache
-            sudo chmod -R ug+rwx storage bootstrap/cache
+            # GitHub SSH has no TTY — sudo must be passwordless (see .github/DEPLOY-VPS.md).
+            chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
+            if sudo -n true 2>/dev/null; then
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n chmod -R ug+rwx storage bootstrap/cache
+            else
+              echo "WARN: passwordless sudo not configured — skipped chown (chmod only as ${DEPLOY_USER})"
+            fi
 
             echo "==> reload php-fpm"
-            sudo systemctl reload php8.2-fpm
+            if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then
+              echo "php8.2-fpm reloaded"
+            else
+              echo "WARN: could not reload php-fpm without password — configure NOPASSWD (see .github/DEPLOY-VPS.md)"
+            fi
 
             echo "Deployment complete: $(date)"
