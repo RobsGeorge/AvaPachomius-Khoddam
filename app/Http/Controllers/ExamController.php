@@ -2,107 +2,84 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamResult;
+use App\Models\Module;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
 {
     public function index()
     {
-        $exams = Exam::with(['schedules', 'results' => function($query) {
+        $exams = Exam::with(['module', 'course', 'schedules', 'results' => function ($query) {
             $query->where('user_id', Auth::id());
-        }])->get();
+        }])->orderBy('exam_name')->get();
 
         return view('exams.index', compact('exams'));
     }
 
     public function dashboard()
     {
-        $exams = Exam::with(['schedules', 'results'])->get();
-        return view('exams.dashboard', compact('exams'));
+        $courses = Course::orderBy('title')->get(['course_id', 'title', 'year']);
+        $modules = Module::with('courses')->orderBy('title')->get();
+        $exams = Exam::with(['module', 'course', 'schedules', 'results'])->orderBy('exam_name')->get();
+
+        return view('exams.dashboard', compact('exams', 'courses', 'modules'));
     }
 
     public function store(Request $request)
     {
-        // Log the incoming request data
-        Log::info('Exam creation request received', [
-            'all_data' => $request->all(),
-            'validated_data' => $request->validated() ?? 'No validated data yet'
-        ]);
-
         $validated = $request->validate([
-            'exam_name' => 'required|string|max:255',
-            'exam_description' => 'required|string',
-            'passing_score' => 'required|integer|min:0|max:100',
+            'exam_name'        => 'required|string|max:255',
             'duration_minutes' => 'required|integer|min:1',
+            'study_resources'  => 'nullable|string',
+            'exam_description' => 'nullable|string',
+            'passing_score'    => 'nullable|integer|min:0|max:100',
+            'course_id'        => 'required|exists:course,course_id',
+            'module_id'        => 'required|exists:modules,module_id',
+        ], [
+            'module_id.required' => __('pages.module_required_for_exam'),
         ]);
 
-        // Log the validated data
-        Log::info('Validated exam data', [
-            'validated_data' => $validated
-        ]);
+        $this->assertModuleBelongsToCourse(
+            (int) $validated['module_id'],
+            (int) $validated['course_id']
+        );
 
-        try {
-            // Log before creation attempt
-            Log::info('Attempting to create exam', [
-                'data' => $validated
-            ]);
+        Exam::create($validated);
 
-            $exam = Exam::create($validated);
-            
-            // Log the created exam
-            Log::info('Exam creation result', [
-                'exam' => $exam->toArray(),
-                'exists' => $exam->exists,
-                'wasRecentlyCreated' => $exam->wasRecentlyCreated
-            ]);
-            
-            if (!$exam->exists) {
-                Log::error('Failed to create exam', [
-                    'data' => $validated,
-                    'error' => 'Exam was not saved to database'
-                ]);
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'حدث خطأ أثناء إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
-            }
-
-            Log::info('Exam created successfully', [
-                'exam_id' => $exam->exam_id,
-                'exam_name' => $exam->exam_name
-            ]);
-
-            return redirect()->route('exams.index')
-                ->with('success', 'تم إنشاء الامتحان بنجاح');
-        } catch (\Exception $e) {
-            Log::error('Error creating exam', [
-                'data' => $validated,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'حدث خطأ أثناء إنشاء الامتحان: ' . $e->getMessage());
-        }
+        return redirect()->route('exams.dashboard')
+            ->with('success', __('pages.exam_created_success'));
     }
 
     public function update(Request $request, Exam $exam)
     {
         $validated = $request->validate([
-            'exam_name' => 'required|string|max:255',
+            'exam_name'        => 'required|string|max:255',
             'duration_minutes' => 'required|integer|min:1',
-            'study_resources' => 'nullable|string',
+            'study_resources'  => 'nullable|string',
+            'exam_description' => 'nullable|string',
+            'passing_score'    => 'nullable|integer|min:0|max:100',
+            'course_id'        => 'required|exists:course,course_id',
+            'module_id'        => 'required|exists:modules,module_id',
+        ], [
+            'module_id.required' => __('pages.module_required_for_exam'),
         ]);
+
+        $this->assertModuleBelongsToCourse(
+            (int) $validated['module_id'],
+            (int) $validated['course_id']
+        );
 
         $exam->update($validated);
 
         return redirect()->route('exams.dashboard')
-            ->with('success', 'تم تحديث الامتحان بنجاح');
+            ->with('success', __('pages.exam_updated_success'));
     }
 
     public function scheduleExam(Request $request, Exam $exam)
@@ -114,7 +91,7 @@ class ExamController extends Controller
         $exam->schedules()->create($validated);
 
         return redirect()->route('exams.dashboard')
-            ->with('success', 'تم جدولة الامتحان بنجاح');
+            ->with('success', __('pages.schedule_added_success'));
     }
 
     public function updateResult(Request $request, ExamResult $result)
@@ -126,14 +103,14 @@ class ExamController extends Controller
         $result->update($validated);
 
         return redirect()->route('exams.dashboard')
-            ->with('success', 'تم تحديث الدرجة بنجاح');
+            ->with('success', __('pages.grade_updated_success'));
     }
 
     public function destroy(Exam $exam)
     {
         $exam->delete();
         return redirect()->route('exams.dashboard')
-            ->with('success', 'تم حذف الامتحان بنجاح');
+            ->with('success', __('pages.exam_deleted_success'));
     }
 
     public function adminDashboard()
@@ -144,14 +121,14 @@ class ExamController extends Controller
         $completedExams = ExamSchedule::where('is_completed', true)->count();
 
         // Get upcoming exam schedules with related data
-        $upcomingExamSchedules = ExamSchedule::with(['exam', 'results'])
+        $upcomingExamSchedules = ExamSchedule::with(['exam.module', 'exam.course', 'results'])
             ->where('scheduled_date', '>', now())
             ->orderBy('scheduled_date')
             ->take(5)
             ->get();
 
         // Get recent results
-        $recentResults = ExamResult::with(['user', 'exam', 'schedule'])
+        $recentResults = ExamResult::with(['user', 'exam.module', 'schedule'])
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -163,5 +140,19 @@ class ExamController extends Controller
             'upcomingExamSchedules',
             'recentResults'
         ));
+    }
+
+    private function assertModuleBelongsToCourse(int $moduleId, int $courseId): void
+    {
+        $linked = DB::table('course_module')
+            ->where('course_id', $courseId)
+            ->where('module_id', $moduleId)
+            ->exists();
+
+        if (! $linked) {
+            throw ValidationException::withMessages([
+                'module_id' => __('pages.module_not_in_course'),
+            ]);
+        }
     }
 } 

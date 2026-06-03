@@ -27,6 +27,7 @@
                         <th>{{ __('pages.module_name') }}</th>
                         <th>{{ __('pages.description') }}</th>
                         <th>{{ __('pages.lectures') }}</th>
+                        <th>{{ __('pages.exams_count') }}</th>
                         <th>{{ __('pages.linked_courses') }}</th>
                         <th>{{ __('pages.actions') }}</th>
                     </tr>
@@ -39,6 +40,9 @@
                             <td class="text-muted-theme small">{{ $module->description }}</td>
                             <td>
                                 <span class="badge bg-secondary">{{ $module->lectures_count }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info text-dark">{{ $module->exams_count }}</span>
                             </td>
                             <td>
                                 @forelse($module->courses as $course)
@@ -65,7 +69,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted-theme py-4">
+                            <td colspan="7" class="text-center text-muted-theme py-4">
                                 {{ __('pages.no_modules_yet') }}
                                 <a href="{{ route('modules.create') }}">{{ __('pages.create_now') }}</a>
                             </td>

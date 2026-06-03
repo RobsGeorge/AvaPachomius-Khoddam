@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Module;
 use App\Models\Session;
+use App\Models\Exam;
 use App\Models\CourseAssessment;
 use App\Models\GradeCategory;
 
@@ -36,6 +37,11 @@ class Course extends Model
             'start_date', 'end_date', 'order_index', 'status',
             'feedback_open', 'ended_at', 'ended_by_user_id',
         ])->orderByPivot('order_index');
+    }
+
+    public function exams()
+    {
+        return $this->hasMany(Exam::class, 'course_id', 'course_id');
     }
 
     public function assessments()

@@ -17,6 +17,7 @@ final class LegacySchemaSync
         LegacyPrimaryKeys::normalizeAll();
         self::syncUserTable();
         self::syncSessionTable();
+        self::syncExamsTable();
         self::ensureOtpCodeTable();
     }
 
@@ -38,6 +39,7 @@ final class LegacySchemaSync
         if ($driver === 'mysql') {
             $columns = [
                 'course_id' => 'BIGINT UNSIGNED NOT NULL',
+                'module_id' => 'BIGINT UNSIGNED NULL',
                 'session_title' => "VARCHAR(30) NOT NULL DEFAULT ''",
                 'session_date' => 'DATE NOT NULL',
                 'created_at' => 'TIMESTAMP NULL',
@@ -53,6 +55,20 @@ final class LegacySchemaSync
 
         MigrationSupport::addStringColumn('session', 'session_title', 30, false);
         MigrationSupport::addDateColumn('session', 'session_date', false);
+    }
+
+    private static function syncExamsTable(): void
+    {
+        if (! Schema::hasTable('exams') || Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
+        foreach ([
+            'course_id' => 'BIGINT UNSIGNED NULL',
+            'module_id' => 'BIGINT UNSIGNED NULL',
+        ] as $column => $definition) {
+            self::addMysqlColumnIfMissing('exams', $column, $definition);
+        }
     }
 
     private static function ensureOtpCodeTable(): void

@@ -1,189 +1,256 @@
 @extends('layouts.app')
 
+@section('title', __('pages.exams_management'))
+
 @section('content')
-<div class="container animate-in mx-auto px-4 py-8">
-    <div class="bg-white shadow rounded-lg p-6">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">{{ __('pages.exams_management') }}</h2>
-            <button onclick="showAddExamModal()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                {{ __('pages.add_new_exam') }}
-            </button>
-        </div>
+<div class="container py-4 animate-in">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title mb-0">{{ __('pages.exams_management') }}</h1>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExamModal">
+            <i class="bi bi-plus-circle"></i> {{ __('pages.add_new_exam') }}
+        </button>
+    </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full table-auto">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_name') }}</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.duration') }}</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_schedules') }}</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.study_resources') }}</th>
-                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    @foreach($exams as $exam)
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show">
+            @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="app-card card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->exam_name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900">
-                                @foreach($exam->schedules as $schedule)
-                                    <div class="mb-2">
-                                        {{ $schedule->scheduled_date->format('Y-m-d H:i') }}
-                                        @if($schedule->is_completed)
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ __('pages.done') }}</span>
-                                        @else
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ __('pages.not_done') }}</span>
-                                        @endif
-                                    </div>
-                                @endforeach
-                                <button onclick="showAddScheduleModal({{ $exam->exam_id }})" class="text-blue-500 hover:text-blue-700">
-                                    + {{ __('pages.add_schedule') }}
-                                </button>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-900">{{ $exam->study_resources }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900">
-                                <div class="flex space-x-2">
-                                    <button onclick="showEditExamModal({{ $exam->exam_id }})" class="text-blue-500 hover:text-blue-700">
-                                        {{ __('pages.edit') }}
-                                    </button>
-                                    <button onclick="showResultsModal({{ $exam->exam_id }})" class="text-green-500 hover:text-green-700">
-                                        {{ __('pages.results') }}
-                                    </button>
-                                    <button onclick="deleteExam({{ $exam->exam_id }})" class="text-red-500 hover:text-red-700">
-                                        {{ __('pages.delete') }}
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Add Exam Modal -->
-<div id="addExamModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('pages.add_new_exam') }}</h3>
-            <form id="addExamForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.exam_name') }}</label>
-                    <input type="text" name="exam_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.exam_duration_minutes') }}</label>
-                    <input type="number" name="duration_minutes" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.study_resources') }}</label>
-                    <textarea name="study_resources" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
-                </div>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="hideAddExamModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">{{ __('pages.cancel') }}</button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">{{ __('pages.save') }}</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add Schedule Modal -->
-<div id="addScheduleModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('pages.add_schedule') }} {{ __('pages.add_exam_suffix') }}</h3>
-            <form id="addScheduleForm" class="space-y-4">
-                <input type="hidden" name="exam_id" id="scheduleExamId">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{{ __('pages.exam_schedule_datetime') }}</label>
-                    <input type="datetime-local" name="scheduled_date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="hideAddScheduleModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">{{ __('pages.cancel') }}</button>
-                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">{{ __('pages.save') }}</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Results Modal -->
-<div id="resultsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
-    <div class="relative top-20 mx-auto p-5 border w-3/4 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('pages.exam_results') }}</h3>
-            <div class="overflow-x-auto">
-                <table class="w-full table-auto">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.student') }}</th>
-                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.grade') }}</th>
-                            <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.actions') }}</th>
+                            <th>{{ __('pages.exam_name') }}</th>
+                            <th>{{ __('pages.course') }}</th>
+                            <th>{{ __('pages.module') }}</th>
+                            <th>{{ __('pages.duration') }}</th>
+                            <th>{{ __('pages.exam_schedules') }}</th>
+                            <th>{{ __('pages.study_resources') }}</th>
+                            <th>{{ __('pages.actions') }}</th>
                         </tr>
                     </thead>
-                    <tbody id="resultsTableBody" class="divide-y divide-gray-200">
+                    <tbody>
+                        @forelse($exams as $exam)
+                            <tr>
+                                <td class="fw-semibold">{{ $exam->exam_name }}</td>
+                                <td>{{ $exam->course->title ?? '—' }}</td>
+                                <td>{{ $exam->module->title ?? '—' }}</td>
+                                <td>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
+                                <td>
+                                    @foreach($exam->schedules as $schedule)
+                                        <div class="small mb-1">
+                                            {{ $schedule->scheduled_date->format('Y-m-d H:i') }}
+                                            @if($schedule->is_completed)
+                                                <span class="badge bg-success">{{ __('pages.done') }}</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark">{{ __('pages.not_done') }}</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                    <button type="button" class="btn btn-link btn-sm p-0"
+                                            data-bs-toggle="modal" data-bs-target="#scheduleModal-{{ $exam->exam_id }}">
+                                        + {{ __('pages.add_schedule') }}
+                                    </button>
+                                </td>
+                                <td class="small text-muted-theme">{{ Str::limit($exam->study_resources, 60) }}</td>
+                                <td>
+                                    <div class="d-flex gap-1 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-theme"
+                                                data-bs-toggle="modal" data-bs-target="#editExamModal-{{ $exam->exam_id }}">
+                                            {{ __('pages.edit') }}
+                                        </button>
+                                        <form method="POST" action="{{ route('exams.destroy', $exam->exam_id) }}"
+                                              onsubmit="return confirm(@json(__('pages.confirm_delete_exam_js')))">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('pages.delete') }}</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted-theme py-4">{{ __('pages.no_exams_yet') }}</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="flex justify-end mt-4">
-                <button onclick="hideResultsModal()" class="bg-gray-500 text-white px-4 py-2 rounded-md">{{ __('pages.close') }}</button>
-            </div>
         </div>
     </div>
 </div>
 
+{{-- Add exam --}}
+<div class="modal fade" id="addExamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('exams.store') }}">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ __('pages.add_new_exam') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('pages.course') }} *</label>
+                        <select name="course_id" id="addExamCourse" class="form-select" required>
+                            <option value="">{{ __('pages.select_course') }}</option>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->course_id }}" @selected(old('course_id') == $course->course_id)>
+                                    {{ $course->title }} ({{ $course->year }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('pages.pillar') }} *</label>
+                        <select name="module_id" id="addExamModule" class="form-select" required>
+                            <option value="">{{ __('pages.select_module') }}</option>
+                            @foreach($modules as $module)
+                                <option value="{{ $module->module_id }}"
+                                        data-courses="{{ $module->courses->pluck('course_id')->join(',') }}"
+                                        @selected(old('module_id') == $module->module_id)>
+                                    {{ $module->title }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('pages.exam_name') }} *</label>
+                        <input type="text" name="exam_name" class="form-control" value="{{ old('exam_name') }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('pages.exam_duration_minutes') }} *</label>
+                        <input type="number" name="duration_minutes" class="form-control" min="1" value="{{ old('duration_minutes', 60) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('pages.study_resources') }}</label>
+                        <textarea name="study_resources" class="form-control" rows="2">{{ old('study_resources') }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-theme" data-bs-dismiss="modal">{{ __('pages.cancel') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ __('pages.save') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@foreach($exams as $exam)
+    <div class="modal fade" id="scheduleModal-{{ $exam->exam_id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('exams.schedule', $exam->exam_id) }}">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ __('pages.add_schedule') }} — {{ $exam->exam_name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">{{ __('pages.exam_schedule_datetime') }} *</label>
+                        <input type="datetime-local" name="scheduled_date" class="form-control" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-theme" data-bs-dismiss="modal">{{ __('pages.cancel') }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('pages.save') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editExamModal-{{ $exam->exam_id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('exams.update', $exam->exam_id) }}">
+                    @csrf @method('PUT')
+                    <div class="modal-header">
+                        <h5 class="modal-title">{{ __('pages.edit') }} — {{ $exam->exam_name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">{{ __('pages.course') }} *</label>
+                            <select name="course_id" class="form-select edit-exam-course" required>
+                                @foreach($courses as $course)
+                                    <option value="{{ $course->course_id }}" @selected($exam->course_id == $course->course_id)>
+                                        {{ $course->title }} ({{ $course->year }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ __('pages.pillar') }} *</label>
+                            <select name="module_id" class="form-select" required>
+                                @foreach($modules as $module)
+                                    <option value="{{ $module->module_id }}" @selected($exam->module_id == $module->module_id)>
+                                        {{ $module->title }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ __('pages.exam_name') }} *</label>
+                            <input type="text" name="exam_name" class="form-control" value="{{ $exam->exam_name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ __('pages.exam_duration_minutes') }} *</label>
+                            <input type="number" name="duration_minutes" class="form-control" min="1" value="{{ $exam->duration_minutes }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ __('pages.study_resources') }}</label>
+                            <textarea name="study_resources" class="form-control" rows="2">{{ $exam->study_resources }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-theme" data-bs-dismiss="modal">{{ __('pages.cancel') }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('pages.save') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
 @push('scripts')
 <script>
-function showAddExamModal() {
-    document.getElementById('addExamModal').classList.remove('hidden');
-}
+(function () {
+    const courseSelect = document.getElementById('addExamCourse');
+    const moduleSelect = document.getElementById('addExamModule');
+    if (!courseSelect || !moduleSelect) return;
 
-function hideAddExamModal() {
-    document.getElementById('addExamModal').classList.add('hidden');
-}
+    const allOptions = Array.from(moduleSelect.querySelectorAll('option[data-courses]'));
 
-function showAddScheduleModal(examId) {
-    document.getElementById('scheduleExamId').value = examId;
-    document.getElementById('addScheduleModal').classList.remove('hidden');
-}
-
-function hideAddScheduleModal() {
-    document.getElementById('addScheduleModal').classList.add('hidden');
-}
-
-function showResultsModal(examId) {
-    // Here you would typically fetch the results for the exam
-    document.getElementById('resultsModal').classList.remove('hidden');
-}
-
-function hideResultsModal() {
-    document.getElementById('resultsModal').classList.add('hidden');
-}
-
-function deleteExam(examId) {
-    if (confirm(@json(__('pages.confirm_delete_exam_js')))) {
-        // Here you would typically send a delete request to the server
-        alert(@json(__('pages.exam_deleted_success')));
+    function filterModules() {
+        const courseId = courseSelect.value;
+        const current = moduleSelect.value;
+        moduleSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = @json(__('pages.select_module'));
+        moduleSelect.appendChild(placeholder);
+        allOptions.forEach(function (opt) {
+            const courses = (opt.dataset.courses || '').split(',').filter(Boolean);
+            if (!courseId || courses.includes(courseId)) {
+                moduleSelect.appendChild(opt.cloneNode(true));
+            }
+        });
+        if (current) moduleSelect.value = current;
     }
-}
 
-// Form submissions
-document.getElementById('addExamForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    // Here you would typically send the form data to the server
-    hideAddExamModal();
-    alert(@json(__('pages.exam_added_success')));
-});
-
-document.getElementById('addScheduleForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    // Here you would typically send the form data to the server
-    hideAddScheduleModal();
-    alert(@json(__('pages.schedule_added_success')));
-});
+    courseSelect.addEventListener('change', filterModules);
+    filterModules();
+})();
 </script>
 @endpush
-@endsection 
+@endsection

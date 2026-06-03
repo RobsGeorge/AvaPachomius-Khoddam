@@ -2,23 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Content;
 use App\Models\ContentFeedback;
+use App\Models\Course;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ContentController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Curriculum entry: courses with modules & lectures (pillar headers).
      */
     public function index()
     {
-        $contents = Content::orderBy('session_date', 'desc')
-                          ->orderBy('content_id', 'desc')
-                          ->get();
+        $user = Auth::user();
 
-        return view('contents.index', compact('contents'));
+        if ($user->hasAnyRole(['admin', 'instructor'])) {
+            $courses = Course::orderBy('title')->get();
+        } else {
+            $courses = $user->courses()->distinct()->orderBy('title')->get();
+        }
+
+        if ($courses->count() === 1) {
+            return redirect()->route('course-content.show', $courses->first()->course_id);
+        }
+
+        return view('contents.index', compact('courses'));
     }
 
     /**
@@ -99,60 +108,41 @@ class ContentController extends Controller
      */
     public function destroy(string $id)
     {
-        $content = Content::findOrFail($id);
-        $content->delete();
+        Content::findOrFail($id)->delete();
 
         return redirect()->route('contents.index')
                         ->with('success', 'تم حذف المحتوى بنجاح');
     }
 
-    /**
-     * Store feedback for a content item
-     */
-    public function storeFeedback(Request $request, $contentId)
+    public function showFeedbackForm(string $id)
     {
-        $request->validate([
-            'lecture_rating' => 'nullable|integer|min:1|max:5',
-            'lecture_comments' => 'nullable|string|max:1000',
-            'speaker_rating' => 'nullable|integer|min:1|max:5',
-            'speaker_comments' => 'nullable|string|max:1000',
-            'general_feedback' => 'nullable|string|max:1000',
-        ]);
+        $content = Content::findOrFail($id);
+        $userFeedback = $content->userFeedback(Auth::id());
 
-        $content = Content::findOrFail($contentId);
-        
-        // Check if user already submitted feedback
-        $existingFeedback = $content->userFeedback(Auth::id());
-        
-        if ($existingFeedback) {
-            // Update existing feedback
-            $existingFeedback->update($request->all());
-            $message = 'تم تحديث التغذية الراجعة بنجاح';
-        } else {
-            // Create new feedback
-            ContentFeedback::create([
-                'user_id' => Auth::id(),
-                'content_id' => $contentId,
-                'lecture_rating' => $request->lecture_rating,
-                'lecture_comments' => $request->lecture_comments,
-                'speaker_rating' => $request->speaker_rating,
-                'speaker_comments' => $request->speaker_comments,
-                'general_feedback' => $request->general_feedback,
-            ]);
-            $message = 'تم إرسال التغذية الراجعة بنجاح';
-        }
-
-        return redirect()->back()->with('success', $message);
+        return view('contents.feedback', compact('content', 'userFeedback'));
     }
 
-    /**
-     * Show feedback form for a content item
-     */
-    public function showFeedbackForm($contentId)
+    public function storeFeedback(Request $request, string $id)
     {
-        $content = Content::findOrFail($contentId);
-        $userFeedback = $content->userFeedback(Auth::id());
-        
-        return view('contents.feedback', compact('content', 'userFeedback'));
+        $content = Content::findOrFail($id);
+
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comments' => 'nullable|string|max:1000',
+        ]);
+
+        ContentFeedback::updateOrCreate(
+            [
+                'content_id' => $content->content_id,
+                'user_id' => Auth::id(),
+            ],
+            [
+                'rating' => $request->rating,
+                'comments' => $request->comments,
+            ]
+        );
+
+        return redirect()->route('contents.index')
+                        ->with('success', 'تم حفظ ملاحظاتك بنجاح');
     }
 }

@@ -30,7 +30,7 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">{{ __('pages.course') }} <span class="text-danger">*</span></label>
-                    <select name="course_id" class="form-select @error('course_id') is-invalid @enderror" required>
+                    <select name="course_id" id="course_id" class="form-select @error('course_id') is-invalid @enderror" required>
                         <option value="">{{ __('pages.select_course') }}</option>
                         @foreach($courses as $course)
                             <option value="{{ $course->course_id }}"
@@ -40,6 +40,26 @@
                         @endforeach
                     </select>
                     @error('course_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">{{ __('pages.module') }} / {{ __('pages.pillar') }} <span class="text-danger">*</span></label>
+                    <select name="module_id" id="module_id" class="form-select @error('module_id') is-invalid @enderror" required>
+                        <option value="">{{ __('pages.select_module') }}</option>
+                        @foreach($courses as $course)
+                            @foreach($course->modules as $module)
+                                <option value="{{ $module->module_id }}"
+                                        data-course-id="{{ $course->course_id }}"
+                                        {{ (string) old('module_id') === (string) $module->module_id ? 'selected' : '' }}>
+                                    {{ $course->title }} — {{ $module->title }}
+                                </option>
+                            @endforeach
+                        @endforeach
+                    </select>
+                    <div class="form-text text-muted-theme">{{ __('pages.session_module_hint') }}</div>
+                    @error('module_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -255,10 +275,32 @@ document.getElementById('sessionForm').addEventListener('submit', () => {
     });
 });
 
+function filterModulesByCourse() {
+    const courseId = document.getElementById('course_id')?.value;
+    const moduleSelect = document.getElementById('module_id');
+    if (!moduleSelect) return;
+
+    let hasVisible = false;
+    Array.from(moduleSelect.options).forEach((opt, idx) => {
+        if (idx === 0) {
+            opt.hidden = false;
+            return;
+        }
+        const match = !courseId || opt.dataset.courseId === courseId;
+        opt.hidden = !match;
+        if (match && opt.value === moduleSelect.value) hasVisible = true;
+    });
+
+    if (!hasVisible) moduleSelect.value = '';
+}
+
+document.getElementById('course_id')?.addEventListener('change', filterModulesByCourse);
+
 document.addEventListener('DOMContentLoaded', () => {
     const checked = document.querySelector('input[name="creation_mode"]:checked');
     if (checked) switchMode(checked.value);
     updatePreview();
+    filterModulesByCourse();
 });
 </script>
 @endpush

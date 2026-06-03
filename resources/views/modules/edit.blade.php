@@ -40,6 +40,20 @@
                               rows="3" maxlength="255" required>{{ old('description', $module->description) }}</textarea>
                     @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ __('pages.link_another_course') }}</label>
+                    <select name="course_id" class="form-select @error('course_id') is-invalid @enderror">
+                        <option value="">{{ __('pages.select_course') }}</option>
+                        @foreach($courses as $course)
+                            @if(! in_array($course->course_id, $linkedCourseIds, true))
+                                <option value="{{ $course->course_id }}" @selected(old('course_id') == $course->course_id)>
+                                    {{ $course->title }} ({{ $course->year }})
+                                </option>
+                            @endif
+                        @endforeach
+                    </select>
+                    @error('course_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-check-circle"></i> {{ __('pages.save_changes') }}
                 </button>

@@ -3,17 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\Module;
 use App\Models\Session;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class SessionController extends Controller
 {
     public function index()
     {
-        $sessions = Session::with('course')
+        $sessions = Session::with(['course', 'module'])
             ->orderBy('session_date', 'desc')
             ->paginate(20);
 
@@ -22,7 +25,7 @@ class SessionController extends Controller
 
     public function create()
     {
-        $courses = Course::orderBy('title')->get();
+        $courses = Course::with('modules')->orderBy('title')->get();
 
         return view('sessions.create', compact('courses'));
     }
@@ -37,11 +40,10 @@ class SessionController extends Controller
 
         $payload = [
             'course_id'     => $request->input('course_id'),
+            'module_id'     => $request->input('module_id'),
             'session_title' => $request->input('session_title'),
             'creation_mode' => $mode,
         ];
-
-        $datesToCreate = [];
 
         if ($mode === 'single') {
             $payload['single_date'] = $this->normalizeDateInput($request->input('single_date'));
@@ -61,6 +63,7 @@ class SessionController extends Controller
 
         $rules = [
             'course_id'     => 'required|exists:course,course_id',
+            'module_id'     => 'required|exists:modules,module_id',
             'session_title' => 'required|string|max:27',
             'creation_mode' => 'required|in:single,multi,weekly',
         ];
@@ -83,7 +86,12 @@ class SessionController extends Controller
             'dates.*.date_format' => 'أحد التواريخ غير صالح.',
             'start_date.required' => 'يرجى اختيار تاريخ أول محاضرة.',
             'start_date.date_format' => 'تاريخ البداية غير صالح.',
+            'module_id.required' => __('pages.module_required_for_session'),
         ])->validate();
+
+        $this->assertModuleBelongsToCourse((int) $validated['module_id'], (int) $validated['course_id']);
+
+        $datesToCreate = [];
 
         if ($mode === 'single') {
             $datesToCreate = [$validated['single_date']];
@@ -98,6 +106,7 @@ class SessionController extends Controller
         }
 
         $isSingle = count($datesToCreate) === 1;
+        $moduleId = (int) $validated['module_id'];
 
         try {
             foreach ($datesToCreate as $index => $date) {
@@ -105,11 +114,14 @@ class SessionController extends Controller
                     ? $validated['session_title']
                     : $validated['session_title'].' '.($index + 1);
 
-                Session::create([
+                $session = Session::create([
                     'course_id'     => $validated['course_id'],
+                    'module_id'     => $moduleId,
                     'session_title' => mb_substr($title, 0, 30),
                     'session_date'  => $date,
                 ]);
+
+                $this->linkSessionToModule($session, $moduleId, $index + 1);
             }
         } catch (QueryException $e) {
             Log::error('Session create failed', [
@@ -133,8 +145,8 @@ class SessionController extends Controller
 
     public function edit(string $id)
     {
-        $session = Session::findOrFail($id);
-        $courses = Course::orderBy('title')->get();
+        $session = Session::with('module')->findOrFail($id);
+        $courses = Course::with('modules')->orderBy('title')->get();
 
         return view('sessions.edit', compact('session', 'courses'));
     }
@@ -146,18 +158,26 @@ class SessionController extends Controller
         $validated = validator(
             [
                 'course_id'     => $request->input('course_id'),
+                'module_id'     => $request->input('module_id'),
                 'session_title' => $request->input('session_title'),
                 'session_date'  => $normalizedDate,
             ],
             [
                 'course_id'     => 'required|exists:course,course_id',
+                'module_id'     => 'required|exists:modules,module_id',
                 'session_title' => 'required|string|max:30',
                 'session_date'  => 'required|date_format:Y-m-d',
+            ],
+            [
+                'module_id.required' => __('pages.module_required_for_session'),
             ]
         )->validate();
 
+        $this->assertModuleBelongsToCourse((int) $validated['module_id'], (int) $validated['course_id']);
+
         $session = Session::findOrFail($id);
         $session->update($validated);
+        $this->linkSessionToModule($session, (int) $validated['module_id']);
 
         return redirect()->route('sessions.index')
             ->with('success', 'تم تحديث الجلسة بنجاح');
@@ -165,10 +185,37 @@ class SessionController extends Controller
 
     public function destroy(string $id)
     {
-        Session::findOrFail($id)->delete();
+        $session = Session::findOrFail($id);
+        DB::table('module_session')->where('session_id', $session->session_id)->delete();
+        $session->delete();
 
         return redirect()->route('sessions.index')
             ->with('success', 'تم حذف الجلسة بنجاح');
+    }
+
+    private function assertModuleBelongsToCourse(int $moduleId, int $courseId): void
+    {
+        $linked = DB::table('course_module')
+            ->where('course_id', $courseId)
+            ->where('module_id', $moduleId)
+            ->exists();
+
+        if (! $linked) {
+            throw ValidationException::withMessages([
+                'module_id' => __('pages.module_not_in_course'),
+            ]);
+        }
+    }
+
+    private function linkSessionToModule(Session $session, int $moduleId, ?int $weekNumber = null): void
+    {
+        DB::table('module_session')->where('session_id', $session->session_id)->delete();
+
+        DB::table('module_session')->insert([
+            'module_id'    => $moduleId,
+            'session_id'   => $session->session_id,
+            'week_number'  => $weekNumber,
+        ]);
     }
 
     /**

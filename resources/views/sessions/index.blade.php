@@ -29,6 +29,7 @@
                         <th>{{ __('pages.date') }}</th>
                         <th>{{ __('pages.session_title') }}</th>
                         <th>{{ __('pages.course') }}</th>
+                        <th>{{ __('pages.module') }}</th>
                         <th>{{ __('pages.attendance_count') }}</th>
                         @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
                             <th>{{ __('pages.actions') }}</th>
@@ -46,6 +47,7 @@
                             </td>
                             <td>{{ $session->session_title }}</td>
                             <td>{{ $session->course->title ?? '—' }}</td>
+                            <td>{{ $session->module->title ?? '—' }}</td>
                             <td>
                                 <span class="badge bg-secondary">
                                     {{ $session->attendances->count() }}

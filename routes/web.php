@@ -51,9 +51,8 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
-    Route::resource('modules', ModuleController::class);
-    Route::resource('contents', ContentController::class);
-    Route::resource('sessions', SessionController::class);
+    Route::resource('contents', ContentController::class)->only(['index']);
+    Route::resource('sessions', SessionController::class)->only(['index']);
     Route::resource('assessments', AssessmentController::class);
     Route::resource('course-assessments', CourseAssessmentController::class);
     Route::resource('user-assessments', UserAssessmentController::class);
@@ -170,6 +169,10 @@ Route::middleware('auth')->group(function () {
 
 // Course content & grades — admin/instructor management
 Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
+    Route::resource('modules', ModuleController::class);
+    Route::resource('sessions', SessionController::class)->except(['index']);
+    Route::resource('contents', ContentController::class)->except(['index']);
+
     // Content
     Route::get('/courses/{course}/content/manage',              [CourseContentController::class, 'admin'])->name('course-content.admin');
     Route::post('/courses/{course}/modules/attach',             [CourseContentController::class, 'attachModule'])->name('course-content.attach-module');

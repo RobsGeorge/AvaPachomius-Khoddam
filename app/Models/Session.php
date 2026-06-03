@@ -16,7 +16,7 @@ class Session extends Model
 
     protected $primaryKey = 'session_id';
 
-    protected $fillable = ['course_id', 'session_title', 'session_date'];
+    protected $fillable = ['course_id', 'module_id', 'session_title', 'session_date'];
 
     protected $casts = [
         'session_date' => 'date',
@@ -27,6 +27,11 @@ class Session extends Model
     public function course()
     {
         return $this->belongsTo(Course::class, 'course_id', 'course_id');
+    }
+
+    public function module()
+    {
+        return $this->belongsTo(Module::class, 'module_id', 'module_id');
     }
 
     public function attendances()

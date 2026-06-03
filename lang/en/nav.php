@@ -5,6 +5,7 @@ return [
     'attendance'        => 'Attendance',
     'my_attendance'     => 'My attendance',
     'sessions'          => 'Sessions',
+    'modules'           => 'Modules',
     'roles'             => 'Role management',
     'superadmin'        => 'Super admin',
     'profile'           => 'Profile',

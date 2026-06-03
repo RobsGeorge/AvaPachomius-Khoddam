@@ -27,6 +27,12 @@
                             {{ __('nav.sessions') }}
                         </a>
 
+                        @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
+                            <a href="{{ route('modules.index') }}" class="app-nav-link {{ request()->routeIs('modules.*') ? 'active' : '' }}">
+                                {{ __('nav.modules') }}
+                            </a>
+                        @endif
+
                         @if(auth()->user()->roles->contains('role_name', 'admin'))
                             <a href="{{ route('user-course-roles.index') }}" class="app-nav-link {{ request()->routeIs('user-course-roles.*', 'roles.*') ? 'active' : '' }}">
                                 {{ __('nav.roles') }}

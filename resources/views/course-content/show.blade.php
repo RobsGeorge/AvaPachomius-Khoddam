@@ -66,6 +66,18 @@
                 <div class="px-3 pt-2 text-muted small">{{ $module->description }}</div>
             @endif
 
+            @if($module->exams->isNotEmpty())
+                <div class="px-3 py-2 border-bottom bg-light">
+                    <small class="text-muted fw-semibold d-block mb-1">{{ __('pages.module_exams') }}:</small>
+                    @foreach($module->exams as $exam)
+                        <span class="badge bg-primary me-1 mb-1">
+                            <i class="bi bi-journal-check me-1"></i>{{ $exam->exam_name }}
+                            ({{ $exam->duration_minutes }} {{ __('pages.minutes') }})
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+
             @if($module->sessions->isNotEmpty())
                 <div class="px-3 py-2 border-bottom">
                     <small class="text-muted fw-semibold">{{ __('pages.linked_sessions') }}:</small>

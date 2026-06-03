@@ -13,6 +13,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>{{ __('pages.exam_name') }}</th>
+                            <th>{{ __('pages.module') }}</th>
                             <th>{{ __('pages.duration') }}</th>
                             <th>{{ __('pages.exam_date') }}</th>
                             <th>{{ __('pages.done') }}?</th>
@@ -26,6 +27,7 @@
                             @foreach($exam->schedules as $schedule)
                                 <tr>
                                     <td>{{ $exam->exam_name }}</td>
+                                    <td>{{ $exam->module->title ?? '—' }}</td>
                                     <td>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
                                     <td>{{ $schedule->scheduled_date->format('Y-m-d H:i') }}</td>
                                     <td>

@@ -5,6 +5,7 @@ return [
     'attendance'        => 'الحضور',
     'my_attendance'     => 'سجل الحضور',
     'sessions'          => 'المحاضرات',
+    'modules'           => 'الوحدات',
     'roles'             => 'إدارة الأدوار',
     'superadmin'        => 'المشرف العام',
     'profile'           => 'الملف الشخصي',

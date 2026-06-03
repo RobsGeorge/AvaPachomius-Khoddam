@@ -29,11 +29,23 @@
                     <div class="form-text text-muted-theme">{{ __('pages.max_30_chars') }}</div>
                     @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <div class="mb-4">
+                <div class="mb-3">
                     <label class="form-label fw-semibold">{{ __('pages.description') }} <span class="text-danger">*</span></label>
                     <textarea name="description" class="form-control @error('description') is-invalid @enderror"
                               rows="3" maxlength="255" required>{{ old('description') }}</textarea>
                     @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ __('pages.link_course_optional') }}</label>
+                    <select name="course_id" class="form-select @error('course_id') is-invalid @enderror">
+                        <option value="">{{ __('pages.select_course') }}</option>
+                        @foreach($courses as $course)
+                            <option value="{{ $course->course_id }}" @selected(old('course_id') == $course->course_id)>
+                                {{ $course->title }} ({{ $course->year }})
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('course_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">

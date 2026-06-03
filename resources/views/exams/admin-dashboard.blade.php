@@ -51,12 +51,12 @@
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-xl font-bold text-gray-900 mb-4">{{ __('pages.quick_actions') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button onclick="showAddExamModal()" class="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <a href="{{ route('exams.dashboard') }}" class="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50 text-decoration-none text-gray-900">
                 <svg class="h-6 w-6 text-blue-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
                 <span>{{ __('pages.add_new_exam') }}</span>
-            </button>
+            </a>
             <button onclick="showScheduleExamModal()" class="flex items-center justify-center p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
                 <svg class="h-6 w-6 text-green-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
@@ -83,6 +83,7 @@
                 <thead>
                     <tr class="bg-gray-100">
                         <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.exam_name') }}</th>
+                        <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.module') }}</th>
                         <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.date') }}</th>
                         <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.duration') }}</th>
                         <th class="px-6 py-3 text-right text-sm font-medium text-gray-900">{{ __('pages.registered_count') }}</th>
@@ -93,6 +94,7 @@
                     @foreach($upcomingExamSchedules as $schedule)
                         <tr>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->exam->exam_name }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->exam->module->title ?? '—' }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->scheduled_date->format('Y-m-d H:i') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->exam->duration_minutes }} {{ __('pages.minutes') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $schedule->results->count() }}</td>
@@ -131,7 +133,10 @@
                     @foreach($recentResults as $result)
                         <tr>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $result->user->name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-900">{{ $result->exam->exam_name }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                {{ $result->exam->exam_name }}
+                                <span class="text-gray-500 text-xs d-block">{{ $result->exam->module->title ?? '' }}</span>
+                            </td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $result->schedule->scheduled_date->format('Y-m-d') }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">{{ $result->score }}</td>
                             <td class="px-6 py-4 text-sm text-gray-900">

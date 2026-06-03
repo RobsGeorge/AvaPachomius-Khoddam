@@ -17,6 +17,7 @@ class CourseContentController extends Controller
         $course = Course::with([
             'modules.lectures.materials',
             'modules.sessions',
+            'modules.exams.schedules',
         ])->findOrFail($courseId);
 
         $userFeedbackIds = ModuleFeedback::where('user_id', Auth::user()->user_id)

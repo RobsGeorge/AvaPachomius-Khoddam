@@ -31,6 +31,11 @@ class Module extends Model
         ]);
     }
 
+    public function courseSessions()
+    {
+        return $this->hasMany(Session::class, 'module_id', 'module_id');
+    }
+
     public function sessions()
     {
         return $this->belongsToMany(
@@ -65,6 +70,11 @@ class Module extends Model
         return $this->hasMany(Lecture::class, 'module_id', 'module_id')
                     ->orderBy('order_index')
                     ->orderBy('week_number');
+    }
+
+    public function exams()
+    {
+        return $this->hasMany(Exam::class, 'module_id', 'module_id');
     }
 }
 
