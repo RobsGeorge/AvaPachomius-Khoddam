@@ -11,6 +11,9 @@
         </a>
     </div>
 
+    @if($errors->has('general'))
+        <div class="alert alert-danger">{{ $errors->first('general') }}</div>
+    @endif
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show">
             @foreach($errors->all() as $error)
@@ -89,9 +92,19 @@
 
                 <div id="panel_single" class="mode-panel border rounded p-3 mb-3">
                     <label class="form-label fw-semibold">{{ __('pages.session_date') }}</label>
-                    <input type="date" name="single_date"
+                    @php
+                        $singleDateValue = old('single_date', '');
+                        if ($singleDateValue && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $singleDateValue)) {
+                            try {
+                                $singleDateValue = \Carbon\Carbon::createFromFormat('d/m/Y', $singleDateValue)->format('Y-m-d');
+                            } catch (\Throwable) {
+                                $singleDateValue = '';
+                            }
+                        }
+                    @endphp
+                    <input type="date" name="single_date" data-session-mode="single"
                            class="form-control @error('single_date') is-invalid @enderror"
-                           value="{{ old('single_date') }}">
+                           value="{{ $singleDateValue }}">
                     @error('single_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -103,7 +116,7 @@
                         @if(old('dates'))
                             @foreach(old('dates') as $d)
                                 <div class="d-flex gap-2 mb-2 date-row">
-                                    <input type="date" name="dates[]" class="form-control" value="{{ $d }}">
+                                    <input type="date" name="dates[]" data-session-mode="multi" class="form-control" value="{{ $d }}">
                                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDate(this)">
                                         <i class="bi bi-x-lg"></i>
                                     </button>
@@ -111,7 +124,7 @@
                             @endforeach
                         @else
                             <div class="d-flex gap-2 mb-2 date-row">
-                                <input type="date" name="dates[]" class="form-control">
+                                <input type="date" name="dates[]" data-session-mode="multi" class="form-control">
                                 <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDate(this)" disabled>
                                     <i class="bi bi-x-lg"></i>
                                 </button>
@@ -124,13 +137,16 @@
                     @error('dates')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
+                    @error('dates.*')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div id="panel_weekly" class="mode-panel border rounded p-3 mb-3" style="display:none;">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">{{ __('pages.first_lecture_date') }}</label>
-                            <input type="date" name="start_date" id="start_date"
+                            <input type="date" name="start_date" id="start_date" data-session-mode="weekly"
                                    class="form-control @error('start_date') is-invalid @enderror"
                                    value="{{ old('start_date') }}" onchange="updatePreview()">
                             @error('start_date')
@@ -139,7 +155,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">{{ __('pages.weeks_count') }}</label>
-                            <input type="number" name="weeks" id="weeks_input"
+                            <input type="number" name="weeks" id="weeks_input" data-session-mode="weekly"
                                    class="form-control @error('weeks') is-invalid @enderror"
                                    value="{{ old('weeks', 12) }}" min="1" max="52" onchange="updatePreview()">
                             @error('weeks')
@@ -189,7 +205,7 @@ function addDate() {
     const list = document.getElementById('multi_dates_list');
     const row = document.createElement('div');
     row.className = 'd-flex gap-2 mb-2 date-row';
-    row.innerHTML = `<input type="date" name="dates[]" class="form-control">
+    row.innerHTML = `<input type="date" name="dates[]" data-session-mode="multi" class="form-control">
         <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeDate(this)">
             <i class="bi bi-x-lg"></i>
         </button>`;
@@ -231,11 +247,11 @@ function updatePreview() {
 }
 
 document.getElementById('sessionForm').addEventListener('submit', () => {
-    document.querySelectorAll('.mode-panel').forEach((panel) => {
-        const active = panel.style.display !== 'none';
-        panel.querySelectorAll('input, select, textarea').forEach((el) => {
-            el.disabled = !active;
-        });
+    const mode = document.querySelector('input[name="creation_mode"]:checked')?.value || 'single';
+    document.querySelectorAll('[data-session-mode]').forEach((el) => {
+        if (el.dataset.sessionMode !== mode) {
+            el.removeAttribute('name');
+        }
     });
 });
 

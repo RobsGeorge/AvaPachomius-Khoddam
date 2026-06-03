@@ -16,6 +16,7 @@ final class LegacySchemaSync
     {
         LegacyPrimaryKeys::normalizeAll();
         self::syncUserTable();
+        self::syncSessionTable();
         self::ensureOtpCodeTable();
     }
 
@@ -24,6 +25,34 @@ final class LegacySchemaSync
     {
         self::syncUserTable();
         self::ensureOtpCodeTable();
+    }
+
+    private static function syncSessionTable(): void
+    {
+        if (! Schema::hasTable('session')) {
+            return;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'mysql') {
+            $columns = [
+                'course_id' => 'BIGINT UNSIGNED NOT NULL',
+                'session_title' => "VARCHAR(30) NOT NULL DEFAULT ''",
+                'session_date' => 'DATE NOT NULL',
+                'created_at' => 'TIMESTAMP NULL',
+                'updated_at' => 'TIMESTAMP NULL',
+            ];
+
+            foreach ($columns as $column => $definition) {
+                self::addMysqlColumnIfMissing('session', $column, $definition);
+            }
+
+            return;
+        }
+
+        MigrationSupport::addStringColumn('session', 'session_title', 30, false);
+        MigrationSupport::addDateColumn('session', 'session_date', false);
     }
 
     private static function ensureOtpCodeTable(): void

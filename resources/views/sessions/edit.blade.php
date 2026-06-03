@@ -57,7 +57,7 @@
                     <label class="form-label fw-semibold">{{ __('pages.session_date') }} <span class="text-danger">*</span></label>
                     <input type="date" name="session_date"
                            class="form-control @error('session_date') is-invalid @enderror"
-                           value="{{ old('session_date', $session->session_date) }}" required>
+                           value="{{ old('session_date', $session->session_date?->format('Y-m-d')) }}" required>
                     @error('session_date')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -82,7 +82,7 @@
                 <dt class="col-sm-4">{{ __('pages.attendance_records_count') }}</dt>
                 <dd class="col-sm-8">{{ $session->attendances->count() }}</dd>
                 <dt class="col-sm-4">{{ __('pages.created_at') }}</dt>
-                <dd class="col-sm-8">{{ $session->created_at->format('Y-m-d H:i') }}</dd>
+                <dd class="col-sm-8">{{ $session->created_at?->format('Y-m-d H:i') ?? '—' }}</dd>
             </dl>
         </div>
     </div>

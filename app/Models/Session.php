@@ -9,6 +9,8 @@ use App\Models\Attendance;
 
 class Session extends Model
 {
+    /** Legacy `session` table may not have timestamps on production. */
+    public $timestamps = false;
 
     protected $table = 'session';
 
@@ -18,6 +20,8 @@ class Session extends Model
 
     protected $casts = [
         'session_date' => 'date',
+        'created_at'   => 'datetime',
+        'updated_at'   => 'datetime',
     ];
 
     public function course()
