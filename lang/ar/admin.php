@@ -22,4 +22,5 @@ return [
     'user_name'            => 'الاسم',
     'user_email'           => 'البريد الإلكتروني',
     'user_action'          => 'الإجراء',
+    'translations_table_missing' => 'جدول الترجمات غير موجود. شغّل migrations على الخادم (php artisan migrate:deploy --force).',
 ];

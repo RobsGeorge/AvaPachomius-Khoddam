@@ -8,6 +8,7 @@ use App\Services\AutoTranslateService;
 use App\Services\TranslationRepository;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Schema;
 
 class TranslationController extends Controller
 {
@@ -22,15 +23,17 @@ class TranslationController extends Controller
         $group  = $request->get('group', 'nav');
         $search = $request->get('search');
 
-        $fileLines = Lang::get($group, [], $locale);
-        if (! is_array($fileLines)) {
-            $fileLines = [];
-        }
+        $fileLines = $this->loadLangGroup($locale, $group);
 
-        $dbLines = Translation::query()
-            ->where('locale', $locale)
-            ->where('group', $group)
-            ->pluck('value', 'key');
+        $dbLines = collect();
+        $translationsTableMissing = ! Schema::hasTable('translations');
+
+        if (! $translationsTableMissing) {
+            $dbLines = Translation::query()
+                ->where('locale', $locale)
+                ->where('group', $group)
+                ->pluck('value', 'key');
+        }
 
         $keys = collect(array_keys($fileLines))
             ->merge($dbLines->keys())
@@ -53,12 +56,36 @@ class TranslationController extends Controller
             ->values();
 
         return view('admin.translations.index', compact(
-            'locale', 'group', 'search', 'keys', 'fileLines', 'dbLines', 'groups'
+            'locale', 'group', 'search', 'keys', 'fileLines', 'dbLines', 'groups',
+            'translationsTableMissing'
         ));
+    }
+
+    /** @return array<string, string> */
+    private function loadLangGroup(string $locale, string $group): array
+    {
+        $lines = Lang::getLoader()->load($locale, $group, '*');
+
+        if (! is_array($lines)) {
+            return [];
+        }
+
+        $flat = [];
+        foreach ($lines as $key => $value) {
+            if (is_string($value)) {
+                $flat[$key] = $value;
+            }
+        }
+
+        return $flat;
     }
 
     public function store(Request $request)
     {
+        if (! Schema::hasTable('translations')) {
+            return back()->withErrors(['general' => __('admin.translations_table_missing')]);
+        }
+
         $data = $request->validate([
             'group'  => 'required|string|max:64',
             'key'    => 'required|string|max:191',
@@ -82,6 +109,10 @@ class TranslationController extends Controller
 
     public function autoTranslate(Request $request)
     {
+        if (! Schema::hasTable('translations')) {
+            return back()->withErrors(['general' => __('admin.translations_table_missing')]);
+        }
+
         $data = $request->validate([
             'group'      => 'required|string|max:64',
             'key'        => 'required|string|max:191',

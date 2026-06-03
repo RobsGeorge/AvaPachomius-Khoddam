@@ -18,6 +18,12 @@
         </div>
     @endif
 
+    @if($translationsTableMissing ?? false)
+        <div class="alert alert-warning">
+            {{ __('admin.translations_table_missing') }}
+        </div>
+    @endif
+
     <div class="app-card card mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-end">

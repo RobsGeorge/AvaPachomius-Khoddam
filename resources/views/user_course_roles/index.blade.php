@@ -36,14 +36,14 @@
                         <tr>
                             <td>{{ $loop->iteration }}</td>
                             <td>
-                                {{ $assignment->user->first_name ?? '—' }}
-                                {{ $assignment->user->second_name ?? '' }}
+                                {{ $assignment->user?->first_name ?? '—' }}
+                                {{ $assignment->user?->second_name ?? '' }}
                             </td>
-                            <td>{{ $assignment->user->email ?? '—' }}</td>
-                            <td>{{ $assignment->course->title ?? '—' }}</td>
+                            <td>{{ $assignment->user?->email ?? '—' }}</td>
+                            <td>{{ $assignment->course?->title ?? '—' }}</td>
                             <td>
                                 <span class="badge bg-primary">
-                                    {{ $assignment->role->role_name ?? '—' }}
+                                    {{ $assignment->role?->role_name ?? '—' }}
                                 </span>
                             </td>
                             <td>

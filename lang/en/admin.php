@@ -22,4 +22,5 @@ return [
     'user_name'            => 'Name',
     'user_email'           => 'Email',
     'user_action'          => 'Action',
+    'translations_table_missing' => 'The translations table is missing. Run migrations on the server (php artisan migrate:deploy --force).',
 ];
