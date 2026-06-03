@@ -5,10 +5,15 @@ on:
     branches:
       - main
 
+# Avoid overlapping deploys (second push while first runs often hits the 10m SSH limit).
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Deploy to VPS
@@ -18,6 +23,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          timeout: 120s
+          command_timeout: 20m
           script: |
             set -e
             cd /var/www/avapakhomios
@@ -33,32 +40,30 @@ jobs:
               exit 1
             fi
 
-            sudo chown -R $USER:www-data storage bootstrap/cache
-            sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
-            sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
-
+            echo "==> git pull"
             git pull origin main
 
-            $PHP_BIN /usr/local/bin/composer install \
+            echo "==> composer install"
+            COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer install \
               --no-interaction \
               --prefer-dist \
               --optimize-autoloader \
-              --no-dev
+              --no-dev \
+              --no-progress
 
+            echo "==> migrations"
             $PHP_BIN artisan migrate:deploy --force
 
+            echo "==> optimize"
             $PHP_BIN artisan optimize:clear
-            $PHP_BIN artisan config:cache
-            $PHP_BIN artisan route:cache
-            $PHP_BIN artisan view:cache
-            $PHP_BIN artisan event:cache
-
+            $PHP_BIN artisan optimize
             $PHP_BIN artisan storage:link || true
 
+            echo "==> permissions"
             sudo chown -R $USER:www-data storage bootstrap/cache
-            sudo find storage bootstrap/cache -type d -exec chmod 775 {} \;
-            sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+            sudo chmod -R ug+rwx storage bootstrap/cache
 
+            echo "==> reload php-fpm"
             sudo systemctl reload php8.2-fpm
 
             echo "Deployment complete: $(date)"
