@@ -27,7 +27,9 @@
                         <th>{{ __('pages.module_name') }}</th>
                         <th>{{ __('pages.description') }}</th>
                         <th>{{ __('pages.lectures') }}</th>
-                        <th>{{ __('pages.exams_count') }}</th>
+                        @if($showExamCount ?? false)
+                            <th>{{ __('pages.exams_count') }}</th>
+                        @endif
                         <th>{{ __('pages.linked_courses') }}</th>
                         <th>{{ __('pages.actions') }}</th>
                     </tr>
@@ -41,9 +43,11 @@
                             <td>
                                 <span class="badge bg-secondary">{{ $module->lectures_count }}</span>
                             </td>
-                            <td>
-                                <span class="badge bg-info text-dark">{{ $module->exams_count }}</span>
-                            </td>
+                            @if($showExamCount ?? false)
+                                <td>
+                                    <span class="badge bg-info text-dark">{{ $module->exams_count ?? 0 }}</span>
+                                </td>
+                            @endif
                             <td>
                                 @forelse($module->courses as $course)
                                     <span class="badge bg-light text-dark border me-1">{{ $course->title }}</span>

@@ -6,17 +6,24 @@ use App\Models\Course;
 use App\Models\Module;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ModuleController extends Controller
 {
     public function index()
     {
-        $modules = Module::withCount(['lectures', 'exams'])
-            ->with('courses')
-            ->orderBy('title')
-            ->get();
+        $query = Module::with('courses')->orderBy('title');
+        $counts = ['lectures'];
 
-        return view('modules.index', compact('modules'));
+        $showExamCount = Schema::hasTable('exams') && Schema::hasColumn('exams', 'module_id');
+
+        if ($showExamCount) {
+            $counts[] = 'exams';
+        }
+
+        $modules = $query->withCount($counts)->get();
+
+        return view('modules.index', compact('modules', 'showExamCount'));
     }
 
     public function create()
@@ -83,13 +90,20 @@ class ModuleController extends Controller
 
     private function attachModuleToCourse(Module $module, int $courseId): void
     {
-        $nextOrder = (int) DB::table('course_module')
-            ->where('course_id', $courseId)
-            ->max('order_index') + 1;
+        $pivot = [];
 
-        $module->courses()->attach($courseId, [
-            'order_index' => $nextOrder,
-            'status'      => 'active',
-        ]);
+        if (Schema::hasColumn('course_module', 'order_index')) {
+            $nextOrder = (int) DB::table('course_module')
+                ->where('course_id', $courseId)
+                ->max('order_index');
+
+            $pivot['order_index'] = $nextOrder + 1;
+        }
+
+        if (Schema::hasColumn('course_module', 'status')) {
+            $pivot['status'] = 'draft';
+        }
+
+        $module->courses()->attach($courseId, $pivot);
     }
 }

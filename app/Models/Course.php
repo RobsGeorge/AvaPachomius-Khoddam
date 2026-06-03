@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Database\CourseModulePivot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Module;
@@ -26,17 +27,25 @@ class Course extends Model
 
     public function modules()
     {
-        return $this->belongsToMany(
+        $relation = $this->belongsToMany(
             Module::class,
             'course_module',
             'course_id',
             'module_id',
             'course_id',
             'module_id'
-        )->withPivot([
-            'start_date', 'end_date', 'order_index', 'status',
-            'feedback_open', 'ended_at', 'ended_by_user_id',
-        ])->orderByPivot('order_index');
+        );
+
+        $pivot = CourseModulePivot::columns();
+        if ($pivot !== []) {
+            $relation->withPivot($pivot);
+        }
+
+        if (CourseModulePivot::hasOrderIndex()) {
+            $relation->orderByPivot('order_index');
+        }
+
+        return $relation;
     }
 
     public function exams()

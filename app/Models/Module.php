@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Database\CourseModulePivot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Course;
@@ -14,21 +15,32 @@ class Module extends Model
 
     protected $primaryKey = 'module_id';
 
+    /** Legacy `modules` table has no Laravel timestamps. */
+    public $timestamps = false;
+
     protected $fillable = ['title', 'description'];
 
     public function courses()
     {
-        return $this->belongsToMany(
+        $relation = $this->belongsToMany(
             Course::class,
             'course_module',
             'module_id',
             'course_id',
             'module_id',
             'course_id'
-        )->withPivot([
-            'start_date', 'end_date', 'order_index', 'status',
-            'feedback_open', 'ended_at', 'ended_by_user_id',
-        ]);
+        );
+
+        $pivot = CourseModulePivot::columns();
+        if ($pivot !== []) {
+            $relation->withPivot($pivot);
+        }
+
+        if (CourseModulePivot::hasOrderIndex()) {
+            $relation->orderByPivot('order_index');
+        }
+
+        return $relation;
     }
 
     public function courseSessions()
