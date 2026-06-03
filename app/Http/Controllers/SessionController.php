@@ -26,22 +26,36 @@ class SessionController extends Controller
 
     public function store(Request $request)
     {
+        $mode = $request->input('creation_mode');
+
+        // Hidden panels still post empty dates[] — strip unless multi mode.
+        if ($mode !== 'multi') {
+            $request->merge(['dates' => null]);
+        } else {
+            $request->merge([
+                'dates' => array_values(array_filter(
+                    $request->input('dates', []),
+                    fn ($d) => is_string($d) && trim($d) !== ''
+                )),
+            ]);
+        }
+
         $request->validate([
             'course_id'      => 'required|exists:course,course_id',
             'session_title'  => 'required|string|max:27',
             'creation_mode'  => 'required|in:single,multi,weekly',
             'single_date'    => 'required_if:creation_mode,single|nullable|date',
-            'dates'          => 'required_if:creation_mode,multi|nullable|array|min:1',
-            'dates.*'        => 'date',
+            'dates'          => 'required_if:creation_mode,multi|array|min:1',
+            'dates.*'        => 'required|date',
             'start_date'     => 'required_if:creation_mode,weekly|nullable|date',
             'weeks'          => 'required_if:creation_mode,weekly|nullable|integer|min:1|max:52',
         ]);
 
         $dates = [];
 
-        if ($request->creation_mode === 'single') {
+        if ($mode === 'single') {
             $dates = [$request->single_date];
-        } elseif ($request->creation_mode === 'multi') {
+        } elseif ($mode === 'multi') {
             $dates = array_values(array_unique($request->dates));
             sort($dates);
         } elseif ($request->creation_mode === 'weekly') {

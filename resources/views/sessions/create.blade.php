@@ -230,6 +230,15 @@ function updatePreview() {
     preview.style.display = 'block';
 }
 
+document.getElementById('sessionForm').addEventListener('submit', () => {
+    document.querySelectorAll('.mode-panel').forEach((panel) => {
+        const active = panel.style.display !== 'none';
+        panel.querySelectorAll('input, select, textarea').forEach((el) => {
+            el.disabled = !active;
+        });
+    });
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const checked = document.querySelector('input[name="creation_mode"]:checked');
     if (checked) switchMode(checked.value);
