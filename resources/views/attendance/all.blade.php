@@ -2,8 +2,9 @@
 
 @section('content')
 <div class="container animate-in mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">{{ __('pages.all_records') }}</h1>
+    <div class="app-card card shadow-sm">
+        <div class="card-body">
+        <h1 class="page-title mb-4">{{ __('pages.all_records') }}</h1>
 
         @if(session('success'))
             <div class="alert alert-success mb-3">{{ session('success') }}</div>
@@ -13,22 +14,22 @@
             <p class="text-right">{{ __('pages.no_attendance_records') }}.</p>
         @else
             <div class="w-full overflow-x-auto">
-                <table class="w-full table-auto">
-                    <thead class="bg-gray-50">
+                <table class="table table-hover table-auto w-100 mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.user') }}</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.lecture') }}</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.date') }}</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.status') }}</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.permission_reason') }}</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.recorded_by') }}</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.recorded_at') }}</th>
+                            <th class="text-nowrap">{{ __('pages.user') }}</th>
+                            <th class="text-nowrap">{{ __('pages.lecture') }}</th>
+                            <th class="text-nowrap">{{ __('pages.date') }}</th>
+                            <th class="text-nowrap">{{ __('pages.status') }}</th>
+                            <th class="text-nowrap">{{ __('pages.permission_reason') }}</th>
+                            <th class="text-nowrap">{{ __('pages.recorded_by') }}</th>
+                            <th class="text-nowrap">{{ __('pages.recorded_at') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         @foreach($attendanceRecords as $record)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
+                            <tr>
+                                <td class="text-nowrap">
                                     <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
                                         {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
                                     </a>
@@ -43,7 +44,7 @@
                                 </td>
                                 <td class="px-6 py-4 text-right text-sm whitespace-nowrap">
                                     <select 
-                                        class="status-select bg-white border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        class="status-select form-select form-select-sm"
                                         data-attendance-id="{{ $record->attendance_id }}"
                                         data-current-status="{{ $record->status }}"
                                         onchange="updateStatus(this)">
@@ -57,7 +58,7 @@
                                     <div id="permission-reason-{{ $record->attendance_id }}" class="{{ $record->status === 'Permission' ? '' : 'hidden' }}">
                                         <input 
                                             type="text" 
-                                            class="permission-reason bg-white border border-gray-300 rounded-md px-3 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            class="permission-reason form-control form-control-sm"
                                             placeholder="{{ __('pages.permission_reason') }}"
                                             value="{{ $record->permission_reason }}"
                                             onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
@@ -119,6 +120,7 @@
                 {{ $attendanceRecords->links() }}
             </div>
         @endif
+        </div>
     </div>
 </div>
 

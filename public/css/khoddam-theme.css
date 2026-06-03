@@ -61,6 +61,36 @@ body.theme-dark {
     --color-surface-hover: rgba(22, 52, 86, 0.88);
     --color-surface-border: rgba(212, 175, 55, 0.18);
 
+    --color-table-head-bg: rgba(10, 28, 52, 0.95);
+    --color-table-row-bg: rgba(7, 15, 31, 0.35);
+    --color-table-hover-bg: rgba(212, 175, 55, 0.1);
+    --color-table-border: rgba(212, 175, 55, 0.15);
+
+    /* Bootstrap tokens used by .table-light, .bg-light, cards, etc. */
+    --bs-body-color: #f8fafc;
+    --bs-body-bg: transparent;
+    --bs-emphasis-color: #f8fafc;
+    --bs-secondary-color: #cbd5e1;
+    --bs-secondary-bg: rgba(15, 39, 68, 0.85);
+    --bs-tertiary-color: #94a3b8;
+    --bs-tertiary-bg: rgba(10, 28, 52, 0.75);
+    --bs-border-color: rgba(212, 175, 55, 0.18);
+    --bs-light: #0f2744;
+    --bs-light-rgb: 15, 39, 68;
+    --bs-dark: #f8fafc;
+    --bs-dark-rgb: 248, 250, 252;
+    --bs-card-bg: rgba(15, 39, 68, 0.72);
+    --bs-card-color: #f8fafc;
+    --bs-table-color: #f8fafc;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(212, 175, 55, 0.15);
+    --bs-table-striped-bg: rgba(15, 39, 68, 0.45);
+    --bs-table-striped-color: #f8fafc;
+    --bs-table-active-bg: rgba(212, 175, 55, 0.14);
+    --bs-table-active-color: #f8fafc;
+    --bs-table-hover-bg: rgba(212, 175, 55, 0.1);
+    --bs-table-hover-color: #f8fafc;
+
     --color-title: #d4af37;
     --color-title-accent: #f0d875;
     --color-text: #f8fafc;
@@ -400,6 +430,8 @@ body.theme-dark .flatpickr-calendar {
 /* Tables */
 .table {
     color: var(--color-text);
+    --bs-table-color: var(--color-text);
+    --bs-table-border-color: var(--color-surface-border);
 }
 
 .table thead th {
@@ -407,16 +439,76 @@ body.theme-dark .flatpickr-calendar {
     border-bottom-color: var(--color-surface-border);
 }
 
+.table > :not(caption) > * > * {
+    color: var(--color-text);
+    border-color: var(--color-surface-border);
+}
+
 .table tbody tr {
     transition: background var(--transition-fast);
+}
+
+.table-hover tbody tr:hover > * {
+    color: var(--color-text);
 }
 
 .table-hover tbody tr:hover {
     background: rgba(124, 58, 237, 0.06);
 }
 
-body.theme-dark .table-hover tbody tr:hover {
-    background: rgba(212, 175, 55, 0.08);
+body.theme-dark .table,
+body.theme-dark .table > :not(caption) > * > * {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--color-text);
+    --bs-table-border-color: var(--color-table-border);
+    color: var(--color-text);
+    border-color: var(--color-table-border);
+    background-color: transparent;
+}
+
+body.theme-dark .table thead th,
+body.theme-dark .table thead.table-light th,
+body.theme-dark thead.table-light th,
+body.theme-dark .table-light,
+body.theme-dark .table-light > th,
+body.theme-dark .table-light > td,
+body.theme-dark tr.table-light,
+body.theme-dark tr.table-light th,
+body.theme-dark tr.table-light td,
+body.theme-dark tfoot.table-light th,
+body.theme-dark tfoot.table-light td {
+    --bs-table-bg: var(--color-table-head-bg);
+    --bs-table-color: var(--color-title);
+    background-color: var(--color-table-head-bg) !important;
+    color: var(--color-title) !important;
+    border-color: var(--color-table-border) !important;
+}
+
+body.theme-dark .table tbody td,
+body.theme-dark .table tbody th {
+    color: var(--color-text);
+}
+
+body.theme-dark .table-hover tbody tr:hover,
+body.theme-dark .table tbody tr:hover {
+    --bs-table-hover-bg: var(--color-table-hover-bg);
+    --bs-table-hover-color: var(--color-text);
+    background-color: var(--color-table-hover-bg) !important;
+}
+
+body.theme-dark .table-hover tbody tr:hover > *,
+body.theme-dark .table tbody tr:hover > * {
+    color: var(--color-text) !important;
+    box-shadow: none;
+}
+
+body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: var(--color-table-row-bg);
+    color: var(--color-text);
+}
+
+body.theme-dark .app-card .table-responsive {
+    background: transparent;
 }
 
 /* Dropdown */
@@ -511,19 +603,173 @@ body.theme-dark .app-dropdown-link:hover {
     }
 }
 
-/* Bootstrap overrides for dark mode readability */
-body.theme-dark .text-gray-800,
+/* Bootstrap & legacy utility overrides for dark mode readability */
+body.theme-dark .text-dark,
+body.theme-dark .text-black {
+    color: var(--color-text) !important;
+}
+
+body.theme-dark .text-gray-900,
+body.theme-dark .text-gray-800 {
+    color: var(--color-text) !important;
+}
+
 body.theme-dark .text-gray-700,
 body.theme-dark .text-gray-600,
 body.theme-dark .text-gray-500 {
     color: var(--color-text-muted) !important;
 }
 
-body.theme-dark .bg-white {
-    background: var(--color-surface) !important;
+body.theme-dark .bg-white,
+body.theme-dark tbody.bg-white,
+body.theme-dark .card.bg-white {
+    background-color: var(--color-surface) !important;
+    color: var(--color-text);
+}
+
+body.theme-dark .bg-light,
+body.theme-dark .bg-light-subtle,
+body.theme-dark .card-footer.bg-light,
+body.theme-dark .card-header.bg-light {
+    background-color: rgba(10, 28, 52, 0.75) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-surface-border) !important;
+}
+
+body.theme-dark .badge.bg-light,
+body.theme-dark .badge.bg-light.text-dark {
+    background-color: rgba(22, 52, 86, 0.9) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-surface-border) !important;
+}
+
+body.theme-dark .bg-gray-50,
+body.theme-dark .bg-gray-100,
+body.theme-dark thead.bg-gray-50,
+body.theme-dark tr.bg-gray-100,
+body.theme-dark tr.bg-gray-100 th,
+body.theme-dark tr.bg-gray-100 td {
+    background-color: var(--color-table-head-bg) !important;
+    color: var(--color-title) !important;
+}
+
+body.theme-dark .bg-gray-200 {
+    background-color: rgba(15, 39, 68, 0.65) !important;
 }
 
 body.theme-dark .border-gray-100,
-body.theme-dark .border-gray-200 {
+body.theme-dark .border-gray-200,
+body.theme-dark .border-gray-300,
+body.theme-dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
     border-color: var(--color-surface-border) !important;
+}
+
+body.theme-dark tr[class*="hover:bg-gray"]:hover,
+body.theme-dark [class*="hover:bg-gray-50"]:hover {
+    background-color: var(--color-table-hover-bg) !important;
+}
+
+body.theme-dark .card:not(.app-card) {
+    background: var(--color-surface);
+    border-color: var(--color-surface-border);
+    color: var(--color-text);
+}
+
+body.theme-dark .card:not(.app-card) .card-header,
+body.theme-dark .card:not(.app-card) .card-footer {
+    background: rgba(10, 28, 52, 0.65);
+    border-color: var(--color-surface-border);
+    color: var(--color-title);
+}
+
+body.theme-dark .card:not(.app-card) .card-body,
+body.theme-dark .card-title,
+body.theme-dark .card-text {
+    color: var(--color-text);
+}
+
+body.theme-dark .list-group-item {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-surface-border);
+}
+
+body.theme-dark .list-group-item-action:hover,
+body.theme-dark .list-group-item-action:focus {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+}
+
+body.theme-dark .modal-content {
+    background: var(--color-surface);
+    border-color: var(--color-surface-border);
+    color: var(--color-text);
+}
+
+body.theme-dark .modal-header,
+body.theme-dark .modal-footer {
+    border-color: var(--color-surface-border);
+}
+
+body.theme-dark .modal-title {
+    color: var(--color-title);
+}
+
+body.theme-dark .page-link {
+    background: var(--color-surface);
+    border-color: var(--color-surface-border);
+    color: var(--color-text);
+}
+
+body.theme-dark .page-item.active .page-link {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary-text);
+}
+
+body.theme-dark .page-link:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-title);
+}
+
+body.theme-dark .dropdown-menu {
+    background: var(--color-surface);
+    border-color: var(--color-surface-border);
+}
+
+body.theme-dark .dropdown-item {
+    color: var(--color-text);
+}
+
+body.theme-dark .dropdown-item:hover,
+body.theme-dark .dropdown-item:focus {
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--color-title);
+}
+
+body.theme-dark .table .btn-link {
+    color: var(--color-link);
+}
+
+body.theme-dark .table .btn-link:hover {
+    color: var(--color-link-hover);
+}
+
+body.theme-dark select.bg-white,
+body.theme-dark .status-select {
+    background-color: rgba(7, 15, 31, 0.55) !important;
+    color: var(--color-text) !important;
+    border-color: var(--color-surface-border) !important;
+}
+
+body.theme-dark .rounded-lg.shadow,
+body.theme-dark .rounded-lg.shadow-lg {
+    background: var(--color-surface) !important;
+    border: 1px solid var(--color-surface-border);
+    color: var(--color-text);
+}
+
+body.theme-dark .shadow.p-6,
+body.theme-dark .shadow-lg.p-6 {
+    color: var(--color-text);
 }

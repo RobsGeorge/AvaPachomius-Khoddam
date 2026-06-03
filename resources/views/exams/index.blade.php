@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container py-4 animate-in">
-    <div class="app-card card">
+    <div class="app-card card shadow-sm">
         <div class="card-body">
             <h2 class="page-title mb-4">{{ __('pages.exams_schedule_results') }}</h2>
 

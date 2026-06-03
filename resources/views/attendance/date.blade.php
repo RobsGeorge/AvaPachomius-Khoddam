@@ -2,15 +2,16 @@
 
 @section('content')
 <div class="container animate-in mx-auto px-4 py-8">
-    <div class="bg-white rounded-lg shadow-lg p-6">
+    <div class="app-card card shadow-sm">
+        <div class="card-body">
         <h1 class="page-title mb-4">{{ __('pages.attendance_on_date', ['date' => $date]) }}</h1>
 
         @if($attendanceRecords->count() === 0)
             <p class="text-right">{{ __('pages.no_attendance_records') }}.</p>
         @else
             <div class="w-full overflow-x-auto">
-                <table class="w-full table-auto">
-                    <thead class="bg-gray-50">
+                <table class="table table-hover w-100 mb-0">
+                    <thead class="table-light">
                         <tr>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.server_name') }}</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.date') }}</th>
@@ -20,9 +21,9 @@
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">{{ __('pages.recorded_at') }}</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody>
                         @foreach($attendanceRecords as $record)
-                            <tr class="hover:bg-gray-50">
+                            <tr>
                             <td class="px-6 py-4 text-right text-sm text-gray-900 whitespace-nowrap">
                                     <a href="{{ route('attendance.user', $record->user_id) }}" class="text-blue-600 hover:underline">
                                         {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
@@ -136,6 +137,7 @@
                 </div>
             </div>
         @endif
+        </div>
     </div>
 </div>
 
