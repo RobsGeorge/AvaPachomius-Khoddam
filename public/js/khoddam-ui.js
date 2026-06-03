@@ -11,12 +11,14 @@
     }
 
     function applyTheme(theme) {
+        const mode = theme === 'dark' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-bs-theme', mode);
         document.body.classList.remove('theme-light', 'theme-dark');
-        document.body.classList.add(theme === 'dark' ? 'theme-dark' : 'theme-light');
-        localStorage.setItem(THEME_KEY, theme);
+        document.body.classList.add(mode === 'dark' ? 'theme-dark' : 'theme-light');
+        localStorage.setItem(THEME_KEY, mode);
 
         document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
-            const isDark = theme === 'dark';
+            const isDark = mode === 'dark';
             btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
             const label = btn.querySelector('[data-theme-label]');
             if (label) {

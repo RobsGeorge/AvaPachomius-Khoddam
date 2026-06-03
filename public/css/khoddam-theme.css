@@ -427,16 +427,19 @@ body.theme-dark .flatpickr-calendar {
 .alert-danger  { background: rgba(220, 38, 38, 0.12); color: var(--color-danger); }
 .alert-warning { background: rgba(217, 119, 6, 0.12); color: var(--color-warning); }
 
-/* Tables */
+/* Tables — Bootstrap 5.3 colors cells via inset box-shadow + --bs-table-accent-bg */
 .table {
     color: var(--color-text);
     --bs-table-color: var(--color-text);
     --bs-table-border-color: var(--color-surface-border);
+    --bs-table-bg: transparent;
+    --bs-table-accent-bg: transparent;
 }
 
-.table thead th {
+.table > thead > tr > th {
     color: var(--color-title);
     border-bottom-color: var(--color-surface-border);
+    background-color: rgba(124, 58, 237, 0.08);
 }
 
 .table > :not(caption) > * > * {
@@ -445,69 +448,121 @@ body.theme-dark .flatpickr-calendar {
 }
 
 .table tbody tr {
-    transition: background var(--transition-fast);
+    transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.table-hover tbody tr:hover > * {
-    color: var(--color-text);
+.table-hover > tbody > tr:hover > * {
+    --bs-table-color-state: var(--color-text);
+    --bs-table-bg-state: rgba(124, 58, 237, 0.08);
 }
 
-.table-hover tbody tr:hover {
-    background: rgba(124, 58, 237, 0.06);
+/* Dark mode: override Bootstrap table paint (inset 9999px shadow) project-wide */
+body.theme-dark,
+[data-bs-theme="dark"] body {
+    --bs-table-color: var(--color-text);
+    --bs-table-bg: transparent;
+    --bs-table-border-color: var(--color-table-border);
+    --bs-table-striped-color: var(--color-text);
+    --bs-table-striped-bg: var(--color-table-row-bg);
+    --bs-table-active-color: var(--color-text);
+    --bs-table-active-bg: var(--color-table-hover-bg);
+    --bs-table-hover-color: var(--color-text);
+    --bs-table-hover-bg: var(--color-table-hover-bg);
 }
 
 body.theme-dark .table,
-body.theme-dark .table > :not(caption) > * > * {
-    --bs-table-bg: transparent;
+[data-bs-theme="dark"] .table {
     --bs-table-color: var(--color-text);
+    --bs-table-bg: transparent;
     --bs-table-border-color: var(--color-table-border);
-    color: var(--color-text);
-    border-color: var(--color-table-border);
-    background-color: transparent;
-}
-
-body.theme-dark .table thead th,
-body.theme-dark .table thead.table-light th,
-body.theme-dark thead.table-light th,
-body.theme-dark .table-light,
-body.theme-dark .table-light > th,
-body.theme-dark .table-light > td,
-body.theme-dark tr.table-light,
-body.theme-dark tr.table-light th,
-body.theme-dark tr.table-light td,
-body.theme-dark tfoot.table-light th,
-body.theme-dark tfoot.table-light td {
-    --bs-table-bg: var(--color-table-head-bg);
-    --bs-table-color: var(--color-title);
-    background-color: var(--color-table-head-bg) !important;
-    color: var(--color-title) !important;
-    border-color: var(--color-table-border) !important;
-}
-
-body.theme-dark .table tbody td,
-body.theme-dark .table tbody th {
-    color: var(--color-text);
-}
-
-body.theme-dark .table-hover tbody tr:hover,
-body.theme-dark .table tbody tr:hover {
-    --bs-table-hover-bg: var(--color-table-hover-bg);
-    --bs-table-hover-color: var(--color-text);
-    background-color: var(--color-table-hover-bg) !important;
-}
-
-body.theme-dark .table-hover tbody tr:hover > *,
-body.theme-dark .table tbody tr:hover > * {
-    color: var(--color-text) !important;
-    box-shadow: none;
-}
-
-body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > * {
     --bs-table-accent-bg: var(--color-table-row-bg);
     color: var(--color-text);
 }
 
-body.theme-dark .app-card .table-responsive {
+body.theme-dark .table-light,
+[data-bs-theme="dark"] .table-light {
+    --bs-table-color: var(--color-title);
+    --bs-table-bg: var(--color-table-head-bg);
+    --bs-table-border-color: var(--color-table-border);
+    --bs-table-accent-bg: var(--color-table-head-bg);
+    --bs-table-striped-bg: var(--color-table-head-bg);
+    --bs-table-active-bg: var(--color-table-head-bg);
+    --bs-table-hover-bg: var(--color-table-head-bg);
+    color: var(--color-title);
+}
+
+body.theme-dark .table > :not(caption) > * > *,
+[data-bs-theme="dark"] .table > :not(caption) > * > * {
+    --bs-table-color-state: var(--color-text);
+    --bs-table-color-type: var(--color-text);
+    --bs-table-bg-type: var(--color-table-row-bg);
+    --bs-table-bg-state: var(--color-table-row-bg);
+    --bs-table-accent-bg: var(--color-table-row-bg);
+    color: var(--color-text) !important;
+    border-color: var(--color-table-border) !important;
+    background-color: var(--color-table-row-bg) !important;
+    box-shadow: inset 0 0 0 9999px var(--color-table-row-bg) !important;
+}
+
+body.theme-dark .table > thead > tr > th,
+body.theme-dark .table > thead.table-light > tr > th,
+body.theme-dark thead.table-light > tr > th,
+body.theme-dark .table-light > :not(caption) > * > *,
+[data-bs-theme="dark"] .table > thead > tr > th,
+[data-bs-theme="dark"] .table > thead.table-light > tr > th,
+[data-bs-theme="dark"] thead.table-light > tr > th,
+[data-bs-theme="dark"] .table-light > :not(caption) > * > * {
+    --bs-table-color-state: var(--color-title);
+    --bs-table-color-type: var(--color-title);
+    --bs-table-bg-type: var(--color-table-head-bg);
+    --bs-table-bg-state: var(--color-table-head-bg);
+    --bs-table-accent-bg: var(--color-table-head-bg);
+    color: var(--color-title) !important;
+    border-color: var(--color-table-border) !important;
+    background-color: var(--color-table-head-bg) !important;
+    box-shadow: inset 0 0 0 9999px var(--color-table-head-bg) !important;
+}
+
+body.theme-dark .table > tfoot > tr > th,
+body.theme-dark .table > tfoot > tr > td,
+body.theme-dark tfoot.table-light > tr > *,
+[data-bs-theme="dark"] .table > tfoot > tr > th,
+[data-bs-theme="dark"] .table > tfoot > tr > td,
+[data-bs-theme="dark"] tfoot.table-light > tr > * {
+    --bs-table-accent-bg: var(--color-table-head-bg);
+    color: var(--color-title) !important;
+    background-color: var(--color-table-head-bg) !important;
+    box-shadow: inset 0 0 0 9999px var(--color-table-head-bg) !important;
+}
+
+body.theme-dark .table-hover > tbody > tr:hover > *,
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+    --bs-table-color-state: var(--color-text);
+    --bs-table-bg-state: var(--color-table-hover-bg);
+    --bs-table-accent-bg: var(--color-table-hover-bg);
+    color: var(--color-text) !important;
+    background-color: var(--color-table-hover-bg) !important;
+    box-shadow: inset 0 0 0 9999px var(--color-table-hover-bg) !important;
+}
+
+body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > *,
+[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: var(--color-table-row-bg);
+    box-shadow: inset 0 0 0 9999px var(--color-table-row-bg) !important;
+    background-color: var(--color-table-row-bg) !important;
+}
+
+body.theme-dark .table-striped > tbody > tr:nth-of-type(even) > *,
+[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(even) > * {
+    --bs-table-accent-bg: rgba(7, 15, 31, 0.5);
+    box-shadow: inset 0 0 0 9999px rgba(7, 15, 31, 0.5) !important;
+    background-color: rgba(7, 15, 31, 0.5) !important;
+}
+
+body.theme-dark .app-card .table,
+body.theme-dark .app-card .table-responsive,
+[data-bs-theme="dark"] .app-card .table,
+[data-bs-theme="dark"] .app-card .table-responsive {
     background: transparent;
 }
 
