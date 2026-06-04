@@ -15,8 +15,8 @@ class CourseContentController extends Controller
     public function show(string $courseId)
     {
         $course = Course::with([
+            'modules.courseSessions.lectures.materials',
             'modules.lectures.materials',
-            'modules.sessions',
             'modules.exams.schedules',
         ])->findOrFail($courseId);
 
@@ -32,8 +32,9 @@ class CourseContentController extends Controller
     public function admin(string $courseId)
     {
         $course = Course::with([
+            'modules.courseSessions.lectures.materials',
             'modules.lectures.materials',
-            'modules.sessions',
+            'modules.exams',
             'sessions',
         ])->findOrFail($courseId);
 
@@ -128,9 +129,19 @@ class CourseContentController extends Controller
             ->whereIn('session_id', $sessionIds)
             ->pluck('session_id');
 
+        Session::where('course_id', $courseId)
+            ->where('module_id', $moduleId)
+            ->whereNotIn('session_id', $validSessionIds)
+            ->update(['module_id' => null, 'week_number' => null]);
+
         $sync = [];
         foreach ($validSessionIds as $index => $sessionId) {
-            $sync[$sessionId] = ['week_number' => $index + 1];
+            $weekNumber = $index + 1;
+            $sync[$sessionId] = ['week_number' => $weekNumber];
+            Session::where('session_id', $sessionId)->update([
+                'module_id'   => $moduleId,
+                'week_number' => $weekNumber,
+            ]);
         }
         $module->sessions()->sync($sync);
 

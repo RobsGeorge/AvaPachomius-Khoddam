@@ -522,4 +522,21 @@ return [
     'rate_content'                => 'Rate the overall content',
     'comments_optional'           => 'Comments (optional)',
     'additional_notes'            => 'Additional notes',
+
+    // Curriculum hierarchy (module → session → lecture)
+    'select_session'              => 'Select session',
+    'session'                     => 'Session',
+    'session_not_in_module'       => 'This session does not belong to the selected module.',
+    'session_not_in_course'       => 'This session does not belong to this course.',
+    'lecture_created_success'     => 'Lecture added successfully.',
+    'lecture_updated_success'     => 'Lecture updated successfully.',
+    'lecture_deleted_success'     => 'Lecture deleted successfully.',
+    'no_sessions_in_module'       => 'No weekly sessions linked to this module yet. Link sessions in the schedule section above.',
+    'no_lectures_in_session'      => 'No lectures in this session yet.',
+    'unassigned_lectures'         => 'Unassigned lectures',
+    'unassigned_lectures_hint'    => 'These lectures are not linked to a session. Edit each lecture and choose a session.',
+    'unassigned'                  => 'Unassigned',
+    'lecture_session_hint'        => 'Week number is taken from the selected session.',
+    'manage_sessions'             => 'Manage sessions',
+    'manage_exams'                => 'Manage exams',
 ];

@@ -16,10 +16,11 @@ class Session extends Model
 
     protected $primaryKey = 'session_id';
 
-    protected $fillable = ['course_id', 'module_id', 'session_title', 'session_date'];
+    protected $fillable = ['course_id', 'module_id', 'week_number', 'session_title', 'session_date'];
 
     protected $casts = [
         'session_date' => 'date',
+        'week_number'  => 'integer',
         'created_at'   => 'datetime',
         'updated_at'   => 'datetime',
     ];
@@ -37,6 +38,13 @@ class Session extends Model
     public function attendances()
     {
         return $this->hasMany(Attendance::class, 'session_id', 'session_id');
+    }
+
+    public function lectures()
+    {
+        return $this->hasMany(Lecture::class, 'session_id', 'session_id')
+            ->orderBy('order_index')
+            ->orderBy('lecture_id');
     }
 
     public function modules()

@@ -117,6 +117,7 @@ class SessionController extends Controller
                 $session = Session::create([
                     'course_id'     => $validated['course_id'],
                     'module_id'     => $moduleId,
+                    'week_number'   => $index + 1,
                     'session_title' => mb_substr($title, 0, 30),
                     'session_date'  => $date,
                 ]);
@@ -209,6 +210,12 @@ class SessionController extends Controller
 
     private function linkSessionToModule(Session $session, int $moduleId, ?int $weekNumber = null): void
     {
+        if ($weekNumber !== null) {
+            $session->update(['module_id' => $moduleId, 'week_number' => $weekNumber]);
+        } else {
+            $session->update(['module_id' => $moduleId]);
+        }
+
         DB::table('module_session')->where('session_id', $session->session_id)->delete();
 
         DB::table('module_session')->insert([

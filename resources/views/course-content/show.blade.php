@@ -78,115 +78,202 @@
                 </div>
             @endif
 
-            @if($module->sessions->isNotEmpty())
-                <div class="px-3 py-2 border-bottom">
-                    <small class="text-muted fw-semibold">{{ __('pages.linked_sessions') }}:</small>
-                    @foreach($module->sessions as $session)
-                        <span class="badge bg-light text-dark border me-1">
-                            {{ __('pages.week') }} {{ $session->pivot->week_number ?? '?' }} —
-                            {{ $session->session_title }}
-                            ({{ $session->session_date?->format('Y-m-d') ?? '—' }})
-                        </span>
-                    @endforeach
-                </div>
-            @endif
+            @php
+                $linkedSessionIds = $module->courseSessions->pluck('session_id');
+                $orphanLectures = $module->lectures->filter(
+                    fn ($lecture) => ! $lecture->session_id || ! $linkedSessionIds->contains($lecture->session_id)
+                );
+            @endphp
 
             <div class="card-body p-0">
-                @if($module->lectures->isEmpty())
+                @if($module->courseSessions->isEmpty() && $orphanLectures->isEmpty())
                     <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_lectures') }}</p>
                 @else
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="text-center" style="width:50px;">#</th>
-                                    <th class="text-center" style="width:80px;">{{ __('pages.week_col') }}</th>
-                                    <th style="width:110px;">{{ __('pages.date') }}</th>
-                                    <th>{{ __('pages.lecture') }}</th>
-                                    <th class="text-center" style="width:80px;">{{ __('pages.video_col') }}</th>
-                                    <th class="text-center" style="width:80px;">{{ __('pages.slides') }}</th>
-                                    <th>{{ __('pages.additional_materials') }}</th>
-                                    <th>{{ __('pages.notes') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($module->lectures as $i => $lecture)
-                                    <tr>
-                                        <td class="text-center text-muted small">{{ $i + 1 }}</td>
-                                        <td class="text-center">
-                                            <span class="badge bg-secondary rounded-pill">
-                                                {{ __('pages.week') }} {{ $lecture->week_number }}
-                                            </span>
-                                        </td>
-                                        <td class="text-muted small">
-                                            {{ $lecture->lecture_date
-                                                ? $lecture->lecture_date->format('Y-m-d')
-                                                : '—' }}
-                                        </td>
-                                        <td class="fw-semibold">{{ $lecture->title }}</td>
-                                        <td class="text-center">
-                                            @if($lecture->video_link)
-                                                <a href="{{ $lecture->video_link }}" target="_blank"
-                                                   class="btn btn-sm btn-danger rounded-circle p-1 lh-1"
-                                                   title="{{ __('pages.watch_video') }}">
-                                                    <i class="bi bi-play-fill"></i>
-                                                </a>
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            @if($lecture->slides_link)
-                                                <a href="{{ $lecture->slides_link }}" target="_blank"
-                                                   class="btn btn-sm btn-primary rounded-circle p-1 lh-1"
-                                                   title="{{ __('pages.download_slides') }}">
-                                                    <i class="bi bi-file-earmark-slides-fill"></i>
-                                                </a>
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @forelse($lecture->materials as $mat)
-                                                <a href="{{ $mat->link }}" target="_blank"
-                                                   class="badge bg-light text-primary border text-decoration-none me-1 mb-1 d-inline-block"
-                                                   title="{{ $mat->link }}">
-                                                    <i class="bi bi-link-45deg"></i> {{ $mat->title }}
-                                                </a>
-                                            @empty
-                                                <span class="text-muted small">—</span>
-                                            @endforelse
-                                        </td>
-                                        <td>
-                                            @if($lecture->notes)
-                                                <span class="text-muted small" style="white-space:pre-line;">
-                                                    {{ Str::limit($lecture->notes, 80) }}
-                                                </span>
-                                                @if(strlen($lecture->notes) > 80)
-                                                    <a href="#" data-bs-toggle="modal"
-                                                       data-bs-target="#notes-{{ $lecture->lecture_id }}"
-                                                       class="small">{{ __('pages.more') }}</a>
-                                                    <div class="modal fade" id="notes-{{ $lecture->lecture_id }}" tabindex="-1">
-                                                        <div class="modal-dialog">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header">
-                                                                    <h5 class="modal-title">{{ $lecture->title }}</h5>
-                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    @foreach($module->courseSessions as $session)
+                        <div class="border-bottom">
+                            <div class="px-3 py-2 bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                <div class="fw-semibold">
+                                    <span class="badge bg-secondary me-1">{{ __('pages.week') }} {{ $session->week_number ?? '?' }}</span>
+                                    {{ $session->session_title }}
+                                    <span class="text-muted small fw-normal ms-1">
+                                        ({{ $session->session_date?->format('Y-m-d') ?? '—' }})
+                                    </span>
+                                </div>
+                                <span class="badge bg-light text-dark border">
+                                    {{ $session->lectures->count() }} {{ __('pages.lecture') }}
+                                </span>
+                            </div>
+
+                            @if($session->lectures->isEmpty())
+                                <p class="text-center text-muted-theme py-3 mb-0 small">{{ __('pages.no_lectures_in_session') }}</p>
+                            @else
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-center" style="width:50px;">#</th>
+                                                <th style="width:110px;">{{ __('pages.date') }}</th>
+                                                <th>{{ __('pages.lecture') }}</th>
+                                                <th class="text-center" style="width:80px;">{{ __('pages.video_col') }}</th>
+                                                <th class="text-center" style="width:80px;">{{ __('pages.slides') }}</th>
+                                                <th>{{ __('pages.additional_materials') }}</th>
+                                                <th>{{ __('pages.notes') }}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($session->lectures as $i => $lecture)
+                                                <tr>
+                                                    <td class="text-center text-muted small">{{ $i + 1 }}</td>
+                                                    <td class="text-muted small">
+                                                        {{ $lecture->lecture_date ? $lecture->lecture_date->format('Y-m-d') : '—' }}
+                                                    </td>
+                                                    <td class="fw-semibold">{{ $lecture->title }}</td>
+                                                    <td class="text-center">
+                                                        @if($lecture->video_link)
+                                                            <a href="{{ $lecture->video_link }}" target="_blank"
+                                                               class="btn btn-sm btn-danger rounded-circle p-1 lh-1"
+                                                               title="{{ __('pages.watch_video') }}">
+                                                                <i class="bi bi-play-fill"></i>
+                                                            </a>
+                                                        @else
+                                                            <span class="text-muted">—</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($lecture->slides_link)
+                                                            <a href="{{ $lecture->slides_link }}" target="_blank"
+                                                               class="btn btn-sm btn-primary rounded-circle p-1 lh-1"
+                                                               title="{{ __('pages.download_slides') }}">
+                                                                <i class="bi bi-file-earmark-slides-fill"></i>
+                                                            </a>
+                                                        @else
+                                                            <span class="text-muted">—</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @forelse($lecture->materials as $mat)
+                                                            <a href="{{ $mat->link }}" target="_blank"
+                                                               class="badge bg-light text-primary border text-decoration-none me-1 mb-1 d-inline-block"
+                                                               title="{{ $mat->link }}">
+                                                                <i class="bi bi-link-45deg"></i> {{ $mat->title }}
+                                                            </a>
+                                                        @empty
+                                                            <span class="text-muted small">—</span>
+                                                        @endforelse
+                                                    </td>
+                                                    <td>
+                                                        @if($lecture->notes)
+                                                            <span class="text-muted small" style="white-space:pre-line;">
+                                                                {{ Str::limit($lecture->notes, 80) }}
+                                                            </span>
+                                                            @if(strlen($lecture->notes) > 80)
+                                                                <a href="#" data-bs-toggle="modal"
+                                                                   data-bs-target="#notes-{{ $lecture->lecture_id }}"
+                                                                   class="small">{{ __('pages.more') }}</a>
+                                                                <div class="modal fade" id="notes-{{ $lecture->lecture_id }}" tabindex="-1">
+                                                                    <div class="modal-dialog">
+                                                                        <div class="modal-content">
+                                                                            <div class="modal-header">
+                                                                                <h5 class="modal-title">{{ $lecture->title }}</h5>
+                                                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                            </div>
+                                                                            <div class="modal-body" style="white-space:pre-line;">{{ $lecture->notes }}</div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <div class="modal-body" style="white-space:pre-line;">{{ $lecture->notes }}</div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                            @else
-                                                <span class="text-muted">—</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                                                            @endif
+                                                        @else
+                                                            <span class="text-muted">—</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+
+                    @if($orphanLectures->isNotEmpty())
+                        <div class="border-top">
+                            <div class="px-3 py-2 bg-light-subtle fw-semibold small text-muted">
+                                {{ __('pages.unassigned_lectures') }}
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="text-center" style="width:50px;">#</th>
+                                            <th class="text-center" style="width:80px;">{{ __('pages.week_col') }}</th>
+                                            <th style="width:110px;">{{ __('pages.date') }}</th>
+                                            <th>{{ __('pages.lecture') }}</th>
+                                            <th class="text-center" style="width:80px;">{{ __('pages.video_col') }}</th>
+                                            <th class="text-center" style="width:80px;">{{ __('pages.slides') }}</th>
+                                            <th>{{ __('pages.additional_materials') }}</th>
+                                            <th>{{ __('pages.notes') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($orphanLectures as $i => $lecture)
+                                            <tr>
+                                                <td class="text-center text-muted small">{{ $i + 1 }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-secondary rounded-pill">
+                                                        {{ __('pages.week') }} {{ $lecture->week_number }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-muted small">
+                                                    {{ $lecture->lecture_date ? $lecture->lecture_date->format('Y-m-d') : '—' }}
+                                                </td>
+                                                <td class="fw-semibold">{{ $lecture->title }}</td>
+                                                <td class="text-center">
+                                                    @if($lecture->video_link)
+                                                        <a href="{{ $lecture->video_link }}" target="_blank"
+                                                           class="btn btn-sm btn-danger rounded-circle p-1 lh-1"
+                                                           title="{{ __('pages.watch_video') }}">
+                                                            <i class="bi bi-play-fill"></i>
+                                                        </a>
+                                                    @else
+                                                        <span class="text-muted">—</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-center">
+                                                    @if($lecture->slides_link)
+                                                        <a href="{{ $lecture->slides_link }}" target="_blank"
+                                                           class="btn btn-sm btn-primary rounded-circle p-1 lh-1"
+                                                           title="{{ __('pages.download_slides') }}">
+                                                            <i class="bi bi-file-earmark-slides-fill"></i>
+                                                        </a>
+                                                    @else
+                                                        <span class="text-muted">—</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @forelse($lecture->materials as $mat)
+                                                        <a href="{{ $mat->link }}" target="_blank"
+                                                           class="badge bg-light text-primary border text-decoration-none me-1 mb-1 d-inline-block"
+                                                           title="{{ $mat->link }}">
+                                                            <i class="bi bi-link-45deg"></i> {{ $mat->title }}
+                                                        </a>
+                                                    @empty
+                                                        <span class="text-muted small">—</span>
+                                                    @endforelse
+                                                </td>
+                                                <td>
+                                                    @if($lecture->notes)
+                                                        <span class="text-muted small">{{ Str::limit($lecture->notes, 80) }}</span>
+                                                    @else
+                                                        <span class="text-muted">—</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>

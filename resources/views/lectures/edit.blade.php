@@ -44,18 +44,34 @@
                             <input type="text" name="title" class="form-control"
                                    value="{{ old('title', $lecture->title) }}" maxlength="150" required>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">{{ __('pages.select_session') }} <span class="text-danger">*</span></label>
+                            @if($lecture->module->courseSessions->isEmpty())
+                                <div class="alert alert-warning small mb-0">
+                                    {{ __('pages.no_sessions_in_module') }}
+                                </div>
+                            @else
+                                <select name="session_id" class="form-select" required>
+                                    <option value="">-- {{ __('pages.select_session') }} --</option>
+                                    @foreach($lecture->module->courseSessions as $session)
+                                        <option value="{{ $session->session_id }}"
+                                            @selected(old('session_id', $lecture->session_id) == $session->session_id)>
+                                            {{ __('pages.week') }} {{ $session->week_number ?? '?' }} —
+                                            {{ $session->session_title }}
+                                            ({{ $session->session_date?->format('Y-m-d') ?? __('pages.unspecified') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text">{{ __('pages.lecture_session_hint') }}</div>
+                            @endif
+                        </div>
                         <div class="row g-3 mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold">{{ __('pages.lecture_week') }} <span class="text-danger">*</span></label>
-                                <input type="number" name="week_number" class="form-control"
-                                       value="{{ old('week_number', $lecture->week_number) }}" min="1" max="99" required>
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">{{ __('pages.date') }}</label>
                                 <input type="date" name="lecture_date" class="form-control"
                                        value="{{ old('lecture_date', $lecture->lecture_date?->format('Y-m-d')) }}">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="form-label fw-semibold">{{ __('pages.sort_order') }}</label>
                                 <input type="number" name="order_index" class="form-control"
                                        value="{{ old('order_index', $lecture->order_index) }}" min="0">
@@ -148,6 +164,15 @@
                     <dl class="row mb-0 small">
                         <dt class="col-5 text-muted">{{ __('pages.module') }}</dt>
                         <dd class="col-7">{{ $lecture->module->title }}</dd>
+                        <dt class="col-5 text-muted">{{ __('pages.session') }}</dt>
+                        <dd class="col-7">
+                            @if($lecture->session)
+                                {{ __('pages.week') }} {{ $lecture->session->week_number ?? '?' }} —
+                                {{ $lecture->session->session_title }}
+                            @else
+                                <span class="text-warning">{{ __('pages.unassigned') }}</span>
+                            @endif
+                        </dd>
                         <dt class="col-5 text-muted">{{ __('pages.lecture_number') }}</dt>
                         <dd class="col-7">#{{ $lecture->lecture_id }}</dd>
                         <dt class="col-5 text-muted">{{ __('pages.created_at') }}</dt>

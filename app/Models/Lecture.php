@@ -10,6 +10,7 @@ class Lecture extends Model
 
     protected $fillable = [
         'module_id',
+        'session_id',
         'title',
         'week_number',
         'lecture_date',
@@ -28,6 +29,11 @@ class Lecture extends Model
     public function module()
     {
         return $this->belongsTo(Module::class, 'module_id', 'module_id');
+    }
+
+    public function session()
+    {
+        return $this->belongsTo(Session::class, 'session_id', 'session_id');
     }
 
     public function materials()

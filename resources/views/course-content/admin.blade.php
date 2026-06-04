@@ -192,130 +192,97 @@
                 </form>
             </div>
 
-            {{-- Existing lectures --}}
-            @if($module->lectures->isNotEmpty())
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th style="width:50px;">#</th>
-                                <th style="width:80px;">{{ __('pages.week_col') }}</th>
-                                <th style="width:110px;">{{ __('pages.date') }}</th>
-                                <th>{{ __('pages.lecture') }}</th>
-                                <th style="width:70px;">{{ __('pages.video_col') }}</th>
-                                <th style="width:70px;">{{ __('pages.slides_col') }}</th>
-                                <th>{{ __('pages.extra_materials_col') }}</th>
-                                <th style="width:110px;">{{ __('pages.actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($module->lectures as $i => $lecture)
-                                <tr>
-                                    <td class="text-muted small">{{ $i + 1 }}</td>
-                                    <td><span class="badge bg-secondary">{{ $lecture->week_number }}</span></td>
-                                    <td class="small text-muted">
-                                        {{ $lecture->lecture_date ? $lecture->lecture_date->format('Y-m-d') : '—' }}
-                                    </td>
-                                    <td class="fw-semibold">
-                                        {{ $lecture->title }}
-                                        @if($lecture->notes)
-                                            <i class="bi bi-sticky text-warning ms-1" title="{{ $lecture->notes }}"></i>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @if($lecture->video_link)
-                                            <a href="{{ $lecture->video_link }}" target="_blank"
-                                               class="btn btn-sm btn-outline-danger py-0 px-1">
-                                                <i class="bi bi-play-fill"></i>
-                                            </a>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        @if($lecture->slides_link)
-                                            <a href="{{ $lecture->slides_link }}" target="_blank"
-                                               class="btn btn-sm btn-outline-primary py-0 px-1">
-                                                <i class="bi bi-file-earmark-slides"></i>
-                                            </a>
-                                        @else
-                                            <span class="text-muted">—</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="text-muted-theme small">{{ __('pages.links_count', ['count' => $lecture->materials->count()]) }}</span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex gap-1">
-                                            <a href="{{ route('lectures.edit', $lecture->lecture_id) }}"
-                                               class="btn btn-sm btn-outline-primary py-0 px-2" title="{{ __('pages.edit') }}">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <form method="POST"
-                                                  action="{{ route('lectures.destroy', $lecture->lecture_id) }}"
-                                                  onsubmit="return confirm(@json(__('pages.confirm_delete_lecture')))">
-                                                @csrf @method('DELETE')
-                                                <input type="hidden" name="course_id" value="{{ $course->course_id }}">
-                                                <button class="btn btn-sm btn-outline-danger py-0 px-2" title="{{ __('pages.delete') }}">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+            {{-- Module exams --}}
+            <div class="card-body border-bottom bg-light-subtle py-3">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                    <div class="fw-semibold text-muted small">
+                        <i class="bi bi-journal-check"></i> {{ __('pages.module_exams') }}
+                    </div>
+                    <a href="{{ route('exams.dashboard') }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> {{ __('pages.manage_exams') }}
+                    </a>
                 </div>
+                @if($module->exams->isNotEmpty())
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach($module->exams as $exam)
+                            <span class="badge bg-primary">
+                                {{ $exam->exam_name }}
+                                ({{ $exam->duration_minutes }} {{ __('pages.minutes') }})
+                            </span>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-muted small mb-0">{{ __('pages.no_exams_in_module') }}</p>
+                @endif
+            </div>
+
+            @php
+                $linkedSessionIds = $module->courseSessions->pluck('session_id');
+                $orphanLectures = $module->lectures->filter(
+                    fn ($lecture) => ! $lecture->session_id || ! $linkedSessionIds->contains($lecture->session_id)
+                );
+            @endphp
+
+            {{-- Sessions & lectures --}}
+            @if($module->courseSessions->isEmpty())
+                <div class="alert alert-warning m-3 mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> {{ __('pages.no_sessions_in_module') }}
+                    <a href="{{ route('sessions.index') }}" class="alert-link">{{ __('pages.manage_sessions') }}</a>
+                </div>
+            @else
+                @foreach($module->courseSessions as $session)
+                    <div class="border-bottom">
+                        <div class="px-3 py-2 bg-light-subtle d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="fw-semibold">
+                                <span class="badge bg-secondary me-1">{{ __('pages.week') }} {{ $session->week_number ?? '?' }}</span>
+                                {{ $session->session_title }}
+                                <span class="text-muted small fw-normal ms-1">
+                                    ({{ $session->session_date?->format('Y-m-d') ?? __('pages.unspecified') }})
+                                </span>
+                            </div>
+                            <span class="badge bg-white text-dark border">
+                                {{ $session->lectures->count() }} {{ __('pages.lecture') }}
+                            </span>
+                        </div>
+
+                        @if($session->lectures->isNotEmpty())
+                            @include('course-content.partials.lecture-admin-table', [
+                                'lectures' => $session->lectures,
+                                'course' => $course,
+                            ])
+                        @else
+                            <p class="text-muted small px-3 py-2 mb-0">{{ __('pages.no_lectures_in_session') }}</p>
+                        @endif
+
+                        <div class="card-footer bg-light">
+                            <div class="fw-semibold mb-2 text-muted small">
+                                <i class="bi bi-plus-circle-fill text-success"></i> {{ __('pages.add_new_lecture') }}
+                            </div>
+                            @include('course-content.partials.lecture-add-form', [
+                                'module' => $module,
+                                'course' => $course,
+                                'session' => $session,
+                            ])
+                        </div>
+                    </div>
+                @endforeach
             @endif
 
-            {{-- Add lecture form --}}
-            <div class="card-footer bg-light">
-                <div class="fw-semibold mb-2 text-muted small">
-                    <i class="bi bi-plus-circle-fill text-success"></i> {{ __('pages.add_new_lecture') }}
+            {{-- Lectures not linked to a session --}}
+            @if($orphanLectures->isNotEmpty())
+                <div class="border-top">
+                    <div class="px-3 py-2 bg-warning-subtle">
+                        <div class="fw-semibold small text-warning-emphasis">
+                            <i class="bi bi-exclamation-circle"></i> {{ __('pages.unassigned_lectures') }}
+                        </div>
+                        <div class="small text-muted">{{ __('pages.unassigned_lectures_hint') }}</div>
+                    </div>
+                    @include('course-content.partials.lecture-admin-table', [
+                        'lectures' => $orphanLectures,
+                        'course' => $course,
+                    ])
                 </div>
-                <form method="POST" action="{{ route('lectures.store') }}">
-                    @csrf
-                    <input type="hidden" name="module_id" value="{{ $module->module_id }}">
-                    <input type="hidden" name="course_id"  value="{{ $course->course_id }}">
-
-                    <div class="row g-2 mb-2">
-                        <div class="col-md-4">
-                            <input type="text" name="title" class="form-control form-control-sm"
-                                   placeholder="{{ __('pages.lecture_title_placeholder') }}" maxlength="150" required>
-                        </div>
-                        <div class="col-md-1">
-                            <input type="number" name="week_number" class="form-control form-control-sm"
-                                   placeholder="{{ __('pages.week') }} *" min="1" max="99" required>
-                        </div>
-                        <div class="col-md-2">
-                            <input type="date" name="lecture_date" class="form-control form-control-sm"
-                                   placeholder="{{ __('pages.date') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <input type="number" name="order_index" class="form-control form-control-sm"
-                                   placeholder="{{ __('pages.sort_order_placeholder') }}" min="0" value="0">
-                        </div>
-                    </div>
-                    <div class="row g-2 mb-2">
-                        <div class="col-md-4">
-                            <input type="url" name="video_link" class="form-control form-control-sm"
-                                   placeholder="{{ __('pages.video_url_optional') }}" maxlength="500">
-                        </div>
-                        <div class="col-md-4">
-                            <input type="url" name="slides_link" class="form-control form-control-sm"
-                                   placeholder="{{ __('pages.slides_url_optional') }}" maxlength="500">
-                        </div>
-                        <div class="col-md-4">
-                            <button type="submit" class="btn btn-success btn-sm w-100">
-                                <i class="bi bi-plus-circle"></i> {{ __('pages.add') }}
-                            </button>
-                        </div>
-                    </div>
-                    <textarea name="notes" class="form-control form-control-sm"
-                              rows="2" placeholder="{{ __('pages.notes_optional') }}"></textarea>
-                </form>
-            </div>
+            @endif
         </div>
     @empty
         <div class="alert alert-info">

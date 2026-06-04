@@ -522,4 +522,21 @@ return [
     'rate_content'                => 'قيّم المحتوى العام',
     'comments_optional'           => 'تعليقات (اختياري)',
     'additional_notes'            => 'ملاحظات إضافية',
+
+    // Curriculum hierarchy (module → session → lecture)
+    'select_session'              => 'اختر الجلسة',
+    'session'                     => 'الجلسة',
+    'session_not_in_module'       => 'هذه الجلسة لا تنتمي إلى الوحدة المحددة.',
+    'session_not_in_course'       => 'هذه الجلسة لا تنتمي إلى هذه الدورة.',
+    'lecture_created_success'     => 'تمت إضافة المحاضرة بنجاح.',
+    'lecture_updated_success'     => 'تم تحديث المحاضرة بنجاح.',
+    'lecture_deleted_success'     => 'تم حذف المحاضرة.',
+    'no_sessions_in_module'       => 'لا توجد جلسات أسبوعية مرتبطة بهذه الوحدة بعد. اربط الجلسات من قسم الجدول أعلاه.',
+    'no_lectures_in_session'      => 'لا توجد محاضرات في هذه الجلسة بعد.',
+    'unassigned_lectures'         => 'محاضرات غير مرتبطة',
+    'unassigned_lectures_hint'    => 'هذه المحاضرات غير مرتبطة بجلسة. عدّل كل محاضرة واختر جلسة.',
+    'unassigned'                  => 'غير مرتبط',
+    'lecture_session_hint'        => 'يُؤخذ رقم الأسبوع من الجلسة المختارة.',
+    'manage_sessions'             => 'إدارة الجلسات',
+    'manage_exams'                => 'إدارة الامتحانات',
 ];

@@ -45,7 +45,9 @@ class Module extends Model
 
     public function courseSessions()
     {
-        return $this->hasMany(Session::class, 'module_id', 'module_id');
+        return $this->hasMany(Session::class, 'module_id', 'module_id')
+            ->orderBy('week_number')
+            ->orderBy('session_date');
     }
 
     public function sessions()
