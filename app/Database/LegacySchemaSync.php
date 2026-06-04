@@ -155,23 +155,31 @@ final class LegacySchemaSync
             self::addMysqlColumnIfMissing('user', $column, $definition);
         }
 
-        if (Schema::hasColumn('user', 'mobile_number')) {
-            DB::statement('ALTER TABLE `user` MODIFY `mobile_number` VARCHAR(15) NOT NULL');
-        }
-
+        // Column width is handled by migration 2026_06_01_000006 — do not MODIFY on every deploy.
         self::ensureLegacyNameColumnDefault();
     }
 
-    /** Legacy VPS tables may have NOT NULL `name` without a default. */
+    /** Legacy VPS tables may have NOT NULL `name` without a default. One-time fix only. */
     private static function ensureLegacyNameColumnDefault(): void
     {
         if (! Schema::hasColumn('user', 'name')) {
             return;
         }
 
-        if (Schema::getConnection()->getDriverName() === 'mysql') {
-            DB::statement("ALTER TABLE `user` MODIFY `name` VARCHAR(255) NOT NULL DEFAULT ''");
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
         }
+
+        $row = DB::selectOne(
+            "SELECT COLUMN_DEFAULT FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = 'name'"
+        );
+
+        if ($row !== null && $row->COLUMN_DEFAULT !== null) {
+            return;
+        }
+
+        DB::statement("ALTER TABLE `user` MODIFY `name` VARCHAR(255) NOT NULL DEFAULT ''");
     }
 
     private static function syncUserTableViaBlueprint(): void

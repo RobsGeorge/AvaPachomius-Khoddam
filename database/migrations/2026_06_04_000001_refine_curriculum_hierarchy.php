@@ -20,20 +20,11 @@ return new class extends Migration
             MigrationSupport::addColumn('lectures', 'session_id', function (Blueprint $table) {
                 $table->unsignedBigInteger('session_id')->nullable()->after('module_id');
             });
-
-            if (Schema::hasColumn('lectures', 'session_id')
-                && ! $this->foreignKeyExists('lectures', 'lectures_session_id_foreign')) {
-                Schema::table('lectures', function (Blueprint $table) {
-                    $table->foreign('session_id', 'lectures_session_id_foreign')
-                        ->references('session_id')
-                        ->on('session')
-                        ->nullOnDelete();
-                });
-            }
         }
 
         $this->backfillWeekNumbers();
         $this->backfillLectureSessions();
+        $this->addLectureSessionForeignKey();
     }
 
     public function down(): void
@@ -64,13 +55,12 @@ return new class extends Migration
         }
 
         if (Schema::hasTable('module_session')) {
-            $pivots = DB::table('module_session')->whereNotNull('week_number')->get();
-            foreach ($pivots as $pivot) {
-                DB::table('session')
-                    ->where('session_id', $pivot->session_id)
-                    ->whereNull('week_number')
-                    ->update(['week_number' => $pivot->week_number]);
-            }
+            DB::statement('
+                UPDATE `session` s
+                INNER JOIN `module_session` ms ON ms.session_id = s.session_id
+                SET s.week_number = ms.week_number
+                WHERE s.week_number IS NULL AND ms.week_number IS NOT NULL
+            ');
         }
 
         $modules = DB::table('session')
@@ -95,25 +85,53 @@ return new class extends Migration
             return;
         }
 
-        $lectures = DB::table('lectures')->whereNull('session_id')->get();
+        DB::statement('
+            UPDATE `lectures` l
+            INNER JOIN `session` s
+                ON s.module_id = l.module_id AND s.week_number = l.week_number
+            SET l.session_id = s.session_id
+            WHERE l.session_id IS NULL
+        ');
 
-        foreach ($lectures as $lecture) {
-            $sessionId = DB::table('session')
-                ->where('module_id', $lecture->module_id)
-                ->where('week_number', $lecture->week_number)
-                ->value('session_id');
+        if (! Schema::hasTable('module_session')) {
+            return;
+        }
 
-            if (! $sessionId && Schema::hasTable('module_session')) {
-                $sessionId = DB::table('module_session')
-                    ->where('module_id', $lecture->module_id)
-                    ->where('week_number', $lecture->week_number)
-                    ->value('session_id');
-            }
+        DB::statement('
+            UPDATE `lectures` l
+            INNER JOIN `module_session` ms
+                ON ms.module_id = l.module_id AND ms.week_number = l.week_number
+            INNER JOIN `session` s ON s.session_id = ms.session_id
+            SET l.session_id = s.session_id
+            WHERE l.session_id IS NULL
+        ');
+    }
 
-            if ($sessionId) {
-                DB::table('lectures')
-                    ->where('lecture_id', $lecture->lecture_id)
-                    ->update(['session_id' => $sessionId]);
+    private function addLectureSessionForeignKey(): void
+    {
+        if (! Schema::hasTable('lectures')
+            || ! Schema::hasColumn('lectures', 'session_id')
+            || $this->foreignKeyExists('lectures', 'lectures_session_id_foreign')) {
+            return;
+        }
+
+        // Avoid hanging deploys on metadata locks; skip FK if table is busy.
+        if (Schema::getConnection()->getDriverName() === 'mysql') {
+            DB::statement('SET SESSION lock_wait_timeout = 120');
+        }
+
+        try {
+            Schema::table('lectures', function (Blueprint $table) {
+                $table->foreign('session_id', 'lectures_session_id_foreign')
+                    ->references('session_id')
+                    ->on('session')
+                    ->nullOnDelete();
+            });
+        } catch (\Throwable $e) {
+            if (Schema::getConnection()->getDriverName() === 'mysql') {
+                report($e);
+            } else {
+                throw $e;
             }
         }
     }

@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-# Avoid overlapping deploys (second push while first runs often hits the 10m SSH limit).
+# Avoid overlapping deploys (second push while first runs often hits SSH limits).
 concurrency:
   group: production-deploy
   cancel-in-progress: true
@@ -13,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
 
     steps:
       - name: Deploy to VPS
@@ -24,13 +24,15 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           timeout: 120s
-          command_timeout: 20m
+          command_timeout: 30m
           script: |
             set -e
             cd /var/www/avapakhomios
 
             PHP_BIN=php8.2
             DEPLOY_USER="$(whoami)"
+            DEPLOY_START=$(date +%s)
+            step() { echo "==> $1 ($(date -Iseconds))"; }
 
             if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
               echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
@@ -41,32 +43,42 @@ jobs:
               exit 1
             fi
 
-            echo "==> git pull"
+            step "git pull"
             git pull origin main
 
-            echo "==> composer install"
+            step "composer install"
             COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer install \
               --no-interaction \
               --prefer-dist \
               --optimize-autoloader \
               --no-dev \
-              --no-progress
+              --no-progress \
+              --no-scripts
+            COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer dump-autoload \
+              --optimize \
+              --no-dev \
+              --no-interaction
 
-            echo "==> migrations"
+            step "maintenance mode"
+            $PHP_BIN artisan down --retry=60 --refresh=15 || true
+
+            step "migrations"
             $PHP_BIN artisan migrate:deploy --force
 
-            echo "==> optimize"
+            step "optimize"
             $PHP_BIN artisan optimize:clear
-            $PHP_BIN artisan optimize
+            $PHP_BIN artisan config:cache
+            $PHP_BIN artisan route:cache
+            $PHP_BIN artisan view:cache
 
-            echo "==> storage link"
+            step "storage link"
             if [ ! -L public/storage ]; then
               $PHP_BIN artisan storage:link
             else
               echo "public/storage link already exists, skipping"
             fi
 
-            echo "==> permissions"
+            step "permissions"
             # GitHub SSH has no TTY — sudo must be passwordless (see .github/DEPLOY-VPS.md).
             chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
             if sudo -n true 2>/dev/null; then
@@ -76,11 +88,15 @@ jobs:
               echo "WARN: passwordless sudo not configured — skipped chown (chmod only as ${DEPLOY_USER})"
             fi
 
-            echo "==> reload php-fpm"
+            step "reload php-fpm"
             if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then
               echo "php8.2-fpm reloaded"
             else
               echo "WARN: could not reload php-fpm without password — configure NOPASSWD (see .github/DEPLOY-VPS.md)"
             fi
 
-            echo "Deployment complete: $(date)"
+            step "live"
+            $PHP_BIN artisan up || true
+
+            DEPLOY_END=$(date +%s)
+            echo "Deployment complete in $((DEPLOY_END - DEPLOY_START))s: $(date)"
