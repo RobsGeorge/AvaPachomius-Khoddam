@@ -15,7 +15,10 @@
     </div>
 
     @php
-        $passed  = $report->filter(fn ($r) => $r['total'] >= 60)->count();
+        $passThreshold = $course->hasGraduationCriteria()
+            ? (float) $course->passing_percentage
+            : $course->effectivePassingPercentage();
+        $passed  = $report->filter(fn ($r) => $r['total'] >= $passThreshold)->count();
         $failed  = $report->count() - $passed;
         $highest = $report->max('total') ?? 0;
         $lowest  = $report->min('total') ?? 0;
@@ -60,7 +63,7 @@
         <div class="card-body py-2 d-flex gap-3 flex-wrap">
             @foreach(['A+'=>[95,100], 'A'=>[90,95], 'B+'=>[85,90], 'B'=>[80,85], 'C+'=>[75,80], 'C'=>[70,75], 'D'=>[60,70], 'F'=>[0,60]] as $ltr => [$lo, $hi])
                 @php $cnt = $report->filter(fn($r) => $r['total'] >= $lo && $r['total'] < $hi)->count(); @endphp
-                @if($ltr === 'F') @php $cnt = $report->filter(fn($r) => $r['total'] < 60)->count(); @endphp @endif
+                @if($ltr === 'F') @php $cnt = $report->filter(fn($r) => $r['total'] < $passThreshold)->count(); @endphp @endif
                 <div class="text-center px-2">
                     <div class="badge bg-{{ $ltr === 'F' ? 'danger' : ($lo >= 85 ? 'success' : ($lo >= 70 ? 'primary' : ($lo >= 60 ? 'warning' : 'danger'))) }} fs-6">{{ $ltr }}</div>
                     <div class="fw-bold">{{ $cnt }}</div>

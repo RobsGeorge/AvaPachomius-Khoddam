@@ -28,17 +28,25 @@
                         </a>
 
                         @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
+                            <a href="{{ route('graduation.index') }}" class="app-nav-link {{ request()->routeIs('graduation.*') ? 'active' : '' }}">
+                                {{ __('pages.graduation_title') }}
+                            </a>
                             <a href="{{ route('modules.index') }}" class="app-nav-link {{ request()->routeIs('modules.*') ? 'active' : '' }}">
                                 {{ __('nav.modules') }}
                             </a>
                         @endif
 
-                        @if(auth()->user()->roles->contains('role_name', 'admin'))
-                            <a href="{{ route('user-course-roles.index') }}" class="app-nav-link {{ request()->routeIs('user-course-roles.*', 'roles.*') ? 'active' : '' }}">
-                                {{ __('nav.roles') }}
-                            </a>
-                            <a href="{{ route('admin.translations.index') }}" class="app-nav-link {{ request()->routeIs('admin.translations.*') ? 'active' : '' }}">
-                                {{ __('nav.translations') }}
+                        @if(auth()->user()->is_superadmin || auth()->user()->roles->contains('role_name', 'admin'))
+                            @if(auth()->user()->roles->contains('role_name', 'admin'))
+                                <a href="{{ route('user-course-roles.index') }}" class="app-nav-link {{ request()->routeIs('user-course-roles.*', 'roles.*') ? 'active' : '' }}">
+                                    {{ __('nav.roles') }}
+                                </a>
+                                <a href="{{ route('admin.translations.index') }}" class="app-nav-link {{ request()->routeIs('admin.translations.*') ? 'active' : '' }}">
+                                    {{ __('nav.translations') }}
+                                </a>
+                            @endif
+                            <a href="{{ route('admin.graduation-settings.index') }}" class="app-nav-link {{ request()->routeIs('admin.graduation-settings.*') ? 'active' : '' }}">
+                                {{ __('pages.graduation_configure_criteria') }}
                             </a>
                         @endif
 
@@ -107,6 +115,7 @@
                     <a href="{{ route('dashboard') }}" class="app-nav-link">{{ __('nav.home') }}</a>
                     @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
                         <a href="{{ route('attendance.all') }}" class="app-nav-link">{{ __('nav.attendance') }}</a>
+                        <a href="{{ route('graduation.index') }}" class="app-nav-link">{{ __('pages.graduation_title') }}</a>
                     @else
                         <a href="{{ route('attendance.my') }}" class="app-nav-link">{{ __('nav.my_attendance') }}</a>
                     @endif

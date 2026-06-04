@@ -33,6 +33,7 @@
                             <th>{{ __('pages.exam_name') }}</th>
                             <th>{{ __('pages.course') }}</th>
                             <th>{{ __('pages.module') }}</th>
+                            <th>{{ __('exams.delivery_mode') }}</th>
                             <th>{{ __('pages.duration') }}</th>
                             <th>{{ __('pages.exam_schedules') }}</th>
                             <th>{{ __('pages.study_resources') }}</th>
@@ -45,6 +46,14 @@
                                 <td class="fw-semibold">{{ $exam->exam_name }}</td>
                                 <td>{{ $exam->course->title ?? '—' }}</td>
                                 <td>{{ $exam->module->title ?? '—' }}</td>
+                                <td>
+                                    <span class="badge {{ ($exam->delivery_mode ?? 'offline') === 'online' ? 'bg-primary' : 'bg-secondary' }}">
+                                        {{ ($exam->delivery_mode ?? 'offline') === 'online' ? __('exams.mode_online') : __('exams.mode_offline') }}
+                                    </span>
+                                    @if($exam->is_published ?? false)
+                                        <span class="badge bg-success">{{ __('exams.published') }}</span>
+                                    @endif
+                                </td>
                                 <td>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
                                 <td>
                                     @foreach($exam->schedules as $schedule)
@@ -68,6 +77,12 @@
                                 <td class="small text-muted-theme">{{ Str::limit($exam->study_resources, 60) }}</td>
                                 <td>
                                     <div class="d-flex gap-1 flex-wrap">
+                                        <a href="{{ route('exams.builder', $exam) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-ui-checks"></i> {{ __('exams.design_exam') }}
+                                        </a>
+                                        <a href="{{ route('exams.grades', $exam) }}" class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-bar-chart"></i> {{ __('exams.grades_dashboard') }}
+                                        </a>
                                         <button type="button"
                                                 class="btn btn-sm btn-outline-theme js-open-edit-modal"
                                                 data-exam-id="{{ $exam->exam_id }}"
@@ -140,13 +155,45 @@
                         <label class="form-label">{{ __('pages.exam_name') }} *</label>
                         <input type="text" name="exam_name" class="form-control" value="{{ old('exam_name') }}" required>
                     </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.exam_type') }}</label>
+                            <select name="exam_type" class="form-select">
+                                <option value="exam">{{ __('exams.type_exam') }}</option>
+                                <option value="quiz">{{ __('exams.type_quiz') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.delivery_mode') }}</label>
+                            <select name="delivery_mode" class="form-select">
+                                <option value="offline">{{ __('exams.mode_offline') }}</option>
+                                <option value="online">{{ __('exams.mode_online') }}</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('pages.exam_duration_minutes') }} *</label>
                         <input type="number" name="duration_minutes" class="form-control" min="1" value="{{ old('duration_minutes', 60) }}" required>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="shuffle_questions" value="1" class="form-check-input" id="addShuffle">
+                        <label class="form-check-label" for="addShuffle">{{ __('exams.shuffle_questions') }}</label>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="allow_late_entry" value="1" class="form-check-input" id="addLateEntry" checked>
+                        <label class="form-check-label" for="addLateEntry">{{ __('exams.allow_late_entry') }}</label>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('pages.study_resources') }}</label>
                         <textarea name="study_resources" class="form-control" rows="2">{{ old('study_resources') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('exams.instructions') }}</label>
+                        <textarea name="exam_description" class="form-control" rows="2">{{ old('exam_description') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('exams.passing_score') }} (%)</label>
+                        <input type="number" name="passing_score" class="form-control" min="0" max="100" value="{{ old('passing_score') }}">
                     </div>
                 </div>
                 <div class="modal-footer">

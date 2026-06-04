@@ -10,6 +10,9 @@
             <small class="text-muted-theme fw-semibold">{{ $course->title }} — {{ $course->year }}</small>
         </div>
         <div class="d-flex gap-2">
+            <a href="{{ route('graduation.show', $course->course_id) }}" class="btn btn-outline-success btn-sm">
+                <i class="bi bi-mortarboard"></i> {{ __('pages.graduation_title') }}
+            </a>
             <a href="{{ route('grades.report', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
                 <i class="bi bi-table"></i> {{ __('pages.grade_report') }}
             </a>

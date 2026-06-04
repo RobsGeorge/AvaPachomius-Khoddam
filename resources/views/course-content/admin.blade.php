@@ -13,6 +13,9 @@
             <a href="{{ route('grades.admin', $course->course_id) }}" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-bar-chart-line"></i> {{ __('pages.grading_weights') }}
             </a>
+            <a href="{{ route('graduation.show', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-mortarboard"></i> {{ __('pages.graduation_title') }}
+            </a>
             <a href="{{ route('course-content.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-eye"></i> {{ __('pages.student_preview') }}
             </a>

@@ -10,15 +10,27 @@ use App\Models\Module;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
 {
     public function index()
     {
-        $exams = Exam::with(['module', 'course', 'schedules', 'results' => function ($query) {
-            $query->where('user_id', Auth::id());
-        }])->orderBy('exam_name')->get();
+        $userId = Auth::id();
+        $query = Exam::with([
+            'module',
+            'course',
+            'schedules',
+            'results' => fn ($q) => $q->where('user_id', $userId),
+            'attempts' => fn ($q) => $q->where('user_id', $userId),
+        ])->orderBy('exam_name');
+
+        if (Schema::hasColumn('exams', 'is_published')) {
+            $query->where('is_published', true);
+        }
+
+        $exams = $query->get();
 
         return view('exams.index', compact('exams'));
     }
@@ -36,10 +48,14 @@ class ExamController extends Controller
     {
         $validated = $request->validate([
             'exam_name'        => 'required|string|max:255',
+            'exam_type'        => 'required|in:exam,quiz',
+            'delivery_mode'    => 'required|in:online,offline',
             'duration_minutes' => 'required|integer|min:1',
             'study_resources'  => 'nullable|string',
             'exam_description' => 'nullable|string',
             'passing_score'    => 'nullable|integer|min:0|max:100',
+            'shuffle_questions'=> 'nullable|boolean',
+            'allow_late_entry' => 'nullable|boolean',
             'course_id'        => 'required|exists:course,course_id',
             'module_id'        => 'required|exists:modules,module_id',
         ], [
@@ -50,6 +66,10 @@ class ExamController extends Controller
             (int) $validated['module_id'],
             (int) $validated['course_id']
         );
+
+        $validated['shuffle_questions'] = $request->boolean('shuffle_questions');
+        $validated['allow_late_entry'] = $request->boolean('allow_late_entry', true);
+        $validated['is_published'] = false;
 
         Exam::create($validated);
 
@@ -61,10 +81,14 @@ class ExamController extends Controller
     {
         $validated = $request->validate([
             'exam_name'        => 'required|string|max:255',
+            'exam_type'        => 'required|in:exam,quiz',
+            'delivery_mode'    => 'required|in:online,offline',
             'duration_minutes' => 'required|integer|min:1',
             'study_resources'  => 'nullable|string',
             'exam_description' => 'nullable|string',
             'passing_score'    => 'nullable|integer|min:0|max:100',
+            'shuffle_questions'=> 'nullable|boolean',
+            'allow_late_entry' => 'nullable|boolean',
             'course_id'        => 'required|exists:course,course_id',
             'module_id'        => 'required|exists:modules,module_id',
         ], [
@@ -75,6 +99,9 @@ class ExamController extends Controller
             (int) $validated['module_id'],
             (int) $validated['course_id']
         );
+
+        $validated['shuffle_questions'] = $request->boolean('shuffle_questions');
+        $validated['allow_late_entry'] = $request->boolean('allow_late_entry', true);
 
         $exam->update($validated);
 

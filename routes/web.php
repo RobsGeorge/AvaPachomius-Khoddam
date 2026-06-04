@@ -22,6 +22,9 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ExamController;
+use App\Http\Controllers\ExamBuilderController;
+use App\Http\Controllers\ExamAttemptController;
+use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\CourseContentController;
@@ -31,6 +34,7 @@ use App\Http\Controllers\LectureMaterialController;
 use App\Http\Controllers\GradeCategoryController;
 use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
+use App\Http\Controllers\GraduationController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
@@ -124,6 +128,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/translations', [TranslationController::class, 'index'])->name('translations.index');
     Route::post('/translations', [TranslationController::class, 'store'])->name('translations.store');
     Route::post('/translations/auto', [TranslationController::class, 'autoTranslate'])->name('translations.auto');
+    Route::get('/graduation-settings', [GraduationController::class, 'settings'])->name('graduation-settings.index');
+    Route::put('/courses/{course}/graduation-settings', [GraduationController::class, 'updateSettings'])->name('graduation-settings.update');
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');
@@ -133,14 +139,39 @@ Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttenda
 Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post');
 
 // Exam routes
-Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
-Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
-Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
-Route::post('/exams', [ExamController::class, 'store'])->name('exams.store')->middleware(['auth', 'role:instructor,admin']);
-Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update')->middleware(['auth', 'role:instructor,admin']);
-Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy')->middleware(['auth', 'role:instructor,admin']);
-Route::post('/exams/{exam}/schedule', [ExamController::class, 'scheduleExam'])->name('exams.schedule')->middleware(['auth', 'role:instructor,admin']);
-Route::put('/exam-results/{result}', [ExamController::class, 'updateResult'])->name('exam-results.update')->middleware(['auth', 'role:instructor,admin']);
+Route::middleware('auth')->group(function () {
+    Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
+    Route::get('/exams/schedules/{schedule}/lobby', [ExamAttemptController::class, 'lobby'])->name('exams.attempt.lobby');
+    Route::post('/exams/schedules/{schedule}/begin', [ExamAttemptController::class, 'begin'])->name('exams.attempt.begin');
+    Route::get('/exams/schedules/{schedule}/start', [ExamAttemptController::class, 'start'])->name('exams.attempt.start');
+    Route::get('/exams/schedules/{schedule}/take', [ExamAttemptController::class, 'show'])->name('exams.attempt.show');
+    Route::post('/exams/schedules/{schedule}/save', [ExamAttemptController::class, 'save'])->name('exams.attempt.save');
+    Route::post('/exams/schedules/{schedule}/submit', [ExamAttemptController::class, 'submit'])->name('exams.attempt.submit');
+    Route::post('/exams/schedules/{schedule}/proctor', [ExamAttemptController::class, 'proctor'])->name('exams.attempt.proctor');
+    Route::get('/exams/schedules/{schedule}/timer', [ExamAttemptController::class, 'timer'])->name('exams.attempt.timer');
+    Route::get('/exams/schedules/{schedule}/confirmation', [ExamAttemptController::class, 'confirmation'])->name('exams.attempt.confirmation');
+});
+
+Route::middleware(['auth', 'role:instructor,admin'])->group(function () {
+    Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
+    Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
+    Route::post('/exams', [ExamController::class, 'store'])->name('exams.store');
+    Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update');
+    Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy');
+    Route::post('/exams/{exam}/schedule', [ExamController::class, 'scheduleExam'])->name('exams.schedule');
+    Route::put('/exam-results/{result}', [ExamController::class, 'updateResult'])->name('exam-results.update');
+
+    Route::get('/exams/{exam}/builder', [ExamBuilderController::class, 'edit'])->name('exams.builder');
+    Route::post('/exams/{exam}/questions', [ExamBuilderController::class, 'storeQuestion'])->name('exams.questions.store');
+    Route::put('/exams/{exam}/questions/{question}', [ExamBuilderController::class, 'updateQuestion'])->name('exams.questions.update');
+    Route::delete('/exams/{exam}/questions/{question}', [ExamBuilderController::class, 'destroyQuestion'])->name('exams.questions.destroy');
+    Route::post('/exams/{exam}/publish', [ExamBuilderController::class, 'publish'])->name('exams.publish');
+
+    Route::get('/exams/{exam}/grades', [ExamGradesController::class, 'show'])->name('exams.grades');
+    Route::post('/exams/{exam}/grades/offline', [ExamGradesController::class, 'storeOffline'])->name('exams.grades.offline');
+    Route::put('/exams/{exam}/grades/{result}', [ExamGradesController::class, 'updateManual'])->name('exams.grades.update');
+    Route::post('/exams/{exam}/grades/{result}/clear-cheater', [ExamGradesController::class, 'clearCheater'])->name('exams.grades.clear-cheater');
+});
 
 // Assignment routes
 Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
@@ -198,6 +229,9 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::delete('/grade-items/{item}',                        [GradeItemController::class, 'destroy'])->name('grade-items.destroy');
     Route::get('/grade-items/{item}/scores',                    [StudentGradeController::class, 'itemScores'])->name('grade-items.scores');
     Route::post('/grade-items/{item}/scores',                   [StudentGradeController::class, 'bulkSave'])->name('grade-items.scores.save');
+
+    Route::get('/graduation',                                   [GraduationController::class, 'index'])->name('graduation.index');
+    Route::get('/courses/{course}/graduation',                  [GraduationController::class, 'show'])->name('graduation.show');
 });
 
 // Superadmin routes — accessible only by users with is_superadmin = true

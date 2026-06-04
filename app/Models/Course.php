@@ -18,7 +18,18 @@ class Course extends Model
 
     protected $primaryKey = 'course_id';
 
-    protected $fillable = ['title', 'description', 'year'];
+    protected $fillable = [
+        'title',
+        'description',
+        'year',
+        'passing_percentage',
+        'min_attendance_percentage',
+    ];
+
+    protected $casts = [
+        'passing_percentage'        => 'float',
+        'min_attendance_percentage' => 'float',
+    ];
 
     public function sessions()
     {
@@ -85,5 +96,20 @@ class Course extends Model
     public function studentTotalGrade(int $userId): float
     {
         return round($this->gradeCategories->sum(fn ($cat) => $cat->studentContribution($userId)), 2);
+    }
+
+    public function hasGraduationCriteria(): bool
+    {
+        return $this->passing_percentage !== null && $this->min_attendance_percentage !== null;
+    }
+
+    public function effectivePassingPercentage(): float
+    {
+        return (float) ($this->passing_percentage ?? 60);
+    }
+
+    public function effectiveMinAttendancePercentage(): float
+    {
+        return (float) ($this->min_attendance_percentage ?? 75);
     }
 }
