@@ -87,8 +87,14 @@
                                                 class="btn btn-sm btn-outline-theme js-open-edit-modal"
                                                 data-exam-id="{{ $exam->exam_id }}"
                                                 data-exam-name="{{ e($exam->exam_name) }}"
+                                                data-exam-type="{{ $exam->exam_type ?? 'exam' }}"
+                                                data-delivery-mode="{{ $exam->delivery_mode ?? 'offline' }}"
                                                 data-duration="{{ $exam->duration_minutes }}"
+                                                data-shuffle="{{ ($exam->shuffle_questions ?? false) ? '1' : '0' }}"
+                                                data-late-entry="{{ ($exam->allow_late_entry ?? true) ? '1' : '0' }}"
                                                 data-study-resources="{{ e($exam->study_resources ?? '') }}"
+                                                data-exam-description="{{ e($exam->exam_description ?? '') }}"
+                                                data-passing-score="{{ $exam->passing_score ?? '' }}"
                                                 data-course-id="{{ $exam->course_id }}"
                                                 data-module-id="{{ $exam->module_id }}"
                                                 data-update-url="{{ route('exams.update', $exam->exam_id) }}">
@@ -255,7 +261,10 @@
                         <label class="form-label">{{ __('pages.pillar') }} *</label>
                         <select name="module_id" id="editExamModule" class="form-select" required>
                             @foreach($modules as $module)
-                                <option value="{{ $module->module_id }}">{{ $module->title }}</option>
+                                <option value="{{ $module->module_id }}"
+                                        data-courses="{{ $module->courses->pluck('course_id')->join(',') }}">
+                                    {{ $module->title }}
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -263,13 +272,45 @@
                         <label class="form-label">{{ __('pages.exam_name') }} *</label>
                         <input type="text" name="exam_name" id="editExamName" class="form-control" required>
                     </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.exam_type') }}</label>
+                            <select name="exam_type" id="editExamType" class="form-select">
+                                <option value="exam">{{ __('exams.type_exam') }}</option>
+                                <option value="quiz">{{ __('exams.type_quiz') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.delivery_mode') }}</label>
+                            <select name="delivery_mode" id="editExamDeliveryMode" class="form-select">
+                                <option value="offline">{{ __('exams.mode_offline') }}</option>
+                                <option value="online">{{ __('exams.mode_online') }}</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('pages.exam_duration_minutes') }} *</label>
                         <input type="number" name="duration_minutes" id="editExamDuration" class="form-control" min="1" required>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="shuffle_questions" value="1" class="form-check-input" id="editShuffle">
+                        <label class="form-check-label" for="editShuffle">{{ __('exams.shuffle_questions') }}</label>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="allow_late_entry" value="1" class="form-check-input" id="editLateEntry">
+                        <label class="form-check-label" for="editLateEntry">{{ __('exams.allow_late_entry') }}</label>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('pages.study_resources') }}</label>
                         <textarea name="study_resources" id="editExamResources" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('exams.instructions') }}</label>
+                        <textarea name="exam_description" id="editExamDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ __('exams.passing_score') }} (%)</label>
+                        <input type="number" name="passing_score" id="editExamPassingScore" class="form-control" min="0" max="100">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -314,10 +355,16 @@
             form.action = btn.dataset.updateUrl;
             document.getElementById('editExamModalLabel').textContent = @json(__('pages.edit')) + ' — ' + btn.dataset.examName;
             document.getElementById('editExamName').value = btn.dataset.examName;
+            document.getElementById('editExamType').value = btn.dataset.examType || 'exam';
+            document.getElementById('editExamDeliveryMode').value = btn.dataset.deliveryMode || 'offline';
             document.getElementById('editExamDuration').value = btn.dataset.duration;
+            document.getElementById('editExamShuffle').checked = btn.dataset.shuffle === '1';
+            document.getElementById('editExamLateEntry').checked = btn.dataset.lateEntry !== '0';
             document.getElementById('editExamResources').value = btn.dataset.studyResources || '';
+            document.getElementById('editExamDescription').value = btn.dataset.examDescription || '';
+            document.getElementById('editExamPassingScore').value = btn.dataset.passingScore || '';
             document.getElementById('editExamCourse').value = btn.dataset.courseId || '';
-            document.getElementById('editExamModule').value = btn.dataset.moduleId || '';
+            filterEditModules(btn.dataset.moduleId || '');
             bootstrap.Modal.getOrCreateInstance(editModalEl).show();
         });
     });
@@ -329,6 +376,34 @@
 
     const courseSelect = document.getElementById('addExamCourse');
     const moduleSelect = document.getElementById('addExamModule');
+    const editCourseSelect = document.getElementById('editExamCourse');
+    const editModuleSelect = document.getElementById('editExamModule');
+    let editModuleOptions = [];
+
+    if (editModuleSelect) {
+        editModuleOptions = Array.from(editModuleSelect.querySelectorAll('option[data-courses]'));
+    }
+
+    function filterEditModules(preferredModuleId) {
+        if (!editCourseSelect || !editModuleSelect) return;
+        const courseId = editCourseSelect.value;
+        const current = preferredModuleId || editModuleSelect.value;
+        editModuleSelect.innerHTML = '';
+        editModuleOptions.forEach(function (opt) {
+            const courses = (opt.dataset.courses || '').split(',').filter(Boolean);
+            if (!courseId || courses.includes(courseId)) {
+                editModuleSelect.appendChild(opt.cloneNode(true));
+            }
+        });
+        if (current) editModuleSelect.value = current;
+    }
+
+    if (editCourseSelect && editModuleSelect) {
+        editCourseSelect.addEventListener('change', function () {
+            filterEditModules('');
+        });
+    }
+
     if (courseSelect && moduleSelect) {
         const allOptions = Array.from(moduleSelect.querySelectorAll('option[data-courses]'));
 
