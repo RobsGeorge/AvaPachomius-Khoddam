@@ -61,31 +61,27 @@
         <div class="card-body">
             <h3 class="page-title h5 mb-4">{{ __('pages.qr_attendance_title') }}</h3>
             <div class="d-inline-block p-4 bg-white border rounded shadow">
-                <div class="qr-clickable" style="cursor:pointer;" onclick="openModal()">
+                <button type="button" class="btn p-0 border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#qrModal" aria-label="{{ __('pages.scan_qr_attendance') }}">
                     {!! QrCode::size(200)->generate($attendanceUrl) !!}
-                </div>
+                </button>
             </div>
             <p class="mt-2 text-muted-theme small">{{ __('pages.scan_qr_attendance') }}</p>
         </div>
     </div>
+</div>
 
-    <div id="qrModal" class="modal" style="display:none;position:fixed;z-index:1000;padding-top:60px;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:rgba(0,0,0,0.7);" onclick="closeModal(event)">
-        <span class="close-btn" style="position:fixed;top:20px;right:30px;color:white;font-size:30px;font-weight:bold;cursor:pointer;z-index:1100;" onclick="closeModal(event)">&times;</span>
-        <div class="modal-content" style="margin:auto;display:block;max-width:90vw;max-height:90vh;background:white;padding:20px;text-align:center;border-radius:10px;">
-            {!! QrCode::size(400)->generate($attendanceUrl) !!}
-            <p class="mt-2">{{ __('pages.scan_qr_attendance') }}</p>
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qrModalLabel">{{ __('pages.qr_attendance_title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
+            </div>
+            <div class="modal-body text-center">
+                {!! QrCode::size(280)->generate($attendanceUrl) !!}
+                <p class="mt-3 mb-0 text-muted-theme small">{{ __('pages.scan_qr_attendance') }}</p>
+            </div>
         </div>
     </div>
-
-    <script>
-        function openModal() {
-            document.getElementById('qrModal').style.display = 'block';
-        }
-        function closeModal(event) {
-            if(event.target.id === 'qrModal' || event.target.classList.contains('close-btn')) {
-                document.getElementById('qrModal').style.display = 'none';
-            }
-        }
-    </script>
 </div>
 @endsection

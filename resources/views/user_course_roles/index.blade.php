@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container py-4 animate-in">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h1 class="page-title mb-0">{{ __('pages.assign_roles') }}</h1>
         <a href="{{ route('user-course-roles.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> {{ __('pages.assign_role_to_user') }} {{ __('pages.new_assignment') }}
@@ -20,6 +20,7 @@
 
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
+            <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
@@ -65,6 +66,7 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 

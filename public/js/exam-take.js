@@ -24,6 +24,8 @@
     let clockTimer = null;
     let examLocked = false;
     let proctorReporting = false;
+    const isCoarsePointer = window.matchMedia('(max-width: 768px), (pointer: coarse)').matches;
+    let blurGraceTimer = null;
 
     function collectAnswers() {
         const answers = {};
@@ -163,15 +165,39 @@
     }
 
     function onVisibilityChange() {
-        if (document.hidden) {
-            reportProctor('tab_hidden', 'document.visibilityState=hidden');
+        if (!document.hidden) return;
+        if (isCoarsePointer) {
+            clearTimeout(blurGraceTimer);
+            blurGraceTimer = setTimeout(() => {
+                if (document.hidden) {
+                    reportProctor('tab_hidden', 'document.visibilityState=hidden');
+                }
+            }, 600);
+            return;
         }
+        reportProctor('tab_hidden', 'document.visibilityState=hidden');
     }
 
     function onWindowBlur() {
         if (document.hidden) return;
+        if (isCoarsePointer) {
+            clearTimeout(blurGraceTimer);
+            blurGraceTimer = setTimeout(() => {
+                if (!document.hasFocus() && !document.hidden) {
+                    reportProctor('window_blur', 'window.blur');
+                }
+            }, 800);
+            return;
+        }
         reportProctor('window_blur', 'window.blur');
     }
+
+    window.addEventListener('focus', () => {
+        if (blurGraceTimer) {
+            clearTimeout(blurGraceTimer);
+            blurGraceTimer = null;
+        }
+    });
 
     function onPageHide() {
         reportProctor('page_hide', 'pagehide event');

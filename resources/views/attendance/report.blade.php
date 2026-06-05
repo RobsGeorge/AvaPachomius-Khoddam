@@ -55,8 +55,9 @@
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        overflow-x: auto;
         margin-bottom: 2rem;
+        -webkit-overflow-scrolling: touch;
     }
 
     .report-table table {
@@ -168,6 +169,32 @@
     .btn-export:hover {
         background: #38a169;
         color: white;
+    }
+
+    @media (max-width: 768px) {
+        .report-container {
+            padding: 1rem 0.75rem;
+        }
+
+        .report-title {
+            font-size: 1.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+        }
+
+        .export-buttons {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 0.65rem 0.5rem;
+            font-size: 0.875rem;
+        }
     }
 </style>
 

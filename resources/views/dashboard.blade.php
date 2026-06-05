@@ -39,20 +39,24 @@
         <div class="col-md-6">
             <div class="app-tile h-100">
                 <h3><i class="bi bi-journal-text"></i> {{ __('dashboard.assignments') }}</h3>
+                <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('assignments.index') }}" class="btn btn-primary">{{ __('dashboard.view_assignments') }}</a>
                 @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                    <a href="{{ route('assignments.dashboard') }}" class="btn btn-outline-theme ms-2">{{ __('dashboard.manage_assignments') }}</a>
+                    <a href="{{ route('assignments.dashboard') }}" class="btn btn-outline-theme">{{ __('dashboard.manage_assignments') }}</a>
                 @endif
+                </div>
             </div>
         </div>
 
         <div class="col-md-6">
             <div class="app-tile h-100">
                 <h3><i class="bi bi-book"></i> {{ __('dashboard.content') }}</h3>
+                <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('contents.index') }}" class="btn btn-primary">{{ __('dashboard.view_content') }}</a>
                 @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                    <a href="{{ route('contents.create') }}" class="btn btn-outline-theme ms-2">{{ __('dashboard.add_content') }}</a>
+                    <a href="{{ route('contents.create') }}" class="btn btn-outline-theme">{{ __('dashboard.add_content') }}</a>
                 @endif
+                </div>
             </div>
         </div>
 
@@ -66,10 +70,12 @@
         <div class="col-md-6">
             <div class="app-tile h-100">
                 <h3><i class="bi bi-patch-check"></i> {{ __('dashboard.exams') }}</h3>
+                <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('exams.index') }}" class="btn btn-primary">{{ __('dashboard.view_exams') }}</a>
                 @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                    <a href="{{ route('exams.dashboard') }}" class="btn btn-outline-theme ms-2">{{ __('dashboard.manage_exams') }}</a>
+                    <a href="{{ route('exams.dashboard') }}" class="btn btn-outline-theme">{{ __('dashboard.manage_exams') }}</a>
                 @endif
+                </div>
             </div>
         </div>
     </div>

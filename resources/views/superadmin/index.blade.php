@@ -56,6 +56,7 @@
                     <i class="bi bi-journal-bookmark-fill"></i> {{ __('pages.manage_courses') }}
                 </div>
                 <div class="card-body p-0">
+                    <div class="table-responsive">
                     <table class="table table-sm mb-0">
                         <thead class="table-light">
                             <tr>
@@ -94,6 +95,7 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 <div class="card-footer">
                     <form method="POST" action="{{ route('superadmin.courses.store') }}">
@@ -183,6 +185,7 @@
                     <i class="bi bi-shield"></i> {{ __('pages.available_roles') }}
                 </div>
                 <div class="card-body p-0">
+                    <div class="table-responsive">
                     <table class="table table-sm mb-0">
                         <thead class="table-light">
                             <tr><th>{{ __('pages.name') }}</th><th>{{ __('pages.description') }}</th><th></th></tr>
@@ -208,9 +211,10 @@
                             @endforelse
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 <div class="card-footer">
-                    <form method="POST" action="{{ route('superadmin.roles.store') }}" class="d-flex gap-2">
+                    <form method="POST" action="{{ route('superadmin.roles.store') }}" class="d-flex gap-2 flex-wrap">
                         @csrf
                         <input type="text" name="role_name" class="form-control form-control-sm"
                                placeholder="{{ __('pages.role_name_placeholder') }}" maxlength="30" required>

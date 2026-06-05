@@ -129,16 +129,16 @@
                     </div>
                 @endforeach
 
-                <div class="d-flex justify-content-between align-items-center mb-5">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-5">
                     <span class="text-muted small">{{ __('exams.submit_confirm_body') }}</span>
-                    <button type="submit" class="btn btn-success btn-lg" id="examSubmitBtn">
+                    <button type="submit" class="btn btn-success btn-lg w-100 w-sm-auto" id="examSubmitBtn">
                         <i class="bi bi-check2-circle"></i> {{ __('exams.submit_exam') }}
                     </button>
                 </div>
             </form>
         </div>
 
-        <div class="col-lg-3">
+        <div class="col-lg-3 exam-question-nav-col">
             <div class="app-card card shadow-sm sticky-top" style="top:5rem;">
                 <div class="card-header fw-semibold">{{ __('exams.question_nav') }}</div>
                 <div class="card-body d-flex flex-wrap gap-2">
@@ -156,5 +156,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/exam-take.js') }}?v=20260607"></script>
+<script src="{{ asset('js/exam-take.js') }}?v=20260609"></script>
 @endpush

@@ -21,7 +21,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260603">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260609">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     @stack('styles')
@@ -31,7 +31,7 @@
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
-        <main class="app-main container flex-grow-1 animate-in">
+        <main class="app-main flex-grow-1">
             @yield('content')
         </main>
     </div>

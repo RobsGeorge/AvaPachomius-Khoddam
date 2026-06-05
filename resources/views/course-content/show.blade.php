@@ -3,7 +3,7 @@
 @section('content')
 <div class="container animate-in py-4">
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
         <div>
             <h1 class="mb-0">{{ $course->title }}</h1>
             <small class="text-muted">{{ $course->description }} &mdash; {{ $course->year }}</small>

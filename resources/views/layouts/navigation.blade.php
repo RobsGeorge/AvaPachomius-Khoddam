@@ -59,7 +59,7 @@
                 @endauth
             </div>
 
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
                 <div class="dropdown">
                     <button class="app-toolbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-translate"></i>
@@ -110,20 +110,28 @@
         </div>
 
         @auth
-            <div class="d-md-none nav-links mt-2" x-show="navOpen" x-transition>
+            <div class="d-md-none nav-links mt-2 pb-2" x-show="navOpen" x-transition x-cloak>
                 <div class="d-flex flex-column gap-1">
                     <a href="{{ route('dashboard') }}" class="app-nav-link">{{ __('nav.home') }}</a>
                     @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
                         <a href="{{ route('attendance.all') }}" class="app-nav-link">{{ __('nav.attendance') }}</a>
                         <a href="{{ route('graduation.index') }}" class="app-nav-link">{{ __('pages.graduation_title') }}</a>
+                        <a href="{{ route('modules.index') }}" class="app-nav-link">{{ __('nav.modules') }}</a>
                     @else
                         <a href="{{ route('attendance.my') }}" class="app-nav-link">{{ __('nav.my_attendance') }}</a>
                     @endif
                     <a href="{{ route('sessions.index') }}" class="app-nav-link">{{ __('nav.sessions') }}</a>
-                    @if(auth()->user()->roles->contains('role_name', 'admin'))
-                        <a href="{{ route('user-course-roles.index') }}" class="app-nav-link">{{ __('nav.roles') }}</a>
-                        <a href="{{ route('admin.translations.index') }}" class="app-nav-link">{{ __('nav.translations') }}</a>
+                    @if(auth()->user()->is_superadmin || auth()->user()->roles->contains('role_name', 'admin'))
+                        @if(auth()->user()->roles->contains('role_name', 'admin'))
+                            <a href="{{ route('user-course-roles.index') }}" class="app-nav-link">{{ __('nav.roles') }}</a>
+                            <a href="{{ route('admin.translations.index') }}" class="app-nav-link">{{ __('nav.translations') }}</a>
+                        @endif
+                        <a href="{{ route('admin.graduation-settings.index') }}" class="app-nav-link">{{ __('pages.graduation_configure_criteria') }}</a>
                     @endif
+                    @if(auth()->user()->is_superadmin)
+                        <a href="{{ route('superadmin.index') }}" class="app-nav-link">{{ __('nav.superadmin') }}</a>
+                    @endif
+                    <hr class="my-1 border-secondary-subtle">
                     <a href="{{ route('profile') }}" class="app-nav-link">{{ __('nav.profile') }}</a>
                     <a href="{{ route('logout') }}" class="app-nav-link">{{ __('nav.logout') }}</a>
                 </div>

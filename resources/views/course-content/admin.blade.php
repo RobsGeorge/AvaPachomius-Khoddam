@@ -4,7 +4,7 @@
 <div class="container animate-in py-4">
 
     {{-- Page header --}}
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
         <div>
             <h1 class="mb-0">{{ __('pages.course_content_admin') }}</h1>
             <small class="text-muted fw-semibold">{{ $course->title }} — {{ $course->year }}</small>

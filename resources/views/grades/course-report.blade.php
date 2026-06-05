@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container py-4 animate-in">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
         <div>
             <h1 class="page-title mb-0">{{ __('pages.grade_report') }}</h1>
             <small class="text-muted-theme fw-semibold">{{ $course->title }} — {{ $course->year }}</small>

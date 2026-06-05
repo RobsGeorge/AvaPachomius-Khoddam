@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h1 class="page-title mb-0">{{ __('pages.exams_management') }}</h1>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExamModal">
             <i class="bi bi-plus-circle"></i> {{ __('pages.add_new_exam') }}
@@ -118,7 +118,7 @@
 @push('modals')
 {{-- Add exam --}}
 <div class="modal fade" id="addExamModal" tabindex="-1" aria-labelledby="addExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
             <form method="POST" action="{{ route('exams.store') }}">
                 @csrf
@@ -207,7 +207,7 @@
 
 {{-- Shared schedule modal --}}
 <div class="modal fade" id="scheduleExamModal" tabindex="-1" aria-labelledby="scheduleExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
             <form method="POST" id="scheduleExamForm" action="#">
                 @csrf
@@ -231,7 +231,7 @@
 
 {{-- Shared edit modal --}}
 <div class="modal fade" id="editExamModal" tabindex="-1" aria-labelledby="editExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
             <form method="POST" id="editExamForm" action="#">
                 @csrf
