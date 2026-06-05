@@ -293,12 +293,12 @@
                         <input type="number" name="duration_minutes" id="editExamDuration" class="form-control" min="1" required>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" name="shuffle_questions" value="1" class="form-check-input" id="editShuffle">
-                        <label class="form-check-label" for="editShuffle">{{ __('exams.shuffle_questions') }}</label>
+                        <input type="checkbox" name="shuffle_questions" value="1" class="form-check-input" id="editExamShuffle">
+                        <label class="form-check-label" for="editExamShuffle">{{ __('exams.shuffle_questions') }}</label>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" name="allow_late_entry" value="1" class="form-check-input" id="editLateEntry">
-                        <label class="form-check-label" for="editLateEntry">{{ __('exams.allow_late_entry') }}</label>
+                        <input type="checkbox" name="allow_late_entry" value="1" class="form-check-input" id="editExamLateEntry">
+                        <label class="form-check-label" for="editExamLateEntry">{{ __('exams.allow_late_entry') }}</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ __('pages.study_resources') }}</label>
