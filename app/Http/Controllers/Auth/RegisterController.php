@@ -26,21 +26,11 @@ class RegisterController extends Controller
 {
     public function showRegistrationForm()
     {
-        if (config('demo.block_registration')) {
-            return redirect()->route('demo.index')
-                ->with('error', __('demo.registration_closed'));
-        }
-
         return view('auth.register');
     }
 
     public function register(Request $request)
     {
-        if (config('demo.block_registration')) {
-            return redirect()->route('demo.index')
-                ->with('error', __('demo.registration_closed'));
-        }
-
         $this->validator($request->all())->validate();
 
         LegacySchemaSync::ensureRegistrationSchema();

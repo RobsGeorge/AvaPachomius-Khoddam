@@ -69,16 +69,9 @@
             <a href="{{ route('password.request') }}" class="text-muted-theme small">
                 <i class="bi bi-key"></i> {{ __('auth.forgot_password') }}
             </a>
-            @if(config('demo.enabled'))
-                <a href="{{ route('demo.index') }}" class="btn btn-info btn-sm text-dark">
-                    <i class="bi bi-play-circle"></i> {{ __('demo.login_link') }}
-                </a>
-            @endif
-            @unless(config('demo.block_registration'))
-                <a href="{{ route('register') }}" class="btn btn-outline-theme btn-sm">
-                    <i class="bi bi-person-plus"></i> {{ __('auth.new_account') }}
-                </a>
-            @endunless
+            <a href="{{ route('register') }}" class="btn btn-outline-theme btn-sm">
+                <i class="bi bi-person-plus"></i> {{ __('auth.new_account') }}
+            </a>
         </div>
     </div>
 

@@ -37,7 +37,6 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetLocale::class,
-            \App\Http\Middleware\DemoBannerMiddleware::class,
         ],
 
         'api' => [
@@ -71,6 +70,5 @@ class Kernel extends HttpKernel
         'role'       => \App\Http\Middleware\RoleMiddleware::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,
-        'demo' => \App\Http\Middleware\EnsureDemoEnabled::class,
     ];
 }

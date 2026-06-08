@@ -16,12 +16,10 @@ class Assignment extends Model
         'due_date',
         'instructions',
         'resources',
-        'is_demo',
     ];
 
     protected $casts = [
         'due_date' => 'datetime',
-        'is_demo'  => 'boolean',
     ];
 
     public function submissions()

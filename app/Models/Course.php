@@ -24,13 +24,11 @@ class Course extends Model
         'year',
         'passing_percentage',
         'min_attendance_percentage',
-        'is_demo',
     ];
 
     protected $casts = [
         'passing_percentage'        => 'float',
         'min_attendance_percentage' => 'float',
-        'is_demo'                   => 'boolean',
     ];
 
     public function sessions()

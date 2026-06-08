@@ -38,19 +38,8 @@ use App\Http\Controllers\GraduationController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
-use App\Http\Controllers\DemoController;
 
 
-
-
-
-
-
-
-Route::middleware('demo')->group(function () {
-    Route::get('/demo', [DemoController::class, 'index'])->name('demo.index');
-    Route::post('/demo/enter/{role}', [DemoController::class, 'enter'])->name('demo.enter');
-});
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::post('/theme', [ThemeController::class, 'update'])->name('theme.update');

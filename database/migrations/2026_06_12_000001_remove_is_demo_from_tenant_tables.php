@@ -1,51 +1,35 @@
 <?php
 
-namespace App\Services;
-
 use App\Models\Assignment;
 use App\Models\Content;
 use App\Models\Course;
 use App\Models\Module;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class DemoResetService
+return new class extends Migration
 {
-    public function wipeDemoData(): void
+    public function up(): void
     {
-        $demoUserIds = User::where('is_demo', true)->pluck('user_id');
-        $demoCourseIds = Course::where('is_demo', true)->pluck('course_id');
-
-        if ($demoUserIds->isEmpty() && $demoCourseIds->isEmpty()) {
+        if (! Schema::hasColumn('user', 'is_demo')) {
             return;
         }
+
+        $demoUserIds = User::where('is_demo', true)->pluck('user_id');
+        $demoCourseIds = Course::where('is_demo', true)->pluck('course_id');
 
         DB::transaction(function () use ($demoUserIds, $demoCourseIds) {
             if ($demoUserIds->isNotEmpty()) {
                 UserCourseRole::whereIn('user_id', $demoUserIds)->delete();
 
-                if (Schema::hasTable('module_feedback')) {
-                    DB::table('module_feedback')->whereIn('user_id', $demoUserIds)->delete();
-                }
-                if (Schema::hasTable('content_feedback')) {
-                    DB::table('content_feedback')->whereIn('user_id', $demoUserIds)->delete();
-                }
-                if (Schema::hasTable('assignment_submission')) {
-                    DB::table('assignment_submission')->whereIn('user_id', $demoUserIds)->delete();
-                }
-                if (Schema::hasTable('student_grades')) {
-                    DB::table('student_grades')->whereIn('user_id', $demoUserIds)->delete();
-                }
-                if (Schema::hasTable('attendance')) {
-                    DB::table('attendance')->whereIn('user_id', $demoUserIds)->delete();
-                }
-                if (Schema::hasTable('exam_attempts')) {
-                    DB::table('exam_attempts')->whereIn('user_id', $demoUserIds)->delete();
-                }
-                if (Schema::hasTable('exam_results')) {
-                    DB::table('exam_results')->whereIn('user_id', $demoUserIds)->delete();
+                foreach (['module_feedback', 'content_feedback', 'assignment_submission', 'student_grades', 'attendance', 'exam_attempts', 'exam_results'] as $table) {
+                    if (Schema::hasTable($table)) {
+                        DB::table($table)->whereIn('user_id', $demoUserIds)->delete();
+                    }
                 }
             }
 
@@ -92,5 +76,18 @@ class DemoResetService
 
             User::where('is_demo', true)->delete();
         });
+
+        foreach (['user', 'course', 'modules', 'content', 'assignments'] as $table) {
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'is_demo')) {
+                Schema::table($table, function (Blueprint $table) {
+                    $table->dropColumn('is_demo');
+                });
+            }
+        }
     }
-}
+
+    public function down(): void
+    {
+        // Demo feature removed; columns are not restored.
+    }
+};
