@@ -43,8 +43,9 @@ jobs:
               exit 1
             fi
 
-            step "git pull"
-            git pull origin main
+            step "git sync"
+            git fetch origin main
+            git reset --hard origin/main
 
             step "composer install"
             COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer install \
