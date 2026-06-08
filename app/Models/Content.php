@@ -25,11 +25,13 @@ class Content extends Model
         'speaker_name',
         'audio_link',
         'slides_link',
-        'description'
+        'description',
+        'is_demo',
     ];
 
     protected $casts = [
         'session_date' => 'date',
+        'is_demo'      => 'boolean',
     ];
 
     public function modules()

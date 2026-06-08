@@ -31,6 +31,13 @@
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
+        @if(!empty($showDemoBanner))
+            <div class="demo-environment-banner text-center small py-2 px-3 bg-warning text-dark border-bottom">
+                <i class="bi bi-info-circle-fill"></i> {{ __('demo.banner') }}
+                <a href="{{ route('demo.index') }}" class="ms-2 fw-semibold">{{ __('demo.title') }}</a>
+            </div>
+        @endif
+
         <main class="app-main flex-grow-1">
             @yield('content')
         </main>

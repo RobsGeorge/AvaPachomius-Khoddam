@@ -18,7 +18,11 @@ class Module extends Model
     /** Legacy `modules` table has no Laravel timestamps. */
     public $timestamps = false;
 
-    protected $fillable = ['title', 'description'];
+    protected $fillable = ['title', 'description', 'is_demo'];
+
+    protected $casts = [
+        'is_demo' => 'boolean',
+    ];
 
     public function courses()
     {

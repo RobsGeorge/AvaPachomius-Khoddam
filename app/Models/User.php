@@ -33,13 +33,14 @@ class User extends Authenticatable
         'name', 'first_name', 'second_name', 'third_name', 'profile_photo',
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
-        'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at'
+        'is_verified', 'is_superadmin', 'is_demo', 'remember_token', 'otp_code', 'otp_expires_at'
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
         'is_verified'   => 'boolean',
         'is_superadmin' => 'boolean',
+        'is_demo'       => 'boolean',
         'created_at'    => 'datetime',
         'updated_at'    => 'datetime',
         'otp_expires_at' => 'datetime',

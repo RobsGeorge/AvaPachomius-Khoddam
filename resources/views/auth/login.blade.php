@@ -65,13 +65,20 @@
             </form>
         </div>
 
-        <div class="card-footer d-flex justify-content-between align-items-center py-3">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 py-3">
             <a href="{{ route('password.request') }}" class="text-muted-theme small">
                 <i class="bi bi-key"></i> {{ __('auth.forgot_password') }}
             </a>
-            <a href="{{ route('register') }}" class="btn btn-outline-theme btn-sm">
-                <i class="bi bi-person-plus"></i> {{ __('auth.new_account') }}
-            </a>
+            @if(config('demo.enabled'))
+                <a href="{{ route('demo.index') }}" class="btn btn-info btn-sm text-dark">
+                    <i class="bi bi-play-circle"></i> {{ __('demo.login_link') }}
+                </a>
+            @endif
+            @unless(config('demo.block_registration'))
+                <a href="{{ route('register') }}" class="btn btn-outline-theme btn-sm">
+                    <i class="bi bi-person-plus"></i> {{ __('auth.new_account') }}
+                </a>
+            @endunless
         </div>
     </div>
 
