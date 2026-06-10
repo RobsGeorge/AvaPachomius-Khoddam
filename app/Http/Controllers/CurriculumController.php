@@ -9,9 +9,27 @@ use App\Models\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class CourseContentController extends Controller
+class CurriculumController extends Controller
 {
-    /** Student view: tabular course content organised by module */
+    /** Course picker — entry point for the curriculum (modules → sessions → lectures). */
+    public function index()
+    {
+        $user = Auth::user();
+
+        if ($user->hasAnyRole(['admin', 'instructor'])) {
+            $courses = Course::orderBy('title')->get();
+        } else {
+            $courses = $user->courses()->distinct()->orderBy('title')->get();
+        }
+
+        if ($courses->count() === 1) {
+            return redirect()->route('curriculum.show', $courses->first()->course_id);
+        }
+
+        return view('curriculum.index', compact('courses'));
+    }
+
+    /** Student view: curriculum organised by module, week, and lecture. */
     public function show(string $courseId)
     {
         $course = Course::with([
@@ -28,7 +46,7 @@ class CourseContentController extends Controller
         return view('course-content.show', compact('course', 'userFeedbackIds'));
     }
 
-    /** Admin/instructor panel: manage lectures per course */
+    /** Admin/instructor panel: manage modules, sessions, and lectures. */
     public function admin(string $courseId)
     {
         $course = Course::with([
@@ -46,7 +64,6 @@ class CourseContentController extends Controller
         return view('course-content.admin', compact('course', 'availableModules'));
     }
 
-    /** Attach an existing module to this course */
     public function attachModule(Request $request, string $courseId)
     {
         $request->validate([
@@ -63,11 +80,10 @@ class CourseContentController extends Controller
         }
 
         return redirect()
-            ->route('course-content.admin', $courseId)
+            ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.module_linked'));
     }
 
-    /** Create a brand-new module and attach it to this course in one step */
     public function createAndAttachModule(Request $request, string $courseId)
     {
         $request->validate([
@@ -83,22 +99,20 @@ class CourseContentController extends Controller
         ]);
 
         return redirect()
-            ->route('course-content.admin', $courseId)
+            ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.module_created_linked'));
     }
 
-    /** Detach a module from this course (does not delete the module) */
     public function detachModule(string $courseId, string $moduleId)
     {
         $course = Course::findOrFail($courseId);
         $course->modules()->detach($moduleId);
 
         return redirect()
-            ->route('course-content.admin', $courseId)
+            ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.module_unlinked'));
     }
 
-    /** Update module schedule, status, and linked sessions */
     public function updateModuleSettings(Request $request, string $courseId, string $moduleId)
     {
         $course = Course::findOrFail($courseId);
@@ -146,11 +160,10 @@ class CourseContentController extends Controller
         $module->sessions()->sync($sync);
 
         return redirect()
-            ->route('course-content.admin', $courseId)
+            ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.module_settings_saved'));
     }
 
-    /** Announce module end and open student feedback */
     public function endModule(Request $request, string $courseId, string $moduleId)
     {
         $course = Course::findOrFail($courseId);
@@ -165,7 +178,7 @@ class CourseContentController extends Controller
         ]);
 
         return redirect()
-            ->route('course-content.admin', $courseId)
+            ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.module_ended_feedback_open'));
     }
 }

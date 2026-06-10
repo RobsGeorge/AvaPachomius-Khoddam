@@ -23,6 +23,10 @@
                             </a>
                         @endif
 
+                        <a href="{{ route('curriculum.index') }}" class="app-nav-link {{ request()->routeIs('curriculum.*') ? 'active' : '' }}">
+                            {{ __('nav.curriculum') }}
+                        </a>
+
                         <a href="{{ route('sessions.index') }}" class="app-nav-link {{ request()->routeIs('sessions.*') ? 'active' : '' }}">
                             {{ __('nav.sessions') }}
                         </a>
@@ -120,6 +124,7 @@
                     @else
                         <a href="{{ route('attendance.my') }}" class="app-nav-link">{{ __('nav.my_attendance') }}</a>
                     @endif
+                    <a href="{{ route('curriculum.index') }}" class="app-nav-link">{{ __('nav.curriculum') }}</a>
                     <a href="{{ route('sessions.index') }}" class="app-nav-link">{{ __('nav.sessions') }}</a>
                     @if(auth()->user()->is_superadmin || auth()->user()->roles->contains('role_name', 'admin'))
                         @if(auth()->user()->roles->contains('role_name', 'admin'))

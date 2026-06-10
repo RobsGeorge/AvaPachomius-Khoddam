@@ -27,7 +27,7 @@ use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
-use App\Http\Controllers\CourseContentController;
+use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\ModuleFeedbackController;
 use App\Http\Controllers\LectureController;
 use App\Http\Controllers\LectureMaterialController;
@@ -55,7 +55,7 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
-    Route::resource('contents', ContentController::class)->only(['index']);
+    Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
     Route::resource('sessions', SessionController::class)->only(['index']);
     Route::resource('assessments', AssessmentController::class);
     Route::resource('course-assessments', CourseAssessmentController::class);
@@ -190,27 +190,25 @@ Route::post('/assignment-submissions/{submission}/grade', [AssignmentController:
 Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
 Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
 
-// Course content — student read-only views
+// Curriculum — student read-only views
 Route::middleware('auth')->group(function () {
-    Route::get('/courses/{course}/content',         [CourseContentController::class, 'show'])->name('course-content.show');
+    Route::get('/courses/{course}/curriculum',      [CurriculumController::class, 'show'])->name('curriculum.show');
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
     Route::get('/courses/{course}/modules/{module}/feedback', [ModuleFeedbackController::class, 'show'])->name('module-feedback.show');
     Route::post('/courses/{course}/modules/{module}/feedback', [ModuleFeedbackController::class, 'store'])->name('module-feedback.store');
 });
 
-// Course content & grades — admin/instructor management
+// Curriculum & grades — admin/instructor management
 Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::resource('modules', ModuleController::class);
     Route::resource('sessions', SessionController::class)->except(['index']);
-    Route::resource('contents', ContentController::class)->except(['index']);
 
-    // Content
-    Route::get('/courses/{course}/content/manage',              [CourseContentController::class, 'admin'])->name('course-content.admin');
-    Route::post('/courses/{course}/modules/attach',             [CourseContentController::class, 'attachModule'])->name('course-content.attach-module');
-    Route::post('/courses/{course}/modules/create-attach',      [CourseContentController::class, 'createAndAttachModule'])->name('course-content.create-attach-module');
-    Route::delete('/courses/{course}/modules/{module}/detach',  [CourseContentController::class, 'detachModule'])->name('course-content.detach-module');
-    Route::put('/courses/{course}/modules/{module}/settings',   [CourseContentController::class, 'updateModuleSettings'])->name('course-content.update-module');
-    Route::post('/courses/{course}/modules/{module}/end',       [CourseContentController::class, 'endModule'])->name('course-content.end-module');
+    Route::get('/courses/{course}/curriculum/manage',           [CurriculumController::class, 'admin'])->name('curriculum.admin');
+    Route::post('/courses/{course}/modules/attach',             [CurriculumController::class, 'attachModule'])->name('curriculum.attach-module');
+    Route::post('/courses/{course}/modules/create-attach',      [CurriculumController::class, 'createAndAttachModule'])->name('curriculum.create-attach-module');
+    Route::delete('/courses/{course}/modules/{module}/detach',  [CurriculumController::class, 'detachModule'])->name('curriculum.detach-module');
+    Route::put('/courses/{course}/modules/{module}/settings',   [CurriculumController::class, 'updateModuleSettings'])->name('curriculum.update-module');
+    Route::post('/courses/{course}/modules/{module}/end',       [CurriculumController::class, 'endModule'])->name('curriculum.end-module');
     Route::post('/lectures',                                    [LectureController::class, 'store'])->name('lectures.store');
     Route::get('/lectures/{lecture}/edit',                      [LectureController::class, 'edit'])->name('lectures.edit');
     Route::put('/lectures/{lecture}',                           [LectureController::class, 'update'])->name('lectures.update');
@@ -243,4 +241,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/roles/{id}',             [SuperAdminController::class, 'destroyRole'])->name('roles.destroy');
     Route::post('/courses',                  [SuperAdminController::class, 'storeCourse'])->name('courses.store');
     Route::delete('/courses/{id}',           [SuperAdminController::class, 'destroyCourse'])->name('courses.destroy');
+});
+
+// Legacy URL redirects (old content/curriculum routes)
+Route::middleware('auth')->group(function () {
+    Route::redirect('/contents', '/curriculum');
+    Route::redirect('/contents/create', '/curriculum');
+    Route::get('/courses/{course}/content', fn (string $course) => redirect()->route('curriculum.show', $course));
+    Route::get('/courses/{course}/content/manage', fn (string $course) => redirect()->route('curriculum.admin', $course));
 });

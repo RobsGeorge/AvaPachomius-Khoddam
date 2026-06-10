@@ -50,20 +50,9 @@
 
         <div class="col-md-6">
             <div class="app-tile h-100">
-                <h3><i class="bi bi-book"></i> {{ __('dashboard.content') }}</h3>
-                <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('contents.index') }}" class="btn btn-primary">{{ __('dashboard.view_content') }}</a>
-                @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                    <a href="{{ route('contents.create') }}" class="btn btn-outline-theme">{{ __('dashboard.add_content') }}</a>
-                @endif
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="app-tile h-100">
                 <h3><i class="bi bi-mortarboard"></i> {{ __('dashboard.curriculum') }}</h3>
-                <p class="text-muted-theme mb-0">{{ __('dashboard.curriculum_desc') }}</p>
+                <p class="text-muted-theme">{{ __('dashboard.curriculum_desc') }}</p>
+                <a href="{{ route('curriculum.index') }}" class="btn btn-primary">{{ __('dashboard.view_curriculum') }}</a>
             </div>
         </div>
 

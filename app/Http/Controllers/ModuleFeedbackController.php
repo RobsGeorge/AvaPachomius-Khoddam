@@ -17,7 +17,7 @@ class ModuleFeedbackController extends Controller
 
         if (! $this->feedbackIsOpen($module)) {
             return redirect()
-                ->route('course-content.show', $courseId)
+                ->route('curriculum.show', $courseId)
                 ->with('warning', __('pages.module_feedback_not_open'));
         }
 
@@ -36,7 +36,7 @@ class ModuleFeedbackController extends Controller
 
         if (! $this->feedbackIsOpen($module)) {
             return redirect()
-                ->route('course-content.show', $courseId)
+                ->route('curriculum.show', $courseId)
                 ->with('error', __('pages.module_feedback_not_open'));
         }
 
@@ -64,7 +64,7 @@ class ModuleFeedbackController extends Controller
         );
 
         return redirect()
-            ->route('course-content.show', $courseId)
+            ->route('curriculum.show', $courseId)
             ->with('success', __('pages.module_feedback_saved'));
     }
 

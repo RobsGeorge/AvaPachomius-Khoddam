@@ -180,7 +180,7 @@
 </style>
 
 <div class="feedback-container">
-    <a href="{{ route('contents.index') }}" class="btn-back">
+    <a href="{{ route('curriculum.index') }}" class="btn-back">
         <i class="fas fa-arrow-right"></i> {{ __('pages.back_to_content') }}
     </a>
 

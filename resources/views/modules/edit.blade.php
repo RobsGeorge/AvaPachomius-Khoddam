@@ -68,9 +68,9 @@
                 @foreach($module->courses as $course)
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span>{{ $course->title }} <span class="text-muted-theme">({{ $course->year }})</span></span>
-                        <a href="{{ route('course-content.admin', $course->course_id) }}"
+                        <a href="{{ route('curriculum.admin', $course->course_id) }}"
                            class="btn btn-sm btn-outline-theme py-0">
-                            <i class="bi bi-gear"></i> {{ __('pages.manage_content') }}
+                            <i class="bi bi-gear"></i> {{ __('pages.manage_curriculum') }}
                         </a>
                     </li>
                 @endforeach

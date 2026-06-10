@@ -9,8 +9,8 @@
             <small class="text-muted">{{ $course->description }} &mdash; {{ $course->year }}</small>
         </div>
         @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
-            <a href="{{ route('course-content.admin', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-pencil-square"></i> {{ __('pages.manage_content') }}
+            <a href="{{ route('curriculum.admin', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-pencil-square"></i> {{ __('pages.manage_curriculum') }}
             </a>
         @endif
     </div>

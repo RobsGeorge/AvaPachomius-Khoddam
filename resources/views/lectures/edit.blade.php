@@ -7,7 +7,7 @@
     @php $course = $lecture->module->courses->first(); @endphp
     <div class="mb-3">
         @if($course)
-            <a href="{{ route('course-content.admin', $course->course_id) }}" class="text-muted small">
+            <a href="{{ route('curriculum.admin', $course->course_id) }}" class="text-muted small">
                 <i class="bi bi-arrow-right"></i> {{ $course->title }}
             </a>
             <span class="text-muted small"> / {{ $lecture->module->title }}</span>

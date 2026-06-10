@@ -6,7 +6,7 @@
     {{-- Page header --}}
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
         <div>
-            <h1 class="mb-0">{{ __('pages.course_content_admin') }}</h1>
+            <h1 class="mb-0">{{ __('pages.curriculum_manage_title') }}</h1>
             <small class="text-muted fw-semibold">{{ $course->title }} — {{ $course->year }}</small>
         </div>
         <div class="d-flex gap-2">
@@ -16,7 +16,7 @@
             <a href="{{ route('graduation.show', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-mortarboard"></i> {{ __('pages.graduation_title') }}
             </a>
-            <a href="{{ route('course-content.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
+            <a href="{{ route('curriculum.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-eye"></i> {{ __('pages.student_preview') }}
             </a>
         </div>
@@ -32,7 +32,7 @@
                 {{-- Link existing module --}}
                 @if($availableModules->isNotEmpty())
                     <div class="col-md-5">
-                        <form method="POST" action="{{ route('course-content.attach-module', $course->course_id) }}" class="d-flex gap-2">
+                        <form method="POST" action="{{ route('curriculum.attach-module', $course->course_id) }}" class="d-flex gap-2">
                             @csrf
                             <select name="module_id" class="form-select form-select-sm" required>
                                 <option value="">-- {{ __('pages.link_existing_module') }} --</option>
@@ -49,7 +49,7 @@
                 @endif
                 {{-- Create new module --}}
                 <div class="col">
-                    <form method="POST" action="{{ route('course-content.create-attach-module', $course->course_id) }}" class="d-flex gap-2 flex-wrap">
+                    <form method="POST" action="{{ route('curriculum.create-attach-module', $course->course_id) }}" class="d-flex gap-2 flex-wrap">
                         @csrf
                         <input type="text" name="title" class="form-control form-control-sm"
                                placeholder="{{ __('pages.new_module_name') }}" maxlength="30" required style="min-width:150px;">
@@ -95,7 +95,7 @@
                         <i class="bi bi-pencil"></i>
                     </a>
                     <form method="POST"
-                          action="{{ route('course-content.detach-module', [$course->course_id, $module->module_id]) }}"
+                          action="{{ route('curriculum.detach-module', [$course->course_id, $module->module_id]) }}"
                           onsubmit="return confirm(@json(__('pages.unlink_module_confirm')))">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-light py-0 px-2" title="{{ __('pages.unlink_from_course') }}">
@@ -116,7 +116,7 @@
                     $status = $pivot->status ?? 'draft';
                 @endphp
                 <form method="POST"
-                      action="{{ route('course-content.update-module', [$course->course_id, $module->module_id]) }}">
+                      action="{{ route('curriculum.update-module', [$course->course_id, $module->module_id]) }}">
                     @csrf @method('PUT')
                     <div class="row g-2 mb-2">
                         <div class="col-md-2">
@@ -178,7 +178,7 @@
                                 @endif
                                 @if(!($pivot->feedback_open ?? false))
                                     <button type="submit"
-                                            formaction="{{ route('course-content.end-module', [$course->course_id, $module->module_id]) }}"
+                                            formaction="{{ route('curriculum.end-module', [$course->course_id, $module->module_id]) }}"
                                             formmethod="POST"
                                             class="btn btn-sm btn-warning"
                                             onclick="return confirm(@json(__('pages.confirm_end_module')))">

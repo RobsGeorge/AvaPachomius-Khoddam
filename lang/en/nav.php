@@ -4,6 +4,7 @@ return [
     'home'              => 'Home',
     'attendance'        => 'Attendance',
     'my_attendance'     => 'My attendance',
+    'curriculum'        => 'Curriculum',
     'sessions'          => 'Sessions',
     'modules'           => 'Modules',
     'roles'             => 'Role management',

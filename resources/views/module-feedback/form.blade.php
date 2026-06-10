@@ -4,8 +4,8 @@
 <div class="container py-4 animate-in" style="max-width:820px;">
 
     <div class="mb-3">
-        <a href="{{ route('course-content.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left"></i> {{ __('pages.back_to_course_content') }}
+        <a href="{{ route('curriculum.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> {{ __('pages.back_to_curriculum') }}
         </a>
     </div>
 

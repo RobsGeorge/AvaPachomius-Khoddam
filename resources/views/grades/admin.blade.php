@@ -16,7 +16,7 @@
             <a href="{{ route('grades.report', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
                 <i class="bi bi-table"></i> {{ __('pages.grade_report') }}
             </a>
-            <a href="{{ route('course-content.admin', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
+            <a href="{{ route('curriculum.admin', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
                 <i class="bi bi-collection"></i> {{ __('pages.content') }}
             </a>
         </div>

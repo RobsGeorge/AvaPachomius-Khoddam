@@ -42,7 +42,7 @@ class LectureController extends Controller
         ]);
 
         return redirect()
-            ->route('course-content.admin', $request->course_id)
+            ->route('curriculum.admin', $request->course_id)
             ->with('success', __('pages.lecture_created_success'));
     }
 
@@ -98,7 +98,7 @@ class LectureController extends Controller
         $lecture->delete();
 
         return redirect()
-            ->route('course-content.admin', $courseId)
+            ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.lecture_deleted_success'));
     }
 
