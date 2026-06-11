@@ -25,7 +25,7 @@ class Content extends Model
         'speaker_name',
         'audio_link',
         'slides_link',
-        'description'
+        'description',
     ];
 
     protected $casts = [

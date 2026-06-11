@@ -41,11 +41,6 @@ use App\Http\Controllers\Admin\TranslationController;
 
 
 
-
-
-
-
-
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::post('/theme', [ThemeController::class, 'update'])->name('theme.update');
 

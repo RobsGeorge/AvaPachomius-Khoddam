@@ -65,7 +65,7 @@
             </form>
         </div>
 
-        <div class="card-footer d-flex justify-content-between align-items-center py-3">
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2 py-3">
             <a href="{{ route('password.request') }}" class="text-muted-theme small">
                 <i class="bi bi-key"></i> {{ __('auth.forgot_password') }}
             </a>
