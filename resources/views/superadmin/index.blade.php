@@ -45,13 +45,12 @@
             </h2>
             <p class="text-muted mb-3">{{ __('pages.impersonate_hint') }}</p>
             <form method="POST"
-                  action="#"
-                  id="impersonate-form"
-                  onsubmit="return window.khoddamSubmitImpersonateForm(this, @json(__('pages.impersonate_confirm')));">
+                  action="{{ route('superadmin.impersonate') }}"
+                  onsubmit="return confirm(@json(__('pages.impersonate_confirm')));">
                 @csrf
                 <div class="mb-3">
                     <label class="form-label fw-semibold" for="impersonate-user-id">{{ __('pages.user') }}</label>
-                    <select id="impersonate-user-id" class="form-select" required>
+                    <select name="user_id" id="impersonate-user-id" class="form-select" required>
                         <option value="">{{ __('pages.select_option') }}</option>
                         @foreach($users as $user)
                             @php
@@ -64,7 +63,6 @@
                                     : __('pages.no_roles_yet');
                             @endphp
                             <option value="{{ $user->user_id }}"
-                                data-action="{{ route('superadmin.impersonate', $user) }}"
                                 {{ old('user_id') == $user->user_id ? 'selected' : '' }}>
                                 {{ $user->first_name }} {{ $user->second_name }}
                                 ({{ $user->email }}) — {{ $roleLabel }}
@@ -348,20 +346,3 @@
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-window.khoddamSubmitImpersonateForm = function (form, confirmMessage) {
-    const select = document.getElementById('impersonate-user-id');
-    const option = select?.options[select.selectedIndex];
-    if (!option || !option.dataset.action) {
-        return false;
-    }
-    if (!window.confirm(confirmMessage)) {
-        return false;
-    }
-    form.action = option.dataset.action;
-    return true;
-};
-</script>
-@endpush

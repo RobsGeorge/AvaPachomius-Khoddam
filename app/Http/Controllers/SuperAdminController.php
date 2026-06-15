@@ -115,8 +115,14 @@ class SuperAdminController extends Controller
             ]));
     }
 
-    public function impersonate(Request $request, User $user)
+    public function impersonate(Request $request)
     {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:user,user_id',
+        ]);
+
+        $user = User::findOrFail($validated['user_id']);
+
         ImpersonationService::start($request->user(), $user, $request);
 
         return redirect()
