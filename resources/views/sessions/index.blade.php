@@ -87,8 +87,6 @@
         </div>
     </div>
 
-    <div class="mt-3 d-flex justify-content-center">
-        {{ $sessions->links() }}
-    </div>
+    @include('partials.pagination', ['paginator' => $sessions])
 </div>
 @endsection

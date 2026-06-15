@@ -143,7 +143,7 @@
             </div>
         </div>
 
-        <div class="mt-3">{{ $loginTrials->links() }}</div>
+        @include('partials.pagination', ['paginator' => $loginTrials])
     @else
         <div class="app-card card shadow-sm mb-4">
             <div class="card-body">
@@ -227,7 +227,7 @@
             </div>
         </div>
 
-        <div class="mt-3">{{ $activityLogs->links() }}</div>
+        @include('partials.pagination', ['paginator' => $activityLogs])
     @endif
 </div>
 @endsection

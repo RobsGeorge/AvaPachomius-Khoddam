@@ -7,6 +7,7 @@ use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\MigrationsStarted;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         Event::listen(MigrationsStarted::class, function () {
             LegacySchemaSync::syncAll();
         });

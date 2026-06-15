@@ -82,7 +82,7 @@
                     </table>
                 </div>
 
-                <div>{{ $attendanceRecords->links() }}</div>
+                @include('partials.pagination', ['paginator' => $attendanceRecords])
             @endif
 
             <div class="row g-3 mb-3">
