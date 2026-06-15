@@ -38,14 +38,49 @@
         </div>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <div class="app-card card border-warning shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 text-warning mb-2">
+                <i class="bi bi-eye-fill"></i> {{ __('pages.impersonate_title') }}
+            </h2>
+            <p class="text-muted mb-3">{{ __('pages.impersonate_hint') }}</p>
+            <form method="POST"
+                  action="#"
+                  id="impersonate-form"
+                  onsubmit="return window.khoddamSubmitImpersonateForm(this, @json(__('pages.impersonate_confirm')));">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="impersonate-user-id">{{ __('pages.user') }}</label>
+                    <select id="impersonate-user-id" class="form-select" required>
+                        <option value="">{{ __('pages.select_option') }}</option>
+                        @foreach($users as $user)
+                            @php
+                                $roleNames = $user->roles->pluck('role_name')->unique();
+                                if ($user->is_superadmin) {
+                                    $roleNames = $roleNames->push(__('pages.superadmin_role'));
+                                }
+                                $roleLabel = $roleNames->isNotEmpty()
+                                    ? $roleNames->implode(', ')
+                                    : __('pages.no_roles_yet');
+                            @endphp
+                            <option value="{{ $user->user_id }}"
+                                data-action="{{ route('superadmin.impersonate', $user) }}"
+                                {{ old('user_id') == $user->user_id ? 'selected' : '' }}>
+                                {{ $user->first_name }} {{ $user->second_name }}
+                                ({{ $user->email }}) — {{ $roleLabel }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('user')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+                <button type="submit" class="btn btn-warning">
+                    <i class="bi bi-box-arrow-in-right"></i> {{ __('pages.impersonate_button') }}
+                </button>
+            </form>
         </div>
-    @endif
+    </div>
 
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show">
@@ -313,3 +348,20 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+window.khoddamSubmitImpersonateForm = function (form, confirmMessage) {
+    const select = document.getElementById('impersonate-user-id');
+    const option = select?.options[select.selectedIndex];
+    if (!option || !option.dataset.action) {
+        return false;
+    }
+    if (!window.confirm(confirmMessage)) {
+        return false;
+    }
+    form.action = option.dataset.action;
+    return true;
+};
+</script>
+@endpush

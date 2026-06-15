@@ -620,4 +620,18 @@ return [
     'force_logout_button'             => 'Log out everyone now',
     'force_logout_confirm'            => 'This will log out every user on the platform. Continue?',
     'force_logout_success'            => 'All users were logged out. Cleared :sessions session(s), :tokens remember-me token(s). Driver: :driver.',
+
+    'impersonate_title'               => 'View portal as user',
+    'impersonate_hint'                => 'Browse the portal exactly as the selected user would see it — same navigation, pages, and permissions. Your superadmin session is restored when you exit.',
+    'impersonate_button'              => 'View portal as this user',
+    'impersonate_confirm'             => 'You will browse the portal as this user. Actions you take will run as them. Continue?',
+    'impersonate_started'             => 'Now viewing the portal as :name.',
+    'impersonate_stopped'             => 'Returned to your superadmin session.',
+    'impersonate_exit'                => 'Exit view',
+    'impersonate_banner_title'        => 'Preview mode:',
+    'impersonate_banner_body'         => 'Viewing as :name (:roles)',
+    'impersonate_already_active'      => 'Stop the current preview before starting another.',
+    'impersonate_cannot_self'         => 'You cannot preview the portal as yourself.',
+    'impersonate_incomplete_registration' => 'This user has not completed registration yet.',
+    'impersonate_not_active'          => 'No active portal preview session.',
 ];

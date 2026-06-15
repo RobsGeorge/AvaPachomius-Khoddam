@@ -31,6 +31,8 @@
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
+        @include('layouts.impersonation-banner')
+
         <main class="app-main flex-grow-1">
             @yield('content')
         </main>

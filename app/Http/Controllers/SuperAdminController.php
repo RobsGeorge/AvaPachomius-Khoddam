@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\ForceLogoutService;
+use App\Services\ImpersonationService;
 use Illuminate\Http\Request;
 
 class SuperAdminController extends Controller
@@ -14,7 +15,7 @@ class SuperAdminController extends Controller
     public function index()
     {
         $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
-        $users       = User::orderBy('first_name')->get();
+        $users       = User::with('roles')->orderBy('first_name')->get();
         $courses     = Course::orderBy('year', 'desc')->orderBy('title')->get();
         $roles       = Role::all();
 
@@ -112,5 +113,25 @@ class SuperAdminController extends Controller
                 'tokens'   => $result['remember_tokens_cleared'],
                 'driver'   => $result['driver'],
             ]));
+    }
+
+    public function impersonate(Request $request, User $user)
+    {
+        ImpersonationService::start($request->user(), $user, $request);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('success', __('pages.impersonate_started', [
+                'name' => User::fullNameFromParts($user->first_name, $user->second_name, $user->third_name),
+            ]));
+    }
+
+    public function stopImpersonating(Request $request)
+    {
+        ImpersonationService::stop($request);
+
+        return redirect()
+            ->route('superadmin.index')
+            ->with('success', __('pages.impersonate_stopped'));
     }
 }

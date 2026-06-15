@@ -150,6 +150,34 @@ class AuditLogService
         }
     }
 
+    public static function logImpersonationEvent(
+        Request $request,
+        string $event,
+        int $impersonatorUserId,
+        int $targetUserId
+    ): void {
+        try {
+            ActivityLog::create([
+                'user_id'         => $impersonatorUserId,
+                'ip_address'      => self::clientIp($request),
+                'user_agent'      => Str::limit((string) $request->userAgent(), 1000, ''),
+                'device_summary'  => self::deviceSummary($request),
+                'http_method'     => $request->method(),
+                'route_name'      => $event,
+                'url'             => Str::limit($request->fullUrl(), 2000, ''),
+                'request_input'   => [
+                    'event'                => $event,
+                    'impersonator_user_id' => $impersonatorUserId,
+                    'target_user_id'       => $targetUserId,
+                ],
+                'response_status' => 200,
+                'created_at'      => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Impersonation audit log failed', ['error' => $e->getMessage()]);
+        }
+    }
+
     /**
      * @param array{
      *     email?: string|null,

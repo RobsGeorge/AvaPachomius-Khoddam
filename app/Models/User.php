@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Services\ImpersonationService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -109,6 +110,21 @@ class User extends Authenticatable
     public function hasAnyRole(array $roleNames): bool
     {
         return $this->roles->whereIn('role_name', $roleNames)->isNotEmpty();
+    }
+
+    public function isBeingImpersonated(): bool
+    {
+        return ImpersonationService::isActive()
+            && auth()->id() === $this->user_id;
+    }
+
+    public function displayName(): string
+    {
+        return self::fullNameFromParts(
+            (string) $this->first_name,
+            (string) $this->second_name,
+            (string) ($this->third_name ?? '')
+        );
     }
 
     // Override the "must verify email" behavior since we have custom OTP

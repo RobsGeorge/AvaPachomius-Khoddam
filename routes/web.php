@@ -228,11 +228,16 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::get('/courses/{course}/graduation',                  [GraduationController::class, 'show'])->name('graduation.show');
 });
 
+Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopImpersonating'])
+    ->middleware(['auth', 'impersonator.stop'])
+    ->name('superadmin.impersonate.stop');
+
 // Superadmin routes — accessible only by users with is_superadmin = true
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
+    Route::post('/impersonate/{user}',       [SuperAdminController::class, 'impersonate'])->name('impersonate');
     Route::post('/assignments',              [SuperAdminController::class, 'store'])->name('store');
     Route::delete('/assignments/{id}',       [SuperAdminController::class, 'destroy'])->name('destroy');
     Route::post('/roles',                    [SuperAdminController::class, 'storeRole'])->name('roles.store');

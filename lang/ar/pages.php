@@ -620,4 +620,18 @@ return [
     'force_logout_button'             => 'تسجيل خروج الجميع الآن',
     'force_logout_confirm'            => 'سيتم تسجيل خروج كل مستخدم على المنصة. هل تريد المتابعة؟',
     'force_logout_success'            => 'تم تسجيل خروج جميع المستخدمين. تم مسح :sessions جلسة، و :tokens رمز «تذكرني». المحرك: :driver.',
+
+    'impersonate_title'               => 'عرض البوابة كمستخدم',
+    'impersonate_hint'                => 'تصفح البوابة تماماً كما يراها المستخدم المختار — نفس القائمة والصفحات والصلاحيات. تُستعاد جلسة المشرف العام عند الخروج.',
+    'impersonate_button'              => 'عرض البوابة كهذا المستخدم',
+    'impersonate_confirm'             => 'ستتصفح البوابة كهذا المستخدم. أي إجراءات تنفذها ستُسجل باسمه. هل تريد المتابعة؟',
+    'impersonate_started'             => 'تعرض الآن البوابة كـ :name.',
+    'impersonate_stopped'             => 'تمت العودة إلى جلسة المشرف العام.',
+    'impersonate_exit'                => 'إنهاء العرض',
+    'impersonate_banner_title'        => 'وضع المعاينة:',
+    'impersonate_banner_body'         => 'تعرض كـ :name (:roles)',
+    'impersonate_already_active'      => 'أنهِ المعاينة الحالية قبل بدء أخرى.',
+    'impersonate_cannot_self'         => 'لا يمكنك معاينة البوابة كحسابك.',
+    'impersonate_incomplete_registration' => 'هذا المستخدم لم يكمل التسجيل بعد.',
+    'impersonate_not_active'          => 'لا توجد جلسة معاينة نشطة.',
 ];
