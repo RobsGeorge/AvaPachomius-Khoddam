@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Services\ForceLogoutService;
 use Illuminate\Http\Request;
 
 class SuperAdminController extends Controller
@@ -98,5 +99,18 @@ class SuperAdminController extends Controller
         $course->delete();
 
         return redirect()->route('superadmin.index')->with('success', __('pages.course_deleted'));
+    }
+
+    public function flushAllSessions(Request $request)
+    {
+        $result = ForceLogoutService::logoutAllUsers($request->session()->getId());
+
+        return redirect()
+            ->route('superadmin.index')
+            ->with('success', __('pages.force_logout_success', [
+                'sessions' => $result['sessions_cleared'],
+                'tokens'   => $result['remember_tokens_cleared'],
+                'driver'   => $result['driver'],
+            ]));
     }
 }

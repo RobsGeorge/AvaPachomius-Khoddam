@@ -614,4 +614,10 @@ return [
     'no_activity_logs'                => 'No activity recorded yet.',
     'no_login_trials'                 => 'No login trials recorded yet.',
     'view_audit_reports'              => 'Audit reports',
+
+    'force_logout_title'              => 'Force logout all users',
+    'force_logout_hint'               => 'Ends every active session immediately and clears remember-me tokens. Users must sign in again on their next request. Your current superadmin session is kept so you stay logged in.',
+    'force_logout_button'             => 'Log out everyone now',
+    'force_logout_confirm'            => 'This will log out every user on the platform. Continue?',
+    'force_logout_success'            => 'All users were logged out. Cleared :sessions session(s), :tokens remember-me token(s). Driver: :driver.',
 ];

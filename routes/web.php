@@ -232,6 +232,7 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
+    Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/assignments',              [SuperAdminController::class, 'store'])->name('store');
     Route::delete('/assignments/{id}',       [SuperAdminController::class, 'destroy'])->name('destroy');
     Route::post('/roles',                    [SuperAdminController::class, 'storeRole'])->name('roles.store');

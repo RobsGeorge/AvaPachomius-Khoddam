@@ -21,6 +21,23 @@
         </div>
     @endif
 
+    <div class="app-card card border-danger shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 text-danger mb-2">
+                <i class="bi bi-box-arrow-right"></i> {{ __('pages.force_logout_title') }}
+            </h2>
+            <p class="text-muted mb-3">{{ __('pages.force_logout_hint') }}</p>
+            <form method="POST"
+                  action="{{ route('superadmin.sessions.flush-all') }}"
+                  onsubmit="return confirm(@json(__('pages.force_logout_confirm')));">
+                @csrf
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-power"></i> {{ __('pages.force_logout_button') }}
+                </button>
+            </form>
+        </div>
+    </div>
+
     @if($errors->any())
         <div class="alert alert-danger alert-dismissible fade show">
             @foreach($errors->all() as $error)
