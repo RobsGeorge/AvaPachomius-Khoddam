@@ -4,11 +4,14 @@
 
 @section('content')
 <div class="container py-4 animate-in">
-    <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
         <span class="badge bg-danger fs-6 px-3 py-2">
             <i class="bi bi-shield-lock-fill"></i> {{ __('pages.superadmin_role') }}
         </span>
         <h1 class="page-title mb-0">{{ __('pages.roles_permissions') }}</h1>
+        <a href="{{ route('superadmin.audit.index') }}" class="btn btn-outline-danger btn-sm ms-auto">
+            <i class="bi bi-journal-text"></i> {{ __('pages.view_audit_reports') }}
+        </a>
     </div>
 
     @if(session('success'))

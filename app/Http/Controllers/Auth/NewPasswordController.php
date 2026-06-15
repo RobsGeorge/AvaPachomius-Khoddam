@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuditLogService;
 use App\Support\PasswordRules;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -39,6 +40,11 @@ class NewPasswordController extends Controller
                 event(new PasswordReset($user));
             }
         );
+
+        AuditLogService::setPasswordResult($request, [
+            'success'        => $status === Password::PASSWORD_RESET,
+            'failure_reason' => $status === Password::PASSWORD_RESET ? null : (string) $status,
+        ]);
 
         if ($status === Password::PASSWORD_RESET) {
             return redirect()

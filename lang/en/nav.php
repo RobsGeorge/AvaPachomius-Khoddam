@@ -9,6 +9,7 @@ return [
     'modules'           => 'Modules',
     'roles'             => 'Role management',
     'superadmin'        => 'Super admin',
+    'audit_reports'     => 'Audit reports',
     'profile'           => 'Profile',
     'logout'            => 'Log out',
     'login'             => 'Log in',

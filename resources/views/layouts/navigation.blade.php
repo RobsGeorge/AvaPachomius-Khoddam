@@ -55,8 +55,11 @@
                         @endif
 
                         @if(auth()->user()->is_superadmin)
-                            <a href="{{ route('superadmin.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.*') ? 'active' : '' }}">
+                            <a href="{{ route('superadmin.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.index') ? 'active' : '' }}">
                                 <i class="bi bi-shield-lock-fill"></i> {{ __('nav.superadmin') }}
+                            </a>
+                            <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.audit.*') ? 'active' : '' }}">
+                                <i class="bi bi-journal-text"></i> {{ __('nav.audit_reports') }}
                             </a>
                         @endif
                     </div>
@@ -135,6 +138,7 @@
                     @endif
                     @if(auth()->user()->is_superadmin)
                         <a href="{{ route('superadmin.index') }}" class="app-nav-link">{{ __('nav.superadmin') }}</a>
+                        <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link">{{ __('nav.audit_reports') }}</a>
                     @endif
                     <hr class="my-1 border-secondary-subtle">
                     <a href="{{ route('profile') }}" class="app-nav-link">{{ __('nav.profile') }}</a>

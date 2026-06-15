@@ -10,6 +10,7 @@ use App\Models\UserCourseRole;
 use App\Models\Course;
 use App\Models\Role;
 use App\Mail\SendOTPEmail;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Support\PasswordRules;
@@ -377,6 +378,12 @@ class RegisterController extends Controller
         $user           = User::where('user_id', $request->user_id)->firstOrFail();
         $user->password = Hash::make($request->password);
         $user->save();
+
+        AuditLogService::setPasswordResult($request, [
+            'success' => true,
+            'user_id' => $user->user_id,
+            'email'   => $user->email,
+        ]);
 
         return redirect()->route('login')->with('success', 'تم تعيين كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.');
     }

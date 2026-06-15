@@ -27,6 +27,7 @@ use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\ModuleFeedbackController;
 use App\Http\Controllers\LectureController;
@@ -230,6 +231,7 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 // Superadmin routes — accessible only by users with is_superadmin = true
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
+    Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::post('/assignments',              [SuperAdminController::class, 'store'])->name('store');
     Route::delete('/assignments/{id}',       [SuperAdminController::class, 'destroy'])->name('destroy');
     Route::post('/roles',                    [SuperAdminController::class, 'storeRole'])->name('roles.store');

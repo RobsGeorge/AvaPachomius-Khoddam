@@ -4,6 +4,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,15 +22,34 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        $attemptSucceeded = Auth::attempt($credentials, $request->boolean('remember'));
+        $failureReason = null;
+        $loginSucceeded = false;
+
+        if ($attemptSucceeded) {
             $request->session()->regenerate();
 
-            if (!Auth::user()->is_verified) {
+            if (! Auth::user()->is_verified) {
+                $failureReason = 'Account not verified';
                 Auth::logout();
-                return back()->withErrors(['email' => 'حسابك لم يتم التحقق منه بعد. يرجى التواصل مع المشرف.']);
+            } else {
+                $loginSucceeded = true;
             }
+        } else {
+            $failureReason = 'Invalid credentials';
+        }
 
+        AuditLogService::setPasswordResult($request, [
+            'success'        => $loginSucceeded,
+            'failure_reason' => $failureReason,
+        ]);
+
+        if ($loginSucceeded) {
             return redirect('/dashboard')->with('success', 'Welcome back!');
+        }
+
+        if ($failureReason === 'Account not verified') {
+            return back()->withErrors(['email' => 'حسابك لم يتم التحقق منه بعد. يرجى التواصل مع المشرف.']);
         }
 
         return back()->withErrors([
