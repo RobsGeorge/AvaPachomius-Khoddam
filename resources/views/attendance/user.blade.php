@@ -28,8 +28,8 @@
                         <tbody>
                             @foreach($attendanceRecords as $record)
                                 <tr>
-                                    <td>{{ $record->session->session_title }}</td>
-                                    <td class="text-nowrap">{{ $record->session_date }}</td>
+                                    <td>{{ $record->session?->session_title ?? __('pages.unspecified') }}</td>
+                                    <td class="text-nowrap">{{ $record->display_session_date ?? __('pages.unspecified') }}</td>
                                     <td class="text-nowrap">
                                         <select class="status-select form-select form-select-sm"
                                                 data-attendance-id="{{ $record->attendance_id }}"
@@ -50,8 +50,14 @@
                                                    onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
                                         </div>
                                     </td>
-                                    <td class="text-nowrap">{{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}</td>
-                                    <td class="text-nowrap">{{ $record->attendance_time ?? '' }}</td>
+                                    <td class="text-nowrap">
+                                        @if($record->takenBy)
+                                            {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                    <td class="text-nowrap">{{ $record->display_attendance_time ?? '' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -65,7 +71,9 @@
                     $late = $attendanceRecords->where('status', 'Late')->count();
                     $presentPercentage = $total ? round(($present / $total) * 100) : 0;
                     $monthlyStats = $attendanceRecords->groupBy(function ($record) {
-                        return \Carbon\Carbon::parse($record->session_date)->format('Y-m');
+                        return $record->display_session_date
+                            ? \Carbon\Carbon::parse($record->display_session_date)->format('Y-m')
+                            : 'unknown';
                     })->map(function ($records) {
                         return [
                             'total'   => $records->count(),

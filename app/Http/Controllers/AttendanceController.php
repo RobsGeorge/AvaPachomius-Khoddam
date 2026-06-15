@@ -58,14 +58,8 @@ class AttendanceController extends Controller
     private function attendanceRecordsForUser(int|string $userId)
     {
         return Attendance::with(['session', 'takenBy'])
-            ->join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->where('attendance.user_id', $userId)
-            ->orderBy('session.session_date', 'desc')
-            ->select([
-                'attendance.*',
-                DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
-                DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time"),
-            ])
+            ->where('user_id', $userId)
+            ->orderByDesc('attendance_time')
             ->get();
     }
 
@@ -236,14 +230,10 @@ class AttendanceController extends Controller
     public function viewAttendanceByDate($date)
     {
         $attendanceRecords = Attendance::with(['session', 'user', 'takenBy'])
-            ->join('session', 'attendance.session_id', '=', 'session.session_id')
-            ->whereDate('session.session_date', $date)
-            ->orderBy('session.session_date', 'desc')
-            ->select([
-                'attendance.*',
-                DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
-                DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
-            ])
+            ->whereHas('session', function ($sessionQuery) use ($date) {
+                $sessionQuery->whereDate('session_date', $date);
+            })
+            ->orderByDesc('attendance_time')
             ->get();
 
         // Get overall statistics
@@ -396,14 +386,14 @@ class AttendanceController extends Controller
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
             ->where('attendance.user_id', $userId)
             ->selectRaw('
-                DATE_FORMAT(session.session_date, "%Y-%m") as month,
+                '.self::SESSION_MONTH_SQL.' as month,
                 COUNT(*) as total_records,
-                SUM(CASE WHEN status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
-                SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent_count,
-                SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late_count
+                SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
+                SUM(CASE WHEN attendance.status = "Absent" THEN 1 ELSE 0 END) as absent_count,
+                SUM(CASE WHEN attendance.status = "Late" THEN 1 ELSE 0 END) as late_count
             ')
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
+            ->groupByRaw(self::SESSION_MONTH_SQL)
+            ->orderByRaw(self::SESSION_MONTH_SQL.' DESC')
             ->get();
     }
 

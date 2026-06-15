@@ -26,7 +26,7 @@
                             @foreach($attendanceRecords as $record)
                                 <tr>
                                     <td>{{ $record->session->session_title ?? __('pages.unspecified') }}</td>
-                                    <td>{{ $record->session_date ?? __('pages.unspecified') }}</td>
+                                    <td>{{ $record->display_session_date ?? __('pages.unspecified') }}</td>
                                     <td>
                                         @if($record->status === 'Present')
                                             <span class="badge bg-success">{{ __('pages.present') }}</span>
@@ -39,7 +39,7 @@
                                         @endif
                                     </td>
                                     <td>{{ $record->permission_reason }}</td>
-                                    <td>{{ $record->attendance_time ?? '' }}</td>
+                                    <td>{{ $record->display_attendance_time ?? '' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

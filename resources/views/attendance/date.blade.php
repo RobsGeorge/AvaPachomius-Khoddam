@@ -25,11 +25,15 @@
                             @foreach($attendanceRecords as $record)
                                 <tr>
                                     <td class="text-nowrap">
-                                        <a href="{{ route('attendance.user', $record->user_id) }}">
-                                            {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
-                                        </a>
+                                        @if($record->user)
+                                            <a href="{{ route('attendance.user', $record->user_id) }}">
+                                                {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
+                                            </a>
+                                        @else
+                                            —
+                                        @endif
                                     </td>
-                                    <td class="text-nowrap">{{ $record->session_date }}</td>
+                                    <td class="text-nowrap">{{ $record->display_session_date ?? __('pages.unspecified') }}</td>
                                     <td class="text-nowrap">
                                         <select class="status-select form-select form-select-sm"
                                                 data-attendance-id="{{ $record->attendance_id }}"
@@ -50,8 +54,14 @@
                                                    onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
                                         </div>
                                     </td>
-                                    <td class="text-nowrap">{{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}</td>
-                                    <td class="text-nowrap">{{ $record->attendance_time }}</td>
+                                    <td class="text-nowrap">
+                                        @if($record->takenBy)
+                                            {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                    <td class="text-nowrap">{{ $record->display_attendance_time ?? '' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
