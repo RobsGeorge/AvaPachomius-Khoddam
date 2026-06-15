@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\OtpCode;
 use App\Models\User;
+use App\Services\PendingRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\RateLimiter;
@@ -16,7 +17,15 @@ class OTPController extends Controller
     {
         $userId = session('user_id') ?? $request->query('user_id');
 
-        if (!$userId) return redirect()->route('login')->withErrors(['حدث خطأ.']);
+        if (! $userId) {
+            return redirect()->route('login')->withErrors(['حدث خطأ.']);
+        }
+
+        $user = User::find($userId);
+
+        if (! $user || $user->registration_completed) {
+            return redirect()->route('register')->withErrors(['general' => __('register.already_completed')]);
+        }
 
         return view('auth.otp', compact('userId'));
     }
@@ -39,14 +48,19 @@ class OTPController extends Controller
             return back()->withErrors(['otp' => 'رمز التحقق غير صالح أو منتهي الصلاحية.']);
         }
 
-        $user = User::find($request->user_id);
-        $user->is_verified = true;
-        $user->save();
+        $user = User::findOrFail($request->user_id);
 
-        // Delete OTP after success
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
         $otpRecord->delete();
 
-        // Redirect to password creation form
+        session([
+            PendingRegistrationService::SESSION_PASSWORD_USER_KEY => $user->user_id,
+            'user_id' => $user->user_id,
+        ]);
+
         return redirect()->route('password.set', ['user_id' => $user->user_id]);
     }
 
@@ -70,6 +84,11 @@ class OTPController extends Controller
         
 
         $user = User::find($request->user_id);
+
+        if (! $user || $user->registration_completed) {
+            return back()->withErrors(['resend' => __('register.already_completed')]);
+        }
+
         Mail::to($user->email)->send(new \App\Mail\SendOTPEmail($otp, $user));
         RateLimiter::hit($key, 60);
 

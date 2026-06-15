@@ -11,6 +11,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Mail\SendOTPEmail;
 use App\Services\AuditLogService;
+use App\Services\PendingRegistrationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Support\PasswordRules;
@@ -35,17 +36,32 @@ class RegisterController extends Controller
         $this->validator($request->all())->validate();
 
         LegacySchemaSync::ensureRegistrationSchema();
+        PendingRegistrationService::purgeStale();
 
-        $existingUser = User::where('email', $request->email)->first();
+        if (PendingRegistrationService::completedExists('email', $request->email)) {
+            return back()
+                ->withErrors(['email' => __('register.email_taken')])
+                ->withInput();
+        }
 
-        if ($existingUser) {
-            if ($existingUser->is_verified) {
-                return back()
-                    ->withErrors(['email' => 'هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول.'])
-                    ->withInput();
-            }
+        $pendingUser = PendingRegistrationService::findPendingByEmail($request->email)
+            ?? PendingRegistrationService::findPendingByMobile($request->mobile_number)
+            ?? PendingRegistrationService::findPendingByNationalId($request->national_id);
 
-            return $this->updateAndResendOtp($request, $existingUser);
+        if ($pendingUser) {
+            return $this->updateAndResendOtp($request, $pendingUser);
+        }
+
+        if (PendingRegistrationService::completedExists('mobile_number', $request->mobile_number)) {
+            return back()
+                ->withErrors(['mobile_number' => __('register.mobile_taken')])
+                ->withInput();
+        }
+
+        if (PendingRegistrationService::completedExists('national_id', $request->national_id)) {
+            return back()
+                ->withErrors(['national_id' => __('register.national_id_taken')])
+                ->withInput();
         }
 
         return $this->createAndSendOtp($request);
@@ -55,13 +71,21 @@ class RegisterController extends Controller
 
     private function updateAndResendOtp(Request $request, User $user)
     {
-        $mobileTaken = User::where('mobile_number', $request->mobile_number)
-            ->where('user_id', '!=', $user->user_id)
-            ->exists();
-
-        if ($mobileTaken) {
+        if (PendingRegistrationService::completedExists('mobile_number', $request->mobile_number, $user->user_id)) {
             return back()
-                ->withErrors(['mobile_number' => 'رقم الهاتف مستخدم من قِبل حساب آخر.'])
+                ->withErrors(['mobile_number' => __('register.mobile_taken')])
+                ->withInput();
+        }
+
+        if (PendingRegistrationService::completedExists('national_id', $request->national_id, $user->user_id)) {
+            return back()
+                ->withErrors(['national_id' => __('register.national_id_taken')])
+                ->withInput();
+        }
+
+        if (PendingRegistrationService::completedExists('email', $request->email, $user->user_id)) {
+            return back()
+                ->withErrors(['email' => __('register.email_taken')])
                 ->withInput();
         }
 
@@ -73,7 +97,9 @@ class RegisterController extends Controller
                 $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
             }
 
-            $user->update($this->userProfileAttributes($request, $profilePhotoPath));
+            $user->update(array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
+                'email' => $request->email,
+            ]));
 
             OtpCode::where('user_id', $user->user_id)->delete();
 
@@ -88,9 +114,7 @@ class RegisterController extends Controller
 
             DB::commit();
 
-            return redirect()->route('otp.verify')
-                ->with('user_id', $user->user_id)
-                ->with('success', __('auth.registration_email_resent'));
+            return PendingRegistrationService::redirectToOtpResume($user);
 
         } catch (QueryException $e) {
             DB::rollBack();
@@ -112,12 +136,6 @@ class RegisterController extends Controller
 
     private function createAndSendOtp(Request $request)
     {
-        if (User::where('mobile_number', $request->mobile_number)->exists()) {
-            return back()
-                ->withErrors(['mobile_number' => 'رقم الهاتف مستخدم بالفعل. يرجى استخدام رقم آخر.'])
-                ->withInput();
-        }
-
         // Profile photo is optional — store if uploaded, otherwise use empty string
         $profilePhotoPath = null;
         if ($request->hasFile('profile_photo')) {
@@ -127,15 +145,12 @@ class RegisterController extends Controller
         DB::beginTransaction();
         try {
             $user = User::create(array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
-                'email'         => $request->email,
-                'password'      => Hash::make(Str::random(12)),
-                'is_verified'   => false,
-                'is_superadmin' => false,
+                'email'                  => $request->email,
+                'password'               => Hash::make(Str::random(32)),
+                'is_verified'            => false,
+                'is_superadmin'          => false,
+                'registration_completed' => false,
             ]));
-
-            // Assign student role if the default course and Student role both exist.
-            // Non-fatal: registration proceeds even if this setup hasn't been done yet.
-            $this->assignDefaultStudentRole($user);
 
             $otp = rand(100000, 999999);
             OtpCode::create([
@@ -148,9 +163,7 @@ class RegisterController extends Controller
 
             DB::commit();
 
-            return redirect()->route('otp.verify')
-                ->with('user_id', $user->user_id)
-                ->with('success', __('auth.registration_email_sent'));
+            return PendingRegistrationService::redirectToOtpResume($user);
 
         } catch (QueryException $e) {
             DB::rollBack();
@@ -365,6 +378,18 @@ class RegisterController extends Controller
 
     public function showSetPasswordForm($user_id)
     {
+        $user = User::where('user_id', $user_id)->firstOrFail();
+
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY) != $user->user_id) {
+            return redirect()
+                ->route('otp.verify', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.complete_otp_first')]);
+        }
+
         return view('auth.set_password', compact('user_id'));
     }
 
@@ -375,9 +400,26 @@ class RegisterController extends Controller
             'password' => PasswordRules::field(),
         ], PasswordRules::messages());
 
-        $user           = User::where('user_id', $request->user_id)->firstOrFail();
-        $user->password = Hash::make($request->password);
+        $user = User::where('user_id', $request->user_id)->firstOrFail();
+
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY) != $user->user_id) {
+            return redirect()
+                ->route('otp.verify', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.complete_otp_first')]);
+        }
+
+        $user->password               = Hash::make($request->password);
+        $user->is_verified            = true;
+        $user->registration_completed = true;
         $user->save();
+
+        $this->assignDefaultStudentRole($user);
+
+        session()->forget(PendingRegistrationService::SESSION_PASSWORD_USER_KEY);
 
         AuditLogService::setPasswordResult($request, [
             'success' => true,

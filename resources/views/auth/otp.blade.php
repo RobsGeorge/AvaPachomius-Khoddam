@@ -13,6 +13,12 @@
                     <div class="mt-2 small">{{ __('auth.check_spam') }}</div>
                 </div>
             @endif
+            @if(session('pending_registration_resume'))
+                <div class="alert alert-warning">
+                    <i class="bi bi-hourglass-split me-1"></i>
+                    {{ __('register.pending_otp_message') }}
+                </div>
+            @endif
             @if($errors->any())
                 <div class="alert alert-danger">
                     <ul class="mb-0">

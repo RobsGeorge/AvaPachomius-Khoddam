@@ -29,7 +29,7 @@ class LoginController extends Controller
         if ($attemptSucceeded) {
             $request->session()->regenerate();
 
-            if (! Auth::user()->is_verified) {
+            if (! Auth::user()->is_verified || ! Auth::user()->registration_completed) {
                 $failureReason = 'Account not verified';
                 Auth::logout();
             } else {

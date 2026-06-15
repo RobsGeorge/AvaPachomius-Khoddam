@@ -11,9 +11,14 @@ use App\Models\Attendance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 
 class AttendanceController extends Controller
 {
+    private const SESSION_DATE_SQL = 'DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR))';
+
+    private const SESSION_MONTH_SQL = 'DATE_FORMAT(DATE_ADD(session.session_date, INTERVAL 3 HOUR), "%Y-%m")';
+
     private function studentRoleId(): ?int
     {
         return Role::where('role_name', 'Student')->value('role_id');
@@ -25,6 +30,10 @@ class AttendanceController extends Controller
         $studentRoleId = $this->studentRoleId();
 
         if (! $studentRoleId) {
+            return $query;
+        }
+
+        if (! Schema::hasTable('user_course_role')) {
             return $query;
         }
 
@@ -141,25 +150,18 @@ class AttendanceController extends Controller
     {
         $query = $this->scopeToStudents(
             Attendance::with(['user', 'session', 'takenBy'])
-                ->join('session', 'attendance.session_id', '=', 'session.session_id')
-        )
-            ->select([
-                'attendance.*',
-                'session.session_title',
-                DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as session_date'),
-                DB::raw("CONCAT(DATE_FORMAT(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR), '%h:%i'), ' ', CASE WHEN HOUR(DATE_ADD(attendance.attendance_time, INTERVAL 3 HOUR)) < 12 THEN 'ص' ELSE 'م' END) as attendance_time")
-            ]);
+        );
 
-        // Filter by session date
         if ($request->filled('session_date')) {
-            $query->whereDate('session.session_date', $request->input('session_date'));
+            $query->whereHas('session', function ($sessionQuery) use ($request) {
+                $sessionQuery->whereDate('session_date', $request->input('session_date'));
+            });
         }
 
-        $query->orderBy('attendance.attendance_time', 'desc');
+        $attendanceRecords = $query
+            ->orderByDesc('attendance_time')
+            ->paginate(20);
 
-        $attendanceRecords = $query->paginate(20);
-
-        // Get overall statistics
         $overallStats = $this->getOverallStatistics();
         $dailyStats = $this->getDailyStatistics();
         $userStats = $this->getUserStatistics();
@@ -259,9 +261,9 @@ class AttendanceController extends Controller
         return $this->scopeToStudents(Attendance::query())
             ->select([
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present'),
-                DB::raw('SUM(CASE WHEN status = "Absent" THEN 1 ELSE 0 END) as absent'),
-                DB::raw('SUM(CASE WHEN status = "Late" THEN 1 ELSE 0 END) as late')
+                DB::raw('SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present'),
+                DB::raw('SUM(CASE WHEN attendance.status = "Absent" THEN 1 ELSE 0 END) as absent'),
+                DB::raw('SUM(CASE WHEN attendance.status = "Late" THEN 1 ELSE 0 END) as late'),
             ])
             ->first();
     }
@@ -271,13 +273,9 @@ class AttendanceController extends Controller
         return $this->scopeToStudents(
             Attendance::query()->join('session', 'attendance.session_id', '=', 'session.session_id')
         )
-            ->select([
-                DB::raw('DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR)) as date'),
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
-            ])
-            ->groupBy('date')
-            ->orderBy('date', 'desc')
+            ->selectRaw(self::SESSION_DATE_SQL.' as date, COUNT(*) as total, SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present')
+            ->groupByRaw(self::SESSION_DATE_SQL)
+            ->orderByRaw(self::SESSION_DATE_SQL.' DESC')
             ->limit(5)
             ->get();
     }
@@ -293,11 +291,11 @@ class AttendanceController extends Controller
                 'user.first_name',
                 'user.second_name',
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
+                DB::raw('SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present'),
             ])
             ->groupBy('user.user_id', 'user.first_name', 'user.second_name')
-            ->having('total', '>', 0)
-            ->orderByRaw('(SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) / COUNT(*)) DESC')
+            ->havingRaw('COUNT(*) > 0')
+            ->orderByRaw('SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) / COUNT(*) DESC')
             ->limit(5)
             ->get();
     }
@@ -310,10 +308,10 @@ class AttendanceController extends Controller
             ->select([
                 'session.session_title',
                 DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
+                DB::raw('SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present'),
             ])
             ->groupBy('session.session_title')
-            ->orderBy('total', 'desc')
+            ->orderByRaw('COUNT(*) DESC')
             ->get();
     }
 
@@ -322,13 +320,9 @@ class AttendanceController extends Controller
         return $this->scopeToStudents(
             Attendance::query()->join('session', 'attendance.session_id', '=', 'session.session_id')
         )
-            ->select([
-                DB::raw('DATE_FORMAT(DATE_ADD(session.session_date, INTERVAL 3 HOUR), "%Y-%m") as month'),
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(CASE WHEN status = "Present" THEN 1 ELSE 0 END) as present')
-            ])
-            ->groupBy('month')
-            ->orderBy('month', 'desc')
+            ->selectRaw(self::SESSION_MONTH_SQL.' as month, COUNT(*) as total, SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present')
+            ->groupByRaw(self::SESSION_MONTH_SQL)
+            ->orderByRaw(self::SESSION_MONTH_SQL.' DESC')
             ->get();
     }
 

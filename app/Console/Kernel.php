@@ -12,8 +12,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // Run the mark absent users command daily at midnight
         $schedule->command('attendance:mark-absent')->dailyAt('00:00');
+        $schedule->call(fn () => \App\Services\PendingRegistrationService::purgeStale())->daily();
     }
 
     /**

@@ -10,6 +10,20 @@
         <p class="text-muted-theme small">{{ __('app.tagline') }}</p>
     </div>
 
+    @if(session('pending_registration_resume'))
+        <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+            <i class="bi bi-hourglass-split mt-1"></i>
+            <div>
+                <div>{{ __('register.pending_otp_message') }}</div>
+                @if(session('pending_otp_user_id') || session('user_id'))
+                    <a href="{{ route('otp.verify', ['user_id' => session('pending_otp_user_id') ?? session('user_id')]) }}" class="alert-link">
+                        {{ __('register.continue_to_otp') }}
+                    </a>
+                @endif
+            </div>
+        </div>
+    @endif
+
     @if($errors->has('general'))
         <div class="alert alert-danger d-flex align-items-start gap-2 mb-3">
             <i class="bi bi-exclamation-triangle-fill mt-1"></i>

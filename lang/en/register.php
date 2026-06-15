@@ -37,4 +37,10 @@ return [
     'db_error_generic'       => 'A database error occurred. Please try again.',
     'db_setup_error'         => 'Registration is not fully set up on the server (missing database table). Please contact the administrator.',
     'db_schema_error'        => 'A server configuration error occurred. Please contact the administrator.',
+    'pending_otp_message'    => 'This account is waiting for email verification (OTP). Continue on the verification page or submit the form again to receive a new code.',
+    'pending_otp_resume'     => 'This account is still waiting for OTP verification. Enter the code we emailed you.',
+    'pending_otp_resent'     => 'This account is waiting for OTP verification. We sent a new code to your email.',
+    'continue_to_otp'        => 'Go to OTP verification page',
+    'complete_otp_first'     => 'Please verify your email with the OTP code before setting a password.',
+    'already_completed'      => 'This account is already registered. Please log in.',
 ];

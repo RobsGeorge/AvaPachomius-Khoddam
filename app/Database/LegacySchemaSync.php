@@ -143,6 +143,7 @@ final class LegacySchemaSync
             'date_of_birth' => 'DATE NULL',
             'password' => "VARCHAR(255) NOT NULL DEFAULT ''",
             'is_verified' => 'TINYINT(1) NOT NULL DEFAULT 0',
+            'registration_completed' => 'TINYINT(1) NOT NULL DEFAULT 0',
             'is_superadmin' => 'TINYINT(1) NOT NULL DEFAULT 0',
             'remember_token' => 'VARCHAR(100) NULL',
             'otp_code' => 'VARCHAR(255) NULL',
@@ -193,6 +194,7 @@ final class LegacySchemaSync
         MigrationSupport::addStringColumn('user', 'email', 30, false);
         MigrationSupport::addStringColumn('user', 'job', 50, false);
         MigrationSupport::addBooleanColumn('user', 'is_verified', false);
+        MigrationSupport::addBooleanColumn('user', 'registration_completed', false, 'is_verified');
         MigrationSupport::addBooleanColumn('user', 'is_superadmin', false, 'is_verified');
         MigrationSupport::addStringColumn('user', 'remember_token', 100);
         MigrationSupport::addStringColumn('user', 'otp_code', 255);

@@ -23,6 +23,25 @@ class Attendance extends Model
         'attendance_time' => 'datetime',
     ];
 
+    public function getDisplaySessionDateAttribute(): ?string
+    {
+        $date = $this->session?->session_date;
+
+        return $date ? $date->copy()->addHours(3)->format('Y-m-d') : null;
+    }
+
+    public function getDisplayAttendanceTimeAttribute(): ?string
+    {
+        if (! $this->attendance_time) {
+            return null;
+        }
+
+        $local = $this->attendance_time->copy()->addHours(3);
+        $suffix = (int) $local->format('H') < 12 ? 'ص' : 'م';
+
+        return $local->format('h:i').' '.$suffix;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
