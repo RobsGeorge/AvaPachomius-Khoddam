@@ -19,7 +19,9 @@ class SuperAdminController extends Controller
         $courses     = Course::orderBy('year', 'desc')->orderBy('title')->get();
         $roles       = Role::all();
 
-        return view('superadmin.index', compact('assignments', 'users', 'courses', 'roles'));
+        $eventAdmins = \App\Models\EventAdmin::with('user')->get();
+
+        return view('superadmin.index', compact('assignments', 'users', 'courses', 'roles', 'eventAdmins'));
     }
 
     public function store(Request $request)
@@ -106,6 +108,35 @@ class SuperAdminController extends Controller
         $course->delete();
 
         return redirect()->route('superadmin.index')->with('success', __('pages.course_deleted'));
+    }
+
+    public function storeEventAdmin(Request $request)
+    {
+        $data = $request->validate([
+            'user_id' => 'required|exists:user,user_id',
+        ]);
+
+        \App\Models\EventAdmin::firstOrCreate(
+            ['user_id' => $data['user_id']],
+            ['assigned_by_id' => auth()->id(), 'assigned_at' => now()]
+        );
+
+        \App\Services\EventAuditService::log('admin.assign', 'success', [
+            'target_user_id' => $data['user_id'],
+        ]);
+
+        return redirect()->route('superadmin.index')->with('success', __('events.event_admin_assigned'));
+    }
+
+    public function destroyEventAdmin(string $userId)
+    {
+        \App\Models\EventAdmin::where('user_id', $userId)->delete();
+
+        \App\Services\EventAuditService::log('admin.unassign', 'success', [
+            'target_user_id' => (int) $userId,
+        ]);
+
+        return redirect()->route('superadmin.index')->with('success', __('events.event_admin_removed'));
     }
 
     public function flushAllSessions(Request $request)

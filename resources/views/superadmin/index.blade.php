@@ -12,6 +12,9 @@
         <a href="{{ route('superadmin.audit.index') }}" class="btn btn-outline-danger btn-sm ms-auto">
             <i class="bi bi-journal-text"></i> {{ __('pages.view_audit_reports') }}
         </a>
+        <a href="{{ route('superadmin.events.tests.index') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-bug"></i> {{ __('events.tests_dashboard') }}
+        </a>
     </div>
 
     @if(session('success'))
@@ -281,6 +284,58 @@
                                placeholder="{{ __('pages.role_name_placeholder') }}" maxlength="30" required>
                         <input type="text" name="role_decription" class="form-control form-control-sm"
                                placeholder="{{ __('pages.role_desc_placeholder') }}" maxlength="25" required>
+                        <button type="submit" class="btn btn-sm btn-outline-theme text-nowrap">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="app-card card shadow-sm mb-4">
+                <div class="card-header fw-semibold">
+                    <i class="bi bi-calendar-event"></i> {{ __('events.event_admins_title') }}
+                </div>
+                <div class="card-body p-0">
+                    <p class="small text-muted-theme px-3 pt-3 mb-2">{{ __('events.event_admins_hint') }}</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>{{ __('pages.user') }}</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @forelse($eventAdmins as $ea)
+                                    <tr>
+                                        <td>
+                                            {{ $ea->user->first_name ?? '—' }} {{ $ea->user->second_name ?? '' }}
+                                            <div class="text-muted small">{{ $ea->user->email ?? '—' }}</div>
+                                        </td>
+                                        <td>
+                                            <form method="POST"
+                                                  action="{{ route('superadmin.event-admins.destroy', $ea->user_id) }}"
+                                                  onsubmit="return confirm(@json(__('pages.confirm_delete')))">
+                                                @csrf @method('DELETE')
+                                                <button class="btn btn-xs btn-outline-danger py-0 px-1">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="2" class="text-center text-muted-theme py-2">—</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <form method="POST" action="{{ route('superadmin.event-admins.store') }}" class="d-flex gap-2">
+                        @csrf
+                        <select name="user_id" class="form-select form-select-sm" required>
+                            <option value="">{{ __('pages.select_option') }}</option>
+                            @foreach($users as $u)
+                                <option value="{{ $u->user_id }}">{{ $u->first_name }} {{ $u->second_name }} ({{ $u->email }})</option>
+                            @endforeach
+                        </select>
                         <button type="submit" class="btn btn-sm btn-outline-theme text-nowrap">
                             <i class="bi bi-plus"></i>
                         </button>

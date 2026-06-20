@@ -1,6 +1,8 @@
 # VPS setup for GitHub Actions deploy
 
-The deploy workflow SSHs in **without a terminal**, so `sudo` cannot ask for a password.
+Pushes to `main` run the **CI** workflow first (unit, integration, and load tests). Production deploy runs only if those tests pass (`deploy` job `needs: test`).
+
+Pull requests run **CI** only; they do not deploy.
 
 ## One-time fix (on the VPS as root)
 

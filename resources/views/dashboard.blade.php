@@ -58,6 +58,19 @@
 
         <div class="col-md-6">
             <div class="app-tile h-100">
+                <h3><i class="bi bi-calendar-event"></i> {{ __('dashboard.events') }}</h3>
+                <p class="text-muted-theme">{{ __('dashboard.events_desc') }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('events.index') }}" class="btn btn-primary">{{ __('dashboard.view_events') }}</a>
+                    @if(Auth::user()->isEventAdmin())
+                        <a href="{{ route('events.admin.index') }}" class="btn btn-outline-theme">{{ __('dashboard.manage_events') }}</a>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="app-tile h-100">
                 <h3><i class="bi bi-patch-check"></i> {{ __('dashboard.exams') }}</h3>
                 <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('exams.index') }}" class="btn btn-primary">{{ __('dashboard.view_exams') }}</a>

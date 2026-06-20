@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use App\Models\Attendance;
 use App\Models\UserAssessment;
 use App\Models\Role;
+use App\Models\EventAdmin;
 use App\Mail\ResetPasswordMail;
 use Illuminate\Support\Facades\Mail;
 
@@ -110,6 +111,13 @@ class User extends Authenticatable
     public function hasAnyRole(array $roleNames): bool
     {
         return $this->roles->whereIn('role_name', $roleNames)->isNotEmpty();
+    }
+
+    public function isEventAdmin(): bool
+    {
+        return ($this->is_superadmin ?? false)
+            || $this->hasRole('admin')
+            || EventAdmin::where('user_id', $this->user_id)->exists();
     }
 
     public function isBeingImpersonated(): bool

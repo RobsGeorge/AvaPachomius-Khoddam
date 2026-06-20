@@ -31,6 +31,16 @@
                             {{ __('nav.sessions') }}
                         </a>
 
+                        <a href="{{ route('events.index') }}" class="app-nav-link {{ request()->routeIs('events.index', 'events.show', 'events.my-reservations') ? 'active' : '' }}">
+                            {{ __('nav.events') }}
+                        </a>
+
+                        @if(auth()->user()->isEventAdmin())
+                            <a href="{{ route('events.admin.index') }}" class="app-nav-link {{ request()->routeIs('events.admin.*', 'events.check-in.verify') ? 'active' : '' }}">
+                                {{ __('nav.events_admin') }}
+                            </a>
+                        @endif
+
                         @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
                             <a href="{{ route('graduation.index') }}" class="app-nav-link {{ request()->routeIs('graduation.*') ? 'active' : '' }}">
                                 {{ __('pages.graduation_title') }}
@@ -65,6 +75,9 @@
                             </a>
                             <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.audit.*') ? 'active' : '' }}">
                                 <i class="bi bi-journal-text"></i> {{ __('nav.audit_reports') }}
+                            </a>
+                            <a href="{{ route('superadmin.events.tests.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.events.tests.*') ? 'active' : '' }}">
+                                <i class="bi bi-bug"></i> {{ __('nav.events_tests') }}
                             </a>
                         @endif
                     </div>
@@ -134,6 +147,10 @@
                     @endif
                     <a href="{{ route('curriculum.index') }}" class="app-nav-link">{{ __('nav.curriculum') }}</a>
                     <a href="{{ route('sessions.index') }}" class="app-nav-link">{{ __('nav.sessions') }}</a>
+                    <a href="{{ route('events.index') }}" class="app-nav-link">{{ __('nav.events') }}</a>
+                    @if(auth()->user()->isEventAdmin())
+                        <a href="{{ route('events.admin.index') }}" class="app-nav-link">{{ __('nav.events_admin') }}</a>
+                    @endif
                     @if(auth()->user()->is_superadmin || auth()->user()->roles->contains('role_name', 'admin'))
                         @if(auth()->user()->roles->contains('role_name', 'admin'))
                             <a href="{{ route('user-course-roles.index') }}" class="app-nav-link">{{ __('nav.roles') }}</a>
@@ -144,10 +161,11 @@
                             <a href="{{ route('admin.attendance-settings.edit') }}" class="app-nav-link">{{ __('pages.attendance_settings_title') }}</a>
                         @endif
                     @endif
-                    @if(auth()->user()->is_superadmin)
-                        <a href="{{ route('superadmin.index') }}" class="app-nav-link">{{ __('nav.superadmin') }}</a>
-                        <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link">{{ __('nav.audit_reports') }}</a>
-                    @endif
+                            @if(auth()->user()->is_superadmin)
+                            <a href="{{ route('superadmin.index') }}" class="app-nav-link">{{ __('nav.superadmin') }}</a>
+                            <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link">{{ __('nav.audit_reports') }}</a>
+                            <a href="{{ route('superadmin.events.tests.index') }}" class="app-nav-link">{{ __('nav.events_tests') }}</a>
+                        @endif
                     <hr class="my-1 border-secondary-subtle">
                     <a href="{{ route('profile') }}" class="app-nav-link">{{ __('nav.profile') }}</a>
                     <a href="{{ route('logout') }}" class="app-nav-link">{{ __('nav.logout') }}</a>

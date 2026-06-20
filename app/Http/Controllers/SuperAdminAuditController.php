@@ -24,6 +24,7 @@ class SuperAdminAuditController extends Controller
                         ->orWhere('ip_address', 'like', "%{$term}%");
                 });
             })
+            ->when($request->input('module') === 'events', fn ($q) => $q->where('route_name', 'like', 'events.action.%'))
             ->orderByDesc('activity_log_id')
             ->paginate(30, ['*'], 'activity_page')
             ->withQueryString();

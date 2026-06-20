@@ -1,0 +1,38 @@
+@extends('layouts.app')
+
+@section('title', __('events.admin_title'))
+
+@section('content')
+<div class="container py-4 animate-in">
+    <div class="d-flex justify-content-between mb-4">
+        <h1 class="page-title mb-0">{{ __('events.admin_title') }}</h1>
+        <a href="{{ route('events.admin.create') }}" class="btn btn-primary btn-sm">{{ __('events.admin_create') }}</a>
+    </div>
+    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    <div class="table-responsive app-card card shadow-sm">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>{{ __('events.event') }}</th><th>{{ __('events.status') }}</th><th>{{ __('events.starts') }}</th><th>{{ __('events.capacity') }}</th><th></th></tr></thead>
+            <tbody>
+            @foreach($events as $event)
+                <tr>
+                    <td>{{ $event->title }}</td>
+                    <td>{{ $event->status }}</td>
+                    <td>{{ $event->starts_at->timezone(config('attendance.timezone'))->format('Y-m-d H:i') }}</td>
+                    <td>{{ $event->confirmedCount() }}/{{ $event->capacity }}</td>
+                    <td class="text-nowrap">
+                        <a href="{{ route('events.admin.reservations', $event->event_id) }}" class="btn btn-sm btn-outline-theme">{{ __('events.reservations') }}</a>
+                        <a href="{{ route('events.admin.edit', $event->event_id) }}" class="btn btn-sm btn-outline-primary">{{ __('pages.edit') }}</a>
+                        @if($event->status === 'draft')
+                            <form method="POST" action="{{ route('events.admin.publish', $event->event_id) }}" class="d-inline">@csrf
+                                <button class="btn btn-sm btn-success">{{ __('events.publish') }}</button>
+                            </form>
+                        @endif
+                    </td>
+                </tr>
+            @endforeach
+            </tbody>
+        </table>
+    </div>
+    {{ $events->links() }}
+</div>
+@endsection

@@ -36,6 +36,20 @@
         </li>
     </ul>
 
+    @if($tab === 'activity')
+        <div class="mb-3">
+            <a href="{{ route('superadmin.audit.index', ['tab' => 'activity', 'module' => 'events']) }}"
+               class="btn btn-sm {{ request('module') === 'events' ? 'btn-primary' : 'btn-outline-primary' }}">
+                {{ __('nav.events') }}
+            </a>
+            @if(request('module') === 'events')
+                <a href="{{ route('superadmin.audit.index', ['tab' => 'activity']) }}" class="btn btn-sm btn-outline-secondary ms-1">
+                    {{ __('pages.all') }}
+                </a>
+            @endif
+        </div>
+    @endif
+
     @if($tab === 'login')
         <div class="app-card card shadow-sm mb-4">
             <div class="card-body">
@@ -165,6 +179,13 @@
                     <div class="col-md-2">
                         <label class="form-label">{{ __('pages.user_id') }}</label>
                         <input type="number" name="user_id" class="form-control" value="{{ request('user_id') }}" min="1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('pages.module') }}</label>
+                        <select name="module" class="form-select">
+                            <option value="">{{ __('pages.all') }}</option>
+                            <option value="events" @selected(request('module') === 'events')>{{ __('nav.events') }}</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">{{ __('pages.filter') }}</button>

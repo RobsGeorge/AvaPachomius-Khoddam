@@ -15,4 +15,7 @@ return [
     'login'             => 'تسجيل الدخول',
     'register'          => 'تسجيل حساب جديد',
     'translations'      => 'الترجمات',
+    'events'            => 'الفعاليات',
+    'events_admin'      => 'إدارة الفعاليات',
+    'events_tests'      => 'اختبارات الفعاليات',
 ];

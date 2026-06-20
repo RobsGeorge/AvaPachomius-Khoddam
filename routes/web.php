@@ -37,6 +37,10 @@ use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\GraduationController;
 use App\Http\Controllers\AttendanceSettingsController;
+use App\Http\Controllers\EventController;
+use App\Http\Controllers\EventAdminController;
+use App\Http\Controllers\EventCheckInController;
+use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
@@ -185,6 +189,35 @@ Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 's
 Route::put('/assignment-submissions/{submission}/update', [AssignmentController::class, 'updateSubmission'])->name('assignments.update-submission');
 Route::post('/assignment-submissions/{submission}/grade', [AssignmentController::class, 'grade'])->name('assignments.grade')->middleware(['auth', 'role:instructor,admin']);
 
+// Events & conferences
+Route::middleware('auth')->group(function () {
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/my-reservations', [EventController::class, 'myReservations'])->name('events.my-reservations');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
+    Route::post('/events/{event}/reserve', [EventController::class, 'reserve'])->name('events.reserve');
+    Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name('events.cancel');
+});
+
+Route::middleware(['auth', 'events.admin'])->prefix('events/admin')->name('events.admin.')->group(function () {
+    Route::get('/', [EventAdminController::class, 'index'])->name('index');
+    Route::get('/create', [EventAdminController::class, 'create'])->name('create');
+    Route::post('/', [EventAdminController::class, 'store'])->name('store');
+    Route::get('/{event}/edit', [EventAdminController::class, 'edit'])->name('edit');
+    Route::put('/{event}', [EventAdminController::class, 'update'])->name('update');
+    Route::post('/{event}/publish', [EventAdminController::class, 'publish'])->name('publish');
+    Route::post('/{event}/cancel', [EventAdminController::class, 'cancelEvent'])->name('cancel');
+    Route::get('/{event}/reservations', [EventAdminController::class, 'reservations'])->name('reservations');
+    Route::post('/{event}/exceptions', [EventAdminController::class, 'addException'])->name('exceptions.add');
+    Route::delete('/{event}/exceptions/{exception}', [EventAdminController::class, 'removeException'])->name('exceptions.remove');
+    Route::get('/{event}/check-in', [EventCheckInController::class, 'console'])->name('check-in');
+    Route::post('/{event}/check-in', [EventCheckInController::class, 'record'])->name('check-in.record');
+});
+
+Route::middleware(['auth', 'events.admin'])->group(function () {
+    Route::get('/events/{event}/check-in/verify/{user}', [EventCheckInController::class, 'verify'])
+        ->name('events.check-in.verify');
+});
+
 // Content feedback routes
 Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
 Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
@@ -250,6 +283,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/roles/{id}',             [SuperAdminController::class, 'destroyRole'])->name('roles.destroy');
     Route::post('/courses',                  [SuperAdminController::class, 'storeCourse'])->name('courses.store');
     Route::delete('/courses/{id}',           [SuperAdminController::class, 'destroyCourse'])->name('courses.destroy');
+    Route::post('/event-admins',            [SuperAdminController::class, 'storeEventAdmin'])->name('event-admins.store');
+    Route::delete('/event-admins/{userId}',  [SuperAdminController::class, 'destroyEventAdmin'])->name('event-admins.destroy');
+    Route::get('/events/tests',             [SuperAdminEventTestController::class, 'index'])->name('events.tests.index');
+    Route::post('/events/tests/run',        [SuperAdminEventTestController::class, 'run'])->name('events.tests.run');
 });
 
 // Legacy URL redirects (old content/curriculum routes)

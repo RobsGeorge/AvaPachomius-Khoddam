@@ -15,4 +15,7 @@ return [
     'login'             => 'Log in',
     'register'          => 'Create account',
     'translations'      => 'Translations',
+    'events'            => 'Events',
+    'events_admin'      => 'Event admin',
+    'events_tests'      => 'Events tests',
 ];
