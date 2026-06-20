@@ -88,4 +88,57 @@ final class MigrationSupport
 
         Schema::table($table, $callback);
     }
+
+    public static function foreignKeyExists(string $table, string $name): bool
+    {
+        $connection = Schema::getConnection();
+        $driver = $connection->getDriverName();
+
+        if ($driver === 'mysql') {
+            $database = $connection->getDatabaseName();
+
+            $row = $connection->selectOne(
+                'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
+                 WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = ?',
+                [$database, $table, $name, 'FOREIGN KEY']
+            );
+
+            return $row !== null;
+        }
+
+        if ($driver === 'sqlite') {
+            $column = self::foreignKeyColumnFromName($table, $name);
+
+            if ($column === null) {
+                return false;
+            }
+
+            $escapedTable = str_replace("'", "''", $table);
+            $rows = $connection->select("PRAGMA foreign_key_list('{$escapedTable}')");
+
+            foreach ($rows as $row) {
+                $from = is_object($row) ? ($row->from ?? null) : ($row['from'] ?? null);
+
+                if ($from === $column) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    private static function foreignKeyColumnFromName(string $table, string $name): ?string
+    {
+        $prefix = $table.'_';
+        $suffix = '_foreign';
+
+        if (! str_starts_with($name, $prefix) || ! str_ends_with($name, $suffix)) {
+            return null;
+        }
+
+        return substr($name, strlen($prefix), -strlen($suffix));
+    }
 }

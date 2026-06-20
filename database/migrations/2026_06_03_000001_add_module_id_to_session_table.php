@@ -17,7 +17,8 @@ return new class extends Migration
             $table->unsignedBigInteger('module_id')->nullable()->after('course_id');
         });
 
-        if (Schema::hasColumn('session', 'module_id') && ! $this->foreignKeyExists('session', 'session_module_id_foreign')) {
+        if (Schema::hasColumn('session', 'module_id')
+            && ! MigrationSupport::foreignKeyExists('session', 'session_module_id_foreign')) {
             Schema::table('session', function (Blueprint $table) {
                 $table->foreign('module_id', 'session_module_id_foreign')
                     ->references('module_id')
@@ -33,7 +34,7 @@ return new class extends Migration
             return;
         }
 
-        if ($this->foreignKeyExists('session', 'session_module_id_foreign')) {
+        if (MigrationSupport::foreignKeyExists('session', 'session_module_id_foreign')) {
             Schema::table('session', function (Blueprint $table) {
                 $table->dropForeign('session_module_id_foreign');
             });
@@ -42,19 +43,5 @@ return new class extends Migration
         Schema::table('session', function (Blueprint $table) {
             $table->dropColumn('module_id');
         });
-    }
-
-    private function foreignKeyExists(string $table, string $name): bool
-    {
-        $connection = Schema::getConnection();
-        $database = $connection->getDatabaseName();
-
-        $row = $connection->selectOne(
-            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE CONSTRAINT_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = ?',
-            [$database, $table, $name, 'FOREIGN KEY']
-        );
-
-        return $row !== null;
     }
 };

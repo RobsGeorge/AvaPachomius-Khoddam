@@ -29,7 +29,7 @@ return new class extends Migration
 
             if (Schema::hasColumn('course_module', 'ended_by_user_id')
                 && Schema::hasTable('user')
-                && ! $this->foreignKeyExists('course_module', 'course_module_ended_by_user_id_foreign')) {
+                && ! MigrationSupport::foreignKeyExists('course_module', 'course_module_ended_by_user_id_foreign')) {
                 Schema::table('course_module', function (Blueprint $table) {
                     $table->foreign('ended_by_user_id', 'course_module_ended_by_user_id_foreign')
                         ->references('user_id')->on('user')->nullOnDelete();
@@ -73,7 +73,7 @@ return new class extends Migration
 
         if (Schema::hasTable('course_module')) {
             Schema::table('course_module', function (Blueprint $table) {
-                if ($this->foreignKeyExists('course_module', 'course_module_ended_by_user_id_foreign')) {
+                if (MigrationSupport::foreignKeyExists('course_module', 'course_module_ended_by_user_id_foreign')) {
                     $table->dropForeign('course_module_ended_by_user_id_foreign');
                 }
             });
@@ -92,21 +92,4 @@ return new class extends Migration
         }
     }
 
-    private function foreignKeyExists(string $table, string $name): bool
-    {
-        $connection = Schema::getConnection();
-        $database = $connection->getDatabaseName();
-
-        if ($connection->getDriverName() !== 'mysql') {
-            return false;
-        }
-
-        $result = $connection->select(
-            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = ?',
-            [$database, $table, $name, 'FOREIGN KEY']
-        );
-
-        return count($result) > 0;
-    }
 };

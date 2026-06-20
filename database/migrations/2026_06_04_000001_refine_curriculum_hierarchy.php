@@ -29,7 +29,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasTable('lectures') && $this->foreignKeyExists('lectures', 'lectures_session_id_foreign')) {
+        if (Schema::hasTable('lectures') && MigrationSupport::foreignKeyExists('lectures', 'lectures_session_id_foreign')) {
             Schema::table('lectures', function (Blueprint $table) {
                 $table->dropForeign('lectures_session_id_foreign');
             });
@@ -54,7 +54,7 @@ return new class extends Migration
             return;
         }
 
-        if (Schema::hasTable('module_session')) {
+        if (Schema::hasTable('module_session') && Schema::getConnection()->getDriverName() === 'mysql') {
             DB::statement('
                 UPDATE `session` s
                 INNER JOIN `module_session` ms ON ms.session_id = s.session_id
@@ -85,6 +85,10 @@ return new class extends Migration
             return;
         }
 
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::statement('
             UPDATE `lectures` l
             INNER JOIN `session` s
@@ -111,7 +115,7 @@ return new class extends Migration
     {
         if (! Schema::hasTable('lectures')
             || ! Schema::hasColumn('lectures', 'session_id')
-            || $this->foreignKeyExists('lectures', 'lectures_session_id_foreign')) {
+            || MigrationSupport::foreignKeyExists('lectures', 'lectures_session_id_foreign')) {
             return;
         }
 
@@ -134,19 +138,5 @@ return new class extends Migration
                 throw $e;
             }
         }
-    }
-
-    private function foreignKeyExists(string $table, string $name): bool
-    {
-        $connection = Schema::getConnection();
-        $database = $connection->getDatabaseName();
-
-        $row = $connection->selectOne(
-            'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS
-             WHERE CONSTRAINT_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = ?',
-            [$database, $table, $name, 'FOREIGN KEY']
-        );
-
-        return $row !== null;
     }
 };
