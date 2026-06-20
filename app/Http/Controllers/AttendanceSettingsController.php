@@ -19,7 +19,6 @@ class AttendanceSettingsController extends Controller
         $validated = $request->validate([
             'late_threshold_minutes' => 'required|integer|min:0|max:240',
             'late_grade_percentage' => 'required|numeric|min:0|max:100',
-            'default_session_start_time' => 'required|date_format:H:i',
             'is_enabled' => 'sometimes|boolean',
         ]);
 
@@ -27,7 +26,6 @@ class AttendanceSettingsController extends Controller
         $policy->update([
             'late_threshold_minutes' => (int) $validated['late_threshold_minutes'],
             'late_grade_percentage' => (float) $validated['late_grade_percentage'],
-            'default_session_start_time' => $validated['default_session_start_time'].':00',
             'is_enabled' => $request->boolean('is_enabled'),
         ]);
 

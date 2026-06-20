@@ -78,9 +78,15 @@ class SuperAdminController extends Controller
             'title'       => 'required|string|max:30',
             'description' => 'required|string|max:255',
             'year'        => 'required|integer|min:2000|max:2100',
+            'default_session_start_time' => 'required|date_format:H:i',
         ]);
 
-        Course::create($request->only('title', 'description', 'year'));
+        Course::create([
+            'title' => $request->input('title'),
+            'description' => $request->input('description'),
+            'year' => $request->input('year'),
+            'default_session_start_time' => $request->input('default_session_start_time').':00',
+        ]);
 
         return redirect()->route('superadmin.index')->with('success', __('pages.course_created'));
     }

@@ -62,18 +62,6 @@
                     @enderror
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label fw-semibold" for="default_session_start_time">{{ __('pages.default_session_start_time') }}</label>
-                    <input type="time" name="default_session_start_time" id="default_session_start_time"
-                           class="form-control @error('default_session_start_time') is-invalid @enderror"
-                           required
-                           value="{{ old('default_session_start_time', $policy->formattedDefaultStartTime()) }}">
-                    <div class="form-text">{{ __('pages.default_session_start_time_hint') }}</div>
-                    @error('default_session_start_time')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
-                </div>
-
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save"></i> {{ __('pages.save') }}
                 </button>

@@ -205,6 +205,7 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
         ->name('sessions.close-attendance');
 
     Route::get('/courses/{course}/curriculum/manage',           [CurriculumController::class, 'admin'])->name('curriculum.admin');
+    Route::put('/courses/{course}/details',                     [CurriculumController::class, 'updateCourse'])->name('courses.update-details');
     Route::post('/courses/{course}/modules/attach',             [CurriculumController::class, 'attachModule'])->name('curriculum.attach-module');
     Route::post('/courses/{course}/modules/create-attach',      [CurriculumController::class, 'createAndAttachModule'])->name('curriculum.create-attach-module');
     Route::delete('/courses/{course}/modules/{module}/detach',  [CurriculumController::class, 'detachModule'])->name('curriculum.detach-module');

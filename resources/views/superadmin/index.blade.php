@@ -172,6 +172,14 @@
                                    value="{{ old('year', date('Y')) }}" min="2000" max="2100" required>
                             @error('year')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold mb-1">{{ __('pages.default_session_start_time') }}</label>
+                            <input type="time" name="default_session_start_time"
+                                   class="form-control form-control-sm @error('default_session_start_time') is-invalid @enderror"
+                                   value="{{ old('default_session_start_time', '09:00') }}" required>
+                            <div class="form-text">{{ __('pages.course_default_session_start_time_hint') }}</div>
+                            @error('default_session_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
                         <button type="submit" class="btn btn-primary w-100 btn-sm">
                             <i class="bi bi-plus-circle"></i> {{ __('pages.create_course') }}
                         </button>

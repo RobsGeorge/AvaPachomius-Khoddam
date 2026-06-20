@@ -22,6 +22,45 @@
         </div>
     </div>
 
+    {{-- Course details --}}
+    <div class="app-card card shadow-sm mb-4">
+        <div class="card-header fw-semibold">
+            <i class="bi bi-journal-bookmark"></i> {{ __('pages.course_details') }}
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ route('courses.update-details', $course->course_id) }}" class="row g-3 align-items-end">
+                @csrf
+                @method('PUT')
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">{{ __('pages.course_title') }}</label>
+                    <input type="text" name="title" class="form-control form-control-sm"
+                           value="{{ old('title', $course->title) }}" maxlength="30" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">{{ __('pages.description') }}</label>
+                    <input type="text" name="description" class="form-control form-control-sm"
+                           value="{{ old('description', $course->description) }}" maxlength="255" required>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label small fw-semibold">{{ __('pages.year') }}</label>
+                    <input type="number" name="year" class="form-control form-control-sm"
+                           value="{{ old('year', $course->year) }}" min="2000" max="2100" required>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-semibold">{{ __('pages.default_session_start_time') }}</label>
+                    <input type="time" name="default_session_start_time" class="form-control form-control-sm"
+                           value="{{ old('default_session_start_time', $course->formattedDefaultSessionStartTime()) }}" required>
+                    <div class="form-text">{{ __('pages.course_default_session_start_time_hint') }}</div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-save"></i> {{ __('pages.save') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Module management strip --}}
     <div class="card shadow-sm mb-4 border-primary">
         <div class="card-header fw-semibold text-primary">

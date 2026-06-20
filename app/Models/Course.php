@@ -22,6 +22,7 @@ class Course extends Model
         'title',
         'description',
         'year',
+        'default_session_start_time',
         'passing_percentage',
         'min_attendance_percentage',
     ];
@@ -111,5 +112,37 @@ class Course extends Model
     public function effectiveMinAttendancePercentage(): float
     {
         return (float) ($this->min_attendance_percentage ?? 75);
+    }
+
+    public function formattedDefaultSessionStartTime(): string
+    {
+        $time = $this->default_session_start_time;
+
+        if ($time instanceof \DateTimeInterface) {
+            return $time->format('H:i');
+        }
+
+        if (is_string($time) && $time !== '') {
+            return substr($time, 0, 5);
+        }
+
+        return substr((string) config('attendance.default_session_start_time', '09:00:00'), 0, 5);
+    }
+
+    public function effectiveDefaultSessionStartTime(): string
+    {
+        $time = $this->default_session_start_time;
+
+        if ($time instanceof \DateTimeInterface) {
+            return $time->format('H:i:s');
+        }
+
+        if (is_string($time) && $time !== '') {
+            return strlen($time) === 5 ? $time.':00' : $time;
+        }
+
+        $fallback = config('attendance.default_session_start_time', '09:00:00');
+
+        return strlen($fallback) === 5 ? $fallback.':00' : $fallback;
     }
 }

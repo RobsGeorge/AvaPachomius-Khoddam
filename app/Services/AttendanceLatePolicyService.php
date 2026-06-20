@@ -31,7 +31,6 @@ class AttendanceLatePolicyService
 
     public function sessionStartAt(Session $session, ?AttendancePolicy $policy = null): Carbon
     {
-        $policy ??= AttendancePolicy::current();
         $timezone = $this->attendanceTimezone();
 
         $date = $session->session_date?->format('Y-m-d');
@@ -39,9 +38,15 @@ class AttendanceLatePolicyService
             return Carbon::now($timezone)->startOfDay();
         }
 
-        $startTime = $session->session_start_time ?? $policy->default_session_start_time ?? '09:00:00';
+        $startTime = $session->session_start_time;
         if ($startTime instanceof \DateTimeInterface) {
             $startTime = $startTime->format('H:i:s');
+        } elseif (! is_string($startTime) || $startTime === '') {
+            $session->loadMissing('course');
+            $startTime = $session->course?->effectiveDefaultSessionStartTime()
+                ?? config('attendance.default_session_start_time', '09:00:00');
+        } elseif (strlen($startTime) === 5) {
+            $startTime .= ':00';
         }
 
         return Carbon::parse($date.' '.$startTime, $timezone);

@@ -181,4 +181,27 @@ class CurriculumController extends Controller
             ->route('curriculum.admin', $courseId)
             ->with('success', __('pages.module_ended_feedback_open'));
     }
+
+    public function updateCourse(Request $request, string $courseId)
+    {
+        $course = Course::findOrFail($courseId);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:30',
+            'description' => 'required|string|max:255',
+            'year' => 'required|integer|min:2000|max:2100',
+            'default_session_start_time' => 'required|date_format:H:i',
+        ]);
+
+        $course->update([
+            'title' => $validated['title'],
+            'description' => $validated['description'],
+            'year' => $validated['year'],
+            'default_session_start_time' => $validated['default_session_start_time'].':00',
+        ]);
+
+        return redirect()
+            ->route('curriculum.admin', $courseId)
+            ->with('success', __('pages.course_details_saved'));
+    }
 }
