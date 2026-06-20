@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class AttendanceController extends Controller
 {
@@ -146,9 +148,47 @@ class AttendanceController extends Controller
     // View all attendance records (for admin and instructor)
     public function viewAllAttendance(Request $request)
     {
-        $query = $this->scopeToStudents(
-            Attendance::with(['user', 'session', 'takenBy'])
-        );
+        $groupBy = $request->input('group_by', 'date');
+        if (! in_array($groupBy, ['date', 'session'], true)) {
+            $groupBy = 'date';
+        }
+
+        $baseQuery = $this->filteredAttendanceQuery($request);
+        $perPage = 10;
+        $page = max(1, (int) $request->input('page', 1));
+
+        if ($groupBy === 'session') {
+            [$groups, $groupPaginator] = $this->buildSessionGroups($baseQuery, $request, $perPage, $page);
+        } else {
+            [$groups, $groupPaginator] = $this->buildDateGroups($baseQuery, $request, $perPage, $page);
+        }
+
+        $sessionOptions = Session::query()
+            ->whereIn('session_id', $this->filteredAttendanceQuery($request)->select('session_id'))
+            ->with('course')
+            ->orderByDesc('session_date')
+            ->orderBy('session_title')
+            ->limit(100)
+            ->get();
+
+        $overallStats = $this->getOverallStatistics();
+        $dailyStats = $this->getDailyStatistics();
+        $userStats = $this->getUserStatistics();
+
+        return view('attendance.all', compact(
+            'groups',
+            'groupBy',
+            'groupPaginator',
+            'sessionOptions',
+            'overallStats',
+            'dailyStats',
+            'userStats',
+        ));
+    }
+
+    private function filteredAttendanceQuery(Request $request): Builder
+    {
+        $query = $this->scopeToStudents(Attendance::query());
 
         if ($request->filled('session_date')) {
             $query->whereHas('session', function ($sessionQuery) use ($request) {
@@ -156,15 +196,121 @@ class AttendanceController extends Controller
             });
         }
 
-        $attendanceRecords = $query
-            ->orderByDesc('attendance_time')
-            ->paginate(20);
+        if ($request->filled('session_id')) {
+            $query->where('session_id', $request->input('session_id'));
+        }
 
-        $overallStats = $this->getOverallStatistics();
-        $dailyStats = $this->getDailyStatistics();
-        $userStats = $this->getUserStatistics();
+        return $query;
+    }
 
-        return view('attendance.all', compact('attendanceRecords', 'overallStats', 'dailyStats', 'userStats'));
+    /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator} */
+    private function buildDateGroups(Builder $baseQuery, Request $request, int $perPage, int $page): array
+    {
+        $dates = Session::query()
+            ->whereIn('session_id', (clone $baseQuery)->select('session_id'))
+            ->orderByDesc('session_date')
+            ->pluck('session_date')
+            ->map(fn ($date) => $date->toDateString())
+            ->unique()
+            ->values();
+
+        $paginator = $this->paginateCollection($dates, $perPage, $page, $request);
+        $groups = [];
+
+        foreach ($paginator as $date) {
+            $records = $this->recordsForDateGroup($baseQuery, $date);
+            $groups[] = $this->formatGroup($date, $date, $records, null);
+        }
+
+        return [$groups, $paginator];
+    }
+
+    /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator} */
+    private function buildSessionGroups(Builder $baseQuery, Request $request, int $perPage, int $page): array
+    {
+        $sessions = Session::query()
+            ->with('course')
+            ->whereIn('session_id', (clone $baseQuery)->select('session_id'))
+            ->orderByDesc('session_date')
+            ->orderBy('session_title')
+            ->get();
+
+        $paginator = $this->paginateCollection($sessions, $perPage, $page, $request);
+        $groups = [];
+
+        foreach ($paginator as $session) {
+            $records = $this->recordsForSessionGroup($baseQuery, $session->session_id);
+            $heading = $session->session_title;
+            $meta = $session->session_date?->format('Y-m-d');
+            if ($session->course) {
+                $meta = trim(($meta ?? '').' · '.$session->course->title, ' ·');
+            }
+            $groups[] = $this->formatGroup((string) $session->session_id, $heading, $records, $meta);
+        }
+
+        return [$groups, $paginator];
+    }
+
+    private function recordsForDateGroup(Builder $baseQuery, string $date): Collection
+    {
+        return (clone $baseQuery)
+            ->whereHas('session', fn ($q) => $q->whereDate('session_date', $date))
+            ->with(['user', 'session.course', 'takenBy'])
+            ->get()
+            ->sortBy([
+                fn ($record) => $record->session?->session_title ?? '',
+                fn ($record) => $record->user?->first_name ?? '',
+                fn ($record) => $record->user?->second_name ?? '',
+            ])
+            ->values();
+    }
+
+    private function recordsForSessionGroup(Builder $baseQuery, int|string $sessionId): Collection
+    {
+        return (clone $baseQuery)
+            ->where('session_id', $sessionId)
+            ->with(['user', 'session.course', 'takenBy'])
+            ->get()
+            ->sortBy([
+                fn ($record) => $record->user?->first_name ?? '',
+                fn ($record) => $record->user?->second_name ?? '',
+            ])
+            ->values();
+    }
+
+    /** @return array<string, mixed> */
+    private function formatGroup(string $key, string $heading, Collection $records, ?string $meta): array
+    {
+        return [
+            'key' => $key,
+            'heading' => $heading,
+            'meta' => $meta,
+            'records' => $records,
+            'stats' => $this->statsForRecords($records),
+        ];
+    }
+
+    /** @return array{total: int, present: int, absent: int, late: int, permission: int} */
+    private function statsForRecords(Collection $records): array
+    {
+        return [
+            'total' => $records->count(),
+            'present' => $records->where('status', 'Present')->count(),
+            'absent' => $records->where('status', 'Absent')->count(),
+            'late' => $records->where('status', 'Late')->count(),
+            'permission' => $records->where('status', 'Permission')->count(),
+        ];
+    }
+
+    private function paginateCollection(Collection $items, int $perPage, int $page, Request $request): LengthAwarePaginator
+    {
+        return new LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $items->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
     }
 
     // View attendance records for a specific user (for admin and instructor)

@@ -4,85 +4,118 @@
 <div class="container py-4 animate-in">
     <div class="app-card card shadow-sm">
         <div class="card-body">
-            <h1 class="page-title mb-4">{{ __('pages.all_records') }}</h1>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <h1 class="page-title mb-0">{{ __('pages.all_records') }}</h1>
+            </div>
 
             @if(session('success'))
                 <div class="alert alert-success mb-3">{{ session('success') }}</div>
             @endif
 
-            @if($attendanceRecords->count() === 0)
+            <form method="GET" action="{{ route('attendance.all') }}" class="app-card card mb-4">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">{{ __('pages.attendance_group_by') }}</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="group_by" id="group-by-date" value="date"
+                                       {{ ($groupBy ?? 'date') === 'date' ? 'checked' : '' }} onchange="this.form.submit()">
+                                <label class="btn btn-outline-theme btn-sm" for="group-by-date">{{ __('pages.group_by_date') }}</label>
+                                <input type="radio" class="btn-check" name="group_by" id="group-by-session" value="session"
+                                       {{ ($groupBy ?? 'date') === 'session' ? 'checked' : '' }} onchange="this.form.submit()">
+                                <label class="btn btn-outline-theme btn-sm" for="group-by-session">{{ __('pages.group_by_session') }}</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="session_date" class="form-label small fw-semibold">{{ __('pages.date') }}</label>
+                            <input type="date" id="session_date" name="session_date" class="form-control form-control-sm"
+                                   value="{{ request('session_date') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="session_id" class="form-label small fw-semibold">{{ __('pages.session') }}</label>
+                            <select id="session_id" name="session_id" class="form-select form-select-sm">
+                                <option value="">{{ __('pages.all_sessions') }}</option>
+                                @foreach($sessionOptions as $session)
+                                    <option value="{{ $session->session_id }}" @selected(request('session_id') == $session->session_id)>
+                                        {{ $session->session_date?->format('Y-m-d') }} — {{ $session->session_title }}
+                                        @if($session->course)
+                                            ({{ $session->course->title }})
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                <i class="bi bi-funnel"></i> {{ __('pages.filter') }}
+                            </button>
+                            @if(request()->hasAny(['session_date', 'session_id']))
+                                <a href="{{ route('attendance.all', ['group_by' => $groupBy ?? 'date']) }}"
+                                   class="btn btn-outline-secondary btn-sm" title="{{ __('pages.clear_filters') }}">
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            @if(empty($groups))
                 <p class="mb-4">{{ __('pages.no_attendance_records') }}.</p>
             @else
-                <div class="table-responsive mb-4">
-                    <table class="table table-hover align-middle mb-0 small">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="text-nowrap">{{ __('pages.user') }}</th>
-                                <th class="text-nowrap">{{ __('pages.lecture') }}</th>
-                                <th class="text-nowrap">{{ __('pages.date') }}</th>
-                                <th class="text-nowrap">{{ __('pages.status') }}</th>
-                                <th class="text-nowrap">{{ __('pages.permission_reason') }}</th>
-                                <th class="text-nowrap">{{ __('pages.recorded_by') }}</th>
-                                <th class="text-nowrap">{{ __('pages.recorded_at') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($attendanceRecords as $record)
-                                <tr>
-                                    <td class="text-nowrap">
-                                        @if($record->user)
-                                            <a href="{{ route('attendance.user', $record->user_id) }}">
-                                                {{ trim($record->user->first_name . ' ' . $record->user->second_name . ' ' . ($record->user->third_name ?? '')) }}
-                                            </a>
-                                        @else
-                                            —
+                <div class="accordion mb-4" id="attendance-groups">
+                    @foreach($groups as $index => $group)
+                        @php
+                            $collapseId = 'attendance-group-'.preg_replace('/[^a-zA-Z0-9_-]/', '-', (string) $group['key']);
+                            $isOpen = $index === 0;
+                            $stats = $group['stats'];
+                            $presentPct = $stats['total'] ? round((($stats['present'] + $stats['permission']) / $stats['total']) * 100) : 0;
+                        @endphp
+                        <div class="accordion-item app-card border mb-2 overflow-hidden">
+                            <h2 class="accordion-header" id="heading-{{ $collapseId }}">
+                                <button class="accordion-button {{ $isOpen ? '' : 'collapsed' }} py-3"
+                                        type="button"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#{{ $collapseId }}"
+                                        aria-expanded="{{ $isOpen ? 'true' : 'false' }}"
+                                        aria-controls="{{ $collapseId }}">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 w-100 me-2">
+                                        <span class="fw-semibold">{{ $group['heading'] }}</span>
+                                        @if(! empty($group['meta']))
+                                            <span class="badge bg-light text-dark border">{{ $group['meta'] }}</span>
                                         @endif
-                                    </td>
-                                    <td>{{ $record->session?->session_title ?? __('pages.unspecified') }}</td>
-                                    <td class="text-nowrap">
-                                        @if($record->display_session_date)
-                                            <a href="{{ route('attendance.by-date', $record->display_session_date) }}">
-                                                {{ $record->display_session_date }}
-                                            </a>
-                                        @else
-                                            {{ __('pages.unspecified') }}
+                                        <span class="badge bg-secondary ms-auto">
+                                            {{ __('pages.records_in_group', ['count' => $stats['total']]) }}
+                                        </span>
+                                        <span class="badge bg-success">{{ $presentPct }}%</span>
+                                    </div>
+                                </button>
+                            </h2>
+                            <div id="{{ $collapseId }}"
+                                 class="accordion-collapse collapse {{ $isOpen ? 'show' : '' }}"
+                                 aria-labelledby="heading-{{ $collapseId }}"
+                                 data-bs-parent="#attendance-groups">
+                                <div class="accordion-body p-0">
+                                    <div class="px-3 py-2 border-bottom bg-light small d-flex flex-wrap gap-3">
+                                        <span class="text-success">{{ __('pages.present') }}: <strong>{{ $stats['present'] }}</strong></span>
+                                        <span class="text-danger">{{ __('pages.absent') }}: <strong>{{ $stats['absent'] }}</strong></span>
+                                        <span class="text-warning">{{ __('pages.late') }}: <strong>{{ $stats['late'] }}</strong></span>
+                                        @if($stats['permission'] > 0)
+                                            <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
                                         @endif
-                                    </td>
-                                    <td class="text-nowrap">
-                                        <select class="status-select form-select form-select-sm"
-                                                data-attendance-id="{{ $record->attendance_id }}"
-                                                data-current-status="{{ $record->status }}"
-                                                onchange="updateStatus(this)">
-                                            <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>{{ __('pages.present') }}</option>
-                                            <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>{{ __('pages.absent') }}</option>
-                                            <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
-                                            <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
-                                        </select>
-                                    </td>
-                                    <td style="min-width:140px;">
-                                        <div id="permission-reason-{{ $record->attendance_id }}" class="{{ $record->status === 'Permission' ? '' : 'd-none' }}">
-                                            <input type="text"
-                                                   class="permission-reason form-control form-control-sm"
-                                                   placeholder="{{ __('pages.permission_reason') }}"
-                                                   value="{{ $record->permission_reason }}"
-                                                   onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
-                                        </div>
-                                    </td>
-                                    <td class="text-nowrap">
-                                        @if($record->takenBy)
-                                            {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                    <td class="text-nowrap">{{ $record->display_attendance_time ?? '' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                                    </div>
+                                    @include('attendance.partials.group-records-table', [
+                                        'records' => $group['records'],
+                                        'showSessionColumn' => ($groupBy ?? 'date') === 'date',
+                                        'showDateColumn' => false,
+                                    ])
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
 
-                @include('partials.pagination', ['paginator' => $attendanceRecords])
+                @include('partials.pagination', ['paginator' => $groupPaginator])
             @endif
 
             <div class="row g-3 mb-3">
