@@ -82,6 +82,25 @@
                     @enderror
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ __('pages.session_start_time') }}</label>
+                    @php
+                        $startTimeValue = old('session_start_time');
+                        if ($startTimeValue === null && $session->session_start_time) {
+                            $startTimeValue = is_string($session->session_start_time)
+                                ? substr($session->session_start_time, 0, 5)
+                                : $session->session_start_time->format('H:i');
+                        }
+                    @endphp
+                    <input type="time" name="session_start_time"
+                           class="form-control @error('session_start_time') is-invalid @enderror"
+                           value="{{ $startTimeValue }}">
+                    <div class="form-text text-muted-theme">{{ __('pages.session_start_time_hint') }}</div>
+                    @error('session_start_time')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle"></i> {{ __('pages.save_changes') }}

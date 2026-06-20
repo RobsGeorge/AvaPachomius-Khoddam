@@ -36,6 +36,7 @@ use App\Http\Controllers\GradeCategoryController;
 use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\GraduationController;
+use App\Http\Controllers\AttendanceSettingsController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
@@ -126,6 +127,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/translations/auto', [TranslationController::class, 'autoTranslate'])->name('translations.auto');
     Route::get('/graduation-settings', [GraduationController::class, 'settings'])->name('graduation-settings.index');
     Route::put('/courses/{course}/graduation-settings', [GraduationController::class, 'updateSettings'])->name('graduation-settings.update');
+    Route::get('/attendance-settings', [AttendanceSettingsController::class, 'edit'])->name('attendance-settings.edit');
+    Route::put('/attendance-settings', [AttendanceSettingsController::class, 'update'])->name('attendance-settings.update');
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');

@@ -78,6 +78,17 @@
                 </div>
 
                 <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ __('pages.session_start_time') }}</label>
+                    <input type="time" name="session_start_time"
+                           class="form-control @error('session_start_time') is-invalid @enderror"
+                           value="{{ old('session_start_time') }}">
+                    <div class="form-text text-muted-theme">{{ __('pages.session_start_time_hint') }}</div>
+                    @error('session_start_time')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-4">
                     <label class="form-label fw-semibold">{{ __('pages.creation_mode') }} <span class="text-danger">*</span></label>
                     <div class="d-flex gap-3 flex-wrap">
                         <div class="form-check">

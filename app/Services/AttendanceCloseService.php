@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceCloseService
 {
+    public function __construct(
+        private AttendanceLatePolicyService $latePolicy,
+    ) {}
+
     public function attendanceTimezone(): string
     {
         return config('attendance.timezone', 'Africa/Cairo');
@@ -23,19 +27,26 @@ class AttendanceCloseService
     }
 
     /**
-     * @return array{absent_marked: int, already_closed: bool}
+     * @return array{absent_marked: int, late_marked: int, grades_synced: int, already_closed: bool}
      */
     public function closeSession(Session $session, int $closedByUserId): array
     {
         $session->refresh();
 
         if ($session->isAttendanceClosed()) {
-            return ['absent_marked' => 0, 'already_closed' => true];
+            return [
+                'absent_marked' => 0,
+                'late_marked' => 0,
+                'grades_synced' => 0,
+                'already_closed' => true,
+            ];
         }
 
         $absentMarked = 0;
+        $lateMarked = 0;
+        $gradesSynced = 0;
 
-        DB::transaction(function () use ($session, $closedByUserId, &$absentMarked) {
+        DB::transaction(function () use ($session, $closedByUserId, &$absentMarked, &$lateMarked, &$gradesSynced) {
             $enrolledStudentIds = $this->enrolledStudentIdsForCourse($session->course_id);
 
             if ($enrolledStudentIds->isNotEmpty()) {
@@ -65,13 +76,22 @@ class AttendanceCloseService
                 $absentMarked = count($records);
             }
 
+            $lateResult = $this->latePolicy->applyOnSessionClose($session, $closedByUserId);
+            $lateMarked = $lateResult['late_marked'];
+            $gradesSynced = $lateResult['grades_synced'];
+
             $session->update([
                 'attendance_closed_at' => now(),
                 'attendance_closed_by_id' => $closedByUserId,
             ]);
         });
 
-        return ['absent_marked' => $absentMarked, 'already_closed' => false];
+        return [
+            'absent_marked' => $absentMarked,
+            'late_marked' => $lateMarked,
+            'grades_synced' => $gradesSynced,
+            'already_closed' => false,
+        ];
     }
 
     /**

@@ -43,7 +43,7 @@ class MarkAbsentUsers extends Command
                 return 0;
             }
 
-            $this->info("Session {$sessionId} closed. Marked {$result['absent_marked']} students absent.");
+            $this->info("Session {$sessionId} closed. Marked {$result['absent_marked']} absent, {$result['late_marked']} late.");
 
             return 0;
         }

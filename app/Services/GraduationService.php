@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AttendancePolicy;
 use App\Models\Course;
 use App\Models\GradeCategory;
 use App\Models\User;
@@ -13,25 +14,40 @@ class GraduationService
     /** @return Collection<int, float> user_id => attendance percentage */
     public function attendancePercentagesForCourse(Course $course): Collection
     {
+        $lateFactor = $this->lateAttendanceFactor();
+
         $rows = DB::table('attendance')
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
             ->where('session.course_id', $course->course_id)
             ->groupBy('attendance.user_id')
             ->select([
                 'attendance.user_id',
-                DB::raw('COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0) as attended'),
+                DB::raw('COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0) as full_attended'),
+                DB::raw('COALESCE(SUM(CASE WHEN attendance.status = "Late" THEN 1 ELSE 0 END), 0) as late'),
                 DB::raw('COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0) as recorded'),
             ])
             ->get();
 
-        return $rows->mapWithKeys(function ($row) {
+        return $rows->mapWithKeys(function ($row) use ($lateFactor) {
             $recorded = (int) $row->recorded;
+            $attended = (float) $row->full_attended + ((float) $row->late * $lateFactor);
             $pct = $recorded > 0
-                ? round(((float) $row->attended / $recorded) * 100, 2)
+                ? round(($attended / $recorded) * 100, 2)
                 : 0.0;
 
             return [(int) $row->user_id => $pct];
         });
+    }
+
+    private function lateAttendanceFactor(): float
+    {
+        $policy = AttendancePolicy::current();
+
+        if (! $policy->is_enabled) {
+            return 0.0;
+        }
+
+        return max(0, min(1, $policy->late_grade_percentage / 100));
     }
 
     /**

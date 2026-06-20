@@ -52,6 +52,11 @@
                             <a href="{{ route('admin.graduation-settings.index') }}" class="app-nav-link {{ request()->routeIs('admin.graduation-settings.*') ? 'active' : '' }}">
                                 {{ __('pages.graduation_configure_criteria') }}
                             </a>
+                            @if(auth()->user()->roles->contains('role_name', 'admin'))
+                                <a href="{{ route('admin.attendance-settings.edit') }}" class="app-nav-link {{ request()->routeIs('admin.attendance-settings.*') ? 'active' : '' }}">
+                                    {{ __('pages.attendance_settings_title') }}
+                                </a>
+                            @endif
                         @endif
 
                         @if(auth()->user()->is_superadmin)
@@ -135,6 +140,9 @@
                             <a href="{{ route('admin.translations.index') }}" class="app-nav-link">{{ __('nav.translations') }}</a>
                         @endif
                         <a href="{{ route('admin.graduation-settings.index') }}" class="app-nav-link">{{ __('pages.graduation_configure_criteria') }}</a>
+                        @if(auth()->user()->roles->contains('role_name', 'admin'))
+                            <a href="{{ route('admin.attendance-settings.edit') }}" class="app-nav-link">{{ __('pages.attendance_settings_title') }}</a>
+                        @endif
                     @endif
                     @if(auth()->user()->is_superadmin)
                         <a href="{{ route('superadmin.index') }}" class="app-nav-link">{{ __('nav.superadmin') }}</a>

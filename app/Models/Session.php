@@ -23,6 +23,7 @@ class Session extends Model
         'week_number',
         'session_title',
         'session_date',
+        'session_start_time',
         'attendance_closed_at',
         'attendance_closed_by_id',
     ];

@@ -53,7 +53,10 @@ class SessionController extends Controller
         }
 
         return redirect()->route('sessions.index')
-            ->with('success', __('pages.attendance_closed_success', ['count' => $result['absent_marked']]));
+            ->with('success', __('pages.attendance_closed_success_detail', [
+                'absent' => $result['absent_marked'],
+                'late' => $result['late_marked'],
+            ]));
     }
 
     public function create()
@@ -75,6 +78,7 @@ class SessionController extends Controller
             'course_id'     => $request->input('course_id'),
             'module_id'     => $request->input('module_id'),
             'session_title' => $request->input('session_title'),
+            'session_start_time' => $this->normalizeTimeInput($request->input('session_start_time')),
             'creation_mode' => $mode,
         ];
 
@@ -98,6 +102,7 @@ class SessionController extends Controller
             'course_id'     => 'required|exists:course,course_id',
             'module_id'     => 'required|exists:modules,module_id',
             'session_title' => 'required|string|max:27',
+            'session_start_time' => 'nullable|date_format:H:i',
             'creation_mode' => 'required|in:single,multi,weekly',
         ];
 
@@ -153,6 +158,7 @@ class SessionController extends Controller
                     'week_number'   => $index + 1,
                     'session_title' => mb_substr($title, 0, 30),
                     'session_date'  => $date,
+                    'session_start_time' => $validated['session_start_time'] ?? null,
                 ]);
 
                 $this->linkSessionToModule($session, $moduleId, $index + 1);
@@ -195,12 +201,14 @@ class SessionController extends Controller
                 'module_id'     => $request->input('module_id'),
                 'session_title' => $request->input('session_title'),
                 'session_date'  => $normalizedDate,
+                'session_start_time' => $this->normalizeTimeInput($request->input('session_start_time')),
             ],
             [
                 'course_id'     => 'required|exists:course,course_id',
                 'module_id'     => 'required|exists:modules,module_id',
                 'session_title' => 'required|string|max:30',
                 'session_date'  => 'required|date_format:Y-m-d',
+                'session_start_time' => 'nullable|date_format:H:i',
             ],
             [
                 'module_id.required' => __('pages.module_required_for_session'),
@@ -290,5 +298,27 @@ class SessionController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function normalizeTimeInput(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^\d{2}:\d{2}$/', $value)) {
+            return $value.':00';
+        }
+
+        if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {
+            return $value;
+        }
+
+        return null;
     }
 }
