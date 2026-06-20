@@ -119,10 +119,24 @@ class PendingRegistrationService
     public static function markCompleted(User $user): void
     {
         $user->is_verified = true;
-        $user->registration_completed = true;
+
+        if (Schema::hasColumn('user', 'registration_completed')) {
+            $user->registration_completed = true;
+        }
+
         $user->save();
 
         self::assignDefaultStudentRole($user);
+    }
+
+    /** @return array{key: string, label: string, hint: string|null} */
+    public static function unknownAccountStatus(): array
+    {
+        return [
+            'key' => 'unknown',
+            'label' => '—',
+            'hint' => null,
+        ];
     }
 
     /** @return array{key: string, label: string, hint: string|null} */
@@ -136,9 +150,10 @@ class PendingRegistrationService
             ];
         }
 
-        $hasPendingOtp = OtpCode::where('user_id', $user->user_id)
-            ->where('expires_at', '>', now())
-            ->exists();
+        $hasPendingOtp = Schema::hasTable('otp_code')
+            && OtpCode::where('user_id', $user->user_id)
+                ->where('expires_at', '>', now())
+                ->exists();
 
         if ($hasPendingOtp) {
             return [

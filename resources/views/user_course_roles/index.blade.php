@@ -68,17 +68,16 @@
                                     {{ $assignment->role?->role_name ?? '—' }}
                                 </span>
                             </td>
-                            @php($accountStatus = $assignment->user
-                                ? \App\Services\PendingRegistrationService::accountStatus($assignment->user)
-                                : ['key' => 'unknown', 'label' => '—', 'hint' => null])
+                            @php
+                                $accountStatus = $accountStatuses[$assignment->user_course_role_id]
+                                    ?? \App\Services\PendingRegistrationService::unknownAccountStatus();
+                                $statusClass = match ($accountStatus['key']) {
+                                    'active' => 'bg-success',
+                                    'pending_otp' => 'bg-warning text-dark',
+                                    default => 'bg-secondary',
+                                };
+                            @endphp
                             <td>
-                                @php
-                                    $statusClass = match ($accountStatus['key']) {
-                                        'active' => 'bg-success',
-                                        'pending_otp' => 'bg-warning text-dark',
-                                        default => 'bg-secondary',
-                                    };
-                                @endphp
                                 <span class="badge {{ $statusClass }}">{{ $accountStatus['label'] }}</span>
                                 @if($accountStatus['hint'])
                                     <div class="small text-muted-theme mt-1">{{ $accountStatus['hint'] }}</div>

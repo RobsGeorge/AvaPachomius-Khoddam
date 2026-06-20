@@ -15,7 +15,16 @@ class UserCourseRoleController extends Controller
     public function index()
     {
         $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
-        return view('user_course_roles.index', compact('assignments'));
+
+        $accountStatuses = $assignments->mapWithKeys(function (UserCourseRole $assignment) {
+            $status = $assignment->user
+                ? PendingRegistrationService::accountStatus($assignment->user)
+                : PendingRegistrationService::unknownAccountStatus();
+
+            return [$assignment->user_course_role_id => $status];
+        });
+
+        return view('user_course_roles.index', compact('assignments', 'accountStatuses'));
     }
 
     public function create()
