@@ -26,6 +26,8 @@ class EventCancelledMail extends Mailable
         return new Content(
             view: 'emails.events.cancelled',
             with: [
+                'event' => $this->event,
+                'user' => $this->user,
                 'emailTitle' => __('events.mail_cancelled_subject', ['title' => $this->event->title]),
                 'headerSubtitle' => $this->event->title,
             ],

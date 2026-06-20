@@ -26,6 +26,8 @@ class EventReservationWaitlistMail extends Mailable
         return new Content(
             view: 'emails.events.waitlist',
             with: [
+                'event' => $this->event,
+                'user' => $this->user,
                 'emailTitle' => __('events.mail_waitlist_subject', ['title' => $this->event->title]),
                 'headerSubtitle' => $this->event->title,
             ],

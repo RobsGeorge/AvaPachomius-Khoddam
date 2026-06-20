@@ -26,6 +26,8 @@ class EventDemotedToWaitlistMail extends Mailable
         return new Content(
             view: 'emails.events.demoted',
             with: [
+                'event' => $this->event,
+                'user' => $this->user,
                 'emailTitle' => __('events.mail_demoted_subject', ['title' => $this->event->title]),
                 'headerSubtitle' => $this->event->title,
             ],

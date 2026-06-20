@@ -31,6 +31,8 @@ class EventReservationConfirmedMail extends Mailable
         return new Content(
             view: 'emails.events.confirmed',
             with: [
+                'event' => $this->event,
+                'user' => $this->user,
                 'checkInUrl' => $this->checkInUrl,
                 'emailTitle' => __('events.mail_confirmed_subject', ['title' => $this->event->title]),
                 'headerSubtitle' => $this->event->title,

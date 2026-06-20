@@ -189,15 +189,7 @@ Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 's
 Route::put('/assignment-submissions/{submission}/update', [AssignmentController::class, 'updateSubmission'])->name('assignments.update-submission');
 Route::post('/assignment-submissions/{submission}/grade', [AssignmentController::class, 'grade'])->name('assignments.grade')->middleware(['auth', 'role:instructor,admin']);
 
-// Events & conferences
-Route::middleware('auth')->group(function () {
-    Route::get('/events', [EventController::class, 'index'])->name('events.index');
-    Route::get('/events/my-reservations', [EventController::class, 'myReservations'])->name('events.my-reservations');
-    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show');
-    Route::post('/events/{event}/reserve', [EventController::class, 'reserve'])->name('events.reserve');
-    Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name('events.cancel');
-});
-
+// Events & conferences — register /events/admin before /events/{event} wildcard
 Route::middleware(['auth', 'events.admin'])->prefix('events/admin')->name('events.admin.')->group(function () {
     Route::get('/', [EventAdminController::class, 'index'])->name('index');
     Route::get('/create', [EventAdminController::class, 'create'])->name('create');
@@ -213,9 +205,19 @@ Route::middleware(['auth', 'events.admin'])->prefix('events/admin')->name('event
     Route::post('/{event}/check-in', [EventCheckInController::class, 'record'])->name('check-in.record');
 });
 
+Route::middleware('auth')->group(function () {
+    Route::get('/events', [EventController::class, 'index'])->name('events.index');
+    Route::get('/events/my-reservations', [EventController::class, 'myReservations'])->name('events.my-reservations');
+    Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show')->whereNumber('event');
+    Route::post('/events/{event}/reserve', [EventController::class, 'reserve'])->name('events.reserve')->whereNumber('event');
+    Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name('events.cancel')->whereNumber('event');
+});
+
 Route::middleware(['auth', 'events.admin'])->group(function () {
     Route::get('/events/{event}/check-in/verify/{user}', [EventCheckInController::class, 'verify'])
-        ->name('events.check-in.verify');
+        ->name('events.check-in.verify')
+        ->whereNumber('event')
+        ->whereNumber('user');
 });
 
 // Content feedback routes

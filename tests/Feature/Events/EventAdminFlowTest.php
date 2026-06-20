@@ -20,20 +20,22 @@ class EventAdminFlowTest extends EventModuleTestCase
         $admin = $this->createUser(['email' => 'evtadmin@example.com']);
         $this->makeEventAdmin($admin);
 
-        $this->actingAs($admin)
+        $startsAt = now()->addDays(2);
+
+        $response = $this->actingAs($admin)
             ->post(route('events.admin.store'), [
                 'title' => 'New Conference',
                 'description' => 'Annual meetup',
                 'location' => 'Room 1',
-                'starts_at' => now()->addDays(2)->format('Y-m-d\TH:i'),
-                'ends_at' => now()->addDays(2)->addHours(3)->format('Y-m-d\TH:i'),
+                'starts_at' => $startsAt->format('Y-m-d\TH:i'),
+                'ends_at' => $startsAt->copy()->addHours(3)->format('Y-m-d\TH:i'),
                 'capacity' => 100,
                 'visibility' => 'institution',
-            ])
-            ->assertRedirect();
+            ]);
 
         $event = Event::where('title', 'New Conference')->first();
         $this->assertNotNull($event);
+        $response->assertRedirect(route('events.admin.edit', $event->event_id));
         $this->assertSame(Event::STATUS_DRAFT, $event->status);
 
         $this->actingAs($admin)

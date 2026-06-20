@@ -31,6 +31,8 @@ class EventWaitlistPromotedMail extends Mailable
         return new Content(
             view: 'emails.events.promoted',
             with: [
+                'event' => $this->event,
+                'user' => $this->user,
                 'checkInUrl' => $this->checkInUrl,
                 'emailTitle' => __('events.mail_promoted_subject', ['title' => $this->event->title]),
                 'headerSubtitle' => $this->event->title,

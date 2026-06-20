@@ -13,6 +13,7 @@ use App\Services\EventReservationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class EventAdminController extends Controller
 {
@@ -42,7 +43,7 @@ class EventAdminController extends Controller
     public function store(Request $request)
     {
         $data = $this->validatedEvent($request);
-        $data['created_by_id'] = Auth::id();
+        $data['created_by_id'] = $request->user()->user_id;
         $data['check_in_token'] = Event::generateCheckInToken();
         $data['status'] = Event::STATUS_DRAFT;
 
@@ -160,24 +161,37 @@ class EventAdminController extends Controller
             'title' => 'required|string|max:100',
             'description' => 'required|string',
             'location' => 'nullable|string|max:255',
-            'starts_at' => 'required|date',
-            'ends_at' => 'required|date|after:starts_at',
+            'starts_at' => 'required|date_format:Y-m-d\TH:i',
+            'ends_at' => 'required|date_format:Y-m-d\TH:i|after:starts_at',
             'capacity' => 'required|integer|min:1|max:100000',
-            'registration_opens_at' => 'nullable|date',
-            'registration_closes_at' => 'nullable|date|after:registration_opens_at',
+            'registration_opens_at' => 'nullable|date_format:Y-m-d\TH:i',
+            'registration_closes_at' => 'nullable|date_format:Y-m-d\TH:i',
             'course_id' => 'nullable|exists:course,course_id',
             'visibility' => 'required|in:institution,course_enrolled,role_based',
             'eligible_roles' => 'nullable|array',
             'eligible_roles.*' => 'string|max:30',
         ]);
 
-        $validated['starts_at'] = Carbon::parse($validated['starts_at'], $tz)->utc();
-        $validated['ends_at'] = Carbon::parse($validated['ends_at'], $tz)->utc();
-        $validated['registration_opens_at'] = $validated['registration_opens_at']
-            ? Carbon::parse($validated['registration_opens_at'], $tz)->utc() : null;
-        $validated['registration_closes_at'] = $validated['registration_closes_at']
-            ? Carbon::parse($validated['registration_closes_at'], $tz)->utc() : null;
-        $validated['eligible_roles'] = array_values($validated['eligible_roles'] ?? []);
+        if (! empty($validated['registration_opens_at'])
+            && ! empty($validated['registration_closes_at'])
+            && $validated['registration_closes_at'] <= $validated['registration_opens_at']) {
+            throw ValidationException::withMessages([
+                'registration_closes_at' => [__('validation.after', [
+                    'attribute' => 'registration closes at',
+                    'date' => 'registration opens at',
+                ])],
+            ]);
+        }
+
+        $validated['starts_at'] = Carbon::createFromFormat('Y-m-d\TH:i', $validated['starts_at'], $tz)->utc();
+        $validated['ends_at'] = Carbon::createFromFormat('Y-m-d\TH:i', $validated['ends_at'], $tz)->utc();
+        $validated['registration_opens_at'] = ! empty($validated['registration_opens_at'])
+            ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['registration_opens_at'], $tz)->utc() : null;
+        $validated['registration_closes_at'] = ! empty($validated['registration_closes_at'])
+            ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['registration_closes_at'], $tz)->utc() : null;
+
+        $eligibleRoles = array_values($validated['eligible_roles'] ?? []);
+        $validated['eligible_roles'] = $eligibleRoles === [] ? null : $eligibleRoles;
 
         return $validated;
     }
