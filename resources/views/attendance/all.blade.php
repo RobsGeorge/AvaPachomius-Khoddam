@@ -15,23 +15,26 @@
             <form method="GET" action="{{ route('attendance.all') }}" class="app-card card mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-3">
+                        <div class="col-lg-4">
                             <label class="form-label small fw-semibold">{{ __('pages.attendance_group_by') }}</label>
-                            <div class="btn-group w-100" role="group">
+                            <div class="btn-group w-100 flex-wrap" role="group">
                                 <input type="radio" class="btn-check" name="group_by" id="group-by-date" value="date"
                                        {{ ($groupBy ?? 'date') === 'date' ? 'checked' : '' }} onchange="this.form.submit()">
                                 <label class="btn btn-outline-theme btn-sm" for="group-by-date">{{ __('pages.group_by_date') }}</label>
                                 <input type="radio" class="btn-check" name="group_by" id="group-by-session" value="session"
                                        {{ ($groupBy ?? 'date') === 'session' ? 'checked' : '' }} onchange="this.form.submit()">
                                 <label class="btn btn-outline-theme btn-sm" for="group-by-session">{{ __('pages.group_by_session') }}</label>
+                                <input type="radio" class="btn-check" name="group_by" id="group-by-status" value="status"
+                                       {{ ($groupBy ?? 'date') === 'status' ? 'checked' : '' }} onchange="this.form.submit()">
+                                <label class="btn btn-outline-theme btn-sm" for="group-by-status">{{ __('pages.group_by_status') }}</label>
                             </div>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6 col-lg-2">
                             <label for="session_date" class="form-label small fw-semibold">{{ __('pages.date') }}</label>
                             <input type="date" id="session_date" name="session_date" class="form-control form-control-sm"
                                    value="{{ request('session_date') }}">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6 col-lg-3">
                             <label for="session_id" class="form-label small fw-semibold">{{ __('pages.session') }}</label>
                             <select id="session_id" name="session_id" class="form-select form-select-sm">
                                 <option value="">{{ __('pages.all_sessions') }}</option>
@@ -45,11 +48,21 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-2 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-                                <i class="bi bi-funnel"></i> {{ __('pages.filter') }}
+                        <div class="col-md-6 col-lg-2">
+                            <label for="status" class="form-label small fw-semibold">{{ __('pages.status') }}</label>
+                            <select id="status" name="status" class="form-select form-select-sm">
+                                <option value="">{{ __('pages.all_statuses') }}</option>
+                                <option value="Present" @selected(request('status') === 'Present')>{{ __('pages.present') }}</option>
+                                <option value="Absent" @selected(request('status') === 'Absent')>{{ __('pages.absent') }}</option>
+                                <option value="Late" @selected(request('status') === 'Late')>{{ __('pages.late') }}</option>
+                                <option value="Permission" @selected(request('status') === 'Permission')>{{ __('pages.permission') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-1 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1" title="{{ __('pages.filter') }}">
+                                <i class="bi bi-funnel"></i>
                             </button>
-                            @if(request()->hasAny(['session_date', 'session_id']))
+                            @if(request()->hasAny(['session_date', 'session_id', 'status']))
                                 <a href="{{ route('attendance.all', ['group_by' => $groupBy ?? 'date']) }}"
                                    class="btn btn-outline-secondary btn-sm" title="{{ __('pages.clear_filters') }}">
                                     <i class="bi bi-x-lg"></i>
@@ -104,11 +117,20 @@
                                             <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
                                         @endif
                                     </div>
-                                    @include('attendance.partials.group-records-table', [
-                                        'records' => $group['records'],
-                                        'showSessionColumn' => ($groupBy ?? 'date') === 'date',
-                                        'showDateColumn' => false,
-                                    ])
+                                    @if($subgroupByStatus ?? false)
+                                        @include('attendance.partials.group-records-by-status', [
+                                            'records' => $group['records'],
+                                            'showSessionColumn' => ($groupBy ?? 'date') === 'date',
+                                            'showDateColumn' => ($groupBy ?? 'date') === 'session',
+                                        ])
+                                    @else
+                                        @include('attendance.partials.group-records-table', [
+                                            'records' => $group['records'],
+                                            'showSessionColumn' => ($groupBy ?? 'date') === 'date' || ($groupBy ?? 'date') === 'status',
+                                            'showDateColumn' => ($groupBy ?? 'date') === 'status',
+                                            'showStatusColumn' => ($groupBy ?? 'date') !== 'status',
+                                        ])
+                                    @endif
                                 </div>
                             </div>
                         </div>

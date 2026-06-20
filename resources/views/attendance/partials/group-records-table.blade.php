@@ -9,7 +9,9 @@
                 @if($showDateColumn ?? false)
                     <th class="text-nowrap">{{ __('pages.date') }}</th>
                 @endif
-                <th class="text-nowrap">{{ __('pages.status') }}</th>
+                @if($showStatusColumn ?? true)
+                    <th class="text-nowrap">{{ __('pages.status') }}</th>
+                @endif
                 <th class="text-nowrap">{{ __('pages.permission_reason') }}</th>
                 <th class="text-nowrap">{{ __('pages.recorded_by') }}</th>
                 <th class="text-nowrap">{{ __('pages.recorded_at') }}</th>
@@ -41,17 +43,19 @@
                             @endif
                         </td>
                     @endif
-                    <td class="text-nowrap">
-                        <select class="status-select form-select form-select-sm"
-                                data-attendance-id="{{ $record->attendance_id }}"
-                                data-current-status="{{ $record->status }}"
-                                onchange="updateStatus(this)">
-                            <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>{{ __('pages.present') }}</option>
-                            <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>{{ __('pages.absent') }}</option>
-                            <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
-                            <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
-                        </select>
-                    </td>
+                    @if($showStatusColumn ?? true)
+                        <td class="text-nowrap">
+                            <select class="status-select form-select form-select-sm"
+                                    data-attendance-id="{{ $record->attendance_id }}"
+                                    data-current-status="{{ $record->status }}"
+                                    onchange="updateStatus(this)">
+                                <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>{{ __('pages.present') }}</option>
+                                <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>{{ __('pages.absent') }}</option>
+                                <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
+                                <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
+                            </select>
+                        </td>
+                    @endif
                     <td style="min-width:140px;">
                         <div id="permission-reason-{{ $record->attendance_id }}" class="{{ $record->status === 'Permission' ? '' : 'd-none' }}">
                             <input type="text"
