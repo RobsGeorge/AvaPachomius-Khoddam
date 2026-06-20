@@ -110,6 +110,10 @@ class AttendanceController extends Controller
             return redirect()->back()->with('error', __('pages.attendance_not_today_session'));
         }
 
+        if ($session->isAttendanceClosed()) {
+            return redirect()->back()->with('error', __('pages.attendance_session_closed'));
+        }
+
         $exists = Attendance::where('session_id', $session->session_id)
             ->where('user_id', $studentUserId)
             ->exists();

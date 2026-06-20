@@ -12,7 +12,10 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('attendance:mark-absent')->dailyAt('00:00');
+        $schedule->command('attendance:mark-absent')
+            ->dailyAt('00:00')
+            ->timezone(config('attendance.timezone'))
+            ->when(fn () => config('attendance.auto_close_enabled'));
         $schedule->call(fn () => \App\Services\PendingRegistrationService::purgeStale())->daily();
     }
 

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Course;
 use App\Models\Attendance;
+use App\Models\User;
 
 class Session extends Model
 {
@@ -16,14 +17,33 @@ class Session extends Model
 
     protected $primaryKey = 'session_id';
 
-    protected $fillable = ['course_id', 'module_id', 'week_number', 'session_title', 'session_date'];
+    protected $fillable = [
+        'course_id',
+        'module_id',
+        'week_number',
+        'session_title',
+        'session_date',
+        'attendance_closed_at',
+        'attendance_closed_by_id',
+    ];
 
     protected $casts = [
         'session_date' => 'date',
         'week_number'  => 'integer',
+        'attendance_closed_at' => 'datetime',
         'created_at'   => 'datetime',
         'updated_at'   => 'datetime',
     ];
+
+    public function isAttendanceClosed(): bool
+    {
+        return $this->attendance_closed_at !== null;
+    }
+
+    public function attendanceClosedBy()
+    {
+        return $this->belongsTo(User::class, 'attendance_closed_by_id', 'user_id');
+    }
 
     public function course()
     {

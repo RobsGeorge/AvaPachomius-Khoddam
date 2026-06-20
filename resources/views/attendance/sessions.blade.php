@@ -93,7 +93,12 @@
                         </p>
                     @endif
 
-                    @if($record)
+                    @if($session->isAttendanceClosed() && ! $record)
+                        <div class="alert alert-secondary mb-0 d-flex align-items-start gap-2">
+                            <i class="bi bi-lock-fill mt-1"></i>
+                            <div>{{ __('pages.attendance_session_closed') }}</div>
+                        </div>
+                    @elseif($record)
                         <div class="alert alert-info mb-0 d-flex align-items-start gap-2">
                             <i class="bi bi-info-circle-fill mt-1"></i>
                             <div>

@@ -198,6 +198,8 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::resource('modules', ModuleController::class);
     Route::resource('sessions', SessionController::class)->except(['index']);
+    Route::post('/sessions/{session}/close-attendance', [SessionController::class, 'closeAttendance'])
+        ->name('sessions.close-attendance');
 
     Route::get('/courses/{course}/curriculum/manage',           [CurriculumController::class, 'admin'])->name('curriculum.admin');
     Route::post('/courses/{course}/modules/attach',             [CurriculumController::class, 'attachModule'])->name('curriculum.attach-module');

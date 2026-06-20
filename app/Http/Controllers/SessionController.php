@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\Module;
 use App\Models\Session;
+use App\Services\AttendanceCloseService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -14,13 +15,45 @@ use Illuminate\Validation\ValidationException;
 
 class SessionController extends Controller
 {
+    public function __construct(
+        private AttendanceCloseService $attendanceClose,
+    ) {}
+
     public function index()
     {
-        $sessions = Session::with(['course', 'module'])
+        $sessions = Session::with(['course', 'module', 'attendanceClosedBy'])
             ->orderBy('session_date', 'desc')
             ->paginate(20);
 
-        return view('sessions.index', compact('sessions'));
+        $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
+
+        return view('sessions.index', compact('sessions', 'todayLocal'));
+    }
+
+    public function closeAttendance(Session $session)
+    {
+        if ($session->isAttendanceClosed()) {
+            return redirect()->route('sessions.index')
+                ->with('warning', __('pages.attendance_already_closed'));
+        }
+
+        $sessionDate = $session->session_date?->toDateString();
+        $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
+
+        if (! $sessionDate || $sessionDate > $todayLocal) {
+            return redirect()->route('sessions.index')
+                ->with('error', __('pages.attendance_cannot_close_future_session'));
+        }
+
+        $result = $this->attendanceClose->closeSession($session, (int) auth()->user()->user_id);
+
+        if ($result['already_closed']) {
+            return redirect()->route('sessions.index')
+                ->with('warning', __('pages.attendance_already_closed'));
+        }
+
+        return redirect()->route('sessions.index')
+            ->with('success', __('pages.attendance_closed_success', ['count' => $result['absent_marked']]));
     }
 
     public function create()
