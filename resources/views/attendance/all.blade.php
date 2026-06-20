@@ -12,34 +12,31 @@
                 <div class="alert alert-success mb-3">{{ session('success') }}</div>
             @endif
 
-            <form method="GET" action="{{ route('attendance.all') }}" class="app-card card mb-4">
+            <form method="GET" action="{{ route('attendance.all') }}" id="attendance-filter-form" class="app-card card mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-lg-4">
-                            <label class="form-label small fw-semibold">{{ __('pages.attendance_group_by') }}</label>
-                            <div class="btn-group w-100 flex-wrap" role="group">
-                                <input type="radio" class="btn-check" name="group_by" id="group-by-date" value="date"
-                                       {{ ($groupBy ?? 'date') === 'date' ? 'checked' : '' }} onchange="this.form.submit()">
-                                <label class="btn btn-outline-theme btn-sm" for="group-by-date">{{ __('pages.group_by_date') }}</label>
-                                <input type="radio" class="btn-check" name="group_by" id="group-by-session" value="session"
-                                       {{ ($groupBy ?? 'date') === 'session' ? 'checked' : '' }} onchange="this.form.submit()">
-                                <label class="btn btn-outline-theme btn-sm" for="group-by-session">{{ __('pages.group_by_session') }}</label>
-                                <input type="radio" class="btn-check" name="group_by" id="group-by-status" value="status"
-                                       {{ ($groupBy ?? 'date') === 'status' ? 'checked' : '' }} onchange="this.form.submit()">
-                                <label class="btn btn-outline-theme btn-sm" for="group-by-status">{{ __('pages.group_by_status') }}</label>
+                        <div class="col-md-4 col-lg-3">
+                            <label class="form-label small fw-semibold">{{ __('pages.filter_by') }}</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="filter_by" id="filter-by-date" value="date"
+                                       {{ ($filterBy ?? 'date') === 'date' ? 'checked' : '' }}>
+                                <label class="btn btn-outline-theme btn-sm" for="filter-by-date">{{ __('pages.group_by_date') }}</label>
+                                <input type="radio" class="btn-check" name="filter_by" id="filter-by-session" value="session"
+                                       {{ ($filterBy ?? 'date') === 'session' ? 'checked' : '' }}>
+                                <label class="btn btn-outline-theme btn-sm" for="filter-by-session">{{ __('pages.group_by_session') }}</label>
                             </div>
                         </div>
-                        <div class="col-md-6 col-lg-2">
+                        <div class="col-md-5 col-lg-4 {{ ($filterBy ?? 'date') === 'session' ? 'd-none' : '' }}" id="filter-date-wrap">
                             <label for="session_date" class="form-label small fw-semibold">{{ __('pages.date') }}</label>
                             <input type="date" id="session_date" name="session_date" class="form-control form-control-sm"
-                                   value="{{ request('session_date') }}">
+                                   value="{{ ($filterBy ?? 'date') === 'date' ? request('session_date') : '' }}">
                         </div>
-                        <div class="col-md-6 col-lg-3">
+                        <div class="col-md-5 col-lg-5 {{ ($filterBy ?? 'date') === 'date' ? 'd-none' : '' }}" id="filter-session-wrap">
                             <label for="session_id" class="form-label small fw-semibold">{{ __('pages.session') }}</label>
                             <select id="session_id" name="session_id" class="form-select form-select-sm">
-                                <option value="">{{ __('pages.all_sessions') }}</option>
+                                <option value="">{{ __('pages.select_session') }}</option>
                                 @foreach($sessionOptions as $session)
-                                    <option value="{{ $session->session_id }}" @selected(request('session_id') == $session->session_id)>
+                                    <option value="{{ $session->session_id }}" @selected(($filterBy ?? 'date') === 'session' && request('session_id') == $session->session_id)>
                                         {{ $session->session_date?->format('Y-m-d') }} — {{ $session->session_title }}
                                         @if($session->course)
                                             ({{ $session->course->title }})
@@ -48,22 +45,12 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-6 col-lg-2">
-                            <label for="status" class="form-label small fw-semibold">{{ __('pages.status') }}</label>
-                            <select id="status" name="status" class="form-select form-select-sm">
-                                <option value="">{{ __('pages.all_statuses') }}</option>
-                                <option value="Present" @selected(request('status') === 'Present')>{{ __('pages.present') }}</option>
-                                <option value="Absent" @selected(request('status') === 'Absent')>{{ __('pages.absent') }}</option>
-                                <option value="Late" @selected(request('status') === 'Late')>{{ __('pages.late') }}</option>
-                                <option value="Permission" @selected(request('status') === 'Permission')>{{ __('pages.permission') }}</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 col-lg-1 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1" title="{{ __('pages.filter') }}">
-                                <i class="bi bi-funnel"></i>
+                        <div class="col-md-3 col-lg-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                                <i class="bi bi-funnel"></i> {{ __('pages.filter') }}
                             </button>
-                            @if(request()->hasAny(['session_date', 'session_id', 'status']))
-                                <a href="{{ route('attendance.all', ['group_by' => $groupBy ?? 'date']) }}"
+                            @if(request()->hasAny(['session_date', 'session_id']))
+                                <a href="{{ route('attendance.all', ['filter_by' => $filterBy ?? 'date']) }}"
                                    class="btn btn-outline-secondary btn-sm" title="{{ __('pages.clear_filters') }}">
                                     <i class="bi bi-x-lg"></i>
                                 </a>
@@ -73,8 +60,40 @@
                 </div>
             </form>
 
-            @if(empty($groups))
+            @if(($filterBy ?? 'date') === 'session' && ! request('session_id'))
+                <p class="mb-4 text-muted-theme">{{ __('pages.select_session_to_view') }}</p>
+            @elseif(empty($groups))
                 <p class="mb-4">{{ __('pages.no_attendance_records') }}.</p>
+            @elseif($singleSessionReport ?? false)
+                @php $group = $groups[0]; $stats = $group['stats']; @endphp
+                <div class="app-card card border mb-4 overflow-hidden">
+                    <div class="card-header py-3">
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <span class="fw-semibold">{{ $group['heading'] }}</span>
+                            @if(! empty($group['meta']))
+                                <span class="badge bg-light text-dark border">{{ $group['meta'] }}</span>
+                            @endif
+                            <span class="badge bg-secondary ms-auto">
+                                {{ __('pages.records_in_group', ['count' => $stats['total']]) }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="px-3 py-2 border-bottom bg-light small d-flex flex-wrap gap-3">
+                            <span class="text-success">{{ __('pages.present') }}: <strong>{{ $stats['present'] }}</strong></span>
+                            <span class="text-danger">{{ __('pages.absent') }}: <strong>{{ $stats['absent'] }}</strong></span>
+                            <span class="text-warning">{{ __('pages.late') }}: <strong>{{ $stats['late'] }}</strong></span>
+                            @if($stats['permission'] > 0)
+                                <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
+                            @endif
+                        </div>
+                        @include('attendance.partials.group-records-by-status', [
+                            'records' => $group['records'],
+                            'showSessionColumn' => false,
+                            'showDateColumn' => false,
+                        ])
+                    </div>
+                </div>
             @else
                 <div class="accordion mb-4" id="attendance-groups">
                     @foreach($groups as $index => $group)
@@ -117,20 +136,11 @@
                                             <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
                                         @endif
                                     </div>
-                                    @if($subgroupByStatus ?? false)
-                                        @include('attendance.partials.group-records-by-status', [
-                                            'records' => $group['records'],
-                                            'showSessionColumn' => ($groupBy ?? 'date') === 'date',
-                                            'showDateColumn' => ($groupBy ?? 'date') === 'session',
-                                        ])
-                                    @else
-                                        @include('attendance.partials.group-records-table', [
-                                            'records' => $group['records'],
-                                            'showSessionColumn' => ($groupBy ?? 'date') === 'date' || ($groupBy ?? 'date') === 'status',
-                                            'showDateColumn' => ($groupBy ?? 'date') === 'status',
-                                            'showStatusColumn' => ($groupBy ?? 'date') !== 'status',
-                                        ])
-                                    @endif
+                                    @include('attendance.partials.group-records-by-status', [
+                                        'records' => $group['records'],
+                                        'showSessionColumn' => ($filterBy ?? 'date') === 'date' && ! request('session_date'),
+                                        'showDateColumn' => false,
+                                    ])
                                 </div>
                             </div>
                         </div>
@@ -189,4 +199,43 @@
 </div>
 
 @include('attendance.partials.status-scripts')
+
+@push('scripts')
+<script>
+(function () {
+    const form = document.getElementById('attendance-filter-form');
+    if (!form) return;
+
+    const dateWrap = document.getElementById('filter-date-wrap');
+    const sessionWrap = document.getElementById('filter-session-wrap');
+    const dateInput = document.getElementById('session_date');
+    const sessionSelect = document.getElementById('session_id');
+
+    function syncFilterFields() {
+        const filterBySession = form.querySelector('[name=filter_by]:checked')?.value === 'session';
+
+        dateWrap?.classList.toggle('d-none', filterBySession);
+        sessionWrap?.classList.toggle('d-none', !filterBySession);
+
+        if (dateInput) {
+            dateInput.disabled = filterBySession;
+            if (filterBySession) dateInput.value = '';
+        }
+        if (sessionSelect) {
+            sessionSelect.disabled = !filterBySession;
+            if (!filterBySession) sessionSelect.value = '';
+        }
+    }
+
+    form.querySelectorAll('[name=filter_by]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            syncFilterFields();
+            form.submit();
+        });
+    });
+
+    syncFilterFields();
+})();
+</script>
+@endpush
 @endsection

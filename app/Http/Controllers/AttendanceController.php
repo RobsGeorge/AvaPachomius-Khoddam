@@ -21,9 +21,6 @@ class AttendanceController extends Controller
 
     private const SESSION_MONTH_SQL = 'DATE_FORMAT(DATE_ADD(session.session_date, INTERVAL 3 HOUR), "%Y-%m")';
 
-    /** @var list<string> */
-    private const ATTENDANCE_STATUSES = ['Present', 'Absent', 'Late', 'Permission'];
-
     private function studentRoleId(): ?int
     {
         return Role::where('role_name', 'Student')->value('role_id');
@@ -151,27 +148,39 @@ class AttendanceController extends Controller
     // View all attendance records (for admin and instructor)
     public function viewAllAttendance(Request $request)
     {
-        $groupBy = $request->input('group_by', 'date');
-        if (! in_array($groupBy, ['date', 'session', 'status'], true)) {
-            $groupBy = 'date';
-        }
-
-        $baseQuery = $this->filteredAttendanceQuery($request);
+        $filterBy = $this->resolveFilterBy($request);
+        $baseQuery = $this->filteredAttendanceQuery($request, $filterBy);
         $perPage = 10;
         $page = max(1, (int) $request->input('page', 1));
 
-        if ($groupBy === 'session') {
+        $subgroupByStatus = false;
+        $singleSessionReport = false;
+        $groups = [];
+        $groupPaginator = $this->paginateCollection(collect(), $perPage, $page, $request);
+
+        if ($filterBy === 'session' && $request->filled('session_id')) {
+            $session = Session::with('course')->findOrFail($request->input('session_id'));
+            $records = $this->recordsForSessionGroup($baseQuery, $session->session_id);
+            $meta = $session->session_date?->format('Y-m-d');
+            if ($session->course) {
+                $meta = trim(($meta ?? '').' · '.$session->course->title, ' ·');
+            }
+            $groups = [
+                $this->formatGroup((string) $session->session_id, $session->session_title, $records, $meta),
+            ];
+            $groupPaginator = $this->paginateCollection(collect($groups), 1, 1, $request);
+            $subgroupByStatus = true;
+            $singleSessionReport = true;
+        } elseif ($filterBy === 'date' && $request->filled('session_date')) {
             [$groups, $groupPaginator] = $this->buildSessionGroups($baseQuery, $request, $perPage, $page);
-        } elseif ($groupBy === 'status') {
-            [$groups, $groupPaginator] = $this->buildStatusGroups($baseQuery, $request, $perPage, $page);
-        } else {
+            $subgroupByStatus = true;
+        } elseif ($filterBy === 'date') {
             [$groups, $groupPaginator] = $this->buildDateGroups($baseQuery, $request, $perPage, $page);
+            $subgroupByStatus = true;
         }
 
-        $subgroupByStatus = $groupBy !== 'status' && ! $request->filled('status');
-
         $sessionOptions = Session::query()
-            ->whereIn('session_id', $this->filteredAttendanceQuery($request)->select('session_id'))
+            ->whereIn('session_id', $this->scopeToStudents(Attendance::query())->select('session_id'))
             ->with('course')
             ->orderByDesc('session_date')
             ->orderBy('session_title')
@@ -184,32 +193,36 @@ class AttendanceController extends Controller
 
         return view('attendance.all', compact(
             'groups',
-            'groupBy',
+            'filterBy',
             'groupPaginator',
             'sessionOptions',
             'subgroupByStatus',
+            'singleSessionReport',
             'overallStats',
             'dailyStats',
             'userStats',
         ));
     }
 
-    private function filteredAttendanceQuery(Request $request): Builder
+    private function resolveFilterBy(Request $request): string
+    {
+        $filterBy = $request->input('filter_by', 'date');
+
+        return in_array($filterBy, ['date', 'session'], true) ? $filterBy : 'date';
+    }
+
+    private function filteredAttendanceQuery(Request $request, string $filterBy): Builder
     {
         $query = $this->scopeToStudents(Attendance::query());
 
-        if ($request->filled('session_date')) {
+        if ($filterBy === 'date' && $request->filled('session_date')) {
             $query->whereHas('session', function ($sessionQuery) use ($request) {
                 $sessionQuery->whereDate('session_date', $request->input('session_date'));
             });
         }
 
-        if ($request->filled('session_id')) {
+        if ($filterBy === 'session' && $request->filled('session_id')) {
             $query->where('session_id', $request->input('session_id'));
-        }
-
-        if ($request->filled('status') && in_array($request->input('status'), self::ATTENDANCE_STATUSES, true)) {
-            $query->where('status', $request->input('status'));
         }
 
         return $query;
@@ -261,46 +274,6 @@ class AttendanceController extends Controller
         }
 
         return [$groups, $paginator];
-    }
-
-    /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator} */
-    private function buildStatusGroups(Builder $baseQuery, Request $request, int $perPage, int $page): array
-    {
-        $statuses = collect(self::ATTENDANCE_STATUSES)
-            ->filter(fn (string $status) => (clone $baseQuery)->where('status', $status)->exists())
-            ->values();
-
-        $paginator = $this->paginateCollection($statuses, $perPage, $page, $request);
-        $groups = [];
-
-        foreach ($paginator as $status) {
-            $records = (clone $baseQuery)
-                ->where('status', $status)
-                ->with(['user', 'session.course', 'takenBy'])
-                ->get()
-                ->sortByDesc(fn ($record) => $record->session?->session_date?->format('Y-m-d') ?? '')
-                ->sortBy([
-                    fn ($record) => $record->session?->session_title ?? '',
-                    fn ($record) => $record->user?->first_name ?? '',
-                    fn ($record) => $record->user?->second_name ?? '',
-                ])
-                ->values();
-
-            $groups[] = $this->formatGroup($status, $this->statusLabel($status), $records, null);
-        }
-
-        return [$groups, $paginator];
-    }
-
-    private function statusLabel(string $status): string
-    {
-        return match ($status) {
-            'Present' => __('pages.present'),
-            'Absent' => __('pages.absent'),
-            'Late' => __('pages.late'),
-            'Permission' => __('pages.permission'),
-            default => $status,
-        };
     }
 
     private function recordsForDateGroup(Builder $baseQuery, string $date): Collection
