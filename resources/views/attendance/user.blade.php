@@ -20,7 +20,6 @@
                                 <th class="text-nowrap">{{ __('pages.lecture') }}</th>
                                 <th class="text-nowrap">{{ __('pages.date') }}</th>
                                 <th class="text-nowrap">{{ __('pages.status') }}</th>
-                                <th class="text-nowrap">{{ __('pages.permission_reason') }}</th>
                                 <th class="text-nowrap">{{ __('pages.recorded_by') }}</th>
                                 <th class="text-nowrap">{{ __('pages.recorded_at') }}</th>
                             </tr>
@@ -40,9 +39,7 @@
                                             <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
                                             <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
                                         </select>
-                                    </td>
-                                    <td style="min-width:140px;">
-                                        <div id="permission-reason-{{ $record->attendance_id }}" class="{{ $record->status === 'Permission' ? '' : 'd-none' }}">
+                                        <div id="permission-reason-{{ $record->attendance_id }}" class="mt-1 {{ $record->status === 'Permission' ? '' : 'd-none' }}">
                                             <input type="text"
                                                    class="permission-reason form-control form-control-sm"
                                                    placeholder="{{ __('pages.permission_reason') }}"

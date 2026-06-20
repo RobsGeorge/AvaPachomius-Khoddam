@@ -8,6 +8,7 @@ use App\Models\Role;
 use Illuminate\Http\Request;
 use App\Models\Session;
 use App\Models\Attendance;
+use App\Models\Module;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\Builder;
@@ -159,18 +160,30 @@ class AttendanceController extends Controller
         $groupPaginator = $this->paginateCollection(collect(), $perPage, $page, $request);
 
         if ($filterBy === 'session' && $request->filled('session_id')) {
-            $session = Session::with('course')->findOrFail($request->input('session_id'));
-            $records = $this->recordsForSessionGroup($baseQuery, $session->session_id);
-            $meta = $session->session_date?->format('Y-m-d');
-            if ($session->course) {
-                $meta = trim(($meta ?? '').' · '.$session->course->title, ' ·');
-            }
-            $groups = [
-                $this->formatGroup((string) $session->session_id, $session->session_title, $records, $meta),
-            ];
-            $groupPaginator = $this->paginateCollection(collect($groups), 1, 1, $request);
+            [$groups, $groupPaginator, $singleSessionReport] = $this->buildSingleSessionReport(
+                Session::with('course')->findOrFail($request->input('session_id')),
+                $baseQuery,
+                $request,
+            );
             $subgroupByStatus = true;
-            $singleSessionReport = true;
+        } elseif ($filterBy === 'module' && $request->filled('module_id')) {
+            if ($request->filled('session_id')) {
+                $moduleId = (int) $request->input('module_id');
+                $sessionId = (int) $request->input('session_id');
+
+                if (! $this->sessionBelongsToModule($sessionId, $moduleId)) {
+                    abort(404);
+                }
+
+                [$groups, $groupPaginator, $singleSessionReport] = $this->buildSingleSessionReport(
+                    Session::with('course')->findOrFail($sessionId),
+                    $baseQuery,
+                    $request,
+                );
+            } else {
+                [$groups, $groupPaginator] = $this->buildSessionGroups($baseQuery, $request, $perPage, $page);
+            }
+            $subgroupByStatus = true;
         } elseif ($filterBy === 'date' && $request->filled('session_date')) {
             [$groups, $groupPaginator] = $this->buildSessionGroups($baseQuery, $request, $perPage, $page);
             $subgroupByStatus = true;
@@ -187,6 +200,12 @@ class AttendanceController extends Controller
             ->limit(100)
             ->get();
 
+        $moduleOptions = $this->moduleOptionsWithAttendance();
+        $moduleSessionOptions = collect();
+        if ($filterBy === 'module' && $request->filled('module_id')) {
+            $moduleSessionOptions = $this->sessionOptionsForModule((int) $request->input('module_id'));
+        }
+
         $overallStats = $this->getOverallStatistics();
         $dailyStats = $this->getDailyStatistics();
         $userStats = $this->getUserStatistics();
@@ -196,6 +215,8 @@ class AttendanceController extends Controller
             'filterBy',
             'groupPaginator',
             'sessionOptions',
+            'moduleOptions',
+            'moduleSessionOptions',
             'subgroupByStatus',
             'singleSessionReport',
             'overallStats',
@@ -204,11 +225,30 @@ class AttendanceController extends Controller
         ));
     }
 
+    /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator, 2: bool} */
+    private function buildSingleSessionReport(Session $session, Builder $baseQuery, Request $request): array
+    {
+        $records = $this->recordsForSessionGroup($baseQuery, $session->session_id);
+        $meta = $session->session_date?->format('Y-m-d');
+        if ($session->course) {
+            $meta = trim(($meta ?? '').' · '.$session->course->title, ' ·');
+        }
+        $groups = [
+            $this->formatGroup((string) $session->session_id, $session->session_title, $records, $meta),
+        ];
+
+        return [
+            $groups,
+            $this->paginateCollection(collect($groups), 1, 1, $request),
+            true,
+        ];
+    }
+
     private function resolveFilterBy(Request $request): string
     {
         $filterBy = $request->input('filter_by', 'date');
 
-        return in_array($filterBy, ['date', 'session'], true) ? $filterBy : 'date';
+        return in_array($filterBy, ['date', 'session', 'module'], true) ? $filterBy : 'date';
     }
 
     private function filteredAttendanceQuery(Request $request, string $filterBy): Builder
@@ -225,7 +265,79 @@ class AttendanceController extends Controller
             $query->where('session_id', $request->input('session_id'));
         }
 
+        if ($filterBy === 'module' && $request->filled('module_id')) {
+            $moduleId = (int) $request->input('module_id');
+
+            if ($request->filled('session_id')) {
+                $sessionId = (int) $request->input('session_id');
+                if ($this->sessionBelongsToModule($sessionId, $moduleId)) {
+                    $query->where('session_id', $sessionId);
+                } else {
+                    $query->whereRaw('0 = 1');
+                }
+            } else {
+                $query->whereIn('session_id', $this->sessionIdsForModule($moduleId));
+            }
+        }
+
         return $query;
+    }
+
+    /** @return Collection<int, int> */
+    private function sessionIdsForModule(int $moduleId): Collection
+    {
+        $fromColumn = Session::where('module_id', $moduleId)->pluck('session_id');
+        $fromPivot = DB::table('module_session')->where('module_id', $moduleId)->pluck('session_id');
+
+        return $fromColumn->merge($fromPivot)->unique()->values();
+    }
+
+    private function sessionBelongsToModule(int $sessionId, int $moduleId): bool
+    {
+        return $this->sessionIdsForModule($moduleId)->contains($sessionId);
+    }
+
+    /** @return Collection<int, Module> */
+    private function moduleOptionsWithAttendance(): Collection
+    {
+        $attendanceSessionIds = $this->scopeToStudents(Attendance::query())->select('session_id');
+
+        $moduleIds = Session::query()
+            ->whereIn('session_id', $attendanceSessionIds)
+            ->whereNotNull('module_id')
+            ->pluck('module_id')
+            ->merge(
+                DB::table('module_session')
+                    ->whereIn('session_id', $attendanceSessionIds)
+                    ->pluck('module_id')
+            )
+            ->unique()
+            ->filter()
+            ->values();
+
+        if ($moduleIds->isEmpty()) {
+            return collect();
+        }
+
+        return Module::whereIn('module_id', $moduleIds)->orderBy('title')->get();
+    }
+
+    /** @return Collection<int, Session> */
+    private function sessionOptionsForModule(int $moduleId): Collection
+    {
+        $sessionIds = $this->sessionIdsForModule($moduleId);
+
+        if ($sessionIds->isEmpty()) {
+            return collect();
+        }
+
+        return Session::query()
+            ->with('course')
+            ->whereIn('session_id', $sessionIds)
+            ->whereIn('session_id', $this->scopeToStudents(Attendance::query())->select('session_id'))
+            ->orderByDesc('session_date')
+            ->orderBy('session_title')
+            ->get();
     }
 
     /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator} */

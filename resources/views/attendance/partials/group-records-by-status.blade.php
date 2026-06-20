@@ -30,6 +30,7 @@
             'showSessionColumn' => $showSessionColumn ?? false,
             'showDateColumn' => $showDateColumn ?? false,
             'showStatusColumn' => false,
+            'showPermissionReasonColumn' => $status === 'Permission',
         ])
     @endif
 @endforeach

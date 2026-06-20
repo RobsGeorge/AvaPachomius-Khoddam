@@ -12,7 +12,9 @@
                 @if($showStatusColumn ?? true)
                     <th class="text-nowrap">{{ __('pages.status') }}</th>
                 @endif
-                <th class="text-nowrap">{{ __('pages.permission_reason') }}</th>
+                @if($showPermissionReasonColumn ?? false)
+                    <th class="text-nowrap">{{ __('pages.permission_reason') }}</th>
+                @endif
                 <th class="text-nowrap">{{ __('pages.recorded_by') }}</th>
                 <th class="text-nowrap">{{ __('pages.recorded_at') }}</th>
             </tr>
@@ -54,17 +56,28 @@
                                 <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
                                 <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
                             </select>
+                            @if(! ($showPermissionReasonColumn ?? false))
+                                <div id="permission-reason-{{ $record->attendance_id }}" class="mt-1 {{ $record->status === 'Permission' ? '' : 'd-none' }}">
+                                    <input type="text"
+                                           class="permission-reason form-control form-control-sm"
+                                           placeholder="{{ __('pages.permission_reason') }}"
+                                           value="{{ $record->permission_reason }}"
+                                           onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
+                                </div>
+                            @endif
                         </td>
                     @endif
-                    <td style="min-width:140px;">
-                        <div id="permission-reason-{{ $record->attendance_id }}" class="{{ $record->status === 'Permission' ? '' : 'd-none' }}">
-                            <input type="text"
-                                   class="permission-reason form-control form-control-sm"
-                                   placeholder="{{ __('pages.permission_reason') }}"
-                                   value="{{ $record->permission_reason }}"
-                                   onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
-                        </div>
-                    </td>
+                    @if($showPermissionReasonColumn ?? false)
+                        <td style="min-width:140px;">
+                            <div id="permission-reason-{{ $record->attendance_id }}">
+                                <input type="text"
+                                       class="permission-reason form-control form-control-sm"
+                                       placeholder="{{ __('pages.permission_reason') }}"
+                                       value="{{ $record->permission_reason }}"
+                                       onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
+                            </div>
+                        </td>
+                    @endif
                     <td class="text-nowrap">
                         @if($record->takenBy)
                             {{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}

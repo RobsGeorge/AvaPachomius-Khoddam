@@ -15,23 +15,26 @@
             <form method="GET" action="{{ route('attendance.all') }}" id="attendance-filter-form" class="app-card card mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-4 col-lg-3">
+                        <div class="col-lg-3">
                             <label class="form-label small fw-semibold">{{ __('pages.filter_by') }}</label>
-                            <div class="btn-group w-100" role="group">
+                            <div class="btn-group w-100 flex-wrap" role="group">
                                 <input type="radio" class="btn-check" name="filter_by" id="filter-by-date" value="date"
                                        {{ ($filterBy ?? 'date') === 'date' ? 'checked' : '' }}>
                                 <label class="btn btn-outline-theme btn-sm" for="filter-by-date">{{ __('pages.group_by_date') }}</label>
                                 <input type="radio" class="btn-check" name="filter_by" id="filter-by-session" value="session"
                                        {{ ($filterBy ?? 'date') === 'session' ? 'checked' : '' }}>
                                 <label class="btn btn-outline-theme btn-sm" for="filter-by-session">{{ __('pages.group_by_session') }}</label>
+                                <input type="radio" class="btn-check" name="filter_by" id="filter-by-module" value="module"
+                                       {{ ($filterBy ?? 'date') === 'module' ? 'checked' : '' }}>
+                                <label class="btn btn-outline-theme btn-sm" for="filter-by-module">{{ __('pages.group_by_module') }}</label>
                             </div>
                         </div>
-                        <div class="col-md-5 col-lg-4 {{ ($filterBy ?? 'date') === 'session' ? 'd-none' : '' }}" id="filter-date-wrap">
+                        <div class="col-md-6 col-lg-3 {{ ($filterBy ?? 'date') === 'date' ? '' : 'd-none' }}" id="filter-date-wrap">
                             <label for="session_date" class="form-label small fw-semibold">{{ __('pages.date') }}</label>
                             <input type="date" id="session_date" name="session_date" class="form-control form-control-sm"
                                    value="{{ ($filterBy ?? 'date') === 'date' ? request('session_date') : '' }}">
                         </div>
-                        <div class="col-md-5 col-lg-5 {{ ($filterBy ?? 'date') === 'date' ? 'd-none' : '' }}" id="filter-session-wrap">
+                        <div class="col-md-6 col-lg-3 {{ ($filterBy ?? 'date') === 'session' ? '' : 'd-none' }}" id="filter-session-wrap">
                             <label for="session_id" class="form-label small fw-semibold">{{ __('pages.session') }}</label>
                             <select id="session_id" name="session_id" class="form-select form-select-sm">
                                 <option value="">{{ __('pages.select_session') }}</option>
@@ -45,11 +48,33 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-3 col-lg-2 d-flex gap-2">
+                        <div class="col-md-6 col-lg-3 {{ ($filterBy ?? 'date') === 'module' ? '' : 'd-none' }}" id="filter-module-wrap">
+                            <label for="module_id" class="form-label small fw-semibold">{{ __('pages.module') }}</label>
+                            <select id="module_id" name="module_id" class="form-select form-select-sm">
+                                <option value="">{{ __('pages.select_module') }}</option>
+                                @foreach($moduleOptions as $module)
+                                    <option value="{{ $module->module_id }}" @selected(($filterBy ?? 'date') === 'module' && request('module_id') == $module->module_id)>
+                                        {{ $module->title }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-3 {{ ($filterBy ?? 'date') === 'module' ? '' : 'd-none' }}" id="filter-module-session-wrap">
+                            <label for="module_session_id" class="form-label small fw-semibold">{{ __('pages.session') }} <span class="text-muted-theme fw-normal">({{ __('pages.optional') }})</span></label>
+                            <select id="module_session_id" name="session_id" class="form-select form-select-sm">
+                                <option value="">{{ __('pages.all_module_sessions') }}</option>
+                                @foreach($moduleSessionOptions as $session)
+                                    <option value="{{ $session->session_id }}" @selected(($filterBy ?? 'date') === 'module' && request('session_id') == $session->session_id)>
+                                        {{ $session->session_date?->format('Y-m-d') }} — {{ $session->session_title }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-6 col-lg-2 d-flex gap-2">
                             <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
                                 <i class="bi bi-funnel"></i> {{ __('pages.filter') }}
                             </button>
-                            @if(request()->hasAny(['session_date', 'session_id']))
+                            @if(request()->hasAny(['session_date', 'session_id', 'module_id']))
                                 <a href="{{ route('attendance.all', ['filter_by' => $filterBy ?? 'date']) }}"
                                    class="btn btn-outline-secondary btn-sm" title="{{ __('pages.clear_filters') }}">
                                     <i class="bi bi-x-lg"></i>
@@ -62,6 +87,8 @@
 
             @if(($filterBy ?? 'date') === 'session' && ! request('session_id'))
                 <p class="mb-4 text-muted-theme">{{ __('pages.select_session_to_view') }}</p>
+            @elseif(($filterBy ?? 'date') === 'module' && ! request('module_id'))
+                <p class="mb-4 text-muted-theme">{{ __('pages.select_module_to_view') }}</p>
             @elseif(empty($groups))
                 <p class="mb-4">{{ __('pages.no_attendance_records') }}.</p>
             @elseif($singleSessionReport ?? false)
@@ -208,24 +235,45 @@
 
     const dateWrap = document.getElementById('filter-date-wrap');
     const sessionWrap = document.getElementById('filter-session-wrap');
+    const moduleWrap = document.getElementById('filter-module-wrap');
+    const moduleSessionWrap = document.getElementById('filter-module-session-wrap');
     const dateInput = document.getElementById('session_date');
     const sessionSelect = document.getElementById('session_id');
+    const moduleSelect = document.getElementById('module_id');
+    const moduleSessionSelect = document.getElementById('module_session_id');
 
     function syncFilterFields() {
-        const filterBySession = form.querySelector('[name=filter_by]:checked')?.value === 'session';
+        const filterBy = form.querySelector('[name=filter_by]:checked')?.value ?? 'date';
 
-        dateWrap?.classList.toggle('d-none', filterBySession);
-        sessionWrap?.classList.toggle('d-none', !filterBySession);
+        dateWrap?.classList.toggle('d-none', filterBy !== 'date');
+        sessionWrap?.classList.toggle('d-none', filterBy !== 'session');
+        moduleWrap?.classList.toggle('d-none', filterBy !== 'module');
+        moduleSessionWrap?.classList.toggle('d-none', filterBy !== 'module');
 
         if (dateInput) {
-            dateInput.disabled = filterBySession;
-            if (filterBySession) dateInput.value = '';
+            dateInput.disabled = filterBy !== 'date';
+            if (filterBy !== 'date') dateInput.value = '';
         }
         if (sessionSelect) {
-            sessionSelect.disabled = !filterBySession;
-            if (!filterBySession) sessionSelect.value = '';
+            sessionSelect.disabled = filterBy !== 'session';
+            sessionSelect.name = filterBy === 'session' ? 'session_id' : '';
+            if (filterBy !== 'session') sessionSelect.value = '';
+        }
+        if (moduleSelect) {
+            moduleSelect.disabled = filterBy !== 'module';
+            if (filterBy !== 'module') moduleSelect.value = '';
+        }
+        if (moduleSessionSelect) {
+            moduleSessionSelect.disabled = filterBy !== 'module';
+            moduleSessionSelect.name = filterBy === 'module' ? 'session_id' : '';
+            if (filterBy !== 'module') moduleSessionSelect.value = '';
         }
     }
+
+    moduleSelect?.addEventListener('change', function () {
+        if (moduleSessionSelect) moduleSessionSelect.value = '';
+        form.submit();
+    });
 
     form.querySelectorAll('[name=filter_by]').forEach(function (radio) {
         radio.addEventListener('change', function () {

@@ -18,7 +18,6 @@
                                 <th>{{ __('pages.lecture') }}</th>
                                 <th>{{ __('pages.date') }}</th>
                                 <th>{{ __('pages.status') }}</th>
-                                <th>{{ __('pages.permission_reason') }}</th>
                                 <th>{{ __('pages.recorded_at') }}</th>
                             </tr>
                         </thead>
@@ -34,11 +33,13 @@
                                             <span class="badge bg-danger">{{ __('pages.absent') }}</span>
                                         @elseif($record->status === 'Permission')
                                             <span class="badge bg-info">{{ __('pages.permission') }}</span>
+                                            @if($record->permission_reason)
+                                                <div class="small text-muted-theme mt-1">{{ $record->permission_reason }}</div>
+                                            @endif
                                         @else
                                             <span class="badge bg-warning text-dark">{{ __('pages.late') }}</span>
                                         @endif
                                     </td>
-                                    <td>{{ $record->permission_reason }}</td>
                                     <td>{{ $record->display_attendance_time ?? '' }}</td>
                                 </tr>
                             @endforeach
