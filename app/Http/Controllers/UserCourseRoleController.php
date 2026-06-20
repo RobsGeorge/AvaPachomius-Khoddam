@@ -7,6 +7,8 @@ use App\Models\UserCourseRole;
 use App\Models\User;
 use App\Models\Course;
 use App\Models\Role;
+use App\Services\PendingRegistrationService;
+use Illuminate\Support\Facades\Password;
 
 class UserCourseRoleController extends Controller
 {
@@ -52,5 +54,32 @@ class UserCourseRoleController extends Controller
     {
         UserCourseRole::findOrFail($id)->delete();
         return redirect()->route('user-course-roles.index')->with('success', 'تم إلغاء تعيين الدور');
+    }
+
+    public function sendRegistrationLink(User $user)
+    {
+        if (! PendingRegistrationService::isPending($user)) {
+            return redirect()
+                ->route('user-course-roles.index')
+                ->with('warning', __('pages.account_status_already_active'));
+        }
+
+        if (! $user->email) {
+            return redirect()
+                ->route('user-course-roles.index')
+                ->with('error', __('pages.account_status_no_email'));
+        }
+
+        $status = Password::sendResetLink(['email' => $user->email]);
+
+        if ($status !== Password::RESET_LINK_SENT) {
+            return redirect()
+                ->route('user-course-roles.index')
+                ->with('error', __($status));
+        }
+
+        return redirect()
+            ->route('user-course-roles.index')
+            ->with('success', __('pages.account_setup_email_sent', ['email' => $user->email]));
     }
 }

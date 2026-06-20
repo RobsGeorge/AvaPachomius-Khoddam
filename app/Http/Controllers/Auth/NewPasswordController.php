@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogService;
+use App\Services\PendingRegistrationService;
 use App\Support\PasswordRules;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -32,10 +33,16 @@ class NewPasswordController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
+                $wasPending = PendingRegistrationService::isPending($user);
+
                 $user->forceFill([
                     'password'       => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                if ($wasPending) {
+                    PendingRegistrationService::markCompleted($user);
+                }
 
                 event(new PasswordReset($user));
             }

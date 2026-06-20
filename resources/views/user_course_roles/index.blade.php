@@ -18,6 +18,26 @@
         </div>
     @endif
 
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <div class="app-card card shadow-sm mb-3">
+        <div class="card-body small text-muted-theme">
+            {{ __('pages.account_status_admin_hint') }}
+        </div>
+    </div>
+
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -29,6 +49,7 @@
                         <th>{{ __('pages.email') }}</th>
                         <th>{{ __('pages.course') }}</th>
                         <th>{{ __('pages.role') }}</th>
+                        <th>{{ __('pages.account_status') }}</th>
                         <th>{{ __('pages.actions') }}</th>
                     </tr>
                 </thead>
@@ -47,8 +68,35 @@
                                     {{ $assignment->role?->role_name ?? '—' }}
                                 </span>
                             </td>
+                            @php($accountStatus = $assignment->user
+                                ? \App\Services\PendingRegistrationService::accountStatus($assignment->user)
+                                : ['key' => 'unknown', 'label' => '—', 'hint' => null])
                             <td>
-                                <form method="POST"
+                                @php
+                                    $statusClass = match ($accountStatus['key']) {
+                                        'active' => 'bg-success',
+                                        'pending_otp' => 'bg-warning text-dark',
+                                        default => 'bg-secondary',
+                                    };
+                                @endphp
+                                <span class="badge {{ $statusClass }}">{{ $accountStatus['label'] }}</span>
+                                @if($accountStatus['hint'])
+                                    <div class="small text-muted-theme mt-1">{{ $accountStatus['hint'] }}</div>
+                                @endif
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if($assignment->user && $accountStatus['key'] !== 'active')
+                                        <form method="POST"
+                                              action="{{ route('user-course-roles.send-registration-link', $assignment->user->user_id) }}"
+                                              onsubmit="return confirm(@json(__('pages.confirm_send_account_setup_email')))">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-outline-primary" title="{{ __('pages.send_account_setup_email') }}">
+                                                <i class="bi bi-envelope"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                    <form method="POST"
                                       action="{{ route('user-course-roles.destroy', $assignment->user_course_role_id) }}"
                                       onsubmit="return confirm(@json(__('pages.confirm_cancel_assignment')))">
                                     @csrf
@@ -56,12 +104,13 @@
                                     <button type="submit" class="btn btn-sm btn-danger">
                                         <i class="bi bi-x-circle"></i> {{ __('pages.cancel') }}
                                     </button>
-                                </form>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted-theme py-4">{{ __('pages.no_role_assignments') }}</td>
+                            <td colspan="7" class="text-center text-muted-theme py-4">{{ __('pages.no_role_assignments') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

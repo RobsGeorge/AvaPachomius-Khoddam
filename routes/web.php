@@ -66,6 +66,8 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::resource('roles', RoleController::class)->only(['index', 'store', 'destroy']);
     Route::resource('user-course-roles', UserCourseRoleController::class)->only(['index', 'create', 'store', 'destroy']);
+    Route::post('/user-course-roles/users/{user:user_id}/send-registration-link', [UserCourseRoleController::class, 'sendRegistrationLink'])
+        ->name('user-course-roles.send-registration-link');
 });
 
 Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');

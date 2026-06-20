@@ -320,36 +320,6 @@ class RegisterController extends Controller
         ]);
     }
 
-    private function assignDefaultStudentRole(User $user): void
-    {
-        try {
-            $studentRole   = Role::where('role_name', 'Student')->first();
-            $defaultCourse = Course::find(1);
-            if (! $studentRole || ! $defaultCourse) {
-                return;
-            }
-
-            $alreadyAssigned = UserCourseRole::where([
-                'user_id'   => $user->user_id,
-                'course_id' => 1,
-                'role_id'   => $studentRole->role_id,
-            ])->exists();
-
-            if (! $alreadyAssigned) {
-                UserCourseRole::create([
-                    'user_id'   => $user->user_id,
-                    'course_id' => 1,
-                    'role_id'   => $studentRole->role_id,
-                ]);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Student role assignment skipped during registration', [
-                'user_id' => $user->user_id,
-                'error'   => $e->getMessage(),
-            ]);
-        }
-    }
-
     protected function storeFile($file, $directory): string
     {
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
@@ -413,11 +383,7 @@ class RegisterController extends Controller
         }
 
         $user->password               = Hash::make($request->password);
-        $user->is_verified            = true;
-        $user->registration_completed = true;
-        $user->save();
-
-        $this->assignDefaultStudentRole($user);
+        PendingRegistrationService::markCompleted($user);
 
         session()->forget(PendingRegistrationService::SESSION_PASSWORD_USER_KEY);
 

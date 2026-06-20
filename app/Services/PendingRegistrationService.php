@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\Course;
+use App\Models\Role;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
@@ -110,5 +113,76 @@ class PendingRegistrationService
                 'success',
                 $resent ? __('register.pending_otp_resent') : __('register.pending_otp_resume')
             );
+    }
+
+    /** Mark a pending account as fully registered and assign the default student role. */
+    public static function markCompleted(User $user): void
+    {
+        $user->is_verified = true;
+        $user->registration_completed = true;
+        $user->save();
+
+        self::assignDefaultStudentRole($user);
+    }
+
+    /** @return array{key: string, label: string, hint: string|null} */
+    public static function accountStatus(User $user): array
+    {
+        if (! self::isPending($user)) {
+            return [
+                'key' => 'active',
+                'label' => __('pages.account_status_active'),
+                'hint' => null,
+            ];
+        }
+
+        $hasPendingOtp = OtpCode::where('user_id', $user->user_id)
+            ->where('expires_at', '>', now())
+            ->exists();
+
+        if ($hasPendingOtp) {
+            return [
+                'key' => 'pending_otp',
+                'label' => __('pages.account_status_pending_otp'),
+                'hint' => __('pages.account_status_pending_otp_hint'),
+            ];
+        }
+
+        return [
+            'key' => 'incomplete',
+            'label' => __('pages.account_status_incomplete'),
+            'hint' => __('pages.account_status_incomplete_hint'),
+        ];
+    }
+
+    public static function assignDefaultStudentRole(User $user): void
+    {
+        try {
+            $studentRole = Role::where('role_name', 'Student')->first();
+            $defaultCourse = Course::find(1);
+
+            if (! $studentRole || ! $defaultCourse) {
+                return;
+            }
+
+            $alreadyAssigned = UserCourseRole::where([
+                'user_id' => $user->user_id,
+                'course_id' => 1,
+                'role_id' => $studentRole->role_id,
+            ])->exists();
+
+            if (! $alreadyAssigned) {
+                UserCourseRole::create([
+                    'user_id' => $user->user_id,
+                    'course_id' => 1,
+                    'role_id' => $studentRole->role_id,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Student role assignment skipped during registration', [
+                'user_id' => $user->user_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Session;
 
 class Attendance extends Model
 {
+    public const ATTENDED_STATUSES = ['Present', 'Permission', 'Late'];
 
     protected $table = 'attendance';
 

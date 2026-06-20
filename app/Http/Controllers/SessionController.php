@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attendance;
 use App\Models\Course;
 use App\Models\Module;
 use App\Models\Session;
@@ -21,13 +22,25 @@ class SessionController extends Controller
 
     public function index()
     {
-        $sessions = Session::with(['course', 'module', 'attendanceClosedBy'])
-            ->orderBy('session_date', 'desc')
-            ->paginate(20);
+        $canManageSessions = auth()->user()->hasAnyRole(['admin', 'instructor']);
+
+        $query = Session::with(['course', 'module', 'attendanceClosedBy'])
+            ->orderBy('session_date', 'desc');
+
+        if ($canManageSessions) {
+            $query->withCount([
+                'attendances as attended_count' => fn ($q) => $q->whereIn(
+                    'status',
+                    Attendance::ATTENDED_STATUSES
+                ),
+            ]);
+        }
+
+        $sessions = $query->paginate(20);
 
         $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
 
-        return view('sessions.index', compact('sessions', 'todayLocal'));
+        return view('sessions.index', compact('sessions', 'todayLocal', 'canManageSessions'));
     }
 
     public function closeAttendance(Session $session)
