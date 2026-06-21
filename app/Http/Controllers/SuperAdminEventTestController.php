@@ -6,6 +6,7 @@ use App\Models\EventModuleTestRun;
 use App\Services\EventModuleTestRunner;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Throwable;
 
 class SuperAdminEventTestController extends Controller
 {
@@ -32,13 +33,29 @@ class SuperAdminEventTestController extends Controller
             $suite = 'all';
         }
 
-        if ($suite === 'all') {
-            $runner->runAll(Auth::user());
-        } else {
-            $runner->runSuite($suite, Auth::user());
-        }
+        try {
+            $results = $suite === 'all'
+                ? $runner->runAll(Auth::user())
+                : [$runner->runSuite($suite, Auth::user())];
 
-        return redirect()->route('superadmin.events.tests.index')
-            ->with('success', __('events.tests_run_started'));
+            $anyFailed = collect($results)->contains(
+                fn (EventModuleTestRun $run) => $run->status !== 'passed'
+            );
+
+            return redirect()
+                ->route('superadmin.events.tests.index')
+                ->with(
+                    $anyFailed ? 'warning' : 'success',
+                    $anyFailed
+                        ? __('events.tests_run_completed_with_failures')
+                        : __('events.tests_run_started')
+                );
+        } catch (Throwable $e) {
+            report($e);
+
+            return redirect()
+                ->route('superadmin.events.tests.index')
+                ->with('error', __('events.tests_run_failed', ['message' => $e->getMessage()]));
+        }
     }
 }

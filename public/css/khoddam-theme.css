@@ -49,6 +49,11 @@ body.theme-light {
 
     --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    --color-table-head-bg: rgba(124, 58, 237, 0.08);
+    --color-table-row-bg: transparent;
+    --color-table-hover-bg: rgba(124, 58, 237, 0.06);
+    --color-table-border: rgba(124, 58, 237, 0.12);
 }
 
 body.theme-dark {
@@ -178,6 +183,21 @@ h1, h2, h3, .h1, .h2, .h3,
     color: var(--color-text-muted) !important;
 }
 
+.text-success,
+.table .text-success {
+    color: var(--color-success) !important;
+}
+
+.text-danger,
+.table .text-danger {
+    color: var(--color-danger) !important;
+}
+
+.text-warning,
+.table .text-warning {
+    color: var(--color-warning) !important;
+}
+
 /* Navigation */
 .app-nav {
     background: var(--color-nav-bg);
@@ -279,6 +299,12 @@ body.theme-dark .app-nav-link.active {
 .app-card .card-body,
 .app-card .card-footer {
     color: var(--color-text);
+}
+
+.app-card .list-group-item {
+    background: transparent;
+    color: var(--color-text);
+    border-color: var(--color-surface-border);
 }
 
 /* Forms */
@@ -443,7 +469,26 @@ body.theme-dark .flatpickr-calendar {
 .table > thead > tr > th {
     color: var(--color-title);
     border-bottom-color: var(--color-surface-border);
-    background-color: rgba(124, 58, 237, 0.08);
+    background-color: var(--color-table-head-bg);
+}
+
+body.theme-light .table-light,
+body.theme-light thead.table-light > tr > th,
+body.theme-light .table-light > :not(caption) > * > * {
+    --bs-table-color: var(--color-title);
+    --bs-table-bg: var(--color-table-head-bg);
+    --bs-table-border-color: var(--color-table-border);
+    --bs-table-accent-bg: var(--color-table-head-bg);
+    color: var(--color-title) !important;
+    background-color: var(--color-table-head-bg) !important;
+    border-color: var(--color-table-border) !important;
+}
+
+body.theme-light .table-hover > tbody > tr:hover > * {
+    --bs-table-bg-state: var(--color-table-hover-bg);
+    --bs-table-accent-bg: var(--color-table-hover-bg);
+    background-color: var(--color-table-hover-bg) !important;
+    box-shadow: inset 0 0 0 9999px var(--color-table-hover-bg) !important;
 }
 
 .table > :not(caption) > * > * {
@@ -568,6 +613,16 @@ body.theme-dark .app-card .table-responsive,
 [data-bs-theme="dark"] .app-card .table,
 [data-bs-theme="dark"] .app-card .table-responsive {
     background: transparent;
+}
+
+.app-card .table a:not(.btn) {
+    color: var(--color-link);
+    text-decoration: none;
+}
+
+.app-card .table a:not(.btn):hover {
+    color: var(--color-link-hover);
+    text-decoration: underline;
 }
 
 /* Dropdown */
@@ -971,4 +1026,91 @@ body.theme-dark .shadow-lg.p-6 {
     width: auto !important;
     min-width: 2.5rem;
     text-align: center;
+}
+
+/* Attendance report */
+.report-stat-number {
+    color: var(--color-title-accent);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.report-stat-number--present {
+    color: var(--color-success);
+}
+
+.report-stat-number--absent {
+    color: var(--color-danger);
+}
+
+.report-summary-badge {
+    display: inline-block;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+}
+
+.report-summary-badge--high {
+    background: rgba(5, 150, 105, 0.14);
+    color: var(--color-success);
+}
+
+.report-summary-badge--low {
+    background: rgba(220, 38, 38, 0.14);
+    color: var(--color-danger);
+}
+
+body.theme-dark .report-summary-badge--high {
+    background: rgba(52, 211, 153, 0.18);
+}
+
+body.theme-dark .report-summary-badge--low {
+    background: rgba(248, 113, 113, 0.18);
+}
+
+.report-pct {
+    display: inline-block;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+}
+
+.report-pct--excellent {
+    background: rgba(5, 150, 105, 0.14);
+    color: var(--color-success);
+}
+
+.report-pct--good {
+    background: rgba(217, 119, 6, 0.14);
+    color: var(--color-warning);
+}
+
+.report-pct--average {
+    background: rgba(124, 58, 237, 0.12);
+    color: var(--color-title-accent);
+}
+
+.report-pct--poor {
+    background: rgba(220, 38, 38, 0.14);
+    color: var(--color-danger);
+}
+
+body.theme-dark .report-pct--excellent {
+    background: rgba(52, 211, 153, 0.18);
+}
+
+body.theme-dark .report-pct--good {
+    background: rgba(251, 191, 36, 0.18);
+}
+
+body.theme-dark .report-pct--average {
+    background: rgba(240, 216, 117, 0.14);
+    color: var(--color-title-accent);
+}
+
+body.theme-dark .report-pct--poor {
+    background: rgba(248, 113, 113, 0.18);
 }

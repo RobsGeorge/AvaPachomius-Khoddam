@@ -9,6 +9,8 @@
         <a href="{{ route('superadmin.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back_to_superadmin') }}</a>
     </div>
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if(session('warning'))<div class="alert alert-warning">{{ session('warning') }}</div>@endif
+    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
     <div class="row g-3 mb-4">
         @foreach(['unit','feature','load','all'] as $suite)

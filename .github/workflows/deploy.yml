@@ -42,9 +42,14 @@ jobs:
               echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
               echo "On Ubuntu/Debian run:"
               echo "  sudo apt update"
-              echo "  sudo apt install -y php8.2-mysql php8.2-cli php8.2-fpm php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-gd"
+              echo "  sudo apt install -y php8.2-mysql php8.2-sqlite3 php8.2-cli php8.2-fpm php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-gd"
               echo "  sudo systemctl restart php8.2-fpm"
               exit 1
+            fi
+
+            if ! $PHP_BIN -m 2>/dev/null | grep -qi sqlite; then
+              echo "WARN: PHP SQLite extension missing; superadmin events test dashboard requires pdo_sqlite."
+              echo "Install with: sudo apt install -y php8.2-sqlite3 && sudo systemctl restart php8.2-fpm"
             fi
 
             step "git sync"

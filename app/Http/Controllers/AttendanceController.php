@@ -5,6 +5,7 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\Role;
 
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use App\Models\Session;
 use App\Models\Attendance;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceController extends Controller
 {
@@ -685,7 +687,19 @@ class AttendanceController extends Controller
     }
 
     // Comprehensive attendance report for all users
-    public function attendanceReport()
+    public function attendanceReport(Request $request)
+    {
+        [$users, $overallStats] = $this->attendanceReportData();
+
+        return match ($request->query('export')) {
+            'excel' => $this->downloadAttendanceReportExcel($users, $overallStats),
+            'pdf' => $this->downloadAttendanceReportPdf($users, $overallStats),
+            default => view('attendance.report', compact('users', 'overallStats')),
+        };
+    }
+
+    /** @return array{0: Collection, 1: array<string, mixed>} */
+    private function attendanceReportData(): array
     {
         $totalSessionsInDB = DB::table('session')->count();
         $studentIds = $this->enrolledStudentIds();
@@ -713,18 +727,78 @@ class AttendanceController extends Controller
             ->orderByDesc('attendance_percentage')
             ->get();
 
-        // Calculate overall statistics
         $overallStats = [
             'total_users' => $users->count(),
             'total_sessions' => $totalSessionsInDB,
             'total_attended' => $users->sum('attended_sessions'),
             'total_absent' => $users->sum('absent_sessions'),
             'total_late' => $users->sum('late_sessions'),
-            'average_attendance' => $users->avg('attendance_percentage')
+            'average_attendance' => $users->avg('attendance_percentage'),
         ];
 
-        return view('attendance.report', compact('users', 'overallStats'));
+        return [$users, $overallStats];
+    }
+
+    /** @param array<string, mixed> $overallStats */
+    private function downloadAttendanceReportExcel(Collection $users, array $overallStats): StreamedResponse
+    {
+        $filename = 'attendance-report-'.now()->format('Y-m-d').'.xls';
+
+        return response()->streamDownload(function () use ($users, $overallStats) {
+            $handle = fopen('php://output', 'w');
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($handle, [__('pages.attendance_report_title')]);
+            fputcsv($handle, [now()->format('Y-m-d H:i')]);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                __('pages.total_students'),
+                __('pages.total_lectures'),
+                __('pages.total_present'),
+                __('pages.total_absent'),
+                __('pages.avg_attendance_rate'),
+            ]);
+            fputcsv($handle, [
+                $overallStats['total_users'],
+                $overallStats['total_sessions'],
+                $overallStats['total_attended'],
+                $overallStats['total_absent'],
+                number_format((float) $overallStats['average_attendance'], 1).'%',
+            ]);
+            fputcsv($handle, []);
+            fputcsv($handle, [
+                __('pages.student_name'),
+                __('pages.phone_number'),
+                __('pages.total_sessions_count'),
+                __('pages.present_times'),
+                __('pages.absent_times'),
+                __('pages.late_times'),
+                __('pages.attendance_rate'),
+            ]);
+
+            foreach ($users as $user) {
+                fputcsv($handle, [
+                    trim($user->first_name.' '.$user->second_name),
+                    $user->mobile_number,
+                    $user->total_sessions,
+                    $user->attended_sessions,
+                    $user->absent_sessions,
+                    $user->late_sessions,
+                    number_format((float) $user->attendance_percentage, 1).'%',
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+        ]);
+    }
+
+    /** @param array<string, mixed> $overallStats */
+    private function downloadAttendanceReportPdf(Collection $users, array $overallStats)
+    {
+        return Pdf::loadView('attendance.report-pdf', compact('users', 'overallStats'))
+            ->setPaper('a4', 'landscape')
+            ->download('attendance-report-'.now()->format('Y-m-d').'.pdf');
     }
 }
-
-?>

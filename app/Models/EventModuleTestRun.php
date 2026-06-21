@@ -9,6 +9,8 @@ class EventModuleTestRun extends Model
 {
     public $timestamps = false;
 
+    protected $table = 'event_module_test_runs';
+
     protected $primaryKey = 'test_run_id';
 
     protected $fillable = [
