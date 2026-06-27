@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Models\Session;
 use App\Models\Attendance;
 use App\Models\Module;
+use App\Services\AttendanceCloseService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\Builder;
@@ -23,6 +24,28 @@ class AttendanceController extends Controller
     private const SESSION_DATE_SQL = 'DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR))';
 
     private const SESSION_MONTH_SQL = 'DATE_FORMAT(DATE_ADD(session.session_date, INTERVAL 3 HOUR), "%Y-%m")';
+
+    private function sessionDateSql(): string
+    {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return 'DATE(session.session_date)';
+        }
+
+        return self::SESSION_DATE_SQL;
+    }
+
+    private function sessionMonthSql(): string
+    {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return 'strftime("%Y-%m", session.session_date)';
+        }
+
+        return self::SESSION_MONTH_SQL;
+    }
+
+    public function __construct(
+        private AttendanceCloseService $attendanceClose,
+    ) {}
 
     private function studentRoleId(): ?int
     {
@@ -195,7 +218,6 @@ class AttendanceController extends Controller
         }
 
         $sessionOptions = Session::query()
-            ->whereIn('session_id', $this->scopeToStudents(Attendance::query())->select('session_id'))
             ->with('course')
             ->orderByDesc('session_date')
             ->orderBy('session_title')
@@ -231,12 +253,13 @@ class AttendanceController extends Controller
     private function buildSingleSessionReport(Session $session, Builder $baseQuery, Request $request): array
     {
         $records = $this->recordsForSessionGroup($baseQuery, $session->session_id);
+        $roster = $this->attendanceClose->sessionRoster($session);
         $meta = $session->session_date?->format('Y-m-d');
         if ($session->course) {
             $meta = trim(($meta ?? '').' · '.$session->course->title, ' ·');
         }
         $groups = [
-            $this->formatGroup((string) $session->session_id, $session->session_title, $records, $meta),
+            $this->formatGroup((string) $session->session_id, $session->session_title, $records, $meta, $session, $roster),
         ];
 
         return [
@@ -336,7 +359,6 @@ class AttendanceController extends Controller
         return Session::query()
             ->with('course')
             ->whereIn('session_id', $sessionIds)
-            ->whereIn('session_id', $this->scopeToStudents(Attendance::query())->select('session_id'))
             ->orderByDesc('session_date')
             ->orderBy('session_title')
             ->get();
@@ -417,15 +439,23 @@ class AttendanceController extends Controller
             ->values();
     }
 
-    /** @return array<string, mixed> */
-    private function formatGroup(string $key, string $heading, Collection $records, ?string $meta): array
-    {
+    /** @param array{enrolled: int, recorded: int, missing: int, rows: list<array{user: User, attendance: ?Attendance, missing: bool}>}|null $roster */
+    private function formatGroup(
+        string $key,
+        string $heading,
+        Collection $records,
+        ?string $meta,
+        ?Session $session = null,
+        ?array $roster = null,
+    ): array {
         return [
             'key' => $key,
             'heading' => $heading,
             'meta' => $meta,
             'records' => $records,
             'stats' => $this->statsForRecords($records),
+            'session' => $session,
+            'roster' => $roster,
         ];
     }
 
@@ -552,16 +582,16 @@ class AttendanceController extends Controller
         return $this->scopeToStudents(
             Attendance::query()->join('session', 'attendance.session_id', '=', 'session.session_id')
         )
-            ->selectRaw(self::SESSION_DATE_SQL.' as date, COUNT(*) as total, SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present')
-            ->groupByRaw(self::SESSION_DATE_SQL)
-            ->orderByRaw(self::SESSION_DATE_SQL.' DESC')
+            ->selectRaw($this->sessionDateSql().' as date, COUNT(*) as total, SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present')
+            ->groupByRaw($this->sessionDateSql())
+            ->orderByRaw($this->sessionDateSql().' DESC')
             ->limit(5)
             ->get();
     }
 
     private function getUserStatistics()
     {
-        return $this->scopeToStudents(
+        $query = $this->scopeToStudents(
             Attendance::query()
                 ->join('user', 'attendance.user_id', '=', 'user.user_id')
         )
@@ -573,7 +603,13 @@ class AttendanceController extends Controller
                 DB::raw('SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present'),
             ])
             ->groupBy('user.user_id', 'user.first_name', 'user.second_name')
-            ->havingRaw('COUNT(*) > 0')
+            ->havingRaw('COUNT(*) > 0');
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return $query->orderByDesc('present')->orderByDesc('total')->limit(5)->get();
+        }
+
+        return $query
             ->orderByRaw('SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) / COUNT(*) DESC')
             ->limit(5)
             ->get();
@@ -599,9 +635,9 @@ class AttendanceController extends Controller
         return $this->scopeToStudents(
             Attendance::query()->join('session', 'attendance.session_id', '=', 'session.session_id')
         )
-            ->selectRaw(self::SESSION_MONTH_SQL.' as month, COUNT(*) as total, SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present')
-            ->groupByRaw(self::SESSION_MONTH_SQL)
-            ->orderByRaw(self::SESSION_MONTH_SQL.' DESC')
+            ->selectRaw($this->sessionMonthSql().' as month, COUNT(*) as total, SUM(CASE WHEN attendance.status = "Present" THEN 1 ELSE 0 END) as present')
+            ->groupByRaw($this->sessionMonthSql())
+            ->orderByRaw($this->sessionMonthSql().' DESC')
             ->get();
     }
 
@@ -675,14 +711,14 @@ class AttendanceController extends Controller
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
             ->where('attendance.user_id', $userId)
             ->selectRaw('
-                '.self::SESSION_MONTH_SQL.' as month,
+                '.$this->sessionMonthSql().' as month,
                 COUNT(*) as total_records,
                 SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END) as present_count,
                 SUM(CASE WHEN attendance.status = "Absent" THEN 1 ELSE 0 END) as absent_count,
                 SUM(CASE WHEN attendance.status = "Late" THEN 1 ELSE 0 END) as late_count
             ')
-            ->groupByRaw(self::SESSION_MONTH_SQL)
-            ->orderByRaw(self::SESSION_MONTH_SQL.' DESC')
+            ->groupByRaw($this->sessionMonthSql())
+            ->orderByRaw($this->sessionMonthSql().' DESC')
             ->get();
     }
 

@@ -100,25 +100,35 @@
                             @if(! empty($group['meta']))
                                 <span class="badge bg-light text-dark border">{{ $group['meta'] }}</span>
                             @endif
+                            @if($group['session']?->isAttendanceClosed())
+                                <span class="badge bg-secondary">{{ __('pages.attendance_status_closed') }}</span>
+                            @endif
                             <span class="badge bg-secondary ms-auto">
                                 {{ __('pages.records_in_group', ['count' => $stats['total']]) }}
                             </span>
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <div class="px-3 py-2 border-bottom bg-light small d-flex flex-wrap gap-3">
-                            <span class="text-success">{{ __('pages.present') }}: <strong>{{ $stats['present'] }}</strong></span>
-                            <span class="text-danger">{{ __('pages.absent') }}: <strong>{{ $stats['absent'] }}</strong></span>
-                            <span class="text-warning">{{ __('pages.late') }}: <strong>{{ $stats['late'] }}</strong></span>
-                            @if($stats['permission'] > 0)
-                                <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
-                            @endif
-                        </div>
-                        @include('attendance.partials.group-records-by-status', [
-                            'records' => $group['records'],
-                            'showSessionColumn' => false,
-                            'showDateColumn' => false,
-                        ])
+                        @if(! empty($group['roster']))
+                            <div class="px-3 py-2 border-bottom bg-light small d-flex flex-wrap gap-3">
+                                <span class="text-success">{{ __('pages.present') }}: <strong>{{ $stats['present'] }}</strong></span>
+                                <span class="text-danger">{{ __('pages.absent') }}: <strong>{{ $stats['absent'] }}</strong></span>
+                                <span class="text-warning">{{ __('pages.late') }}: <strong>{{ $stats['late'] }}</strong></span>
+                                @if($stats['permission'] > 0)
+                                    <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
+                                @endif
+                            </div>
+                        @else
+                            <div class="px-3 py-2 border-bottom bg-light small d-flex flex-wrap gap-3">
+                                <span class="text-success">{{ __('pages.present') }}: <strong>{{ $stats['present'] }}</strong></span>
+                                <span class="text-danger">{{ __('pages.absent') }}: <strong>{{ $stats['absent'] }}</strong></span>
+                                <span class="text-warning">{{ __('pages.late') }}: <strong>{{ $stats['late'] }}</strong></span>
+                                @if($stats['permission'] > 0)
+                                    <span>{{ __('pages.permission') }}: <strong>{{ $stats['permission'] }}</strong></span>
+                                @endif
+                            </div>
+                        @endif
+                        @include('attendance.partials.session-roster-panel', ['group' => $group])
                     </div>
                 </div>
             @else

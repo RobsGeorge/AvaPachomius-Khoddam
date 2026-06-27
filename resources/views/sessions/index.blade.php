@@ -83,6 +83,17 @@
                                     @endif
                                 </td>
                                 <td class="d-flex gap-2 flex-wrap">
+                                    <a href="{{ route('attendance.all', ['filter_by' => 'session', 'session_id' => $session->session_id]) }}"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="{{ __('pages.view_session_roster') }}">
+                                        <i class="bi bi-people"></i>
+                                    </a>
+                                    @if(($missingCounts[$session->session_id] ?? 0) > 0)
+                                        <span class="badge bg-warning text-dark align-self-center"
+                                              title="{{ __('pages.roster_missing') }}">
+                                            {{ __('pages.missing_records_count', ['count' => $missingCounts[$session->session_id]]) }}
+                                        </span>
+                                    @endif
                                     @php
                                         $sessionDate = $session->session_date?->format('Y-m-d');
                                         $canClose = ! $session->isAttendanceClosed()

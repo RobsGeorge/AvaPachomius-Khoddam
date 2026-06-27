@@ -10,6 +10,7 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\SessionController;
+use App\Http\Controllers\SessionAttendanceController;
 use App\Http\Controllers\CourseAssessmentController;
 use App\Http\Controllers\UserAssessmentController;
 use App\Http\Controllers\UserCourseRoleController;
@@ -240,6 +241,12 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::resource('sessions', SessionController::class)->except(['index']);
     Route::post('/sessions/{session}/close-attendance', [SessionController::class, 'closeAttendance'])
         ->name('sessions.close-attendance');
+    Route::post('/sessions/{session}/attendance/fill-missing', [SessionAttendanceController::class, 'fillMissing'])
+        ->name('sessions.attendance.fill-missing');
+    Route::post('/sessions/{session}/attendance', [SessionAttendanceController::class, 'store'])
+        ->name('sessions.attendance.store');
+    Route::get('/sessions/{session}/attendance/search', [SessionAttendanceController::class, 'searchStudents'])
+        ->name('sessions.attendance.search');
 
     Route::get('/courses/{course}/curriculum/manage',           [CurriculumController::class, 'admin'])->name('curriculum.admin');
     Route::put('/courses/{course}/details',                     [CurriculumController::class, 'updateCourse'])->name('courses.update-details');

@@ -33,14 +33,22 @@ class SessionController extends Controller
                     'status',
                     Attendance::ATTENDED_STATUSES
                 ),
+                'attendances as recorded_count',
             ]);
         }
 
         $sessions = $query->paginate(20);
 
+        $missingCounts = [];
+        if ($canManageSessions) {
+            foreach ($sessions as $session) {
+                $missingCounts[$session->session_id] = $this->attendanceClose->missingRecordCount($session);
+            }
+        }
+
         $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
 
-        return view('sessions.index', compact('sessions', 'todayLocal', 'canManageSessions'));
+        return view('sessions.index', compact('sessions', 'todayLocal', 'canManageSessions', 'missingCounts'));
     }
 
     public function closeAttendance(Session $session)

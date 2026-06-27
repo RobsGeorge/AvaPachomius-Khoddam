@@ -88,5 +88,53 @@ function updatePermissionReason(input, attendanceId) {
         showAlert(@json(__('pages.permission_update_error')), 'error');
     });
 }
+
+function setRosterStatus(select) {
+    const sessionId = select.dataset.sessionId;
+    const userId = select.dataset.userId;
+    const status = select.value;
+
+    if (!status) {
+        return;
+    }
+
+    let permissionReason = '';
+    if (status === 'Permission') {
+        permissionReason = window.prompt(@json(__('pages.enter_permission_reason')));
+        if (!permissionReason) {
+            select.selectedIndex = 0;
+            return;
+        }
+    }
+
+    fetch(`/sessions/${sessionId}/attendance`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+            user_id: userId,
+            status: status,
+            permission_reason: permissionReason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(data.message);
+            window.location.reload();
+        } else {
+            showAlert(@json(__('pages.status_update_error')), 'error');
+            select.selectedIndex = 0;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert(@json(__('pages.status_update_error')), 'error');
+        select.selectedIndex = 0;
+    });
+}
 </script>
 @endpush
