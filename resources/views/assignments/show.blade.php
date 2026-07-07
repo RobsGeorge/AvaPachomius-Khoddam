@@ -65,7 +65,15 @@
                     @endif
 
                     @if(Auth::user()->roles->contains('role_name', 'student'))
-                        @if(!$currentSubmission)
+                        <div class="alert alert-info mb-4">
+                            <h5 class="alert-heading mb-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                {{ __('pages.upload_requirements_title') }}
+                            </h5>
+                            <p class="mb-0">{{ __('pages.upload_requirements_body', ['max' => \App\Models\Assignment::MAX_UPLOAD_MB]) }}</p>
+                        </div>
+
+                        @if($canSubmit)
                     <div class="mb-4">
                         <h4>{{ __('pages.submit_assignment') }}</h4>
                         <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
@@ -82,7 +90,7 @@
                             <div class="form-group mb-3">
                                 <label for="file">{{ __('pages.attachment_pdf') }} <span class="text-danger">*</span></label>
                                 <input type="file" class="form-control @error('file') is-invalid @enderror" 
-                                       id="file" name="file" accept=".pdf" required>
+                                       id="file" name="file" accept="application/pdf,.pdf" required>
                                 <small class="form-text text-muted-theme">{{ __('pages.pdf_max_size') }}</small>
                                 @error('file')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -91,6 +99,11 @@
                             <button type="submit" class="btn btn-primary">{{ __('pages.submit_assignment') }}</button>
                         </form>
                     </div>
+                        @elseif(!$currentSubmission && !$submissionOpen)
+                            <div class="alert alert-warning mb-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                {{ __('pages.deadline_passed', ['date' => $assignment->due_date->addHours(3)->format('Y-m-d H:i')]) }}
+                            </div>
                         @endif
 
                     <div class="mb-4">
@@ -99,7 +112,7 @@
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="card-title mb-0">{{ $currentSubmission->user->first_name }} {{ $currentSubmission->user->second_name }}</h5>
+                                        <h5 class="card-title mb-0">{{ $currentSubmission->user->displayName() }}</h5>
                                         <span class="badge bg-info">{{ $currentSubmission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
                                     </div>
                                     
@@ -146,7 +159,7 @@
                                             </div>
                                         @endif
 
-                                        @if(now()->addHours(3) < $assignment->due_date)
+                                        @if($submissionOpen)
                                             <div class="mt-3">
                                                 <h6 class="fw-bold">{{ __('pages.update_submission') }}</h6>
                                                 <form action="{{ route('assignments.update-submission', $currentSubmission) }}" method="POST" enctype="multipart/form-data">
@@ -170,7 +183,7 @@
                                                                class="form-control @error('file') is-invalid @enderror" 
                                                                id="file" 
                                                                name="file" 
-                                                               accept=".pdf">
+                                                               accept="application/pdf,.pdf">
                                                         <small class="form-text text-muted-theme">{{ __('pages.optional_resubmit_extended') }}</small>
                                                         @error('file')
                                                             <div class="invalid-feedback">{{ $message }}</div>
@@ -201,14 +214,23 @@
                     
 
                     @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
-                    <div class="mb-4">
-                        <h4>{{ __('pages.submissions') }}</h4>
+                    <div class="mb-4" id="submissions">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0">{{ __('pages.submissions') }} ({{ $submissions->count() }})</h4>
+                        </div>
                         @forelse($submissions as $submission)
                             <div class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="card-title mb-0">{{ $submission->user->first_name }} {{ $submission->user->second_name }}</h5>
-                                        <span class="badge bg-info">{{ $submission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
+                                        <h5 class="card-title mb-0">{{ $submission->user->displayName() }}</h5>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if($submission->points_earned !== null)
+                                                <span class="badge bg-success">{{ __('pages.status_graded') }}</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark">{{ __('pages.not_graded') }}</span>
+                                            @endif
+                                            <span class="badge bg-info">{{ $submission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
+                                        </div>
                                     </div>
                                     
                                     <div class="mb-3">

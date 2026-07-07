@@ -35,6 +35,12 @@
                                     <th>{{ __('pages.description') }}</th>
                                     <th>{{ __('pages.total_points') }}</th>
                                     <th>{{ __('pages.due_date') }}</th>
+                                    @if(Auth::user()->roles->contains('role_name', 'student'))
+                                        <th>{{ __('pages.submission_status') }}</th>
+                                    @endif
+                                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+                                        <th>{{ __('pages.submission_count') }}</th>
+                                    @endif
                                     <th>{{ __('pages.actions') }}</th>
                                 </tr>
                             </thead>
@@ -45,9 +51,29 @@
                                         <td>{{ Str::limit($assignment->assignment_description, 500) }}</td>
                                         <td>{{ $assignment->total_points }}</td>
                                         <td>{{ $assignment->due_date->format('Y-m-d H:i') }}</td>
+                                        @if(Auth::user()->roles->contains('role_name', 'student'))
+                                            @php
+                                                $submission = $studentSubmissions->get($assignment->assignment_id);
+                                            @endphp
+                                            <td>
+                                                @if($submission && $submission->points_earned !== null)
+                                                    <span class="badge bg-success">{{ __('pages.status_graded') }} ({{ $submission->points_earned }}/{{ $assignment->total_points }})</span>
+                                                @elseif($submission)
+                                                    <span class="badge bg-primary">{{ __('pages.status_submitted') }}</span>
+                                                @elseif(!$assignment->isSubmissionOpen())
+                                                    <span class="badge bg-danger">{{ __('pages.status_overdue') }}</span>
+                                                @else
+                                                    <span class="badge bg-secondary">{{ __('pages.status_not_submitted') }}</span>
+                                                @endif
+                                            </td>
+                                        @endif
+                                        @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+                                            <td>{{ $submissionCounts->get($assignment->assignment_id, 0) }}</td>
+                                        @endif
                                         <td>
                                             <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
                                             @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+                                            <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-outline-primary btn-sm">{{ __('pages.view_submissions') }}</a>
                                             <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
                                             <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
                                                 @csrf
@@ -59,7 +85,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted-theme">{{ __('pages.no_assignments') }}</td>
+                                        <td colspan="6" class="text-center text-muted-theme">{{ __('pages.no_assignments') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>

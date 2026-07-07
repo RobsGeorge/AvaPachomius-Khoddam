@@ -14,8 +14,26 @@ class AssignmentController extends Controller
     public function index()
     {
         $assignments = Assignment::orderBy('due_date', 'desc')->get();
-        
-        return view('assignments.index', compact('assignments'));
+        $studentSubmissions = collect();
+        $submissionCounts = collect();
+
+        if (Auth::check()) {
+            if ($this->userHasRole('student')) {
+                $studentSubmissions = AssignmentSubmission::where('user_id', Auth::id())
+                    ->whereIn('assignment_id', $assignments->pluck('assignment_id'))
+                    ->get()
+                    ->keyBy('assignment_id');
+            }
+
+            if ($this->userHasRole('admin') || $this->userHasRole('instructor')) {
+                $submissionCounts = AssignmentSubmission::query()
+                    ->selectRaw('assignment_id, COUNT(*) as count')
+                    ->groupBy('assignment_id')
+                    ->pluck('count', 'assignment_id');
+            }
+        }
+
+        return view('assignments.index', compact('assignments', 'studentSubmissions', 'submissionCounts'));
     }
 
     public function create()
@@ -48,13 +66,13 @@ class AssignmentController extends Controller
             ]);
 
             $assignment = Assignment::create($validated);
-            
+
             Log::info('Assignment creation result', [
                 'assignment' => $assignment->toArray(),
                 'exists' => $assignment->exists,
                 'wasRecentlyCreated' => $assignment->wasRecentlyCreated
             ]);
-            
+
             if (!$assignment->exists) {
                 Log::error('Failed to create assignment', [
                     'data' => $validated,
@@ -62,11 +80,11 @@ class AssignmentController extends Controller
                 ]);
                 return redirect()->back()
                     ->withInput()
-                    ->with('error', 'حدث خطأ أثناء إنشاء الواجب. يرجى المحاولة مرة أخرى.');
+                    ->with('error', __('pages.assignment_create_failed'));
             }
 
             return redirect()->route('assignments.index')
-                ->with('success', 'تم إنشاء الواجب بنجاح');
+                ->with('success', __('pages.assignment_created'));
         } catch (\Exception $e) {
             Log::error('Error creating assignment', [
                 'data' => $validated,
@@ -76,23 +94,32 @@ class AssignmentController extends Controller
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'حدث خطأ أثناء إنشاء الواجب: ' . $e->getMessage());
+                ->with('error', __('pages.assignment_create_error', ['message' => $e->getMessage()]));
         }
     }
 
     public function show(Assignment $assignment)
     {
-        $submissions = $assignment->submissions()->with('user')->get();
+        $submissions = $assignment->submissions()->with('user')->orderByDesc('submitted_at')->get();
         $currentSubmission = null;
+        $canSubmit = false;
+        $submissionOpen = $assignment->isSubmissionOpen();
 
-        if (Auth::user()->roles->contains('role_name', 'student')) {
+        if ($this->userHasRole('student')) {
             $currentSubmission = $assignment->submissions()
                 ->where('user_id', Auth::id())
-                ->latest()
                 ->first();
+
+            $canSubmit = $submissionOpen && $currentSubmission === null;
         }
 
-        return view('assignments.show', compact('assignment', 'submissions', 'currentSubmission'));
+        return view('assignments.show', compact(
+            'assignment',
+            'submissions',
+            'currentSubmission',
+            'canSubmit',
+            'submissionOpen'
+        ));
     }
 
     public function edit(Assignment $assignment)
@@ -114,7 +141,7 @@ class AssignmentController extends Controller
         try {
             $assignment->update($validated);
             return redirect()->route('assignments.index')
-                ->with('success', 'تم تحديث الواجب بنجاح');
+                ->with('success', __('pages.assignment_updated'));
         } catch (\Exception $e) {
             Log::error('Error updating assignment', [
                 'assignment_id' => $assignment->assignment_id,
@@ -122,7 +149,7 @@ class AssignmentController extends Controller
             ]);
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'حدث خطأ أثناء تحديث الواجب');
+                ->with('error', __('pages.assignment_update_failed'));
         }
     }
 
@@ -131,37 +158,45 @@ class AssignmentController extends Controller
         try {
             $assignment->delete();
             return redirect()->route('assignments.index')
-                ->with('success', 'تم حذف الواجب بنجاح');
+                ->with('success', __('pages.assignment_deleted'));
         } catch (\Exception $e) {
             Log::error('Error deleting assignment', [
                 'assignment_id' => $assignment->assignment_id,
                 'error' => $e->getMessage()
             ]);
             return redirect()->back()
-                ->with('error', 'حدث خطأ أثناء حذف الواجب');
+                ->with('error', __('pages.assignment_delete_failed'));
         }
     }
 
     public function submit(Request $request, Assignment $assignment)
     {
-        if (now()->addHours(3) > $assignment->due_date) {
-            return back()->with('error', 'انتهى موعد التسليم');
+        if (!$this->userHasRole('student')) {
+            abort(403);
+        }
+
+        if (!$assignment->isSubmissionOpen()) {
+            return back()->with('error', __('pages.submission_deadline_passed'));
+        }
+
+        if ($assignment->submissions()->where('user_id', Auth::id())->exists()) {
+            return back()->with('error', __('pages.submission_already_exists'));
         }
 
         $validated = $request->validate([
             'submission_content' => 'required|string',
-            'file' => 'required|file|mimes:pdf|max:10240', // 10MB max, PDF only
+            'file' => 'required|file|mimes:pdf|max:' . Assignment::MAX_UPLOAD_KB,
         ], [
-            'submission_content.required' => 'يرجى إدخال محتوى التسليم',
-            'file.required' => 'يرجى رفع ملف PDF',
-            'file.mimes' => 'يجب أن يكون الملف بصيغة PDF',
-            'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
+            'submission_content.required' => __('pages.submission_content_required'),
+            'file.required' => __('pages.pdf_required'),
+            'file.mimes' => __('pages.pdf_only'),
+            'file.max' => __('pages.pdf_too_large', ['max' => Assignment::MAX_UPLOAD_MB]),
         ]);
 
         $file = $request->file('file');
         $path = $file->store('submissions', 'public');
 
-        $submission = $assignment->submissions()->create([
+        $assignment->submissions()->create([
             'user_id' => Auth::id(),
             'submission_content' => $validated['submission_content'],
             'file_path' => $path,
@@ -169,53 +204,52 @@ class AssignmentController extends Controller
         ]);
 
         return redirect()->route('assignments.show', $assignment)
-            ->with('success', 'تم تقديم الواجب بنجاح');
+            ->with('success', __('pages.submission_success'));
     }
 
     public function grade(Request $request, AssignmentSubmission $submission)
     {
+        $assignment = $submission->assignment;
+
         $validated = $request->validate([
-            'points_earned' => 'required|integer|min:0',
+            'points_earned' => 'required|integer|min:0|max:' . $assignment->total_points,
             'feedback' => 'nullable|string',
+        ], [
+            'points_earned.max' => __('pages.grade_exceeds_total', ['max' => $assignment->total_points]),
         ]);
 
         try {
-            // Get all submissions in the team
-            $teamSubmissions = $submission->isTeamSubmission() 
+            $teamSubmissions = $submission->isTeamSubmission()
                 ? $submission->getMainSubmission()->teamSubmissions()->get()
                 : collect([$submission]);
 
-            // Update all submissions in the team
             foreach ($teamSubmissions as $teamSubmission) {
                 $teamSubmission->update($validated);
             }
 
-            return redirect()->route('assignments.show', $submission->assignment)
-                ->with('success', 'تم تقييم الواجب بنجاح');
+            return redirect()->route('assignments.show', $assignment)
+                ->with('success', __('pages.grade_saved'));
         } catch (\Exception $e) {
             Log::error('Error grading assignment', [
                 'submission_id' => $submission->submission_id,
                 'error' => $e->getMessage()
             ]);
             return redirect()->back()
-                ->with('error', 'حدث خطأ أثناء تقييم الواجب');
+                ->with('error', __('pages.grade_failed'));
         }
     }
 
     public function dashboard()
     {
-        // Get statistics
         $totalAssignments = Assignment::count();
         $upcomingAssignments = Assignment::where('due_date', '>', now())->count();
         $completedAssignments = Assignment::where('due_date', '<', now())->count();
 
-        // Get upcoming assignments
         $upcomingAssignmentsList = Assignment::where('due_date', '>', now())
             ->orderBy('due_date')
             ->take(5)
             ->get();
 
-        // Get recent submissions
         $recentSubmissions = AssignmentSubmission::with(['user', 'assignment'])
             ->orderBy('submitted_at', 'desc')
             ->take(5)
@@ -232,52 +266,53 @@ class AssignmentController extends Controller
 
     public function updateSubmission(Request $request, AssignmentSubmission $submission)
     {
-        // Check if the user owns this submission
-        if ($submission->user_id !== Auth::id()) {
-            return back()->with('error', 'غير مصرح لك بتحديث هذا التسليم');
+        if (!$this->userHasRole('student') || $submission->user_id !== Auth::id()) {
+            abort(403);
         }
 
-        // Check if the deadline has passed
-        if (now()->addHours(3) > $submission->assignment->due_date) {
-            return back()->with('error', 'انتهى موعد التسليم');
+        if (!$submission->assignment->isSubmissionOpen()) {
+            return back()->with('error', __('pages.submission_deadline_passed'));
         }
 
         $validated = $request->validate([
             'submission_content' => 'required|string',
-            'file' => 'nullable|file|mimes:pdf|max:10240', // 10MB max, PDF only
+            'file' => 'nullable|file|mimes:pdf|max:' . Assignment::MAX_UPLOAD_KB,
         ], [
-            'submission_content.required' => 'يرجى إدخال محتوى التسليم',
-            'file.mimes' => 'يجب أن يكون الملف بصيغة PDF',
-            'file.max' => 'حجم الملف يجب أن لا يتجاوز 10 ميجابايت'
+            'submission_content.required' => __('pages.submission_content_required'),
+            'file.mimes' => __('pages.pdf_only'),
+            'file.max' => __('pages.pdf_too_large', ['max' => Assignment::MAX_UPLOAD_MB]),
         ]);
 
         try {
-            // Update the submission content
             $submission->submission_content = $validated['submission_content'];
 
-            // If a new file is uploaded, update the file path
             if ($request->hasFile('file')) {
-                // Delete the old file
                 if ($submission->file_path) {
                     Storage::disk('public')->delete($submission->file_path);
                 }
 
-                // Store the new file
-                $file = $request->file('file');
-                $path = $file->store('submissions', 'public');
+                $path = $request->file('file')->store('submissions', 'public');
                 $submission->file_path = $path;
             }
 
+            $submission->submitted_at = now();
             $submission->save();
 
             return redirect()->route('assignments.show', $submission->assignment)
-                ->with('success', 'تم تحديث التسليم بنجاح');
+                ->with('success', __('pages.submission_updated'));
         } catch (\Exception $e) {
             Log::error('Error updating submission', [
-                'submission_id' => $submission->id,
+                'submission_id' => $submission->submission_id,
                 'error' => $e->getMessage()
             ]);
-            return back()->with('error', 'حدث خطأ أثناء تحديث التسليم');
+            return back()->with('error', __('pages.submission_update_failed'));
         }
     }
-} 
+
+    private function userHasRole(string $role): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->roles->contains('role_name', $role);
+    }
+}

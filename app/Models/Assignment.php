@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Assignment extends Model
 {
+    public const MAX_UPLOAD_KB = 10240;
+
+    public const MAX_UPLOAD_MB = 10;
+
     protected $primaryKey = 'assignment_id';
     
     protected $fillable = [
@@ -21,6 +25,11 @@ class Assignment extends Model
     protected $casts = [
         'due_date' => 'datetime',
     ];
+
+    public function isSubmissionOpen(): bool
+    {
+        return now()->addHours(3)->lessThanOrEqualTo($this->due_date);
+    }
 
     public function submissions()
     {

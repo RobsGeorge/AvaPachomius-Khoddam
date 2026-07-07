@@ -94,7 +94,7 @@
                                     <tbody>
                                         @forelse($recentSubmissions as $submission)
                                             <tr>
-                                                <td>{{ $submission->user->name }}</td>
+                                                <td>{{ $submission->user->displayName() }}</td>
                                                 <td>{{ $submission->assignment->assignment_name }}</td>
                                                 <td>{{ $submission->submitted_at->format('Y-m-d H:i') }}</td>
                                                 <td>
@@ -105,7 +105,7 @@
                                                     @endif
                                                 </td>
                                                 <td>
-                                                    <a href="{{ route('assignments.show', $submission->assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                                    <a href="{{ route('assignments.show', $submission->assignment) }}#submissions" class="btn btn-info btn-sm">{{ __('pages.view_submissions') }}</a>
                                                 </td>
                                             </tr>
                                         @empty
