@@ -40,6 +40,46 @@
 
                     <div class="app-card card mb-4">
                         <div class="card-header">
+                            <h3 class="page-title mb-0 h5">{{ __('pages.submission_status_report') }}</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>{{ __('pages.assignment_name') }}</th>
+                                            <th>{{ __('pages.due_date') }}</th>
+                                            <th>{{ __('pages.students_submitted') }}</th>
+                                            <th>{{ __('pages.students_not_submitted') }}</th>
+                                            <th>{{ __('pages.students_graded') }}</th>
+                                            <th>{{ __('pages.actions') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($assignmentSummaries as $summary)
+                                            <tr>
+                                                <td>{{ $summary['assignment']->assignment_name }}</td>
+                                                <td>{{ $summary['assignment']->due_date->format('Y-m-d H:i') }}</td>
+                                                <td>{{ $summary['submitted'] }} / {{ $totalStudents }}</td>
+                                                <td>{{ $summary['not_submitted'] }}</td>
+                                                <td>{{ $summary['graded'] }}</td>
+                                                <td>
+                                                    <a href="{{ route('assignments.status', $summary['assignment']) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted-theme">{{ __('pages.no_assignments') }}</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="app-card card mb-4">
+                        <div class="card-header">
                             <h3 class="page-title mb-0 h5">{{ __('pages.upcoming_assignments') }}</h3>
                         </div>
                         <div class="card-body p-0">
@@ -61,6 +101,7 @@
                                                 <td>{{ $assignment->total_points }}</td>
                                                 <td>
                                                     <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                                    <a href="{{ route('assignments.status', $assignment) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
                                                     <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
                                                 </td>
                                             </tr>

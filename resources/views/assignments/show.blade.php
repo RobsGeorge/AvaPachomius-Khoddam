@@ -9,7 +9,7 @@
             <div class="app-card card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="page-title mb-0">{{ $assignment->assignment_name }}</h2>
-                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+                    @if(Auth::user()->isInstructorOrAdmin())
                     <div>
                         <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning">{{ __('pages.edit') }}</a>
                         <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
@@ -64,7 +64,20 @@
                     </div>
                     @endif
 
-                    @if(Auth::user()->roles->contains('role_name', 'student'))
+                    @if(Auth::user()->isStudent())
+                        <div class="mb-4">
+                            <h4>{{ __('pages.your_submission_status') }}</h4>
+                            @if($studentStatus === 'graded')
+                                <span class="badge bg-success fs-6">{{ __('pages.status_graded') }} ({{ $currentSubmission->points_earned }}/{{ $assignment->total_points }})</span>
+                            @elseif($studentStatus === 'submitted')
+                                <span class="badge bg-primary fs-6">{{ __('pages.status_submitted') }}</span>
+                            @elseif($studentStatus === 'not_submitted')
+                                <span class="badge bg-secondary fs-6">{{ __('pages.status_not_submitted') }}</span>
+                            @else
+                                <span class="badge bg-danger fs-6">{{ __('pages.status_overdue') }}</span>
+                            @endif
+                        </div>
+
                         <div class="alert alert-info mb-4">
                             <h5 class="alert-heading mb-2">
                                 <i class="fas fa-info-circle me-1"></i>
@@ -74,7 +87,7 @@
                         </div>
 
                         @if($canSubmit)
-                    <div class="mb-4">
+                    <div class="mb-4" id="submit">
                         <h4>{{ __('pages.submit_assignment') }}</h4>
                         <form action="{{ route('assignments.submit', $assignment) }}" method="POST" enctype="multipart/form-data">
                             @csrf
@@ -106,7 +119,7 @@
                             </div>
                         @endif
 
-                    <div class="mb-4">
+                    <div class="mb-4" id="my-submission">
                         <h4>{{ __('pages.my_submissions') }}</h4>
                             @if($currentSubmission)
                             <div class="card mb-3">
@@ -213,10 +226,11 @@
                     @endif
                     
 
-                    @if(Auth::user()->roles->contains('role_name', 'admin') || Auth::user()->roles->contains('role_name', 'instructor'))
+                    @if(Auth::user()->isInstructorOrAdmin())
                     <div class="mb-4" id="submissions">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
                             <h4 class="mb-0">{{ __('pages.submissions') }} ({{ $submissions->count() }})</h4>
+                            <a href="{{ route('assignments.status', $assignment) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
                         </div>
                         @forelse($submissions as $submission)
                             <div class="card mb-3">

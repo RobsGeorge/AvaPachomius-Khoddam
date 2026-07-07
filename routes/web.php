@@ -184,6 +184,7 @@ Route::middleware(['auth', 'role:instructor,admin'])->group(function () {
     Route::get('/assignments/dashboard', [AssignmentController::class, 'dashboard'])->name('assignments.dashboard');
     Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+    Route::get('/assignments/{assignment}/status', [AssignmentController::class, 'submissionStatusReport'])->name('assignments.status');
     Route::get('/assignments/{assignment}/edit', [AssignmentController::class, 'edit'])->name('assignments.edit');
     Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');

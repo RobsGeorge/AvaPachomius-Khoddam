@@ -105,12 +105,38 @@ class User extends Authenticatable
 
     public function hasRole(string $roleName): bool
     {
-        return $this->roles->contains('role_name', $roleName);
+        return $this->roles->contains(
+            fn ($role) => strcasecmp($role->role_name, $roleName) === 0
+        );
     }
 
     public function hasAnyRole(array $roleNames): bool
     {
-        return $this->roles->whereIn('role_name', $roleNames)->isNotEmpty();
+        return $this->roles->contains(
+            fn ($role) => collect($roleNames)->contains(
+                fn ($name) => strcasecmp($role->role_name, $name) === 0
+            )
+        );
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->hasRole('student');
+    }
+
+    public function isInstructor(): bool
+    {
+        return $this->hasRole('instructor');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isInstructorOrAdmin(): bool
+    {
+        return $this->isAdmin() || $this->isInstructor();
     }
 
     public function isEventAdmin(): bool

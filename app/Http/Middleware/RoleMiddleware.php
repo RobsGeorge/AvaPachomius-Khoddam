@@ -20,13 +20,14 @@ class RoleMiddleware
         }
 
         $userRoles = $request->user()->roles->pluck('role_name')->toArray();
-        
-        // Check if user has any of the required roles
+
         $hasRole = false;
         foreach ($roles as $role) {
-            if (in_array($role, $userRoles)) {
-                $hasRole = true;
-                break;
+            foreach ($userRoles as $userRole) {
+                if (strcasecmp($role, $userRole) === 0) {
+                    $hasRole = true;
+                    break 2;
+                }
             }
         }
 

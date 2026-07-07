@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\UserCourseRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -18,14 +21,14 @@ class AssignmentController extends Controller
         $submissionCounts = collect();
 
         if (Auth::check()) {
-            if ($this->userHasRole('student')) {
+            if (Auth::user()->isStudent()) {
                 $studentSubmissions = AssignmentSubmission::where('user_id', Auth::id())
                     ->whereIn('assignment_id', $assignments->pluck('assignment_id'))
                     ->get()
                     ->keyBy('assignment_id');
             }
 
-            if ($this->userHasRole('admin') || $this->userHasRole('instructor')) {
+            if (Auth::user()->isInstructorOrAdmin()) {
                 $submissionCounts = AssignmentSubmission::query()
                     ->selectRaw('assignment_id, COUNT(*) as count')
                     ->groupBy('assignment_id')
@@ -105,7 +108,7 @@ class AssignmentController extends Controller
         $canSubmit = false;
         $submissionOpen = $assignment->isSubmissionOpen();
 
-        if ($this->userHasRole('student')) {
+        if (Auth::user()->isStudent()) {
             $currentSubmission = $assignment->submissions()
                 ->where('user_id', Auth::id())
                 ->first();
@@ -113,13 +116,42 @@ class AssignmentController extends Controller
             $canSubmit = $submissionOpen && $currentSubmission === null;
         }
 
+        $studentStatus = $this->resolveSubmissionStatus($assignment, $currentSubmission);
+
         return view('assignments.show', compact(
             'assignment',
             'submissions',
             'currentSubmission',
             'canSubmit',
-            'submissionOpen'
+            'submissionOpen',
+            'studentStatus'
         ));
+    }
+
+    public function submissionStatusReport(Assignment $assignment)
+    {
+        $students = $this->enrolledStudents();
+        $submissions = $assignment->submissions()->with('user')->get()->keyBy('user_id');
+
+        $rows = $students->map(function (User $student) use ($assignment, $submissions) {
+            $submission = $submissions->get($student->user_id);
+
+            return [
+                'student' => $student,
+                'submission' => $submission,
+                'status' => $this->resolveSubmissionStatus($assignment, $submission),
+            ];
+        });
+
+        $stats = [
+            'total' => $rows->count(),
+            'submitted' => $rows->whereIn('status', ['submitted', 'graded'])->count(),
+            'not_submitted' => $rows->where('status', 'not_submitted')->count(),
+            'overdue' => $rows->where('status', 'overdue')->count(),
+            'graded' => $rows->where('status', 'graded')->count(),
+        ];
+
+        return view('assignments.status-report', compact('assignment', 'rows', 'stats'));
     }
 
     public function edit(Assignment $assignment)
@@ -171,7 +203,7 @@ class AssignmentController extends Controller
 
     public function submit(Request $request, Assignment $assignment)
     {
-        if (!$this->userHasRole('student')) {
+        if (!Auth::user()->isStudent()) {
             abort(403);
         }
 
@@ -255,18 +287,34 @@ class AssignmentController extends Controller
             ->take(5)
             ->get();
 
+        $totalStudents = $this->enrolledStudents()->count();
+
+        $assignmentSummaries = Assignment::orderBy('due_date', 'desc')->get()->map(function (Assignment $assignment) use ($totalStudents) {
+            $submittedCount = $assignment->submissions()->count();
+            $gradedCount = $assignment->submissions()->whereNotNull('points_earned')->count();
+
+            return [
+                'assignment' => $assignment,
+                'submitted' => $submittedCount,
+                'not_submitted' => max($totalStudents - $submittedCount, 0),
+                'graded' => $gradedCount,
+            ];
+        });
+
         return view('assignments.dashboard', compact(
             'totalAssignments',
             'upcomingAssignments',
             'completedAssignments',
             'upcomingAssignmentsList',
-            'recentSubmissions'
+            'recentSubmissions',
+            'assignmentSummaries',
+            'totalStudents'
         ));
     }
 
     public function updateSubmission(Request $request, AssignmentSubmission $submission)
     {
-        if (!$this->userHasRole('student') || $submission->user_id !== Auth::id()) {
+        if (!Auth::user()->isStudent() || $submission->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -309,10 +357,38 @@ class AssignmentController extends Controller
         }
     }
 
-    private function userHasRole(string $role): bool
+    private function enrolledStudents()
     {
-        $user = Auth::user();
+        $studentRoleIds = Role::query()
+            ->whereRaw('LOWER(role_name) = ?', ['student'])
+            ->pluck('role_id');
 
-        return $user && $user->roles->contains('role_name', $role);
+        if ($studentRoleIds->isEmpty()) {
+            return collect();
+        }
+
+        $studentIds = UserCourseRole::query()
+            ->whereIn('role_id', $studentRoleIds)
+            ->pluck('user_id')
+            ->unique();
+
+        return User::query()
+            ->whereIn('user_id', $studentIds)
+            ->orderBy('first_name')
+            ->orderBy('second_name')
+            ->get();
+    }
+
+    private function resolveSubmissionStatus(Assignment $assignment, ?AssignmentSubmission $submission): string
+    {
+        if ($submission && $submission->points_earned !== null) {
+            return 'graded';
+        }
+
+        if ($submission) {
+            return 'submitted';
+        }
+
+        return $assignment->isSubmissionOpen() ? 'not_submitted' : 'overdue';
     }
 }
