@@ -1,7 +1,9 @@
 @extends('emails.layout')
 
 @section('content')
-@php($theme = config('mail-theme'))
+@php
+    $theme = config('mail-theme');
+@endphp
 
 <p style="margin:0 0 16px;font-size:16px;">
     {{ __('students.mail_greeting', ['name' => $recipient->first_name ?? $recipient->email]) }}
@@ -31,13 +33,9 @@
     </thead>
     <tbody>
         @foreach($birthdayStudents as $student)
-            @php
-                $whatsappMessage = __('students.whatsapp_birthday_message', ['name' => $student->displayName()]);
-                $whatsappUrl = $student->whatsappUrl($whatsappMessage);
-            @endphp
             <tr>
                 <td style="padding:10px 12px;border-bottom:1px solid {{ $theme['border'] }};">
-                    @if($whatsappUrl)
+                    @if($whatsappUrl = $student->whatsappUrl(__('students.whatsapp_birthday_message')))
                         <a href="{{ $whatsappUrl }}"
                            style="display:inline-block;margin-inline-end:8px;padding:6px 10px;background:#25D366;color:#ffffff;text-decoration:none;border-radius:6px;font-size:12px;font-weight:600;">
                             {{ __('students.whatsapp') }}

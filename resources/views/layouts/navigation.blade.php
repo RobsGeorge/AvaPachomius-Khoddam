@@ -130,10 +130,40 @@
                 <div class="d-flex flex-column gap-1">
                     <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">{{ __('nav.home') }}</a>
 
-                    <a href="{{ route('hubs.academic') }}" class="app-nav-link {{ $academicActive ? 'active' : '' }}">{{ __('nav.academic') }}</a>
+                    <details class="mobile-nav-group" @if($academicActive) open @endif>
+                        <summary class="mobile-nav-summary {{ $academicActive ? 'active' : '' }}">
+                            <span>{{ __('nav.academic') }}</span>
+                            <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
+                        </summary>
+                        <div class="mobile-nav-submenu d-flex flex-column gap-1">
+                            <a href="{{ route('hubs.academic') }}" class="app-nav-link small {{ request()->routeIs('hubs.academic') ? 'active' : '' }}">
+                                <i class="bi bi-grid me-1"></i>{{ __('nav.academic') }}
+                            </a>
+                            @foreach($academicLinks as $link)
+                                <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}">
+                                    <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
+                                </a>
+                            @endforeach
+                        </div>
+                    </details>
 
                     @if($hasSystem)
-                        <a href="{{ route('hubs.system') }}" class="app-nav-link {{ $systemActive ? 'active' : '' }}">{{ __('nav.system_settings') }}</a>
+                        <details class="mobile-nav-group" @if($systemActive) open @endif>
+                            <summary class="mobile-nav-summary {{ $systemActive ? 'active' : '' }}">
+                                <span>{{ __('nav.system_settings') }}</span>
+                                <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="mobile-nav-submenu d-flex flex-column gap-1">
+                                <a href="{{ route('hubs.system') }}" class="app-nav-link small {{ request()->routeIs('hubs.system') ? 'active' : '' }}">
+                                    <i class="bi bi-gear me-1"></i>{{ __('nav.system_settings') }}
+                                </a>
+                                @foreach($systemLinks as $link)
+                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}">
+                                        <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </details>
                     @endif
 
                     <hr class="my-1 border-secondary-subtle">
