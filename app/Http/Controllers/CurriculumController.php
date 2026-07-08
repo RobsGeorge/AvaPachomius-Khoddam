@@ -2,19 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FeedbackSubmission;
+use App\Models\FeedbackSurvey;
 use App\Models\Course;
-use App\Models\Module;
-use App\Models\ModuleFeedback;
 use App\Models\Session;
-use App\Services\LiveFeedbackSessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CurriculumController extends Controller
 {
-    public function __construct(
-        private LiveFeedbackSessionService $liveFeedbackSessions
-    ) {}
     /** Course picker — entry point for the curriculum (modules → sessions → lectures). */
     public function index()
     {
@@ -42,12 +38,22 @@ class CurriculumController extends Controller
             'modules.exams.schedules',
         ])->findOrFail($courseId);
 
-        $userFeedbackIds = ModuleFeedback::where('user_id', Auth::user()->user_id)
+        $moduleIds = $course->modules->pluck('module_id');
+
+        $openSurveys = FeedbackSurvey::query()
             ->where('course_id', $courseId)
-            ->pluck('module_id')
+            ->whereIn('module_id', $moduleIds)
+            ->where('status', FeedbackSurvey::STATUS_OPEN)
+            ->get()
+            ->groupBy('module_id');
+
+        $submittedSurveyIds = FeedbackSubmission::query()
+            ->where('user_id', Auth::user()->user_id)
+            ->whereIn('survey_id', $openSurveys->flatten()->pluck('survey_id'))
+            ->pluck('survey_id')
             ->flip();
 
-        return view('course-content.show', compact('course', 'userFeedbackIds'));
+        return view('course-content.show', compact('course', 'openSurveys', 'submittedSurveyIds'));
     }
 
     /** Admin/instructor panel: manage modules, sessions, and lectures. */
@@ -180,8 +186,6 @@ class CurriculumController extends Controller
             'ended_by_user_id' => Auth::user()->user_id,
             'end_date' => $module->pivot->end_date ?? now()->toDateString(),
         ]);
-
-        $this->liveFeedbackSessions->startForModule($course, $module, Auth::user()->user_id, true);
 
         return redirect()
             ->route('curriculum.admin', $courseId)

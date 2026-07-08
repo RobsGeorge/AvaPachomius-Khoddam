@@ -71,6 +71,14 @@
 
         <div class="col-md-6">
             <div class="app-tile h-100">
+                <h3><i class="bi bi-chat-square-text"></i> {{ __('dashboard.feedback') }}</h3>
+                <p class="text-muted-theme">{{ __('dashboard.feedback_desc') }}</p>
+                <a href="{{ route('feedback.index') }}" class="btn btn-primary">{{ __('dashboard.view_feedback') }}</a>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="app-tile h-100">
                 <h3><i class="bi bi-lightning-charge"></i> {{ __('dashboard.live_quiz') }}</h3>
                 <p class="text-muted-theme">{{ __('dashboard.live_quiz_desc') }}</p>
                 <div class="d-flex flex-wrap gap-2">

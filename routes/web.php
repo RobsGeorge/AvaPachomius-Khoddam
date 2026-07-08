@@ -30,7 +30,10 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\CurriculumController;
-use App\Http\Controllers\ModuleFeedbackController;
+use App\Http\Controllers\FeedbackHubController;
+use App\Http\Controllers\FeedbackSurveyStudentController;
+use App\Http\Controllers\FeedbackSurveyAdminController;
+use App\Http\Controllers\FeedbackReportController;
 use App\Http\Controllers\LectureController;
 use App\Http\Controllers\LectureMaterialController;
 use App\Http\Controllers\GradeCategoryController;
@@ -49,9 +52,6 @@ use App\Http\Controllers\LiveQuizController;
 use App\Http\Controllers\LiveQuizBuilderController;
 use App\Http\Controllers\LiveQuizHostController;
 use App\Http\Controllers\LiveQuizPlayController;
-use App\Http\Controllers\LiveFeedbackHostController;
-use App\Http\Controllers\LiveFeedbackPlayController;
-use App\Http\Controllers\SatisfactionReportController;
 
 
 
@@ -244,8 +244,6 @@ Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFee
 Route::middleware('auth')->group(function () {
     Route::get('/courses/{course}/curriculum',      [CurriculumController::class, 'show'])->name('curriculum.show');
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
-    Route::get('/courses/{course}/modules/{module}/feedback', [ModuleFeedbackController::class, 'show'])->name('module-feedback.show');
-    Route::post('/courses/{course}/modules/{module}/feedback', [ModuleFeedbackController::class, 'store'])->name('module-feedback.store');
 });
 
 // Curriculum & grades — admin/instructor management
@@ -348,18 +346,24 @@ Route::middleware(['auth', 'role:admin,instructor'])->prefix('live-quiz')->name(
     Route::get('/sessions/{session}/present', [LiveQuizHostController::class, 'present'])->name('host.present');
 });
 
-// Live module feedback & satisfaction reports
-Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
-    Route::post('/courses/{course}/modules/{module}/live-feedback/start', [LiveFeedbackHostController::class, 'start'])->name('live-feedback.start');
-    Route::get('/live-feedback/sessions/{session}/present', [LiveFeedbackHostController::class, 'present'])->name('live-feedback.present');
-    Route::post('/live-feedback/sessions/{session}/close', [LiveFeedbackHostController::class, 'close'])->name('live-feedback.close');
-    Route::post('/live-feedback/sessions/{session}/step', [LiveFeedbackHostController::class, 'step'])->name('live-feedback.step');
-    Route::get('/courses/{course}/satisfaction', [SatisfactionReportController::class, 'course'])->name('satisfaction.course');
-    Route::get('/courses/{course}/modules/{module}/satisfaction', [SatisfactionReportController::class, 'module'])->name('satisfaction.module');
+// Module feedback surveys
+Route::middleware('auth')->prefix('feedback')->name('feedback.')->group(function () {
+    Route::get('/', [FeedbackHubController::class, 'index'])->name('index');
+    Route::get('/surveys/{survey}', [FeedbackSurveyStudentController::class, 'show'])->name('surveys.show');
+    Route::post('/surveys/{survey}/submit', [FeedbackSurveyStudentController::class, 'store'])->name('surveys.submit');
 });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/courses/{course}/modules/{module}/live-feedback', [LiveFeedbackPlayController::class, 'play'])->name('live-feedback.play');
-    Route::post('/live-feedback/sessions/{session}/partial', [LiveFeedbackPlayController::class, 'partial'])->name('live-feedback.partial');
-    Route::post('/live-feedback/sessions/{session}/submit', [LiveFeedbackPlayController::class, 'submit'])->name('live-feedback.submit');
+Route::middleware(['auth', 'role:admin,instructor'])->prefix('feedback')->name('feedback.')->group(function () {
+    Route::get('/surveys/create', [FeedbackSurveyAdminController::class, 'create'])->name('surveys.create');
+    Route::post('/surveys', [FeedbackSurveyAdminController::class, 'store'])->name('surveys.store');
+    Route::get('/surveys/{survey}/edit', [FeedbackSurveyAdminController::class, 'edit'])->name('surveys.edit');
+    Route::put('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'update'])->name('surveys.update');
+    Route::post('/surveys/{survey}/questions', [FeedbackSurveyAdminController::class, 'storeQuestion'])->name('surveys.questions.store');
+    Route::delete('/surveys/{survey}/questions/{question}', [FeedbackSurveyAdminController::class, 'destroyQuestion'])->name('surveys.questions.destroy');
+    Route::post('/surveys/{survey}/publish', [FeedbackSurveyAdminController::class, 'publish'])->name('surveys.publish');
+    Route::post('/surveys/{survey}/close', [FeedbackSurveyAdminController::class, 'close'])->name('surveys.close');
+    Route::delete('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'destroy'])->name('surveys.destroy');
+    Route::get('/surveys/{survey}/report', [FeedbackReportController::class, 'show'])->name('surveys.report');
+    Route::get('/surveys/{survey}/report/questions/{question}', [FeedbackReportController::class, 'byQuestion'])->name('surveys.report.question');
+    Route::get('/surveys/{survey}/report/students/{user}', [FeedbackReportController::class, 'byStudent'])->name('surveys.report.student');
 });

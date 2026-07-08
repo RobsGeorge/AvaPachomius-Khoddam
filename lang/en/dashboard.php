@@ -32,4 +32,7 @@ return [
     'view_live_quiz'         => 'Live quiz hub',
     'manage_live_quiz'       => 'Create & host quizzes',
     'join_live_quiz'         => 'Join with code',
+    'feedback'               => 'Module feedback',
+    'feedback_desc'          => 'Answer open surveys or review your past submissions.',
+    'view_feedback'          => 'Open feedback hub',
 ];

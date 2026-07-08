@@ -47,17 +47,19 @@
                     <span class="badge bg-white text-dark">
                         {{ $module->lectures->count() }} {{ __('pages.lecture') }}
                     </span>
-                    @if($module->pivot->feedback_open ?? false)
-                        @if(isset($userFeedbackIds[$module->module_id]))
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle"></i> {{ __('pages.feedback_submitted') }}
-                            </span>
-                        @else
-                            <a href="{{ route('module-feedback.show', [$course->course_id, $module->module_id]) }}"
-                               class="btn btn-sm btn-warning">
-                                <i class="bi bi-chat-square-text"></i> {{ __('pages.give_feedback') }}
-                            </a>
-                        @endif
+                    @php
+                        $moduleSurveys = $openSurveys->get($module->module_id, collect());
+                        $pendingSurvey = $moduleSurveys->first(fn ($s) => ! isset($submittedSurveyIds[$s->survey_id]));
+                    @endphp
+                    @if($pendingSurvey)
+                        <a href="{{ route('feedback.surveys.show', $pendingSurvey) }}"
+                           class="btn btn-sm btn-warning">
+                            <i class="bi bi-chat-square-text"></i> {{ __('pages.give_feedback') }}
+                        </a>
+                    @elseif($moduleSurveys->isNotEmpty())
+                        <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-check-circle"></i> {{ __('pages.feedback_submitted') }}
+                        </a>
                     @endif
                 </div>
             </div>

@@ -2,18 +2,13 @@
 
 namespace App\Services;
 
-use App\Models\Course;
-use App\Models\LiveFeedbackSession;
-use App\Models\ModuleFeedback;
+use App\Models\FeedbackSurvey;
+use App\Models\FeedbackSubmission;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 class MandatoryFeedbackService
 {
-    public function __construct(
-        private LiveFeedbackSessionService $liveFeedbackSessions
-    ) {}
-
     public function pendingForUser(User $user): Collection
     {
         if (! $user->isStudent()) {
@@ -26,48 +21,34 @@ class MandatoryFeedbackService
             return collect();
         }
 
-        $pending = collect();
+        $surveys = FeedbackSurvey::query()
+            ->with(['course', 'module'])
+            ->whereIn('course_id', $courseIds)
+            ->where('status', FeedbackSurvey::STATUS_OPEN)
+            ->where('is_mandatory', true)
+            ->where(function ($q) {
+                $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
+            ->orderBy('due_at')
+            ->orderBy('survey_id')
+            ->get();
 
-        foreach ($courseIds as $courseId) {
-            $course = Course::with('modules')->find($courseId);
-            if (! $course) {
-                continue;
-            }
+        $submittedIds = FeedbackSubmission::query()
+            ->where('user_id', $user->user_id)
+            ->whereIn('survey_id', $surveys->pluck('survey_id'))
+            ->pluck('survey_id');
 
-            foreach ($course->modules as $module) {
-                if (! (bool) ($module->pivot->feedback_open ?? false)) {
-                    continue;
-                }
-
-                $submitted = ModuleFeedback::where('user_id', $user->user_id)
-                    ->where('course_id', $courseId)
-                    ->where('module_id', $module->module_id)
-                    ->exists();
-
-                if ($submitted) {
-                    continue;
-                }
-
-                $liveSession = $this->liveFeedbackSessions->activeSessionForModule(
-                    (int) $courseId,
-                    (int) $module->module_id
-                );
-
-                if ($liveSession && ! $liveSession->mandatory_gate) {
-                    continue;
-                }
-
-                $pending->push([
-                    'course_id' => (int) $courseId,
-                    'module_id' => (int) $module->module_id,
-                    'course_title' => $course->title,
-                    'module_name' => $module->title ?? __('pages.module'),
-                    'live_session_id' => $liveSession?->session_id,
-                ]);
-            }
-        }
-
-        return $pending;
+        return $surveys
+            ->reject(fn (FeedbackSurvey $survey) => $submittedIds->contains($survey->survey_id))
+            ->map(fn (FeedbackSurvey $survey) => [
+                'survey_id' => $survey->survey_id,
+                'course_id' => $survey->course_id,
+                'module_id' => $survey->module_id,
+                'title' => $survey->title,
+                'course_title' => $survey->course?->title,
+                'module_name' => $survey->module?->title,
+            ])
+            ->values();
     }
 
     public function hasPending(User $user): bool
