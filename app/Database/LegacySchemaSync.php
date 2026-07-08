@@ -20,6 +20,7 @@ final class LegacySchemaSync
         self::syncLecturesTable();
         self::syncCourseModuleTable();
         self::syncExamsTable();
+        self::syncPortalSettingsTable();
         self::ensureOtpCodeTable();
     }
 
@@ -28,6 +29,12 @@ final class LegacySchemaSync
     {
         self::syncUserTable();
         self::ensureOtpCodeTable();
+    }
+
+    /** Ensure portal_settings columns exist before reads (brownfield-safe). */
+    public static function ensurePortalSettingsSchema(): void
+    {
+        self::syncPortalSettingsTable();
     }
 
     private static function syncSessionTable(): void
@@ -100,6 +107,23 @@ final class LegacySchemaSync
         ] as $column => $definition) {
             self::addMysqlColumnIfMissing('exams', $column, $definition);
         }
+    }
+
+    private static function syncPortalSettingsTable(): void
+    {
+        if (! Schema::hasTable('portal_settings')) {
+            return;
+        }
+
+        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+            MigrationSupport::addColumn('portal_settings', 'profile_photo_gate_enabled_at', function (Blueprint $table) {
+                $table->timestamp('profile_photo_gate_enabled_at')->nullable();
+            });
+
+            return;
+        }
+
+        self::addMysqlColumnIfMissing('portal_settings', 'profile_photo_gate_enabled_at', 'TIMESTAMP NULL');
     }
 
     private static function ensureOtpCodeTable(): void

@@ -6,8 +6,12 @@ use App\Models\User;
 
 class NavigationHub
 {
-    public static function academicLinks(User $user): array
+    public static function academicLinks(?User $user): array
     {
+        if (! $user instanceof User) {
+            return [];
+        }
+
         $links = [
             self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*']),
             self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*']),
@@ -58,8 +62,12 @@ class NavigationHub
         return $links;
     }
 
-    public static function systemLinks(User $user): array
+    public static function systemLinks(?User $user): array
     {
+        if (! $user instanceof User) {
+            return [];
+        }
+
         $links = [];
 
         if ($user->isAdmin()) {
@@ -82,13 +90,21 @@ class NavigationHub
         return $links;
     }
 
-    public static function hasSystem(User $user): bool
+    public static function hasSystem(?User $user): bool
     {
+        if (! $user instanceof User) {
+            return false;
+        }
+
         return count(self::systemLinks($user)) > 0;
     }
 
-    public static function isAcademicActive(User $user): bool
+    public static function isAcademicActive(?User $user): bool
     {
+        if (! $user instanceof User) {
+            return false;
+        }
+
         if (request()->routeIs('hubs.academic')) {
             return true;
         }
@@ -96,8 +112,12 @@ class NavigationHub
         return self::anyActive(self::academicLinks($user));
     }
 
-    public static function isSystemActive(User $user): bool
+    public static function isSystemActive(?User $user): bool
     {
+        if (! $user instanceof User) {
+            return false;
+        }
+
         if (request()->routeIs('hubs.system')) {
             return true;
         }
