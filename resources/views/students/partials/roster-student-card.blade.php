@@ -1,4 +1,4 @@
-@props(['student', 'whatsappMessage' => null, 'showAge' => false])
+@props(['student', 'whatsappMessage' => null, 'showAge' => false, 'showNationalId' => true])
 
 <article class="data-card {{ $showAge ? '' : 'mb-3' }}{{ $student->isBirthdayToday() ? ' data-card-birthday-today' : '' }}">
     <div class="d-flex align-items-center gap-3 mb-3">
@@ -12,10 +12,12 @@
     </div>
 
     <dl class="data-meta-list mb-2">
+        @if($showNationalId)
         <div class="data-meta-row">
             <dt>{{ __('pages.national_id') }}</dt>
             <dd>{{ $student->national_id ?? '—' }}</dd>
         </div>
+        @endif
         <div class="data-meta-row">
             <dt>{{ __('pages.email') }}</dt>
             <dd>{{ $student->email ?? '—' }}</dd>

@@ -65,6 +65,7 @@
                             @include('students.partials.roster-student-card', [
                                 'student' => $student,
                                 'whatsappMessage' => __('students.whatsapp_birthday_message', ['name' => $student->displayName()]),
+                                'showNationalId' => false,
                             ])
                         @empty
                             <p class="text-muted-theme mb-0">{{ __('students.no_birthdays_month') }}</p>
@@ -80,7 +81,10 @@
                     </div>
                     <div class="card-body">
                         @forelse($nextMonthBirthdays as $student)
-                            @include('students.partials.roster-student-card', ['student' => $student])
+                            @include('students.partials.roster-student-card', [
+                                'student' => $student,
+                                'showNationalId' => false,
+                            ])
                         @empty
                             <p class="text-muted-theme mb-0">{{ __('students.no_birthdays_month') }}</p>
                         @endforelse

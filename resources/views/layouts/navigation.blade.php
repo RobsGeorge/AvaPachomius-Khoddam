@@ -130,20 +130,14 @@
                 <div class="d-flex flex-column gap-1">
                     <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">{{ __('nav.home') }}</a>
 
-                    <a href="{{ route('hubs.academic') }}" class="app-nav-link {{ request()->routeIs('hubs.academic') ? 'active' : '' }}">{{ __('nav.academic') }}</a>
-                    @foreach($academicLinks as $link)
-                        <a href="{{ $link['url'] }}" class="app-nav-link ps-3 small {{ $link['active'] ? 'active' : '' }}">{{ $link['label'] }}</a>
-                    @endforeach
+                    <a href="{{ route('hubs.academic') }}" class="app-nav-link {{ $academicActive ? 'active' : '' }}">{{ __('nav.academic') }}</a>
 
                     @if($hasSystem)
-                        <a href="{{ route('hubs.system') }}" class="app-nav-link mt-1 {{ request()->routeIs('hubs.system') ? 'active' : '' }}">{{ __('nav.system_settings') }}</a>
-                        @foreach($systemLinks as $link)
-                            <a href="{{ $link['url'] }}" class="app-nav-link ps-3 small {{ $link['active'] ? 'active' : '' }}">{{ $link['label'] }}</a>
-                        @endforeach
+                        <a href="{{ route('hubs.system') }}" class="app-nav-link {{ $systemActive ? 'active' : '' }}">{{ __('nav.system_settings') }}</a>
                     @endif
 
                     <hr class="my-1 border-secondary-subtle">
-                    <a href="{{ route('profile') }}" class="app-nav-link">{{ __('nav.profile') }}</a>
+                    <a href="{{ route('profile') }}" class="app-nav-link {{ request()->routeIs('profile') ? 'active' : '' }}">{{ __('nav.profile') }}</a>
                     <a href="{{ route('logout') }}" class="app-nav-link">{{ __('nav.logout') }}</a>
                 </div>
             </div>

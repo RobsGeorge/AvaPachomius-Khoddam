@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Services\StudentRosterService;
 use Illuminate\Support\Collection;
 
@@ -18,7 +19,7 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if (! $user) {
+        if (! $user instanceof User) {
             return collect();
         }
 

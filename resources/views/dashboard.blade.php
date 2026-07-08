@@ -34,6 +34,7 @@
                         @include('students.partials.roster-student-card', [
                             'student' => $student,
                             'whatsappMessage' => __('students.whatsapp_birthday_message'),
+                            'showNationalId' => false,
                         ])
                     @endif
                 @endforeach
