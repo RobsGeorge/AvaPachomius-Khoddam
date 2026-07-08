@@ -731,6 +731,7 @@ body.theme-dark .app-dropdown-link:hover {
 /* Hub navigation tiles */
 .hub-tile {
     color: inherit;
+    cursor: pointer;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .hub-tile:hover {

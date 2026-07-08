@@ -19,29 +19,26 @@
 
     <div class="row g-4">
         <div class="col-md-6">
-            <div class="app-tile h-100">
+            <a href="{{ route('hubs.academic') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
                 <h3><i class="bi bi-mortarboard"></i> {{ __('dashboard.academic_hub') }}</h3>
-                <p class="text-muted-theme">{{ __('dashboard.academic_hub_desc') }}</p>
-                <a href="{{ route('hubs.academic') }}" class="btn btn-primary">{{ __('dashboard.open_academic') }}</a>
-            </div>
+                <p class="text-muted-theme mb-0">{{ __('dashboard.academic_hub_desc') }}</p>
+            </a>
         </div>
 
         @if($hasSystem)
             <div class="col-md-6">
-                <div class="app-tile h-100">
+                <a href="{{ route('hubs.system') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
                     <h3><i class="bi bi-gear"></i> {{ __('dashboard.system_hub') }}</h3>
-                    <p class="text-muted-theme">{{ __('dashboard.system_hub_desc') }}</p>
-                    <a href="{{ route('hubs.system') }}" class="btn btn-outline-theme">{{ __('dashboard.open_system') }}</a>
-                </div>
+                    <p class="text-muted-theme mb-0">{{ __('dashboard.system_hub_desc') }}</p>
+                </a>
             </div>
         @endif
 
         <div class="col-md-6">
-            <div class="app-tile h-100">
+            <a href="{{ route('profile') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
                 <h3><i class="bi bi-person-circle"></i> {{ __('dashboard.profile') }}</h3>
-                <p class="text-muted-theme">{{ __('dashboard.profile_desc') }}</p>
-                <a href="{{ route('profile') }}" class="btn btn-primary">{{ __('dashboard.view_profile') }}</a>
-            </div>
+                <p class="text-muted-theme mb-0">{{ __('dashboard.profile_desc') }}</p>
+            </a>
         </div>
     </div>
 </div>

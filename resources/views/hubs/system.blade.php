@@ -11,11 +11,10 @@
         @foreach($links as $link)
             <div class="col-sm-6">
                 <a href="{{ $link['url'] }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none {{ $link['active'] ? 'hub-tile-active' : '' }}">
-                    <h3 class="h5 mb-2">
+                    <h3 class="h5 mb-0">
                         <i class="bi {{ $link['icon'] }}"></i>
                         {{ $link['label'] }}
                     </h3>
-                    <span class="btn btn-sm btn-outline-theme mt-auto align-self-start">{{ __('nav.open') }}</span>
                 </a>
             </div>
         @endforeach
