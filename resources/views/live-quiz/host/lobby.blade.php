@@ -10,6 +10,9 @@
         <div class="card-body text-center p-4">
             <div class="display-4 fw-bold mb-2" id="join-code">{{ $session->join_code }}</div>
             <p class="text-muted-theme mb-0">{{ __('pages.live_quiz_share_code') }}</p>
+            <p class="small text-muted-theme mt-2 mb-0">
+                {{ __('pages.live_quiz_student_join_hint', ['url' => route('live-quiz.play.join')]) }}
+            </p>
             <p class="mt-3 mb-0"><span id="participant-count">{{ $session->participants->count() }}</span> {{ __('pages.live_quiz_participants') }}</p>
         </div>
     </div>

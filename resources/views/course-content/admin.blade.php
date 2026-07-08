@@ -135,7 +135,8 @@
                     </a>
                     <form method="POST"
                           action="{{ route('curriculum.detach-module', [$course->course_id, $module->module_id]) }}"
-                          onsubmit="return confirm(@json(__('pages.unlink_module_confirm')))">
+                          data-confirm="{{ __('pages.unlink_module_confirm') }}"
+                          onsubmit="return confirm(this.dataset.confirm)">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-light py-0 px-2" title="{{ __('pages.unlink_from_course') }}">
                             <i class="bi bi-x-lg"></i>
@@ -220,7 +221,8 @@
                                             formaction="{{ route('curriculum.end-module', [$course->course_id, $module->module_id]) }}"
                                             formmethod="POST"
                                             class="btn btn-sm btn-warning"
-                                            onclick="return confirm(@json(__('pages.confirm_end_module')))">
+                                            data-confirm="{{ __('pages.confirm_end_module') }}"
+                                            onclick="return confirm(this.dataset.confirm)">
                                         <i class="bi bi-megaphone"></i> {{ __('pages.end_module_open_feedback') }}
                                     </button>
                                 @else
@@ -240,9 +242,15 @@
                                                 <i class="bi bi-display"></i> {{ __('pages.start_live_feedback') }}
                                             </a>
                                         @else
-                                            <form method="POST" action="{{ route('live-feedback.start', [$course->course_id, $module->module_id]) }}">@csrf
-                                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-display"></i> {{ __('pages.start_live_feedback') }}</button>
-                                            </form>
+                                            <form id="live-feedback-start-{{ $module->module_id }}"
+                                                  method="POST"
+                                                  action="{{ route('live-feedback.start', [$course->course_id, $module->module_id]) }}"
+                                                  class="d-inline">@csrf</form>
+                                            <button type="submit"
+                                                    form="live-feedback-start-{{ $module->module_id }}"
+                                                    class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-display"></i> {{ __('pages.start_live_feedback') }}
+                                            </button>
                                         @endif
                                         <a href="{{ route('satisfaction.module', [$course->course_id, $module->module_id]) }}"
                                            class="btn btn-sm btn-outline-secondary">

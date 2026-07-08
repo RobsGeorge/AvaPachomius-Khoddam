@@ -772,6 +772,7 @@ return [
     'live_quiz_join'                  => 'انضم للاختبار المباشر',
     'live_quiz_host_lobby'            => 'ردهة المضيف',
     'live_quiz_share_code'            => 'ينضم الطلاب عبر الاختبار المباشر → انضم بهذا الرمز',
+    'live_quiz_student_join_hint'     => 'الطلاب: افتح :url وأدخل الرمز أعلاه (وليس رمز مسودة الاختبار).',
     'live_quiz_participants'          => 'مشارك انضم',
     'live_quiz_team_mode_info'        => 'نمط الفرق: :count فرق — يختار الطلاب فريقهم عند الانضمام.',
     'live_quiz_open_projector'        => 'فتح عرض العرض',

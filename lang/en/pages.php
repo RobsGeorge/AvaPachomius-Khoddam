@@ -772,6 +772,7 @@ return [
     'live_quiz_join'                  => 'Join live quiz',
     'live_quiz_host_lobby'            => 'Host lobby',
     'live_quiz_share_code'            => 'Students join at Live quiz → Join with this code',
+    'live_quiz_student_join_hint'     => 'Students: open :url and enter the code above (not the quiz draft code).',
     'live_quiz_participants'          => 'participants joined',
     'live_quiz_team_mode_info'        => 'Team mode: :count teams — students pick a team when joining.',
     'live_quiz_open_projector'        => 'Open projector view',

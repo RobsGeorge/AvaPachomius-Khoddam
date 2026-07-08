@@ -14,6 +14,9 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+    @if($errors->any())
+        <div class="alert alert-danger">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>
+    @endif
 
     @if(Auth::user()->isInstructorOrAdmin())
         @forelse($quizzes as $quiz)
@@ -29,7 +32,7 @@
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{{ route('live-quiz.builder', $quiz) }}" class="btn btn-outline-theme btn-sm">{{ __('pages.live_quiz_builder') }}</a>
                         <form method="POST" action="{{ route('live-quiz.host.start', $quiz) }}">@csrf
-                            <button class="btn btn-primary btn-sm">{{ __('pages.live_quiz_start_session') }}</button>
+                            <button type="submit" class="btn btn-primary btn-sm">{{ __('pages.live_quiz_start_session') }}</button>
                         </form>
                     </div>
                 </div>
