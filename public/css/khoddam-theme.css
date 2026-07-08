@@ -742,6 +742,18 @@ body.theme-dark .app-dropdown-link:hover {
     box-shadow: 0 0 0 1px var(--color-primary);
 }
 
+.qr-attendance-trigger {
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.qr-attendance-trigger:hover {
+    box-shadow: var(--shadow-md);
+}
+.qr-attendance-trigger:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
 /* Student-facing responsive data cards */
 .student-data-hub .data-meta-list {
     display: grid;

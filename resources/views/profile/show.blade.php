@@ -60,16 +60,21 @@
     <div class="app-card card text-center">
         <div class="card-body">
             <h3 class="page-title h5 mb-4">{{ __('pages.qr_attendance_title') }}</h3>
-            <div class="d-inline-block p-4 bg-white border rounded shadow">
-                <button type="button" class="btn p-0 border-0 bg-transparent" data-bs-toggle="modal" data-bs-target="#qrModal" aria-label="{{ __('pages.scan_qr_attendance') }}">
-                    {!! QrCode::size(200)->generate($attendanceUrl) !!}
-                </button>
+            <div class="d-inline-block p-4 bg-white border rounded shadow qr-attendance-trigger"
+                 role="button"
+                 tabindex="0"
+                 data-bs-toggle="modal"
+                 data-bs-target="#qrModal"
+                 aria-label="{{ __('pages.scan_qr_attendance') }}">
+                {!! QrCode::size(200)->generate($attendanceUrl) !!}
             </div>
             <p class="mt-2 text-muted-theme small">{{ __('pages.scan_qr_attendance') }}</p>
         </div>
     </div>
 </div>
+@endsection
 
+@push('modals')
 <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -84,4 +89,4 @@
         </div>
     </div>
 </div>
-@endsection
+@endpush
