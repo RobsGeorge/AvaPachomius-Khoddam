@@ -27,4 +27,9 @@ return [
     'manage_events'          => 'Manage events',
     'courses'                => 'Courses',
     'courses_desc'           => 'Browse courses and curriculum available to you.',
+    'live_quiz'              => 'Live quiz',
+    'live_quiz_desc'         => 'Join Kahoot-style live quizzes in class or host sessions on the projector.',
+    'view_live_quiz'         => 'Live quiz hub',
+    'manage_live_quiz'       => 'Create & host quizzes',
+    'join_live_quiz'         => 'Join with code',
 ];

@@ -45,6 +45,13 @@ use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
+use App\Http\Controllers\LiveQuizController;
+use App\Http\Controllers\LiveQuizBuilderController;
+use App\Http\Controllers\LiveQuizHostController;
+use App\Http\Controllers\LiveQuizPlayController;
+use App\Http\Controllers\LiveFeedbackHostController;
+use App\Http\Controllers\LiveFeedbackPlayController;
+use App\Http\Controllers\SatisfactionReportController;
 
 
 
@@ -312,4 +319,47 @@ Route::middleware('auth')->group(function () {
     Route::redirect('/contents/create', '/curriculum');
     Route::get('/courses/{course}/content', fn (string $course) => redirect()->route('curriculum.show', $course));
     Route::get('/courses/{course}/content/manage', fn (string $course) => redirect()->route('curriculum.admin', $course));
+});
+
+// Live interactive quiz (separate from async exams)
+Route::middleware('auth')->prefix('live-quiz')->name('live-quiz.')->group(function () {
+    Route::get('/join', [LiveQuizPlayController::class, 'joinForm'])->name('play.join');
+    Route::post('/join', [LiveQuizPlayController::class, 'join'])->name('play.join.submit');
+    Route::get('/sessions/{session}/lobby', [LiveQuizPlayController::class, 'lobby'])->name('play.lobby');
+    Route::get('/sessions/{session}/play', [LiveQuizPlayController::class, 'play'])->name('play.session');
+    Route::post('/sessions/{session}/questions/{question}/answer', [LiveQuizPlayController::class, 'answer'])->name('play.answer');
+    Route::get('/', [LiveQuizController::class, 'index'])->name('index');
+});
+
+Route::middleware(['auth', 'role:admin,instructor'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
+    Route::get('/create', [LiveQuizController::class, 'create'])->name('create');
+    Route::post('/', [LiveQuizController::class, 'store'])->name('store');
+    Route::get('/{liveQuiz}', [LiveQuizController::class, 'show'])->name('show');
+    Route::delete('/{liveQuiz}', [LiveQuizController::class, 'destroy'])->name('destroy');
+    Route::get('/{liveQuiz}/builder', [LiveQuizBuilderController::class, 'edit'])->name('builder');
+    Route::post('/{liveQuiz}/questions', [LiveQuizBuilderController::class, 'storeQuestion'])->name('questions.store');
+    Route::delete('/{liveQuiz}/questions/{question}', [LiveQuizBuilderController::class, 'destroyQuestion'])->name('questions.destroy');
+    Route::post('/{liveQuiz}/host/start', [LiveQuizHostController::class, 'start'])->name('host.start');
+    Route::get('/sessions/{session}/host', [LiveQuizHostController::class, 'lobby'])->name('host.lobby');
+    Route::post('/sessions/{session}/launch', [LiveQuizHostController::class, 'launchQuestion'])->name('host.launch');
+    Route::get('/sessions/{session}/control', [LiveQuizHostController::class, 'control'])->name('host.control');
+    Route::post('/sessions/{session}/results', [LiveQuizHostController::class, 'showResults'])->name('host.results');
+    Route::post('/sessions/{session}/end', [LiveQuizHostController::class, 'end'])->name('host.end');
+    Route::get('/sessions/{session}/present', [LiveQuizHostController::class, 'present'])->name('host.present');
+});
+
+// Live module feedback & satisfaction reports
+Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
+    Route::post('/courses/{course}/modules/{module}/live-feedback/start', [LiveFeedbackHostController::class, 'start'])->name('live-feedback.start');
+    Route::get('/live-feedback/sessions/{session}/present', [LiveFeedbackHostController::class, 'present'])->name('live-feedback.present');
+    Route::post('/live-feedback/sessions/{session}/close', [LiveFeedbackHostController::class, 'close'])->name('live-feedback.close');
+    Route::post('/live-feedback/sessions/{session}/step', [LiveFeedbackHostController::class, 'step'])->name('live-feedback.step');
+    Route::get('/courses/{course}/satisfaction', [SatisfactionReportController::class, 'course'])->name('satisfaction.course');
+    Route::get('/courses/{course}/modules/{module}/satisfaction', [SatisfactionReportController::class, 'module'])->name('satisfaction.module');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/courses/{course}/modules/{module}/live-feedback', [LiveFeedbackPlayController::class, 'play'])->name('live-feedback.play');
+    Route::post('/live-feedback/sessions/{session}/partial', [LiveFeedbackPlayController::class, 'partial'])->name('live-feedback.partial');
+    Route::post('/live-feedback/sessions/{session}/submit', [LiveFeedbackPlayController::class, 'submit'])->name('live-feedback.submit');
 });

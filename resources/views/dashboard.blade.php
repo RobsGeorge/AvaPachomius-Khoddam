@@ -71,6 +71,21 @@
 
         <div class="col-md-6">
             <div class="app-tile h-100">
+                <h3><i class="bi bi-lightning-charge"></i> {{ __('dashboard.live_quiz') }}</h3>
+                <p class="text-muted-theme">{{ __('dashboard.live_quiz_desc') }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('live-quiz.index') }}" class="btn btn-primary">{{ __('dashboard.view_live_quiz') }}</a>
+                    @if(Auth::user()->isInstructorOrAdmin())
+                        <a href="{{ route('live-quiz.create') }}" class="btn btn-outline-theme">{{ __('dashboard.manage_live_quiz') }}</a>
+                    @else
+                        <a href="{{ route('live-quiz.play.join') }}" class="btn btn-outline-theme">{{ __('dashboard.join_live_quiz') }}</a>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="app-tile h-100">
                 <h3><i class="bi bi-patch-check"></i> {{ __('dashboard.exams') }}</h3>
                 <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('exams.index') }}" class="btn btn-primary">{{ __('dashboard.view_exams') }}</a>

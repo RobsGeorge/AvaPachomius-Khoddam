@@ -227,6 +227,28 @@
                                     <small class="text-muted">
                                         {{ __('pages.module_ended_on', ['date' => $pivot->ended_at ? \Illuminate\Support\Carbon::parse($pivot->ended_at)->format('Y-m-d H:i') : '—']) }}
                                     </small>
+                                    @php
+                                        $liveFeedbackSessionId = \App\Models\LiveFeedbackSession::where('course_id', $course->course_id)
+                                            ->where('module_id', $module->module_id)
+                                            ->latest('session_id')
+                                            ->value('session_id');
+                                    @endphp
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        @if($liveFeedbackSessionId)
+                                            <a href="{{ route('live-feedback.present', $liveFeedbackSessionId) }}"
+                                               class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <i class="bi bi-display"></i> {{ __('pages.start_live_feedback') }}
+                                            </a>
+                                        @else
+                                            <form method="POST" action="{{ route('live-feedback.start', [$course->course_id, $module->module_id]) }}">@csrf
+                                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-display"></i> {{ __('pages.start_live_feedback') }}</button>
+                                            </form>
+                                        @endif
+                                        <a href="{{ route('satisfaction.module', [$course->course_id, $module->module_id]) }}"
+                                           class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-bar-chart"></i> {{ __('pages.view_satisfaction_report') }}
+                                        </a>
+                                    </div>
                                 @endif
                             </div>
                         </div>

@@ -6,11 +6,15 @@ use App\Models\Course;
 use App\Models\Module;
 use App\Models\ModuleFeedback;
 use App\Models\Session;
+use App\Services\LiveFeedbackSessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CurriculumController extends Controller
 {
+    public function __construct(
+        private LiveFeedbackSessionService $liveFeedbackSessions
+    ) {}
     /** Course picker — entry point for the curriculum (modules → sessions → lectures). */
     public function index()
     {
@@ -176,6 +180,8 @@ class CurriculumController extends Controller
             'ended_by_user_id' => Auth::user()->user_id,
             'end_date' => $module->pivot->end_date ?? now()->toDateString(),
         ]);
+
+        $this->liveFeedbackSessions->startForModule($course, $module, Auth::user()->user_id, true);
 
         return redirect()
             ->route('curriculum.admin', $courseId)
