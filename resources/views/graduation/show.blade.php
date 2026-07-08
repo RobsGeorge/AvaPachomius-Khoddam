@@ -114,7 +114,7 @@
                 <i class="bi bi-mortarboard"></i> {{ __('pages.graduation_eligible_students') }}
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
@@ -144,6 +144,28 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @foreach($eligible as $i => $row)
+                        <article class="data-card border-success">
+                            <div class="data-card-title">{{ $row['user']->first_name }} {{ $row['user']->second_name }}</div>
+                            <dl class="data-meta-list mb-0">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.attendance_percentage') }}</dt>
+                                    <dd>{{ number_format($row['attendance_pct'], 1) }}%</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.total') }}</dt>
+                                    <dd class="fw-bold text-success">{{ number_format($row['total_grade'], 1) }}%</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.letter_grade') }}</dt>
+                                    <dd><span class="badge bg-success">{{ $row['letter'] }}</span></dd>
+                                </div>
+                            </dl>
+                        </article>
+                    @endforeach
+                </div>
             </div>
         </div>
     @elseif($criteriaConfigured)
@@ -153,7 +175,7 @@
     <div class="app-card card shadow-sm">
         <div class="card-header fw-semibold">{{ __('pages.graduation_all_students') }}</div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                 <table class="table table-hover align-middle mb-0 small">
                     <thead class="table-light">
                         <tr>
@@ -220,6 +242,64 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($evaluations as $i => $row)
+                    <article class="data-card {{ $row['eligible'] ? 'border-success' : '' }}">
+                        <div class="data-card-title">{{ $row['user']->first_name }} {{ $row['user']->second_name }}</div>
+                        <dl class="data-meta-list mb-0">
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.attendance_percentage') }}</dt>
+                                <dd>
+                                    @if($criteriaConfigured)
+                                        <span class="{{ $row['attendance_pass'] ? 'text-success' : 'text-danger fw-semibold' }}">
+                                            {{ number_format($row['attendance_pct'], 1) }}%
+                                        </span>
+                                    @else
+                                        {{ number_format($row['attendance_pct'], 1) }}%
+                                    @endif
+                                </dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.total') }}</dt>
+                                <dd class="fw-bold text-{{ $row['color'] }}">{{ number_format($row['total_grade'], 1) }}%</dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.letter_grade') }}</dt>
+                                <dd><span class="badge bg-{{ $row['color'] }}">{{ $row['letter'] }}</span></dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.graduation_eligibility') }}</dt>
+                                <dd>
+                                    @if($criteriaConfigured)
+                                        @if($row['eligible'])
+                                            <span class="badge bg-success">{{ __('pages.graduation_eligible') }}</span>
+                                        @else
+                                            <span class="badge bg-secondary">{{ __('pages.graduation_not_eligible') }}</span>
+                                        @endif
+                                    @else
+                                        <span class="badge bg-warning text-dark">{{ __('pages.graduation_not_set_label') }}</span>
+                                    @endif
+                                </dd>
+                            </div>
+                            @if($criteriaConfigured && $row['failure_reason'])
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.graduation_reason') }}</dt>
+                                    <dd class="small text-muted-theme">
+                                        @if($row['failure_reason'] === 'attendance')
+                                            {{ __('pages.graduation_fail_attendance', ['min' => number_format($course->min_attendance_percentage, 0)]) }}
+                                        @elseif($row['failure_reason'] === 'grade')
+                                            {{ __('pages.graduation_fail_grade', ['min' => number_format($course->passing_percentage, 0)]) }}
+                                        @endif
+                                    </dd>
+                                </div>
+                            @endif
+                        </dl>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_students_registered') }}</p>
+                @endforelse
             </div>
         </div>
     </div>

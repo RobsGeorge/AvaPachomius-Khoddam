@@ -43,7 +43,7 @@
                             <h3 class="page-title mb-0 h5">{{ __('pages.submission_status_report') }}</h3>
                         </div>
                         <div class="card-body p-0">
-                            <div class="table-responsive">
+                            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
@@ -75,6 +75,37 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                                @forelse($assignmentSummaries as $summary)
+                                    <article class="data-card">
+                                        <div class="data-card-title">{{ $summary['assignment']->assignment_name }}</div>
+                                        <dl class="data-meta-list mb-3">
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.due_date') }}</dt>
+                                                <dd>{{ $summary['assignment']->due_date->format('Y-m-d H:i') }}</dd>
+                                            </div>
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.students_submitted') }}</dt>
+                                                <dd>{{ $summary['submitted'] }} / {{ $totalStudents }}</dd>
+                                            </div>
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.students_not_submitted') }}</dt>
+                                                <dd>{{ $summary['not_submitted'] }}</dd>
+                                            </div>
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.students_graded') }}</dt>
+                                                <dd>{{ $summary['graded'] }}</dd>
+                                            </div>
+                                        </dl>
+                                        <div class="data-card-actions">
+                                            <a href="{{ route('assignments.status', $summary['assignment']) }}" class="btn btn-outline-primary btn-sm w-100">{{ __('pages.view_status_report') }}</a>
+                                        </div>
+                                    </article>
+                                @empty
+                                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_assignments') }}</p>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
 
@@ -83,7 +114,7 @@
                             <h3 class="page-title mb-0 h5">{{ __('pages.upcoming_assignments') }}</h3>
                         </div>
                         <div class="card-body p-0">
-                            <div class="table-responsive">
+                            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
@@ -113,6 +144,31 @@
                                     </tbody>
                                 </table>
                             </div>
+
+                            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                                @forelse($upcomingAssignmentsList as $assignment)
+                                    <article class="data-card">
+                                        <div class="data-card-title">{{ $assignment->assignment_name }}</div>
+                                        <dl class="data-meta-list mb-3">
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.due_date') }}</dt>
+                                                <dd>{{ $assignment->due_date->format('Y-m-d H:i') }}</dd>
+                                            </div>
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.total_points') }}</dt>
+                                                <dd>{{ $assignment->total_points }}</dd>
+                                            </div>
+                                        </dl>
+                                        <div class="data-card-actions d-flex flex-wrap gap-2">
+                                            <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                            <a href="{{ route('assignments.status', $assignment) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
+                                            <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
+                                        </div>
+                                    </article>
+                                @empty
+                                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_upcoming_assignments') }}</p>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
 
@@ -121,7 +177,7 @@
                             <h3 class="page-title mb-0 h5">{{ __('pages.recent_submissions') }}</h3>
                         </div>
                         <div class="card-body p-0">
-                            <div class="table-responsive">
+                            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
@@ -156,6 +212,39 @@
                                         @endforelse
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                                @forelse($recentSubmissions as $submission)
+                                    <article class="data-card">
+                                        <div class="data-card-title">{{ $submission->user->displayName() }}</div>
+                                        <dl class="data-meta-list mb-3">
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.assignments') }}</dt>
+                                                <dd>{{ $submission->assignment->assignment_name }}</dd>
+                                            </div>
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.submission_date') }}</dt>
+                                                <dd>{{ $submission->submitted_at->format('Y-m-d H:i') }}</dd>
+                                            </div>
+                                            <div class="data-meta-row">
+                                                <dt>{{ __('pages.grade') }}</dt>
+                                                <dd>
+                                                    @if($submission->points_earned !== null)
+                                                        {{ $submission->points_earned }}/{{ $submission->assignment->total_points }}
+                                                    @else
+                                                        {{ __('pages.not_graded') }}
+                                                    @endif
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                        <div class="data-card-actions">
+                                            <a href="{{ route('assignments.show', $submission->assignment) }}#submissions" class="btn btn-info btn-sm w-100">{{ __('pages.view_submissions') }}</a>
+                                        </div>
+                                    </article>
+                                @empty
+                                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_recent_submissions') }}</p>
+                                @endforelse
                             </div>
                         </div>
                     </div>

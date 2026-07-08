@@ -57,8 +57,9 @@
     </div>
 
     <div class="app-card card">
-        <div class="card-body table-responsive">
-            <table class="table table-hover align-middle">
+        <div class="card-body p-0">
+        <div class="table-responsive d-none d-lg-block admin-table-desktop p-3">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
                         <th>{{ __('admin.key') }}</th>
@@ -108,6 +109,48 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="d-lg-none admin-data-cards student-data-hub p-3">
+            @forelse($keys as $key)
+                @php
+                    $default = $fileLines[$key] ?? '';
+                    $override = $dbLines[$key] ?? '';
+                    $otherLocale = $locale === 'ar' ? 'en' : 'ar';
+                @endphp
+                <article class="data-card">
+                    <div class="data-card-title"><code>{{ $key }}</code></div>
+                    <dl class="data-meta-list mb-3">
+                        <div class="data-meta-row">
+                            <dt>{{ __('admin.file_default') }}</dt>
+                            <dd class="text-muted-theme">{{ $default }}</dd>
+                        </div>
+                    </dl>
+                    <form method="POST" action="{{ route('admin.translations.store') }}" class="mb-2">
+                        @csrf
+                        <input type="hidden" name="group" value="{{ $group }}">
+                        <input type="hidden" name="key" value="{{ $key }}">
+                        <input type="hidden" name="locale" value="{{ $locale }}">
+                        <label class="form-label small">{{ __('admin.db_override') }}</label>
+                        <input type="text" name="value" class="form-control form-control-sm mb-2"
+                               value="{{ old('value', $override ?: $default) }}">
+                        <button type="submit" class="btn btn-sm btn-primary w-100">{{ __('admin.add_override') }}</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.translations.auto') }}">
+                        @csrf
+                        <input type="hidden" name="group" value="{{ $group }}">
+                        <input type="hidden" name="key" value="{{ $key }}">
+                        <input type="hidden" name="from_locale" value="{{ $otherLocale }}">
+                        <input type="hidden" name="to_locale" value="{{ $locale }}">
+                        <button type="submit" class="btn btn-sm btn-outline-theme w-100">
+                            <i class="bi bi-stars"></i> {{ __('admin.auto_translate') }}
+                        </button>
+                    </form>
+                </article>
+            @empty
+                <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_keys') }}</p>
+            @endforelse
+        </div>
         </div>
     </div>
 </div>

@@ -86,7 +86,7 @@
 
         <div class="app-card card shadow-sm">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
@@ -154,6 +154,40 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @forelse($loginTrials as $trial)
+                        <article class="data-card">
+                            <div class="data-card-title">{{ $trial->email ?? '—' }}</div>
+                            <dl class="data-meta-list mb-0">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.date_time') }}</dt>
+                                    <dd>{{ $trial->created_at?->format('Y-m-d H:i:s') }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.context') }}</dt>
+                                    <dd>{{ __('pages.context_'.$trial->context) !== 'pages.context_'.$trial->context ? __('pages.context_'.$trial->context) : $trial->context }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.result') }}</dt>
+                                    <dd>
+                                        @if($trial->success)
+                                            <span class="badge bg-success">{{ __('pages.trial_success') }}</span>
+                                        @else
+                                            <span class="badge bg-danger">{{ __('pages.trial_failed') }}</span>
+                                        @endif
+                                    </dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.ip_address') }}</dt>
+                                    <dd>{{ $trial->ip_address ?? '—' }}</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    @empty
+                        <p class="text-center py-4 text-muted mb-0">{{ __('pages.no_login_trials') }}</p>
+                    @endforelse
+                </div>
             </div>
         </div>
 
@@ -196,7 +230,7 @@
 
         <div class="app-card card shadow-sm">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
@@ -244,6 +278,44 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @forelse($activityLogs as $log)
+                        <article class="data-card">
+                            <div class="data-card-title">
+                                @if($log->user)
+                                    {{ $log->user->first_name }} {{ $log->user->second_name }}
+                                @else
+                                    {{ __('pages.guest') }}
+                                @endif
+                            </div>
+                            <dl class="data-meta-list mb-0">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.date_time') }}</dt>
+                                    <dd>{{ $log->created_at?->format('Y-m-d H:i:s') }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.http_method') }}</dt>
+                                    <dd><span class="badge bg-secondary">{{ $log->http_method }}</span></dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.route') }}</dt>
+                                    <dd>{{ $log->route_name ?? '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.status') }}</dt>
+                                    <dd>{{ $log->response_status ?? '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.ip_address') }}</dt>
+                                    <dd>{{ $log->ip_address ?? '—' }}</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    @empty
+                        <p class="text-center py-4 text-muted mb-0">{{ __('pages.no_activity_logs') }}</p>
+                    @endforelse
                 </div>
             </div>
         </div>

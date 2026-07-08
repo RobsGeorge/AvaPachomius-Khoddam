@@ -33,7 +33,7 @@
 
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -95,6 +95,70 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($summaries as $row)
+                    <article class="data-card {{ ! $row['configured'] ? 'border-warning' : '' }}">
+                        <div class="data-card-title">{{ $row['course']->title }}</div>
+                        <dl class="data-meta-list mb-3">
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.year') }}</dt>
+                                <dd>{{ $row['course']->year }}</dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.students') }}</dt>
+                                <dd>{{ $row['students'] }}</dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.graduation_eligible_count') }}</dt>
+                                <dd>
+                                    @if($row['configured'])
+                                        <span class="badge bg-success">{{ $row['eligible'] }}</span>
+                                    @else — @endif
+                                </dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.passing_percentage') }}</dt>
+                                <dd>
+                                    @if($row['course']->passing_percentage !== null)
+                                        {{ number_format($row['course']->passing_percentage, 1) }}%
+                                    @else
+                                        <span class="badge bg-warning text-dark">{{ __('pages.graduation_not_set_label') }}</span>
+                                    @endif
+                                </dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.min_attendance_percentage') }}</dt>
+                                <dd>
+                                    @if($row['course']->min_attendance_percentage !== null)
+                                        {{ number_format($row['course']->min_attendance_percentage, 1) }}%
+                                    @else
+                                        <span class="badge bg-warning text-dark">{{ __('pages.graduation_not_set_label') }}</span>
+                                    @endif
+                                </dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.status') }}</dt>
+                                <dd>
+                                    @if($row['configured'])
+                                        <span class="badge bg-success">{{ __('pages.graduation_criteria_configured') }}</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">{{ __('pages.graduation_not_set_label') }}</span>
+                                    @endif
+                                </dd>
+                            </div>
+                        </dl>
+                        <div class="data-card-actions">
+                            <a href="{{ route('graduation.show', $row['course']->course_id) }}"
+                               class="btn btn-sm btn-outline-primary w-100">
+                                <i class="bi bi-mortarboard"></i> {{ __('pages.view_graduation') }}
+                            </a>
+                        </div>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_courses_yet') }}</p>
+                @endforelse
             </div>
         </div>
     </div>

@@ -37,7 +37,7 @@
     @if($canManageSessions)
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
@@ -104,7 +104,8 @@
                                     @if($canClose)
                                         <form method="POST"
                                               action="{{ route('sessions.close-attendance', $session->session_id) }}"
-                                              onsubmit="return confirm(@json(__('pages.confirm_close_attendance')))">
+                                              data-confirm="{{ __('pages.confirm_close_attendance') }}"
+                                              onsubmit="return confirm(this.dataset.confirm)">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-success" title="{{ __('pages.close_attendance') }}">
                                                 <i class="bi bi-lock"></i>
@@ -116,7 +117,8 @@
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form method="POST" action="{{ route('sessions.destroy', $session->session_id) }}"
-                                          onsubmit="return confirm(@json(__('pages.confirm_delete_session')))">
+                                          data-confirm="{{ __('pages.confirm_delete_session') }}"
+                                          onsubmit="return confirm(this.dataset.confirm)">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -141,6 +143,105 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($sessions as $session)
+                    <article class="data-card app-card card shadow-sm">
+                        <div class="card-body">
+                            <div class="data-card-title">{{ $session->session_title }}</div>
+                            <dl class="data-meta-list mb-3">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.number') }}</dt>
+                                    <dd>{{ $sessions->firstItem() + $loop->index }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.date') }}</dt>
+                                    <dd>
+                                        <span class="badge bg-light text-dark border">
+                                            {{ \Carbon\Carbon::parse($session->session_date)->format('Y-m-d') }}
+                                        </span>
+                                    </dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.course') }}</dt>
+                                    <dd>{{ $session->course->title ?? '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.module') }}</dt>
+                                    <dd>{{ $session->module->title ?? '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.attendance_count') }}</dt>
+                                    <dd><span class="badge bg-secondary">{{ $session->attended_count }}</span></dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.attendance_status') }}</dt>
+                                    <dd>
+                                        @if($session->isAttendanceClosed())
+                                            <span class="badge bg-success">{{ __('pages.attendance_status_closed') }}</span>
+                                            @if($session->attendance_closed_at)
+                                                <div class="small text-muted-theme mt-1">
+                                                    {{ $session->attendance_closed_at->format('Y-m-d H:i') }}
+                                                </div>
+                                            @endif
+                                        @else
+                                            <span class="badge bg-warning text-dark">{{ __('pages.attendance_status_open') }}</span>
+                                        @endif
+                                    </dd>
+                                </div>
+                            </dl>
+                            <div class="data-card-actions d-flex flex-wrap gap-2">
+                                <a href="{{ route('attendance.all', ['filter_by' => 'session', 'session_id' => $session->session_id]) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-people"></i> {{ __('pages.view_session_roster') }}
+                                </a>
+                                @if(($missingCounts[$session->session_id] ?? 0) > 0)
+                                    <span class="badge bg-warning text-dark align-self-center">
+                                        {{ __('pages.missing_records_count', ['count' => $missingCounts[$session->session_id]]) }}
+                                    </span>
+                                @endif
+                                @php
+                                    $sessionDate = $session->session_date?->format('Y-m-d');
+                                    $canClose = ! $session->isAttendanceClosed()
+                                        && $sessionDate
+                                        && $sessionDate <= $todayLocal;
+                                @endphp
+                                @if($canClose)
+                                    <form method="POST"
+                                          action="{{ route('sessions.close-attendance', $session->session_id) }}"
+                                          class="w-100"
+                                          data-confirm="{{ __('pages.confirm_close_attendance') }}"
+                                          onsubmit="return confirm(this.dataset.confirm)">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-success w-100">
+                                            <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
+                                        </button>
+                                    </form>
+                                @endif
+                                <a href="{{ route('sessions.edit', $session->session_id) }}"
+                                   class="btn btn-sm btn-outline-theme">
+                                    <i class="bi bi-pencil"></i> {{ __('pages.edit') }}
+                                </a>
+                                <form method="POST" action="{{ route('sessions.destroy', $session->session_id) }}"
+                                      class="w-100"
+                                      data-confirm="{{ __('pages.confirm_delete_session') }}"
+                                      onsubmit="return confirm(this.dataset.confirm)">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                        <i class="bi bi-trash"></i> {{ __('pages.delete') }}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">
+                        {{ __('pages.no_sessions_yet') }}
+                        <a href="{{ route('sessions.create') }}">{{ __('pages.create_now') }}</a>
+                    </p>
+                @endforelse
             </div>
         </div>
     </div>

@@ -21,13 +21,23 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260711a">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260711f">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     @stack('styles')
 </head>
 
-<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column" x-data="{ navOpen: false }">
+<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column"
+      x-data="{ navOpen: false, navScrollY: 0 }"
+      x-effect="if (navOpen && window.matchMedia('(max-width: 767.98px)').matches) {
+          navScrollY = window.scrollY;
+          $el.classList.add('mobile-nav-open');
+          $el.style.top = `-${navScrollY}px`;
+      } else {
+          $el.classList.remove('mobile-nav-open');
+          $el.style.top = '';
+          if (navScrollY) window.scrollTo(0, navScrollY);
+      }">
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 

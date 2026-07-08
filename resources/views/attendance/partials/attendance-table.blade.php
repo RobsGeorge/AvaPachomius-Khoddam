@@ -1,4 +1,4 @@
-<div class="table-responsive">
+<div class="table-responsive d-none d-lg-block admin-table-desktop">
     <table class="table table-hover mb-0">
         <thead class="table-light">
             <tr>
@@ -36,13 +36,14 @@
                         </select>
                     </td>
                     <td>
-                        <input type="text"
-                               class="form-control form-control-sm permission-reason"
-                               data-attendance-id="{{ $record->attendance_id }}"
-                               value="{{ $record->permission_reason }}"
-                               placeholder="{{ __('pages.permission_reason_placeholder') }}"
-                               style="display: {{ $record->status == 'Permission' ? 'block' : 'none' }}"
-                               onchange="updatePermissionReason(this)">
+                        <div class="permission-reason-field {{ $record->status == 'Permission' ? '' : 'd-none' }}">
+                            <input type="text"
+                                   class="form-control form-control-sm permission-reason"
+                                   data-attendance-id="{{ $record->attendance_id }}"
+                                   value="{{ $record->permission_reason }}"
+                                   placeholder="{{ __('pages.permission_reason_placeholder') }}"
+                                   onchange="updatePermissionReason(this)">
+                        </div>
                     </td>
                     <td>{{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}</td>
                     <td>{{ $record->attendance_time }}</td>
@@ -52,22 +53,82 @@
     </table>
 </div>
 
+<div class="d-lg-none admin-data-cards student-data-hub">
+    @foreach($records as $record)
+        <article class="data-card attendance-row"
+                 data-name="{{ strtolower($record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name) }}"
+                 data-date="{{ $record->session->session_date }}"
+                 data-status="{{ $record->status }}"
+                 data-attendance-id="{{ $record->attendance_id }}">
+            <div class="data-card-title">
+                <a href="{{ route('attendance.user', $record->user_id) }}" class="text-decoration-none">
+                    {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
+                </a>
+            </div>
+            <dl class="data-meta-list mb-0">
+                <div class="data-meta-row">
+                    <dt>{{ __('pages.lecture') }}</dt>
+                    <dd>{{ $record->session->session_title }}</dd>
+                </div>
+                <div class="data-meta-row">
+                    <dt>{{ __('pages.date') }}</dt>
+                    <dd>{{ $record->session->session_date }}</dd>
+                </div>
+                <div class="data-meta-row">
+                    <dt>{{ __('pages.status') }}</dt>
+                    <dd>
+                        <select class="form-select form-select-sm status-select"
+                                data-attendance-id="{{ $record->attendance_id }}"
+                                onchange="updateAttendanceStatus(this)">
+                            <option value="Present" {{ $record->status == 'Present' ? 'selected' : '' }}>{{ __('pages.present') }}</option>
+                            <option value="Absent" {{ $record->status == 'Absent' ? 'selected' : '' }}>{{ __('pages.absent') }}</option>
+                            <option value="Late" {{ $record->status == 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
+                            <option value="Permission" {{ $record->status == 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
+                        </select>
+                    </dd>
+                </div>
+                <div class="data-meta-row">
+                    <dt>{{ __('pages.permission_reason') }}</dt>
+                    <dd>
+                        <div class="permission-reason-field {{ $record->status == 'Permission' ? '' : 'd-none' }}">
+                            <input type="text"
+                                   class="form-control form-control-sm permission-reason"
+                                   data-attendance-id="{{ $record->attendance_id }}"
+                                   value="{{ $record->permission_reason }}"
+                                   placeholder="{{ __('pages.permission_reason_placeholder') }}"
+                                   onchange="updatePermissionReason(this)">
+                        </div>
+                    </dd>
+                </div>
+                <div class="data-meta-row">
+                    <dt>{{ __('pages.recorded_by') }}</dt>
+                    <dd>{{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}</dd>
+                </div>
+                <div class="data-meta-row">
+                    <dt>{{ __('pages.recorded_at') }}</dt>
+                    <dd>{{ $record->attendance_time }}</dd>
+                </div>
+            </dl>
+        </article>
+    @endforeach
+</div>
+
+@include('attendance.partials.status-messages-json')
+
 @push('scripts')
 <script>
-const attendanceMessages = {
-    statusUpdated: @json(__('pages.status_updated')),
-    statusError: @json(__('pages.status_update_error')),
-    permissionUpdated: @json(__('pages.permission_updated')),
-    permissionError: @json(__('pages.permission_update_error')),
-    enterReason: @json(__('pages.enter_permission_reason')),
-};
+const attendanceTableMessages = JSON.parse(
+    document.getElementById('attendance-status-messages').textContent
+);
 
 function updateAttendanceStatus(selectElement) {
     const attendanceId = selectElement.dataset.attendanceId;
     const status = selectElement.value;
-    const row = selectElement.closest('tr');
-    const permissionReasonInput = row.querySelector('.permission-reason');
-    permissionReasonInput.style.display = status === 'Permission' ? 'block' : 'none';
+    const row = selectElement.closest('.attendance-row');
+    const permissionReasonField = row.querySelector('.permission-reason-field');
+    if (permissionReasonField) {
+        permissionReasonField.classList.toggle('d-none', status !== 'Permission');
+    }
     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     fetch(`/attendance/update-status/${attendanceId}`, {
@@ -82,12 +143,12 @@ function updateAttendanceStatus(selectElement) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(attendanceMessages.statusUpdated);
+            alert(attendanceTableMessages.statusUpdated);
         } else {
-            alert(attendanceMessages.statusError);
+            alert(attendanceTableMessages.statusUpdateError);
         }
     })
-    .catch(() => alert(attendanceMessages.statusError));
+    .catch(() => alert(attendanceTableMessages.statusUpdateError));
 }
 
 function updatePermissionReason(inputElement) {
@@ -96,7 +157,7 @@ function updatePermissionReason(inputElement) {
     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     if (!reason.trim()) {
-        alert(attendanceMessages.enterReason);
+        alert(attendanceTableMessages.enterPermissionReason);
         return;
     }
 
@@ -112,12 +173,12 @@ function updatePermissionReason(inputElement) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(attendanceMessages.permissionUpdated);
+            alert(attendanceTableMessages.permissionUpdated);
         } else {
-            alert(attendanceMessages.permissionError);
+            alert(attendanceTableMessages.permissionUpdateError);
         }
     })
-    .catch(() => alert(attendanceMessages.permissionError));
+    .catch(() => alert(attendanceTableMessages.permissionUpdateError));
 }
 </script>
 @endpush

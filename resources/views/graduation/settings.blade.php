@@ -24,7 +24,7 @@
 
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -92,6 +92,54 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($courses as $course)
+                    <article class="data-card">
+                        <div class="data-card-title">{{ $course->title }}</div>
+                        <p class="small text-muted-theme mb-2">{{ $course->year }} — {{ Str::limit($course->description, 120) }}</p>
+                        <form method="POST" action="{{ route('admin.graduation-settings.update', $course->course_id) }}" class="d-flex flex-column gap-2">
+                            @csrf @method('PUT')
+                            <div>
+                                <label class="form-label small mb-1">{{ __('pages.passing_percentage') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="passing_percentage" class="form-control"
+                                           min="0" max="100" step="0.5" required
+                                           value="{{ old('passing_percentage', $course->passing_percentage) }}">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label small mb-1">{{ __('pages.min_attendance_percentage') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" name="min_attendance_percentage" class="form-control"
+                                           min="0" max="100" step="0.5" required
+                                           value="{{ old('min_attendance_percentage', $course->min_attendance_percentage) }}">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div>
+                                @if($course->hasGraduationCriteria())
+                                    <span class="badge bg-success">{{ __('pages.graduation_criteria_configured') }}</span>
+                                @else
+                                    <span class="badge bg-warning text-dark">{{ __('pages.graduation_not_set_label') }}</span>
+                                @endif
+                            </div>
+                            <div class="data-card-actions d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-save"></i> {{ __('pages.save') }}
+                                </button>
+                                <a href="{{ route('graduation.show', $course->course_id) }}"
+                                   class="btn btn-sm btn-outline-theme">
+                                    {{ __('pages.view_graduation') }}
+                                </a>
+                            </div>
+                        </form>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_courses_yet') }}</p>
+                @endforelse
             </div>
         </div>
     </div>

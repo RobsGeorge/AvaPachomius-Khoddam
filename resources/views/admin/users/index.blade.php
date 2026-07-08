@@ -15,7 +15,7 @@
     @else
         <div class="app-card card">
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -43,6 +43,32 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @foreach ($unverifiedUsers as $user)
+                        <article class="data-card">
+                            <div class="data-card-title">{{ $user->first_name }} {{ $user->second_name }}</div>
+                            <dl class="data-meta-list mb-3">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('admin.user_id') }}</dt>
+                                    <dd>{{ $user->id }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('admin.user_email') }}</dt>
+                                    <dd>{{ $user->email }}</dd>
+                                </div>
+                            </dl>
+                            <div class="data-card-actions">
+                                <form method="POST" action="{{ route('admin.users.approve', $user->id) }}">
+                                    @csrf
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                                        {{ __('pages.approve') }}
+                                    </button>
+                                </form>
+                            </div>
+                        </article>
+                    @endforeach
                 </div>
             </div>
         </div>

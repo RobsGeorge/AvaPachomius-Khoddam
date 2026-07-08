@@ -135,9 +135,9 @@
         </div>
 
         @auth
-            <div class="d-md-none nav-links mt-2 pb-2" x-show="navOpen" x-transition x-cloak>
+            <div class="d-md-none nav-links mobile-nav-panel mt-2 pb-2" x-show="navOpen" x-transition x-cloak>
                 <div class="d-flex flex-column gap-1">
-                    <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">{{ __('nav.home') }}</a>
+                    <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.home') }}</a>
 
                     <details class="mobile-nav-group" @if($academicActive) open @endif>
                         <summary class="mobile-nav-summary {{ $academicActive ? 'active' : '' }}">
@@ -145,11 +145,11 @@
                             <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
                         </summary>
                         <div class="mobile-nav-submenu d-flex flex-column gap-1">
-                            <a href="{{ route('hubs.academic') }}" class="app-nav-link small {{ request()->routeIs('hubs.academic') ? 'active' : '' }}">
+                            <a href="{{ route('hubs.academic') }}" class="app-nav-link small {{ request()->routeIs('hubs.academic') ? 'active' : '' }}" @click="navOpen = false">
                                 <i class="bi bi-grid me-1"></i>{{ __('nav.academic') }}
                             </a>
                             @foreach($academicLinks as $link)
-                                <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}">
+                                <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
                                     <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
                                 </a>
                             @endforeach
@@ -163,11 +163,11 @@
                                 <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
                             </summary>
                             <div class="mobile-nav-submenu d-flex flex-column gap-1">
-                                <a href="{{ route('hubs.system') }}" class="app-nav-link small {{ request()->routeIs('hubs.system') ? 'active' : '' }}">
+                                <a href="{{ route('hubs.system') }}" class="app-nav-link small {{ request()->routeIs('hubs.system') ? 'active' : '' }}" @click="navOpen = false">
                                     <i class="bi bi-gear me-1"></i>{{ __('nav.system_settings') }}
                                 </a>
                                 @foreach($systemLinks as $link)
-                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}">
+                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
                                         <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
                                     </a>
                                 @endforeach
@@ -176,7 +176,7 @@
                     @endif
 
                     @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
-                        <a href="{{ route('announcements.index') }}" class="app-nav-link d-flex align-items-center gap-2 {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
+                        <a href="{{ route('announcements.index') }}" class="app-nav-link d-flex align-items-center gap-2 {{ request()->routeIs('announcements.*') ? 'active' : '' }}" @click="navOpen = false">
                             <i class="bi bi-bell"></i>
                             {{ __('announcements.notifications') }}
                             @if(!empty($unreadAnnouncementCount) && $unreadAnnouncementCount > 0)
@@ -186,8 +186,8 @@
                     @endif
 
                     <hr class="my-1 border-secondary-subtle">
-                    <a href="{{ route('profile') }}" class="app-nav-link {{ request()->routeIs('profile') ? 'active' : '' }}">{{ __('nav.profile') }}</a>
-                    <a href="{{ route('logout') }}" class="app-nav-link">{{ __('nav.logout') }}</a>
+                    <a href="{{ route('profile') }}" class="app-nav-link {{ request()->routeIs('profile') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.profile') }}</a>
+                    <a href="{{ route('logout') }}" class="app-nav-link" @click="navOpen = false">{{ __('nav.logout') }}</a>
                 </div>
             </div>
         @endauth

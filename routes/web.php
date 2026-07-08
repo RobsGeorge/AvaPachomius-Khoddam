@@ -385,21 +385,22 @@ Route::middleware(['auth', 'role:admin,instructor'])->prefix('live-quiz')->name(
 // Module feedback surveys
 Route::middleware('auth')->prefix('feedback')->name('feedback.')->group(function () {
     Route::get('/', [FeedbackHubController::class, 'index'])->name('index');
-    Route::get('/surveys/{survey}', [FeedbackSurveyStudentController::class, 'show'])->name('surveys.show');
-    Route::post('/surveys/{survey}/submit', [FeedbackSurveyStudentController::class, 'store'])->name('surveys.submit');
-});
 
-Route::middleware(['auth', 'role:admin,instructor'])->prefix('feedback')->name('feedback.')->group(function () {
-    Route::get('/surveys/create', [FeedbackSurveyAdminController::class, 'create'])->name('surveys.create');
-    Route::post('/surveys', [FeedbackSurveyAdminController::class, 'store'])->name('surveys.store');
-    Route::get('/surveys/{survey}/edit', [FeedbackSurveyAdminController::class, 'edit'])->name('surveys.edit');
-    Route::put('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'update'])->name('surveys.update');
-    Route::post('/surveys/{survey}/questions', [FeedbackSurveyAdminController::class, 'storeQuestion'])->name('surveys.questions.store');
-    Route::delete('/surveys/{survey}/questions/{question}', [FeedbackSurveyAdminController::class, 'destroyQuestion'])->name('surveys.questions.destroy');
-    Route::post('/surveys/{survey}/publish', [FeedbackSurveyAdminController::class, 'publish'])->name('surveys.publish');
-    Route::post('/surveys/{survey}/close', [FeedbackSurveyAdminController::class, 'close'])->name('surveys.close');
-    Route::delete('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'destroy'])->name('surveys.destroy');
-    Route::get('/surveys/{survey}/report', [FeedbackReportController::class, 'show'])->name('surveys.report');
-    Route::get('/surveys/{survey}/report/questions/{question}', [FeedbackReportController::class, 'byQuestion'])->name('surveys.report.question');
-    Route::get('/surveys/{survey}/report/students/{user}', [FeedbackReportController::class, 'byStudent'])->name('surveys.report.student');
+    Route::middleware('role:admin,instructor')->group(function () {
+        Route::get('/surveys/create', [FeedbackSurveyAdminController::class, 'create'])->name('surveys.create');
+        Route::post('/surveys', [FeedbackSurveyAdminController::class, 'store'])->name('surveys.store');
+        Route::get('/surveys/{survey}/edit', [FeedbackSurveyAdminController::class, 'edit'])->name('surveys.edit')->whereNumber('survey');
+        Route::put('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'update'])->name('surveys.update')->whereNumber('survey');
+        Route::post('/surveys/{survey}/questions', [FeedbackSurveyAdminController::class, 'storeQuestion'])->name('surveys.questions.store')->whereNumber('survey');
+        Route::delete('/surveys/{survey}/questions/{question}', [FeedbackSurveyAdminController::class, 'destroyQuestion'])->name('surveys.questions.destroy')->whereNumber(['survey', 'question']);
+        Route::post('/surveys/{survey}/publish', [FeedbackSurveyAdminController::class, 'publish'])->name('surveys.publish')->whereNumber('survey');
+        Route::post('/surveys/{survey}/close', [FeedbackSurveyAdminController::class, 'close'])->name('surveys.close')->whereNumber('survey');
+        Route::delete('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'destroy'])->name('surveys.destroy')->whereNumber('survey');
+        Route::get('/surveys/{survey}/report', [FeedbackReportController::class, 'show'])->name('surveys.report')->whereNumber('survey');
+        Route::get('/surveys/{survey}/report/questions/{question}', [FeedbackReportController::class, 'byQuestion'])->name('surveys.report.question')->whereNumber(['survey', 'question']);
+        Route::get('/surveys/{survey}/report/students/{user}', [FeedbackReportController::class, 'byStudent'])->name('surveys.report.student')->whereNumber(['survey', 'user']);
+    });
+
+    Route::get('/surveys/{survey}', [FeedbackSurveyStudentController::class, 'show'])->name('surveys.show')->whereNumber('survey');
+    Route::post('/surveys/{survey}/submit', [FeedbackSurveyStudentController::class, 'store'])->name('surveys.submit')->whereNumber('survey');
 });

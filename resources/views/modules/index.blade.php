@@ -4,11 +4,13 @@
 
 @section('content')
 <div class="container py-4 animate-in">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 admin-page-header">
         <h1 class="page-title mb-0">{{ __('pages.modules_title') }}</h1>
+        <div class="admin-page-actions">
         <a href="{{ route('modules.create') }}" class="btn btn-primary">
             <i class="bi bi-plus-circle"></i> {{ __('pages.create_new_module') }}
         </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -20,7 +22,7 @@
 
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
@@ -63,7 +65,8 @@
                                         <i class="bi bi-pencil"></i> {{ __('pages.edit') }}
                                     </a>
                                     <form method="POST" action="{{ route('modules.destroy', $module->module_id) }}"
-                                          onsubmit="return confirm(@json(__('pages.confirm_delete_module_cascade')))">
+                                          data-confirm="{{ __('pages.confirm_delete_module_cascade') }}"
+                                          onsubmit="return confirm(this.dataset.confirm)">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash"></i>
@@ -82,6 +85,66 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($modules as $module)
+                    <article class="data-card">
+                        <div class="data-card-title">{{ $module->title }}</div>
+                        <dl class="data-meta-list mb-3">
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.number') }}</dt>
+                                <dd>{{ $loop->iteration }}</dd>
+                            </div>
+                            @if($module->description)
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.description') }}</dt>
+                                    <dd>{{ $module->description }}</dd>
+                                </div>
+                            @endif
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.lectures') }}</dt>
+                                <dd><span class="badge bg-secondary">{{ $module->lectures_count }}</span></dd>
+                            </div>
+                            @if($showExamCount ?? false)
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.exams_count') }}</dt>
+                                    <dd><span class="badge bg-info text-dark">{{ $module->exams_count ?? 0 }}</span></dd>
+                                </div>
+                            @endif
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.linked_courses') }}</dt>
+                                <dd>
+                                    @forelse($module->courses as $course)
+                                        <span class="badge bg-light text-dark border me-1 mb-1">{{ $course->title }}</span>
+                                    @empty
+                                        —
+                                    @endforelse
+                                </dd>
+                            </div>
+                        </dl>
+                        <div class="data-card-actions d-flex flex-wrap gap-2">
+                            <a href="{{ route('modules.edit', $module->module_id) }}"
+                               class="btn btn-sm btn-outline-theme">
+                                <i class="bi bi-pencil"></i> {{ __('pages.edit') }}
+                            </a>
+                            <form method="POST" action="{{ route('modules.destroy', $module->module_id) }}"
+                                  class="w-100"
+                                  data-confirm="{{ __('pages.confirm_delete_module_cascade') }}"
+                                  onsubmit="return confirm(this.dataset.confirm)">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger w-100">
+                                    <i class="bi bi-trash"></i> {{ __('pages.delete') }}
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">
+                        {{ __('pages.no_modules_yet') }}
+                        <a href="{{ route('modules.create') }}">{{ __('pages.create_now') }}</a>
+                    </p>
+                @endforelse
             </div>
         </div>
     </div>

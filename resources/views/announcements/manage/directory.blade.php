@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <div class="table-responsive app-card card shadow-sm">
+    <div class="table-responsive d-none d-lg-block admin-table-desktop app-card card shadow-sm">
         <table class="table mb-0">
             <thead>
                 <tr>
@@ -42,6 +42,38 @@
                 @endforeach
             </tbody>
         </table>
+    </div>
+
+    <div class="d-lg-none admin-data-cards student-data-hub">
+        @foreach($announcement->deliveries as $delivery)
+            <article class="data-card app-card card shadow-sm">
+                <div class="card-body">
+                    <div class="data-card-title">{{ $delivery->user?->displayName() ?? '—' }}</div>
+                    <dl class="data-meta-list mb-0">
+                        <div class="data-meta-row">
+                            <dt>{{ __('announcements.read') }}</dt>
+                            <dd>{{ $delivery->read_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('announcements.opened') }}</dt>
+                            <dd>{{ $delivery->opened_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('announcements.dismissed') }}</dt>
+                            <dd>{{ $delivery->dismissed_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('announcements.email_sent') }}</dt>
+                            <dd>{{ $delivery->email_sent_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('announcements.whatsapp_sent') }}</dt>
+                            <dd>{{ $delivery->whatsapp_sent_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </article>
+        @endforeach
     </div>
 </div>
 @endsection

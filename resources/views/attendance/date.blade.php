@@ -9,7 +9,7 @@
             @if($attendanceRecords->count() === 0)
                 <p>{{ __('pages.no_attendance_records') }}.</p>
             @else
-                <div class="table-responsive mb-4">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop mb-4">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
@@ -46,9 +46,10 @@
                                         <div id="permission-reason-{{ $record->attendance_id }}" class="mt-1 {{ $record->status === 'Permission' ? '' : 'd-none' }}">
                                             <input type="text"
                                                    class="permission-reason form-control form-control-sm"
+                                                   data-attendance-id="{{ $record->attendance_id }}"
                                                    placeholder="{{ __('pages.permission_reason') }}"
                                                    value="{{ $record->permission_reason }}"
-                                                   onchange="updatePermissionReason(this, {{ $record->attendance_id }})">
+                                                   onchange="updatePermissionReason(this)">
                                         </div>
                                     </td>
                                     <td class="text-nowrap">
@@ -63,6 +64,60 @@
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub mb-4">
+                    @foreach($attendanceRecords as $record)
+                        <article class="data-card">
+                            <div class="data-card-title">
+                                @if($record->user)
+                                    <a href="{{ route('attendance.user', $record->user_id) }}" class="text-decoration-none">
+                                        {{ $record->user->first_name . ' ' . $record->user->second_name . ' ' . $record->user->third_name }}
+                                    </a>
+                                @else — @endif
+                            </div>
+                            <dl class="data-meta-list mb-0">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.date') }}</dt>
+                                    <dd>{{ $record->display_session_date ?? __('pages.unspecified') }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.status') }}</dt>
+                                    <dd>
+                                        <select class="status-select form-select form-select-sm"
+                                                data-attendance-id="{{ $record->attendance_id }}"
+                                                data-current-status="{{ $record->status }}"
+                                                onchange="updateStatus(this)">
+                                            <option value="Present" {{ $record->status === 'Present' ? 'selected' : '' }}>{{ __('pages.present') }}</option>
+                                            <option value="Absent" {{ $record->status === 'Absent' ? 'selected' : '' }}>{{ __('pages.absent') }}</option>
+                                            <option value="Late" {{ $record->status === 'Late' ? 'selected' : '' }}>{{ __('pages.late') }}</option>
+                                            <option value="Permission" {{ $record->status === 'Permission' ? 'selected' : '' }}>{{ __('pages.permission') }}</option>
+                                        </select>
+                                        <div id="permission-reason-{{ $record->attendance_id }}" class="mt-1 {{ $record->status === 'Permission' ? '' : 'd-none' }}">
+                                            <input type="text"
+                                                   class="permission-reason form-control form-control-sm"
+                                                   data-attendance-id="{{ $record->attendance_id }}"
+                                                   placeholder="{{ __('pages.permission_reason') }}"
+                                                   value="{{ $record->permission_reason }}"
+                                                   onchange="updatePermissionReason(this)">
+                                        </div>
+                                    </dd>
+                                </div>
+                                @if($record->takenBy)
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.recorded_by') }}</dt>
+                                        <dd>{{ $record->takenBy->first_name . ' ' . $record->takenBy->second_name }}</dd>
+                                    </div>
+                                @endif
+                                @if($record->display_attendance_time)
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.recorded_at') }}</dt>
+                                        <dd>{{ $record->display_attendance_time }}</dd>
+                                    </div>
+                                @endif
+                            </dl>
+                        </article>
+                    @endforeach
                 </div>
 
                 @php
@@ -80,7 +135,7 @@
                                 <h3 class="h6 fw-semibold mb-3">{{ __('pages.today_stats') }}</h3>
                                 <p class="small text-muted-theme mb-2">{{ __('pages.attendance_rate') }}</p>
                                 <div class="progress mb-2" style="height:1rem;">
-                                    <div class="progress-bar bg-success" style="width: {{ $presentPercentage }}%"></div>
+                                    <div class="progress-bar bg-success" @style(['width' => $presentPercentage . '%'])></div>
                                 </div>
                                 <p class="mb-3">{{ $presentPercentage }}%</p>
                                 <div class="row g-2 text-center">
@@ -115,7 +170,7 @@
                                             <div class="fw-semibold">{{ number_format($pct, 1) }}%</div>
                                         </div>
                                         <div class="progress" style="height:0.5rem;">
-                                            <div class="progress-bar" style="width: {{ $pct }}%"></div>
+                                            <div class="progress-bar" @style(['width' => $pct . '%'])></div>
                                         </div>
                                     </div>
                                 @endforeach

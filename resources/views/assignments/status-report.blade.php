@@ -53,7 +53,7 @@
                         </div>
                     @endif
 
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-lg-block admin-table-desktop">
                         <table class="table table-striped align-middle">
                             <thead>
                                 <tr>
@@ -117,6 +117,66 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="d-lg-none admin-data-cards student-data-hub">
+                        @forelse($rows as $row)
+                            @php
+                                $student = $row['student'];
+                                $submission = $row['submission'];
+                                $status = $row['status'];
+                            @endphp
+                            <article class="data-card">
+                                <div class="data-card-title">{{ $student->displayName() }}</div>
+                                <dl class="data-meta-list mb-3">
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.email') }}</dt>
+                                        <dd>{{ $student->email ?? '—' }}</dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.mobile') }}</dt>
+                                        <dd>{{ $student->mobile_number ?? '—' }}</dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.submission_status') }}</dt>
+                                        <dd>
+                                            @if($status === 'graded')
+                                                <span class="badge bg-success">{{ __('pages.status_graded') }}</span>
+                                            @elseif($status === 'submitted')
+                                                <span class="badge bg-primary">{{ __('pages.status_submitted') }}</span>
+                                            @elseif($status === 'not_submitted')
+                                                <span class="badge bg-warning text-dark">{{ __('pages.status_pending') }}</span>
+                                            @else
+                                                <span class="badge bg-danger">{{ __('pages.status_overdue') }}</span>
+                                            @endif
+                                        </dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.submission_date') }}</dt>
+                                        <dd>{{ $submission ? $submission->submitted_at->format('Y-m-d H:i') : '—' }}</dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.grade') }}</dt>
+                                        <dd>
+                                            @if($submission && $submission->points_earned !== null)
+                                                {{ $submission->points_earned }}/{{ $assignment->total_points }}
+                                            @else
+                                                {{ __('pages.not_graded') }}
+                                            @endif
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <div class="data-card-actions d-flex flex-wrap gap-2">
+                                    @if($submission)
+                                        <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                    @elseif($student->email)
+                                        <a href="mailto:{{ $student->email }}" class="btn btn-outline-primary btn-sm">{{ __('pages.contact') }}</a>
+                                    @endif
+                                </div>
+                            </article>
+                        @empty
+                            <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_assignments') }}</p>
+                        @endforelse
                     </div>
                 </div>
             </div>

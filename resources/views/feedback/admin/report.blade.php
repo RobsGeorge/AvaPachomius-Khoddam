@@ -47,7 +47,7 @@
 
     <h5 class="mb-3 mt-4">{{ __('pages.responses_by_student') }}</h5>
     <div class="app-card card">
-        <div class="table-responsive">
+        <div class="table-responsive d-none d-lg-block admin-table-desktop">
             <table class="table table-hover mb-0">
                 <thead class="table-light"><tr><th>{{ __('pages.student') }}</th><th>{{ __('pages.submitted_at') }}</th><th></th></tr></thead>
                 <tbody>
@@ -62,6 +62,25 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+
+        <div class="d-lg-none admin-data-cards student-data-hub p-3">
+            @forelse($submissions as $sub)
+                <article class="data-card">
+                    <div class="data-card-title">{{ $sub->user?->displayName() ?? '—' }}</div>
+                    <dl class="data-meta-list mb-3">
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.submitted_at') }}</dt>
+                            <dd>{{ $sub->submitted_at?->format('Y-m-d H:i') }}</dd>
+                        </div>
+                    </dl>
+                    <div class="data-card-actions">
+                        <a href="{{ route('feedback.surveys.report.student', [$survey, $sub->user_id]) }}" class="btn btn-sm btn-outline-primary w-100">{{ __('pages.view') }}</a>
+                    </div>
+                </article>
+            @empty
+                <p class="text-center text-muted py-4 mb-0">{{ __('pages.no_responses_yet') }}</p>
+            @endforelse
         </div>
     </div>
     {{ $submissions->links() }}

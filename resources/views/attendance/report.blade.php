@@ -66,7 +66,7 @@
     <div class="app-card card shadow-sm mb-4">
         <div class="card-body p-0">
             @if($users->count() > 0)
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
@@ -110,6 +110,53 @@
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @foreach($users as $user)
+                        @php
+                            $percentage = $user->attendance_percentage;
+                            $percentageClass = match (true) {
+                                $percentage >= 90 => 'report-pct--excellent',
+                                $percentage >= 75 => 'report-pct--good',
+                                $percentage >= 60 => 'report-pct--average',
+                                default => 'report-pct--poor',
+                            };
+                        @endphp
+                        <article class="data-card">
+                            <div class="data-card-title">
+                                <a href="{{ route('attendance.user', $user->user_id) }}" class="text-decoration-none">
+                                    {{ $user->first_name }} {{ $user->second_name }}
+                                </a>
+                            </div>
+                            <dl class="data-meta-list mb-0">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.phone_number') }}</dt>
+                                    <dd>{{ $user->mobile_number }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.total_sessions_count') }}</dt>
+                                    <dd>{{ $user->total_sessions }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.present_times') }}</dt>
+                                    <dd><span class="fw-bold text-success">{{ $user->attended_sessions }}</span></dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.absent_times') }}</dt>
+                                    <dd><span class="fw-bold text-danger">{{ $user->absent_sessions }}</span></dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.late_times') }}</dt>
+                                    <dd><span class="fw-bold text-warning">{{ $user->late_sessions }}</span></dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.attendance_rate') }}</dt>
+                                    <dd><span class="report-pct {{ $percentageClass }}">{{ number_format($percentage, 1) }}%</span></dd>
+                                </div>
+                            </dl>
+                        </article>
+                    @endforeach
                 </div>
             @else
                 <div class="text-center text-muted-theme py-5">

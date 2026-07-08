@@ -50,7 +50,7 @@
         </div>
     </div>
 
-    <div class="d-flex flex-wrap gap-2 mb-3">
+    <div class="d-flex flex-wrap gap-2 mb-3 admin-filter-bar">
         <a href="{{ route('admin.profile-photos.index') }}" class="btn btn-sm {{ $filter ? 'btn-outline-secondary' : 'btn-primary' }}">
             {{ __('profile_photos.filter_all') }} ({{ array_sum($counts) }})
         </a>
@@ -62,7 +62,7 @@
         @endforeach
     </div>
 
-    <div class="table-responsive app-card card shadow-sm">
+    <div class="table-responsive d-none d-lg-block admin-table-desktop app-card card shadow-sm">
         <table class="table table-hover mb-0 align-middle">
             <thead>
                 <tr>
@@ -121,7 +121,8 @@
                                 </form>
 
                                 <form method="POST" action="{{ route('admin.profile-photos.reset-grace', $student) }}"
-                                      onsubmit="return confirm(@json(__('profile_photos.confirm_reset_grace')))">
+                                      data-confirm="{{ __('profile_photos.confirm_reset_grace') }}"
+                                      onsubmit="return confirm(this.dataset.confirm)">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('profile_photos.reset_grace') }}</button>
                                 </form>
@@ -135,6 +136,76 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    <div class="d-lg-none admin-data-cards student-data-hub">
+        @forelse($students as $student)
+            @php($status = $gate->reportStatus($student))
+            @php($deadline = $gate->deadlineFor($student))
+            <article class="data-card app-card card shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        @if($student->profile_photo)
+                            <button type="button" class="btn p-0 border-0 student-photo-trigger"
+                                    data-bs-toggle="modal" data-bs-target="#studentPhotoModal"
+                                    data-photo-url="{{ asset('storage/' . $student->profile_photo) }}"
+                                    data-photo-name="{{ $student->displayName() }}">
+                                <img src="{{ asset('storage/' . $student->profile_photo) }}" alt="" class="rounded-circle" width="48" height="48" style="object-fit:cover;">
+                            </button>
+                        @endif
+                        <div>
+                            <div class="data-card-title mb-0">{{ $student->displayName() }}</div>
+                            <div class="small text-muted-theme">{{ $student->email }}</div>
+                        </div>
+                    </div>
+                    <dl class="data-meta-list mb-3">
+                        <div class="data-meta-row">
+                            <dt>{{ __('profile_photos.status') }}</dt>
+                            <dd><span class="badge bg-secondary">{{ __('profile_photos.status_'.$status) }}</span></dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('profile_photos.grace_started') }}</dt>
+                            <dd>{{ $student->profile_photo_grace_started_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('profile_photos.deadline') }}</dt>
+                            <dd>{{ $deadline?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('profile_photos.uploaded_at') }}</dt>
+                            <dd>{{ $student->profile_photo_uploaded_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                        </div>
+                    </dl>
+                    <div class="data-card-actions d-flex flex-column gap-2">
+                        @if($student->isProfilePhotoPending())
+                            <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-success w-100">{{ __('profile_photos.approve') }}</button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}">
+                                @csrf
+                                <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
+                                       placeholder="{{ __('profile_photos.rejection_note') }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">{{ __('profile_photos.reject') }}</button>
+                            </form>
+                        @endif
+                        <form method="POST" action="{{ route('admin.profile-photos.extend-deadline', $student) }}" class="d-flex flex-column gap-1">
+                            @csrf
+                            <input type="datetime-local" name="profile_photo_deadline_at" class="form-control form-control-sm" required>
+                            <button type="submit" class="btn btn-sm btn-outline-primary w-100">{{ __('profile_photos.extend_deadline') }}</button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.profile-photos.reset-grace', $student) }}"
+                              data-confirm="{{ __('profile_photos.confirm_reset_grace') }}"
+                              onsubmit="return confirm(this.dataset.confirm)">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-warning w-100">{{ __('profile_photos.reset_grace') }}</button>
+                        </form>
+                    </div>
+                </div>
+            </article>
+        @empty
+            <p class="text-center text-muted-theme py-4 mb-0">{{ __('profile_photos.no_students') }}</p>
+        @endforelse
     </div>
 </div>
 @endsection

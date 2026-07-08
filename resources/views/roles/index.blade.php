@@ -25,7 +25,7 @@
     <div class="app-card card shadow-sm mb-5">
         <div class="card-header fw-semibold">{{ __('pages.roles_list') }}</div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
@@ -43,7 +43,8 @@
                             <td>{{ $role->role_decription }}</td>
                             <td>
                                 <form method="POST" action="{{ route('roles.destroy', $role->role_id) }}"
-                                      onsubmit="return confirm(@json(__('pages.confirm_delete_role')))">
+                                      data-confirm="{{ __('pages.confirm_delete_role') }}"
+                                      onsubmit="return confirm(this.dataset.confirm)">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
@@ -59,6 +60,37 @@
                     @endforelse
                 </tbody>
             </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($roles as $role)
+                    <article class="data-card">
+                        <div class="data-card-title">{{ $role->role_name }}</div>
+                        <dl class="data-meta-list mb-3">
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.number') }}</dt>
+                                <dd>{{ $loop->iteration }}</dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.description') }}</dt>
+                                <dd>{{ $role->role_decription }}</dd>
+                            </div>
+                        </dl>
+                        <div class="data-card-actions">
+                            <form method="POST" action="{{ route('roles.destroy', $role->role_id) }}"
+                                  data-confirm="{{ __('pages.confirm_delete_role') }}"
+                                  onsubmit="return confirm(this.dataset.confirm)">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-danger w-100">
+                                    <i class="bi bi-trash"></i> {{ __('pages.delete') }}
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_roles_yet') }}</p>
+                @endforelse
             </div>
         </div>
     </div>

@@ -77,7 +77,7 @@
                             @endforelse
                         </div>
                     @else
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-lg-block admin-table-desktop">
                         <table class="table table-striped align-middle">
                             <thead>
                                 <tr>
@@ -135,10 +135,12 @@
                                                 <a href="{{ route('assignments.status', $assignment) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
                                                 <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-outline-secondary btn-sm">{{ __('pages.view_submissions') }}</a>
                                                 <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
-                                                <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
+                                                <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline"
+                                                      data-confirm="{{ __('pages.confirm_delete_assignment') }}"
+                                                      onsubmit="return confirm(this.dataset.confirm)">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(@json(__('pages.confirm_delete_assignment')))">{{ __('pages.delete') }}</button>
+                                                    <button type="submit" class="btn btn-danger btn-sm">{{ __('pages.delete') }}</button>
                                                 </form>
                                             @endif
                                         </td>
@@ -150,6 +152,48 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="d-lg-none admin-data-cards student-data-hub">
+                        @forelse($assignments as $assignment)
+                            @php $submission = $studentSubmissions->get($assignment->assignment_id); @endphp
+                            <article class="data-card">
+                                <div class="data-card-title">{{ $assignment->assignment_name }}</div>
+                                <dl class="data-meta-list mb-3">
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.description') }}</dt>
+                                        <dd>{{ Str::limit($assignment->assignment_description, 500) }}</dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.total_points') }}</dt>
+                                        <dd>{{ $assignment->total_points }}</dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.due_date') }}</dt>
+                                        <dd>{{ $assignment->due_date->format('Y-m-d H:i') }}</dd>
+                                    </div>
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.submission_count') }}</dt>
+                                        <dd>{{ $submissionCounts->get($assignment->assignment_id, 0) }}</dd>
+                                    </div>
+                                </dl>
+                                <div class="data-card-actions d-flex flex-wrap gap-2">
+                                    <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                    <a href="{{ route('assignments.status', $assignment) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
+                                    <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-outline-secondary btn-sm">{{ __('pages.view_submissions') }}</a>
+                                    <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
+                                    <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="w-100"
+                                          data-confirm="{{ __('pages.confirm_delete_assignment') }}"
+                                          onsubmit="return confirm(this.dataset.confirm)">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm w-100">{{ __('pages.delete') }}</button>
+                                    </form>
+                                </div>
+                            </article>
+                        @empty
+                            <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_assignments') }}</p>
+                        @endforelse
                     </div>
                     @endif
                 </div>

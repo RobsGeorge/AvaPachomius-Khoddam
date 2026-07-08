@@ -903,6 +903,197 @@ body.theme-dark .app-dropdown-link:hover {
     margin-top: 0.75rem;
 }
 
+/* Compact curriculum lecture list (student view) */
+.lecture-list-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 1rem;
+}
+
+.lecture-compact-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.lecture-compact-item:hover {
+    border-color: rgba(124, 58, 237, 0.25);
+    box-shadow: var(--shadow-sm);
+}
+
+body.theme-dark .lecture-compact-item:hover {
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+.lecture-compact-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.lecture-compact-index {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    background: rgba(124, 58, 237, 0.08);
+}
+
+body.theme-dark .lecture-compact-index {
+    background: rgba(212, 175, 55, 0.12);
+}
+
+.lecture-compact-body {
+    min-width: 0;
+}
+
+.lecture-compact-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-title);
+}
+
+.lecture-compact-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.lecture-compact-slides {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+    .lecture-list-compact {
+        padding: 0.65rem 0.75rem 0.85rem;
+    }
+
+    .lecture-compact-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .lecture-compact-slides {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Admin / instructor responsive data cards (extends student-data-hub) */
+.admin-data-cards,
+.admin-data-cards.student-data-hub {
+    padding: 0.75rem 1rem 1rem;
+}
+
+.admin-data-cards .data-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin-data-cards .data-card-actions .btn,
+.admin-data-cards .data-card-actions form {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+}
+
+.admin-data-cards .data-card-actions .btn {
+    justify-content: center;
+}
+
+.admin-data-cards .data-card-actions form .btn {
+    width: 100%;
+}
+
+.admin-data-cards .data-card-actions .w-100,
+.admin-data-cards .data-card-actions form.w-100 {
+    flex: 1 1 100%;
+}
+
+.admin-page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.admin-page-header .page-title {
+    margin-bottom: 0;
+}
+
+.admin-page-header .admin-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.admin-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.admin-mobile-form-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    padding: 0.75rem 0;
+    margin-top: 0.5rem;
+    background: linear-gradient(to top, var(--color-surface) 70%, transparent);
+}
+
+.admin-table-desktop {
+    /* paired with d-none d-lg-block in Blade */
+}
+
+@media (max-width: 991.98px) {
+    .admin-data-cards .data-card {
+        padding: 0.85rem;
+    }
+
+    .admin-page-header .admin-page-actions .btn {
+        flex: 1 1 auto;
+    }
+
+    .admin-filter-bar {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 0.25rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-filter-bar .btn {
+        flex-shrink: 0;
+    }
+
+    .table-responsive.admin-table-desktop {
+        display: none !important;
+    }
+}
+
 /* Exams hub card layout */
 .exams-hub .exam-meta-list { display: flex; flex-direction: column; gap: 0.65rem; }
 .exams-hub .exam-meta-row {
@@ -938,6 +1129,14 @@ body.theme-dark .app-dropdown-link:hover {
     max-height: 100%;
     overflow: hidden;
 }
+.modal-dialog-scrollable .modal-content > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+}
 .modal-dialog-scrollable .modal-header,
 .modal-dialog-scrollable .modal-footer {
     flex-shrink: 0;
@@ -946,6 +1145,8 @@ body.theme-dark .app-dropdown-link:hover {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 /* Responsive */
@@ -960,6 +1161,22 @@ body.theme-dark .app-dropdown-link:hover {
         border-radius: var(--radius-md);
         padding: 0.75rem;
         margin-top: 0.5rem;
+    }
+
+    body.mobile-nav-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        left: 0;
+        right: 0;
+    }
+
+    .app-nav .mobile-nav-panel {
+        max-height: min(70vh, calc(100dvh - 5.5rem));
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        touch-action: pan-y;
     }
 
     .mobile-nav-group {
@@ -1050,12 +1267,6 @@ body.theme-dark .app-dropdown-link:hover {
         margin: 0;
     }
 
-    .modal-dialog-scrollable .modal-body {
-        max-height: none;
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-
     .student-data-hub .data-meta-row {
         grid-template-columns: 1fr;
     }
@@ -1064,12 +1275,16 @@ body.theme-dark .app-dropdown-link:hover {
         -webkit-overflow-scrolling: touch;
     }
 
-    .table-responsive .table {
+    .table-responsive:not(.admin-table-desktop) .table {
         min-width: 640px;
     }
 
-    .table-responsive.table-responsive-sm .table {
+    .table-responsive.table-responsive-sm:not(.admin-table-desktop) .table {
         min-width: 480px;
+    }
+
+    .table-responsive.table-responsive-compact:not(.admin-table-desktop) .table {
+        min-width: 0;
     }
 
     .dob-picker-input {

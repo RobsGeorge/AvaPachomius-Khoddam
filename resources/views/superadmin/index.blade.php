@@ -32,7 +32,8 @@
             <p class="text-muted mb-3">{{ __('pages.force_logout_hint') }}</p>
             <form method="POST"
                   action="{{ route('superadmin.sessions.flush-all') }}"
-                  onsubmit="return confirm(@json(__('pages.force_logout_confirm')));">
+                  data-confirm="{{ __('pages.force_logout_confirm') }}"
+                  onsubmit="return confirm(this.dataset.confirm);">
                 @csrf
                 <button type="submit" class="btn btn-danger">
                     <i class="bi bi-power"></i> {{ __('pages.force_logout_button') }}
@@ -49,7 +50,8 @@
             <p class="text-muted mb-3">{{ __('pages.impersonate_hint') }}</p>
             <form method="POST"
                   action="{{ route('superadmin.impersonate') }}"
-                  onsubmit="return confirm(@json(__('pages.impersonate_confirm')));">
+                  data-confirm="{{ __('pages.impersonate_confirm') }}"
+                  onsubmit="return confirm(this.dataset.confirm);">
                 @csrf
                 <div class="mb-3">
                     <label class="form-label fw-semibold" for="impersonate-user-id">{{ __('pages.user') }}</label>
@@ -112,7 +114,7 @@
                     <i class="bi bi-journal-bookmark-fill"></i> {{ __('pages.manage_courses') }}
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive table-responsive-compact">
                     <table class="table table-sm mb-0">
                         <thead class="table-light">
                             <tr>
@@ -134,7 +136,8 @@
                                     <td>
                                         <form method="POST"
                                               action="{{ route('superadmin.courses.destroy', $course->course_id) }}"
-                                              onsubmit="return confirm(@json(__('pages.confirm_delete_course')))">
+                                              data-confirm="{{ __('pages.confirm_delete_course') }}"
+                                              onsubmit="return confirm(this.dataset.confirm)">
                                             @csrf @method('DELETE')
                                             <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1">
                                                 <i class="bi bi-trash"></i>
@@ -249,7 +252,7 @@
                     <i class="bi bi-shield"></i> {{ __('pages.available_roles') }}
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive table-responsive-compact">
                     <table class="table table-sm mb-0">
                         <thead class="table-light">
                             <tr><th>{{ __('pages.name') }}</th><th>{{ __('pages.description') }}</th><th></th></tr>
@@ -262,7 +265,8 @@
                                     <td>
                                         <form method="POST"
                                               action="{{ route('superadmin.roles.destroy', $role->role_id) }}"
-                                              onsubmit="return confirm(@json(__('pages.confirm_delete_role_super')))">
+                                              data-confirm="{{ __('pages.confirm_delete_role_super') }}"
+                                              onsubmit="return confirm(this.dataset.confirm)">
                                             @csrf @method('DELETE')
                                             <button class="btn btn-xs btn-outline-danger py-0 px-1">
                                                 <i class="bi bi-trash"></i>
@@ -297,7 +301,7 @@
                 </div>
                 <div class="card-body p-0">
                     <p class="small text-muted-theme px-3 pt-3 mb-2">{{ __('events.event_admins_hint') }}</p>
-                    <div class="table-responsive">
+                    <div class="table-responsive table-responsive-compact">
                         <table class="table table-sm mb-0">
                             <thead class="table-light">
                                 <tr><th>{{ __('pages.user') }}</th><th></th></tr>
@@ -312,7 +316,8 @@
                                         <td>
                                             <form method="POST"
                                                   action="{{ route('superadmin.event-admins.destroy', $ea->user_id) }}"
-                                                  onsubmit="return confirm(@json(__('pages.confirm_delete')))">
+                                                  data-confirm="{{ __('pages.confirm_delete') }}"
+                                                  onsubmit="return confirm(this.dataset.confirm)">
                                                 @csrf @method('DELETE')
                                                 <button class="btn btn-xs btn-outline-danger py-0 px-1">
                                                     <i class="bi bi-trash"></i>
@@ -352,7 +357,7 @@
                     <span class="badge bg-secondary ms-1">{{ $assignments->count() }}</span>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive table-responsive-compact">
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
@@ -385,7 +390,8 @@
                                         <td>
                                             <form method="POST"
                                                   action="{{ route('superadmin.destroy', $a->user_course_role_id) }}"
-                                                  onsubmit="return confirm(@json(__('pages.confirm_cancel_role')))">
+                                                  data-confirm="{{ __('pages.confirm_cancel_role') }}"
+                                                  onsubmit="return confirm(this.dataset.confirm)">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
                                                     <i class="bi bi-x-circle"></i>

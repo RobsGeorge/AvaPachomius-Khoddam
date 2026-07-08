@@ -1,6 +1,6 @@
 @props(['lectures', 'course'])
 
-<div class="table-responsive d-none d-md-block">
+<div class="table-responsive d-none d-lg-block admin-table-desktop">
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
             <tr>
@@ -59,7 +59,8 @@
                             </a>
                             <form method="POST"
                                   action="{{ route('lectures.destroy', $lecture->lecture_id) }}"
-                                  onsubmit="return confirm(@json(__('pages.confirm_delete_lecture')))">
+                                  data-confirm="{{ __('pages.confirm_delete_lecture') }}"
+                                  onsubmit="return confirm(this.dataset.confirm)">
                                 @csrf @method('DELETE')
                                 <input type="hidden" name="course_id" value="{{ $course->course_id }}">
                                 <button class="btn btn-sm btn-outline-danger py-0 px-2" title="{{ __('pages.delete') }}">
@@ -74,7 +75,7 @@
     </table>
 </div>
 
-<div class="d-md-none lecture-admin-cards px-2 py-2">
+<div class="d-lg-none admin-data-cards lecture-admin-cards px-2 py-2">
     @foreach($lectures as $i => $lecture)
         <div class="card shadow-sm mb-2 border-0 bg-light-subtle">
             <div class="card-body py-3">
@@ -116,7 +117,8 @@
                     <form method="POST"
                           action="{{ route('lectures.destroy', $lecture->lecture_id) }}"
                           class="flex-grow-1"
-                          onsubmit="return confirm(@json(__('pages.confirm_delete_lecture')))">
+                          data-confirm="{{ __('pages.confirm_delete_lecture') }}"
+                          onsubmit="return confirm(this.dataset.confirm)">
                         @csrf @method('DELETE')
                         <input type="hidden" name="course_id" value="{{ $course->course_id }}">
                         <button class="btn btn-sm btn-outline-danger w-100">

@@ -33,7 +33,7 @@
                 @endif
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
@@ -140,6 +140,81 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @forelse($schedule->results as $result)
+                        <article class="data-card">
+                            <div class="data-card-title">{{ $result->user->name ?? $result->user->email ?? '#'.$result->user_id }}</div>
+                            <dl class="data-meta-list mb-3">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('exams.final_score') }}</dt>
+                                    <dd class="fw-semibold">{{ $result->score !== null ? number_format($result->score, 1).'%' : '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('exams.auto_score') }}</dt>
+                                    <dd>{{ $result->auto_score !== null ? number_format($result->auto_score, 1) : '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('exams.manual_score') }}</dt>
+                                    <dd>{{ $result->manual_score !== null ? number_format($result->manual_score, 1) : '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.status') }}</dt>
+                                    <dd>
+                                        @if($result->isCheater())
+                                            <span class="badge bg-danger">{{ __('exams.status_cheater') }}</span>
+                                        @else
+                                            <span class="badge bg-secondary">{{ __('exams.status_' . ($result->status ?? 'pending')) }}</span>
+                                        @endif
+                                    </dd>
+                                </div>
+                            </dl>
+                            <div class="data-card-actions">
+                                @if($result->isCheater())
+                                    <form method="POST" action="{{ route('exams.grades.clear-cheater', [$exam, $result]) }}" class="d-flex flex-column gap-2">
+                                        @csrf
+                                        <input type="number" name="score" class="form-control form-control-sm"
+                                               min="0" max="100" step="0.1" placeholder="%" title="{{ __('exams.override_score') }}">
+                                        <button class="btn btn-sm btn-warning w-100">{{ __('exams.clear_cheater_flag') }}</button>
+                                    </form>
+                                @elseif($exam->isOffline())
+                                    <form method="POST" action="{{ route('exams.grades.update', [$exam, $result]) }}" class="d-flex gap-2">
+                                        @csrf @method('PUT')
+                                        <input type="number" name="score" class="form-control form-control-sm"
+                                               min="0" max="100" step="0.1" value="{{ $result->score }}" required>
+                                        <button class="btn btn-sm btn-primary">{{ __('pages.save') }}</button>
+                                    </form>
+                                @elseif($exam->isOnline() && $result->attempt)
+                                    <button type="button" class="btn btn-sm btn-outline-theme w-100"
+                                            data-bs-toggle="collapse" data-bs-target="#mobile-result-{{ $result->result_id }}">
+                                        {{ __('exams.review_essay') }}
+                                    </button>
+                                    <div class="collapse mt-2" id="mobile-result-{{ $result->result_id }}">
+                                        @foreach($result->attempt->answers as $answer)
+                                            @if($answer->question?->question_type === \App\Models\ExamQuestion::TYPE_ESSAY)
+                                                <div class="mb-3 p-2 border rounded bg-light-subtle">
+                                                    <div class="fw-semibold small">{{ Str::limit($answer->question->prompt, 120) }}</div>
+                                                    <p class="small mb-2" style="white-space:pre-line;">{{ $answer->text_answer }}</p>
+                                                    <form method="POST" action="{{ route('exams.grades.update', [$exam, $result]) }}" class="d-flex gap-2 mt-2">
+                                                        @csrf @method('PUT')
+                                                        <input type="hidden" name="scores[{{ $answer->question_id }}]" value="">
+                                                        <input type="number" name="scores[{{ $answer->question_id }}]"
+                                                               class="form-control form-control-sm"
+                                                               step="0.25" min="0" max="{{ $answer->question->points }}"
+                                                               value="{{ $answer->manual_score ?? $answer->auto_score ?? 0 }}">
+                                                        <button class="btn btn-sm btn-primary">{{ __('pages.save') }}</button>
+                                                    </form>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        </article>
+                    @empty
+                        <p class="text-center text-muted py-4 mb-0">{{ __('pages.no_students') }}</p>
+                    @endforelse
                 </div>
 
                 @if($exam->isOffline())

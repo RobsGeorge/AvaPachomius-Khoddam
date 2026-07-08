@@ -10,6 +10,7 @@ use App\Models\LiveQuizQuestion;
 use App\Models\LiveQuizSession;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LiveQuizSessionService
 {
@@ -26,6 +27,7 @@ class LiveQuizSessionService
         return LiveQuizSession::create([
             'live_quiz_id' => $quiz->live_quiz_id,
             'host_user_id' => $hostUserId,
+            'join_code' => LiveJoinCodeService::generate(),
             'status' => LiveQuizSession::STATUS_LOBBY,
             'mode' => $quiz->mode,
             'team_count' => $quiz->team_count,
@@ -196,6 +198,10 @@ class LiveQuizSessionService
 
     public function broadcast(LiveQuizSession $session): void
     {
-        event(new LiveQuizSessionUpdated($session));
+        try {
+            event(new LiveQuizSessionUpdated($session));
+        } catch (Throwable $e) {
+            report($e);
+        }
     }
 }

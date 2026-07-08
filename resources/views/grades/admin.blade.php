@@ -42,7 +42,7 @@
             </div>
             <div class="progress" style="height:8px;">
                 <div class="progress-bar {{ $totalWeight > 100 ? 'bg-danger' : ($totalWeight == 100 ? 'bg-success' : 'bg-warning') }}"
-                     style="width:{{ min($totalWeight, 100) }}%"></div>
+                     @style(['width' => min($totalWeight, 100) . '%'])></div>
             </div>
             @if($totalWeight != 100)
                 <small class="text-{{ $totalWeight > 100 ? 'danger' : 'warning' }} mt-1 d-block">
@@ -118,7 +118,8 @@
                         </button>
                     </form>
                     <form method="POST" action="{{ route('grade-categories.destroy', $cat->category_id) }}"
-                          onsubmit="return confirm(@json(__('pages.confirm_delete_category_items')))">
+                          data-confirm="{{ __('pages.confirm_delete_category_items') }}"
+                          onsubmit="return confirm(this.dataset.confirm)">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-danger py-0 px-2" title="{{ __('pages.delete') }}">
                             <i class="bi bi-trash"></i>
@@ -128,7 +129,7 @@
             </div>
 
             @if($cat->items->isNotEmpty())
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-lg-block admin-table-desktop">
                     <table class="table table-hover align-middle mb-0 small">
                         <thead class="table-light">
                             <tr>
@@ -162,7 +163,8 @@
                                                 <i class="bi bi-input-cursor-text"></i> {{ __('pages.grades') }}
                                             </a>
                                             <form method="POST" action="{{ route('grade-items.destroy', $item->item_id) }}"
-                                                  onsubmit="return confirm(@json(__('pages.confirm_delete_item_grades')))">
+                                                  data-confirm="{{ __('pages.confirm_delete_item_grades') }}"
+                                                  onsubmit="return confirm(this.dataset.confirm)">
                                                 @csrf @method('DELETE')
                                                 <button class="btn btn-sm btn-outline-danger py-0 px-2">
                                                     <i class="bi bi-trash"></i>
@@ -181,6 +183,54 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+
+                <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                    @foreach($cat->items as $i => $item)
+                        @php $graded = $item->gradedStudentsCount(); @endphp
+                        <article class="data-card">
+                            <div class="data-card-title">{{ $item->title }}</div>
+                            <dl class="data-meta-list mb-3">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.max_score') }}</dt>
+                                    <dd>{{ number_format($item->max_score, 1) }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.date') }}</dt>
+                                    <dd>{{ $item->item_date ? $item->item_date->format('Y-m-d') : '—' }}</dd>
+                                </div>
+                                @if($item->description)
+                                    <div class="data-meta-row">
+                                        <dt>{{ __('pages.description') }}</dt>
+                                        <dd>{{ Str::limit($item->description, 80) }}</dd>
+                                    </div>
+                                @endif
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.corrected') }}</dt>
+                                    <dd>
+                                        <span class="badge {{ $graded == $studentCount && $studentCount > 0 ? 'bg-success' : 'bg-secondary' }}">
+                                            {{ $graded }} / {{ $studentCount }}
+                                        </span>
+                                    </dd>
+                                </div>
+                            </dl>
+                            <div class="data-card-actions d-flex flex-wrap gap-2">
+                                <a href="{{ route('grade-items.scores', $item->item_id) }}"
+                                   class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-input-cursor-text"></i> {{ __('pages.grades') }}
+                                </a>
+                                <form method="POST" action="{{ route('grade-items.destroy', $item->item_id) }}"
+                                      class="w-100"
+                                      data-confirm="{{ __('pages.confirm_delete_item_grades') }}"
+                                      onsubmit="return confirm(this.dataset.confirm)">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger w-100">
+                                        <i class="bi bi-trash"></i> {{ __('pages.delete') }}
+                                    </button>
+                                </form>
+                            </div>
+                        </article>
+                    @endforeach
                 </div>
             @endif
 

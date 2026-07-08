@@ -74,7 +74,7 @@
 
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block admin-table-desktop">
                 <table class="table table-hover align-middle mb-0 small">
                     <thead class="table-light">
                         <tr>
@@ -145,6 +145,39 @@
                         </tfoot>
                     @endif
                 </table>
+            </div>
+
+            <div class="d-lg-none admin-data-cards student-data-hub p-3">
+                @forelse($report as $i => $row)
+                    <article class="data-card">
+                        <div class="data-card-title">
+                            {{ $row['user']->first_name }} {{ $row['user']->second_name }}
+                            <div class="small text-muted-theme fw-normal">{{ $row['user']->national_id }}</div>
+                        </div>
+                        <dl class="data-meta-list mb-2">
+                            @foreach($row['categories'] as $catRow)
+                                <div class="data-meta-row">
+                                    <dt>{{ Str::limit($catRow['name'], 20) }}</dt>
+                                    <dd>
+                                        <span class="fw-semibold">{{ number_format($catRow['contribution'], 1) }}</span>
+                                        <span class="text-muted-theme small">
+                                            ({{ number_format($catRow['raw'], 1) }}/{{ number_format($catRow['max'], 1) }})
+                                        </span>
+                                    </dd>
+                                </div>
+                            @endforeach
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.total') }}</dt>
+                                <dd>
+                                    <span class="fw-bold text-{{ $row['color'] }}">{{ number_format($row['total'], 1) }}</span>
+                                    <span class="badge bg-{{ $row['color'] }} ms-1">{{ $row['letter'] }}</span>
+                                </dd>
+                            </div>
+                        </dl>
+                    </article>
+                @empty
+                    <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_students_registered') }}</p>
+                @endforelse
             </div>
         </div>
     </div>

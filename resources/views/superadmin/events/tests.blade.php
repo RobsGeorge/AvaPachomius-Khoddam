@@ -40,7 +40,7 @@
         </div>
     @endif
 
-    <div class="table-responsive app-card card shadow-sm">
+    <div class="table-responsive d-none d-lg-block admin-table-desktop app-card card shadow-sm">
         <table class="table table-sm mb-0">
             <thead><tr><th>{{ __('events.suite') }}</th><th>{{ __('pages.status') }}</th><th>{{ __('events.results') }}</th><th>{{ __('events.duration') }}</th><th>{{ __('pages.date') }}</th></tr></thead>
             <tbody>
@@ -55,6 +55,34 @@
             @endforeach
             </tbody>
         </table>
+    </div>
+
+    <div class="d-lg-none admin-data-cards student-data-hub">
+        @foreach($runs as $run)
+            <article class="data-card app-card card shadow-sm">
+                <div class="card-body">
+                    <div class="data-card-title">{{ $run->suite }}</div>
+                    <dl class="data-meta-list mb-0">
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.status') }}</dt>
+                            <dd><span class="badge bg-{{ $run->isPassing() ? 'success' : 'danger' }}">{{ $run->status }}</span></dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('events.results') }}</dt>
+                            <dd>{{ $run->summary }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('events.duration') }}</dt>
+                            <dd>{{ $run->duration_ms }}ms</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.date') }}</dt>
+                            <dd>{{ $run->created_at?->format('Y-m-d H:i') }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </article>
+        @endforeach
     </div>
     {{ $runs->links() }}
 </div>

@@ -13,7 +13,7 @@
     @endif
 
     <div class="app-card card">
-        <div class="table-responsive">
+        <div class="table-responsive d-none d-lg-block admin-table-desktop">
             <table class="table mb-0">
                 <thead class="table-light"><tr><th>{{ __('pages.student') }}</th><th>{{ __('pages.answer') }}</th><th>{{ __('pages.date') }}</th></tr></thead>
                 <tbody>
@@ -26,6 +26,24 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        <div class="d-lg-none admin-data-cards student-data-hub p-3">
+            @foreach($answers as $answer)
+                <article class="data-card">
+                    <div class="data-card-title">{{ $answer->submission?->user?->displayName() }}</div>
+                    <dl class="data-meta-list mb-0">
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.answer') }}</dt>
+                            <dd>{{ $answer->displayValue() }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.date') }}</dt>
+                            <dd>{{ $answer->submission?->submitted_at?->format('Y-m-d H:i') }}</dd>
+                        </div>
+                    </dl>
+                </article>
+            @endforeach
         </div>
     </div>
     {{ $answers->links() }}

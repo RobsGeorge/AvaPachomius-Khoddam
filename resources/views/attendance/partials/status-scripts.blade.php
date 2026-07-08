@@ -1,5 +1,11 @@
+@include('attendance.partials.status-messages-json')
+
 @push('scripts')
 <script>
+const attendanceStatusMessages = JSON.parse(
+    document.getElementById('attendance-status-messages').textContent
+);
+
 function showAlert(message, type = 'success') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} app-toast-alert alert-dismissible fade show`;
@@ -15,18 +21,19 @@ function showAlert(message, type = 'success') {
 function updateStatus(select) {
     const attendanceId = select.dataset.attendanceId;
     const status = select.value;
-    const permissionReasonDiv = document.getElementById(`permission-reason-${attendanceId}`);
-    const permissionReasonInput = permissionReasonDiv?.querySelector('input');
+    const permissionReasonDivs = document.querySelectorAll(`[id="permission-reason-${attendanceId}"]`);
+    const permissionReasonInput = select.closest('tr, article, td, dd')?.querySelector('.permission-reason')
+        ?? permissionReasonDivs[0]?.querySelector('input');
 
     if (status === 'Permission') {
-        permissionReasonDiv?.classList.remove('d-none');
+        permissionReasonDivs.forEach((div) => div.classList.remove('d-none'));
         if (permissionReasonInput && !permissionReasonInput.value) {
-            showAlert(@json(__('pages.enter_permission_reason')), 'error');
+            showAlert(attendanceStatusMessages.enterPermissionReason, 'error');
             select.value = select.getAttribute('data-current-status') || 'Present';
             return;
         }
     } else {
-        permissionReasonDiv?.classList.add('d-none');
+        permissionReasonDivs.forEach((div) => div.classList.add('d-none'));
     }
 
     fetch(`/attendance/${attendanceId}/status`, {
@@ -46,21 +53,22 @@ function updateStatus(select) {
             showAlert(data.message);
             select.setAttribute('data-current-status', status);
         } else {
-            showAlert(@json(__('pages.status_update_error')), 'error');
+            showAlert(attendanceStatusMessages.statusUpdateError, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert(@json(__('pages.status_update_error')), 'error');
+        showAlert(attendanceStatusMessages.statusUpdateError, 'error');
     });
 }
 
-function updatePermissionReason(input, attendanceId) {
-    const select = input.closest('tr')?.querySelector('select');
+function updatePermissionReason(input) {
+    const attendanceId = input.dataset.attendanceId;
+    const select = input.closest('tr, article, td, dd')?.querySelector('select');
     const status = select ? select.value : 'Permission';
 
     if (status === 'Permission' && !input.value) {
-        showAlert(@json(__('pages.enter_permission_reason')), 'error');
+        showAlert(attendanceStatusMessages.enterPermissionReason, 'error');
         return;
     }
 
@@ -80,12 +88,12 @@ function updatePermissionReason(input, attendanceId) {
         if (data.success) {
             showAlert(data.message);
         } else {
-            showAlert(@json(__('pages.permission_update_error')), 'error');
+            showAlert(attendanceStatusMessages.permissionUpdateError, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert(@json(__('pages.permission_update_error')), 'error');
+        showAlert(attendanceStatusMessages.permissionUpdateError, 'error');
     });
 }
 
@@ -100,7 +108,7 @@ function setRosterStatus(select) {
 
     let permissionReason = '';
     if (status === 'Permission') {
-        permissionReason = window.prompt(@json(__('pages.enter_permission_reason')));
+        permissionReason = window.prompt(attendanceStatusMessages.enterPermissionReason);
         if (!permissionReason) {
             select.selectedIndex = 0;
             return;
@@ -126,13 +134,13 @@ function setRosterStatus(select) {
             showAlert(data.message);
             window.location.reload();
         } else {
-            showAlert(@json(__('pages.status_update_error')), 'error');
+            showAlert(attendanceStatusMessages.statusUpdateError, 'error');
             select.selectedIndex = 0;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showAlert(@json(__('pages.status_update_error')), 'error');
+        showAlert(attendanceStatusMessages.statusUpdateError, 'error');
         select.selectedIndex = 0;
     });
 }
