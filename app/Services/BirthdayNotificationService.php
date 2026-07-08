@@ -13,17 +13,17 @@ class BirthdayNotificationService
         private StudentRosterService $rosterService
     ) {}
 
-    public function sendForCourse(Course $course, int $month, int $year): int
+    public function sendForCourse(Course $course, int $month, int $year): array
     {
         $students = $this->rosterService->enrolledStudents($course);
         $birthdayStudents = $this->rosterService->studentsWithBirthdayInMonth($students, $month);
 
         if ($birthdayStudents->isEmpty()) {
-            return 0;
+            return ['count' => 0, 'recipients' => collect()];
         }
 
         $staff = $this->rosterService->courseStaff($course->course_id);
-        $sent = 0;
+        $recipients = collect();
 
         foreach ($staff as $recipient) {
             if (! $recipient->email) {
@@ -33,10 +33,13 @@ class BirthdayNotificationService
             Mail::to($recipient->email)->send(
                 new MonthlyBirthdayAnnouncementMail($course, $birthdayStudents, $month, $year, $recipient)
             );
-            $sent++;
+            $recipients->push($recipient);
         }
 
-        return $sent;
+        return [
+            'count' => $recipients->count(),
+            'recipients' => $recipients,
+        ];
     }
 
     public function sendForAllCourses(int $month, int $year): array
@@ -45,10 +48,10 @@ class BirthdayNotificationService
         $summary = ['courses' => 0, 'emails' => 0];
 
         foreach ($courses as $course) {
-            $sent = $this->sendForCourse($course, $month, $year);
-            if ($sent > 0) {
+            $result = $this->sendForCourse($course, $month, $year);
+            if ($result['count'] > 0) {
                 $summary['courses']++;
-                $summary['emails'] += $sent;
+                $summary['emails'] += $result['count'];
             }
         }
 

@@ -25,6 +25,15 @@
             </a>
         </div>
 
+        @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
+            <div class="col-md-6">
+                <a href="{{ route('students.birthdays') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
+                    <h3><i class="bi bi-cake2"></i> {{ __('dashboard.birthdays') }}</h3>
+                    <p class="text-muted-theme mb-0">{{ __('dashboard.birthdays_desc') }}</p>
+                </a>
+            </div>
+        @endif
+
         @if($hasSystem)
             <div class="col-md-6">
                 <a href="{{ route('hubs.system') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">

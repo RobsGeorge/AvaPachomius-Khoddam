@@ -37,6 +37,7 @@ class NavigationHub
             $links[] = self::link('assignments.index', 'dashboard.view_assignments', 'bi-journal-text', ['assignments.*']);
             $links[] = self::link('exams.index', 'dashboard.view_exams', 'bi-patch-check', ['exams.index', 'exams.attempt.*']);
             $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my']);
+            $links[] = self::link('students.birthdays', 'students.birthdays_title', 'bi-cake2', ['students.birthdays']);
         }
 
         $links[] = self::link('feedback.index', 'dashboard.feedback', 'bi-chat-square-text', ['feedback.*']);

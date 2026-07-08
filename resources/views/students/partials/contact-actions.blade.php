@@ -1,7 +1,7 @@
-@props(['user', 'whatsappMessage' => null])
+@props(['user', 'whatsappMessage' => null, 'showEmail' => true])
 
 <div class="d-flex flex-wrap gap-2">
-    @if($user->email)
+    @if($showEmail && $user->email)
         <a href="mailto:{{ $user->email }}" class="btn btn-sm btn-outline-theme">
             <i class="bi bi-envelope"></i> {{ __('students.email') }}
         </a>

@@ -54,6 +54,7 @@ class MonthlyBirthdayAnnouncementMail extends Mailable
                     'month' => $this->monthLabel,
                 ]),
                 'headerSubtitle' => $this->course->title,
+                'rosterUrl' => url(route('students.roster', ['course' => $this->course->course_id])),
             ],
         );
     }

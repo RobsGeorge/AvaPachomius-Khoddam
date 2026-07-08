@@ -41,4 +41,6 @@ return [
     'system_hub'             => 'System settings',
     'system_hub_desc'        => 'Administration: roles, translations, policies, and super-admin tools.',
     'open_system'            => 'Open system settings',
+    'birthdays'              => 'Birthdays',
+    'birthdays_desc'         => 'See classmates with birthdays this month and next, and reach out to congratulate them.',
 ];

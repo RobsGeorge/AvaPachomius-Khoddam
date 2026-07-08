@@ -1,39 +1,21 @@
 @extends('layouts.app')
 
-@section('title', __('students.roster_title'))
+@section('title', __('students.birthdays_title'))
 
 @section('content')
 <div class="container py-4 animate-in student-data-hub">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <h1 class="page-title mb-1">{{ __('students.roster_title') }}</h1>
-            <p class="text-muted-theme mb-0">{{ __('students.roster_intro') }}</p>
-        </div>
-        @if($course)
-            <form method="POST" action="{{ route('students.roster.announce', $course) }}"
-                  onsubmit="return confirm(@json(__('students.confirm_announce')))">
-                @csrf
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-envelope-heart"></i> {{ __('students.send_announcement') }}
-                </button>
-            </form>
-        @endif
+    <div class="mb-4">
+        <h1 class="page-title mb-1">{{ __('students.birthdays_title') }}</h1>
+        <p class="text-muted-theme mb-0">{{ __('students.birthdays_intro') }}</p>
     </div>
-
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning">{{ session('warning') }}</div>
-    @endif
 
     @if($courses->isEmpty())
         <div class="app-tile text-center text-muted-theme py-5">{{ __('students.no_courses') }}</div>
     @else
-        <div class="app-card card shadow-sm mb-4">
-            <div class="card-body">
-                <form method="GET" action="{{ route('students.roster') }}" class="row g-3 align-items-end">
-                    <div class="col-md-8">
+        @if($courses->count() > 1)
+            <div class="app-card card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="GET" action="{{ route('students.birthdays') }}">
                         <label for="course" class="form-label">{{ __('pages.course') }}</label>
                         <select name="course" id="course" class="form-select" onchange="this.form.submit()">
                             @foreach($courses as $c)
@@ -42,18 +24,12 @@
                                 </option>
                             @endforeach
                         </select>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="app-tile text-center py-2 mb-0">
-                            <small class="text-muted-theme d-block">{{ __('students.total_students') }}</small>
-                            <strong class="fs-4">{{ $students->count() }}</strong>
-                        </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
-        </div>
+        @endif
 
-        <div class="row g-3 mb-4">
+        <div class="row g-3">
             <div class="col-lg-6">
                 <div class="app-card card shadow-sm h-100 border-warning border-opacity-50">
                     <div class="card-header bg-warning bg-opacity-10 fw-semibold">
@@ -62,7 +38,7 @@
                     </div>
                     <div class="card-body">
                         @forelse($thisMonthBirthdays as $student)
-                            @include('students.partials.roster-student-card', [
+                            @include('students.partials.birthday-peer-card', [
                                 'student' => $student,
                                 'whatsappMessage' => __('students.whatsapp_birthday_message', ['name' => $student->displayName()]),
                             ])
@@ -80,28 +56,12 @@
                     </div>
                     <div class="card-body">
                         @forelse($nextMonthBirthdays as $student)
-                            @include('students.partials.roster-student-card', ['student' => $student])
+                            @include('students.partials.birthday-peer-card', ['student' => $student])
                         @empty
                             <p class="text-muted-theme mb-0">{{ __('students.no_birthdays_month') }}</p>
                         @endforelse
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="app-card card shadow-sm">
-            <div class="card-header fw-semibold">
-                <i class="bi bi-people"></i> {{ __('students.all_students') }}
-            </div>
-            <div class="card-body p-2 p-md-3">
-                @forelse($students as $student)
-                    @include('students.partials.roster-student-card', [
-                        'student' => $student,
-                        'showAge' => true,
-                    ])
-                @empty
-                    <p class="text-muted-theme text-center py-4 mb-0">{{ __('students.no_students') }}</p>
-                @endforelse
             </div>
         </div>
     @endif

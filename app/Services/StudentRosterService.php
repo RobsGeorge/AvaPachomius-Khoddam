@@ -19,6 +19,26 @@ class StudentRosterService
         return $user->courses()->orderBy('title')->get();
     }
 
+    public function studentEnrolledCourses(User $user): Collection
+    {
+        $studentRoleId = $this->studentRoleId();
+
+        if (! $studentRoleId) {
+            return collect();
+        }
+
+        $courseIds = UserCourseRole::query()
+            ->where('user_id', $user->user_id)
+            ->where('role_id', $studentRoleId)
+            ->pluck('course_id')
+            ->unique();
+
+        return Course::query()
+            ->whereIn('course_id', $courseIds)
+            ->orderBy('title')
+            ->get();
+    }
+
     public function authorizeCourse(User $user, string $courseId): void
     {
         if ($user->isAdmin() || ($user->is_superadmin ?? false)) {

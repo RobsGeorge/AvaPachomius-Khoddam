@@ -48,6 +48,7 @@ use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\StudentRosterController;
+use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\LiveQuizController;
@@ -125,6 +126,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/birthdays', [StudentBirthdaysController::class, 'index'])->name('students.birthdays');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');

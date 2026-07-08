@@ -61,16 +61,20 @@ class StudentRosterController extends Controller
         $timezone = config('attendance.timezone', config('app.timezone'));
         $now = now($timezone);
 
-        $sent = $this->notificationService->sendForCourse($course, $now->month, $now->year);
+        $result = $this->notificationService->sendForCourse($course, $now->month, $now->year);
 
-        if ($sent === 0) {
+        if ($result['count'] === 0) {
             return redirect()
                 ->route('students.roster', ['course' => $course->course_id])
                 ->with('warning', __('students.no_birthdays_to_announce'));
         }
 
+        $names = $result['recipients']
+            ->map(fn ($recipient) => $recipient->displayName())
+            ->implode(', ');
+
         return redirect()
             ->route('students.roster', ['course' => $course->course_id])
-            ->with('success', __('students.announcement_sent', ['count' => $sent]));
+            ->with('success', __('students.announcement_sent', ['names' => $names]));
     }
 }

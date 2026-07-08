@@ -35,8 +35,8 @@ class NotifyMonthlyBirthdays extends Command
 
         if ($courseId) {
             $course = \App\Models\Course::findOrFail($courseId);
-            $sent = $notificationService->sendForCourse($course, $month, $year);
-            $this->info("Course \"{$course->title}\": {$sent} email(s) sent.");
+            $result = $notificationService->sendForCourse($course, $month, $year);
+            $this->info("Course \"{$course->title}\": {$result['count']} email(s) sent.");
 
             return self::SUCCESS;
         }

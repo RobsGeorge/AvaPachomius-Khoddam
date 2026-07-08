@@ -31,8 +31,18 @@
     </thead>
     <tbody>
         @foreach($birthdayStudents as $student)
+            @php
+                $whatsappMessage = __('students.whatsapp_birthday_message', ['name' => $student->displayName()]);
+                $whatsappUrl = $student->whatsappUrl($whatsappMessage);
+            @endphp
             <tr>
                 <td style="padding:10px 12px;border-bottom:1px solid {{ $theme['border'] }};">
+                    @if($whatsappUrl)
+                        <a href="{{ $whatsappUrl }}"
+                           style="display:inline-block;margin-inline-end:8px;padding:6px 10px;background:#25D366;color:#ffffff;text-decoration:none;border-radius:6px;font-size:12px;font-weight:600;">
+                            {{ __('students.whatsapp') }}
+                        </a>
+                    @endif
                     {{ $student->displayName() }}
                 </td>
                 <td style="padding:10px 12px;border-bottom:1px solid {{ $theme['border'] }};">
@@ -50,6 +60,9 @@
 </table>
 
 <p style="margin:0;font-size:13px;color:{{ $theme['text_muted'] }};">
-    {{ __('students.mail_footer') }}
+    {{ __('students.mail_footer_before') }}
+    <a href="{{ $rosterUrl }}" style="color:{{ $theme['primary'] }};font-weight:600;text-decoration:none;">
+        {{ __('students.mail_footer_link') }}
+    </a>{{ __('students.mail_footer_after') }}
 </p>
 @endsection
