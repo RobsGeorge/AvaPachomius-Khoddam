@@ -1,9 +1,14 @@
 @props(['student', 'whatsappMessage' => null, 'showAge' => false])
 
-<article class="data-card {{ $showAge ? '' : 'mb-3' }}">
+<article class="data-card {{ $showAge ? '' : 'mb-3' }}{{ $student->isBirthdayToday() ? ' data-card-birthday-today' : '' }}">
     <div class="d-flex align-items-center gap-3 mb-3">
         @include('students.partials.student-photo', ['student' => $student])
-        <div class="data-card-title mb-0">{{ $student->displayName() }}</div>
+        <div class="data-card-title mb-0">
+            {{ $student->displayName() }}
+            @if($student->isBirthdayToday())
+                <span class="badge bg-success ms-1">{{ __('students.birthday_today') }}</span>
+            @endif
+        </div>
     </div>
 
     <dl class="data-meta-list mb-2">

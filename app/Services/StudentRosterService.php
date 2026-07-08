@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class StudentRosterService
@@ -98,12 +99,27 @@ class StudentRosterService
             ->values();
     }
 
-    public function studentsWithBirthdayInMonth(Collection $students, int $month): Collection
+    public function studentsWithBirthdayInMonth(Collection $students, int $month, ?Carbon $on = null): Collection
     {
+        $on ??= now(config('attendance.timezone', config('app.timezone')));
+
         return $students
             ->filter(fn (User $student) => $student->date_of_birth
                 && (int) $student->date_of_birth->month === $month)
-            ->sortBy(fn (User $student) => $student->date_of_birth->day)
+            ->sortBy(fn (User $student) => [
+                $student->isBirthdayToday($on) ? 0 : 1,
+                $student->date_of_birth->day,
+            ])
+            ->values();
+    }
+
+    public function studentsWithBirthdayToday(Collection $students, ?Carbon $on = null): Collection
+    {
+        $on ??= now(config('attendance.timezone', config('app.timezone')));
+
+        return $students
+            ->filter(fn (User $student) => $student->isBirthdayToday($on))
+            ->sortBy(fn (User $student) => $student->displayName())
             ->values();
     }
 

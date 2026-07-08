@@ -2,16 +2,46 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Services\StudentRosterService;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    // Show the dashboard page
-    public function index()
+    public function index(StudentRosterService $rosterService)
     {
-        // Here you can pass data from DB if needed
-        return view('dashboard');
+        $todayBirthdays = $this->todaysBirthdays($rosterService);
+
+        return view('dashboard', compact('todayBirthdays'));
+    }
+
+    private function todaysBirthdays(StudentRosterService $rosterService): Collection
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return collect();
+        }
+
+        $todayBirthdays = collect();
+
+        if ($user->isStudent() && ! $user->isInstructorOrAdmin()) {
+            foreach ($rosterService->studentEnrolledCourses($user) as $course) {
+                $todayBirthdays = $todayBirthdays->merge(
+                    $rosterService->studentsWithBirthdayToday(
+                        $rosterService->enrolledStudents($course)
+                    )
+                );
+            }
+        } elseif ($user->isInstructorOrAdmin()) {
+            foreach ($rosterService->accessibleCourses($user) as $course) {
+                $todayBirthdays = $todayBirthdays->merge(
+                    $rosterService->studentsWithBirthdayToday(
+                        $rosterService->enrolledStudents($course)
+                    )
+                );
+            }
+        }
+
+        return $todayBirthdays->unique('user_id')->values();
     }
 }
-
-?>

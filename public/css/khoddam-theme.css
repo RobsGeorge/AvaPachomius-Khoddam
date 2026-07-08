@@ -794,6 +794,14 @@ body.theme-dark .app-dropdown-link:hover {
 .student-data-hub .data-card + .data-card {
     margin-top: 0.75rem;
 }
+.student-data-hub .data-card-birthday-today {
+    border-color: #198754 !important;
+    background: rgba(25, 135, 84, 0.08);
+    box-shadow: 0 0 0 1px rgba(25, 135, 84, 0.35);
+}
+.student-data-hub .data-card-title .badge {
+    vertical-align: middle;
+}
 .student-data-hub .data-card-title {
     font-weight: 600;
     margin-bottom: 0.75rem;

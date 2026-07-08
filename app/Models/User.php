@@ -17,6 +17,7 @@ use App\Models\Role;
 use App\Models\EventAdmin;
 use App\Mail\ResetPasswordMail;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Carbon;
 
 
 
@@ -192,6 +193,18 @@ class User extends Authenticatable
         }
 
         return $url;
+    }
+
+    public function isBirthdayToday(?Carbon $on = null): bool
+    {
+        if (! $this->date_of_birth) {
+            return false;
+        }
+
+        $on ??= now(config('attendance.timezone', config('app.timezone')));
+
+        return (int) $this->date_of_birth->month === (int) $on->month
+            && (int) $this->date_of_birth->day === (int) $on->day;
     }
 
     // Override the "must verify email" behavior since we have custom OTP

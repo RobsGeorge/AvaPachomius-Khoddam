@@ -17,6 +17,30 @@
         </p>
     </div>
 
+    @if($todayBirthdays->isNotEmpty())
+        <div class="app-card card shadow-sm mb-4 border-success border-opacity-50 student-data-hub">
+            <div class="card-header bg-success bg-opacity-10 fw-semibold">
+                <i class="bi bi-balloon-heart"></i> {{ __('students.birthdays_today_heading') }}
+                <span class="badge bg-success ms-1">{{ $todayBirthdays->count() }}</span>
+            </div>
+            <div class="card-body p-2 p-md-3">
+                @foreach($todayBirthdays as $student)
+                    @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
+                        @include('students.partials.birthday-peer-card', [
+                            'student' => $student,
+                            'whatsappMessage' => __('students.whatsapp_birthday_message'),
+                        ])
+                    @else
+                        @include('students.partials.roster-student-card', [
+                            'student' => $student,
+                            'whatsappMessage' => __('students.whatsapp_birthday_message'),
+                        ])
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="row g-4">
         <div class="col-md-6">
             <a href="{{ route('hubs.academic') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
