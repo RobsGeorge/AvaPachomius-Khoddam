@@ -143,6 +143,7 @@ final class LegacySchemaSync
             'profile_photo_reviewed_at' => 'TIMESTAMP NULL',
             'profile_photo_reviewed_by_user_id' => 'BIGINT UNSIGNED NULL',
             'profile_photo_rejection_note' => 'TEXT NULL',
+            'student_onboarding_completed_at' => 'TIMESTAMP NULL',
             'national_id' => "VARCHAR(14) NOT NULL DEFAULT ''",
             'mobile_number' => 'VARCHAR(15) NOT NULL',
             'email' => "VARCHAR(30) NOT NULL DEFAULT ''",
@@ -213,6 +214,9 @@ final class LegacySchemaSync
             $table->unsignedBigInteger('profile_photo_reviewed_by_user_id')->nullable()->after('profile_photo_reviewed_at');
         });
         MigrationSupport::addTextColumn('user', 'profile_photo_rejection_note', true, 'profile_photo_reviewed_by_user_id');
+        MigrationSupport::addColumn('user', 'student_onboarding_completed_at', function ($table) {
+            $table->timestamp('student_onboarding_completed_at')->nullable()->after('profile_photo_rejection_note');
+        });
         MigrationSupport::addStringColumn('user', 'national_id', 14, false);
         MigrationSupport::addStringColumn('user', 'mobile_number', 15, false);
         MigrationSupport::addStringColumn('user', 'email', 30, false);

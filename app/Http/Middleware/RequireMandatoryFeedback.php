@@ -51,6 +51,7 @@ class RequireMandatoryFeedback
             'announcements.dismiss-banner',
             'locale.switch',
             'theme.update',
+            'onboarding.complete',
         ];
 
         $name = $request->route()?->getName();

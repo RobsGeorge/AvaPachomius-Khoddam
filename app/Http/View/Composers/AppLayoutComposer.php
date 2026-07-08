@@ -4,6 +4,7 @@ namespace App\Http\View\Composers;
 
 use App\Services\AnnouncementService;
 use App\Services\ProfilePhotoGateService;
+use App\Services\StudentOnboardingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -11,7 +12,8 @@ class AppLayoutComposer
 {
     public function __construct(
         private ProfilePhotoGateService $photoGate,
-        private AnnouncementService $announcements
+        private AnnouncementService $announcements,
+        private StudentOnboardingService $onboarding
     ) {}
 
     public function compose(View $view): void
@@ -38,6 +40,15 @@ class AppLayoutComposer
         } else {
             $view->with('unreadAnnouncementCount', 0);
             $view->with('activeAnnouncementBanners', collect());
+        }
+
+        if ($this->onboarding->shouldShow($user)) {
+            $locale = $this->onboarding->localeForWizard();
+            $view->with('showStudentOnboarding', true);
+            $view->with('studentOnboardingSteps', $this->onboarding->steps($locale));
+            $view->with('studentOnboardingLocale', $locale);
+        } else {
+            $view->with('showStudentOnboarding', false);
         }
     }
 }

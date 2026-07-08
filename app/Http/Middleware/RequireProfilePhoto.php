@@ -45,6 +45,7 @@ class RequireProfilePhoto
             'logout',
             'locale.switch',
             'theme.update',
+            'onboarding.complete',
         ];
 
         $name = $request->route()?->getName();

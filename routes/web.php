@@ -52,6 +52,7 @@ use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AnnouncementManageController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\LiveQuizController;
@@ -135,6 +136,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner')->whereNumber('announcement');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
+    Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 
