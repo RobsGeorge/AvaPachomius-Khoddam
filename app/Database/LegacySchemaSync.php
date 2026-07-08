@@ -20,7 +20,6 @@ final class LegacySchemaSync
         self::syncLecturesTable();
         self::syncCourseModuleTable();
         self::syncExamsTable();
-        self::syncPortalSettingsTable();
         self::ensureOtpCodeTable();
     }
 
@@ -29,30 +28,6 @@ final class LegacySchemaSync
     {
         self::syncUserTable();
         self::ensureOtpCodeTable();
-    }
-
-    /** Ensure portal/display columns exist before layout rendering (brownfield-safe). */
-    public static function ensureDisplayPreferencesSchema(): void
-    {
-        if (! Schema::hasTable('user')) {
-            return;
-        }
-
-        $driver = Schema::getConnection()->getDriverName();
-
-        if ($driver === 'mysql') {
-            self::addMysqlColumnIfMissing('user', 'font_size_preference', "VARCHAR(20) NOT NULL DEFAULT 'normal'");
-        } else {
-            MigrationSupport::addColumn('user', 'font_size_preference', function (Blueprint $table) {
-                $definition = $table->string('font_size_preference', 20)->default('normal');
-
-                if (Schema::hasColumn('user', 'student_onboarding_completed_at')) {
-                    $definition->after('student_onboarding_completed_at');
-                }
-            });
-        }
-
-        self::syncPortalSettingsTable();
     }
 
     private static function syncSessionTable(): void
@@ -127,40 +102,6 @@ final class LegacySchemaSync
         }
     }
 
-    private static function syncPortalSettingsTable(): void
-    {
-        if (! Schema::hasTable('portal_settings')) {
-            return;
-        }
-
-        if (Schema::getConnection()->getDriverName() !== 'mysql') {
-            MigrationSupport::addColumn('portal_settings', 'theme_colors_draft', function (Blueprint $table) {
-                $table->json('theme_colors_draft')->nullable();
-            });
-            MigrationSupport::addColumn('portal_settings', 'theme_colors_published', function (Blueprint $table) {
-                $table->json('theme_colors_published')->nullable();
-            });
-            MigrationSupport::addColumn('portal_settings', 'theme_colors_published_at', function (Blueprint $table) {
-                $table->timestamp('theme_colors_published_at')->nullable();
-            });
-            MigrationSupport::addColumn('portal_settings', 'theme_colors_published_by_user_id', function (Blueprint $table) {
-                $table->unsignedBigInteger('theme_colors_published_by_user_id')->nullable();
-            });
-
-            return;
-        }
-
-        foreach ([
-            'profile_photo_gate_enabled_at' => 'TIMESTAMP NULL',
-            'theme_colors_draft' => 'JSON NULL',
-            'theme_colors_published' => 'JSON NULL',
-            'theme_colors_published_at' => 'TIMESTAMP NULL',
-            'theme_colors_published_by_user_id' => 'BIGINT UNSIGNED NULL',
-        ] as $column => $definition) {
-            self::addMysqlColumnIfMissing('portal_settings', $column, $definition);
-        }
-    }
-
     private static function ensureOtpCodeTable(): void
     {
         if (! Schema::hasTable('user')) {
@@ -203,7 +144,6 @@ final class LegacySchemaSync
             'profile_photo_reviewed_by_user_id' => 'BIGINT UNSIGNED NULL',
             'profile_photo_rejection_note' => 'TEXT NULL',
             'student_onboarding_completed_at' => 'TIMESTAMP NULL',
-            'font_size_preference' => "VARCHAR(20) NOT NULL DEFAULT 'normal'",
             'national_id' => "VARCHAR(14) NOT NULL DEFAULT ''",
             'mobile_number' => 'VARCHAR(15) NOT NULL',
             'email' => "VARCHAR(30) NOT NULL DEFAULT ''",
@@ -276,13 +216,6 @@ final class LegacySchemaSync
         MigrationSupport::addTextColumn('user', 'profile_photo_rejection_note', true, 'profile_photo_reviewed_by_user_id');
         MigrationSupport::addColumn('user', 'student_onboarding_completed_at', function ($table) {
             $table->timestamp('student_onboarding_completed_at')->nullable()->after('profile_photo_rejection_note');
-        });
-        MigrationSupport::addColumn('user', 'font_size_preference', function (Blueprint $table) {
-            $definition = $table->string('font_size_preference', 20)->default('normal');
-
-            if (Schema::hasColumn('user', 'student_onboarding_completed_at')) {
-                $definition->after('student_onboarding_completed_at');
-            }
         });
         MigrationSupport::addStringColumn('user', 'national_id', 14, false);
         MigrationSupport::addStringColumn('user', 'mobile_number', 15, false);

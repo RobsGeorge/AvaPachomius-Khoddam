@@ -130,18 +130,6 @@ html {
     scroll-behavior: smooth;
 }
 
-html[data-font-size="normal"] {
-    font-size: 100%;
-}
-
-html[data-font-size="large"] {
-    font-size: 112.5%;
-}
-
-html[data-font-size="xlarge"] {
-    font-size: 125%;
-}
-
 [x-cloak] {
     display: none !important;
 }

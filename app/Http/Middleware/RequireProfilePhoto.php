@@ -42,7 +42,6 @@ class RequireProfilePhoto
         $allowed = [
             'profile',
             'profile.picture.update',
-            'profile.preferences.update',
             'logout',
             'locale.switch',
             'theme.update',

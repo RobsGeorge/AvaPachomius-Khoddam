@@ -31,12 +31,6 @@ class User extends Authenticatable
 
     public const PHOTO_STATUS_REJECTED = 'rejected';
 
-    public const FONT_SIZE_NORMAL = 'normal';
-
-    public const FONT_SIZE_LARGE = 'large';
-
-    public const FONT_SIZE_XLARGE = 'xlarge';
-
     /** Legacy `user` table may lack Laravel timestamps until schema sync runs. */
     public $timestamps = false;
 
@@ -50,7 +44,6 @@ class User extends Authenticatable
         'profile_photo_deadline_at', 'profile_photo_status',
         'profile_photo_reviewed_at', 'profile_photo_reviewed_by_user_id', 'profile_photo_rejection_note',
         'student_onboarding_completed_at',
-        'font_size_preference',
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
@@ -75,25 +68,6 @@ class User extends Authenticatable
     public static function fullNameFromParts(string $first, string $second, string $third): string
     {
         return trim(implode(' ', array_filter([$first, $second, $third], fn ($part) => $part !== '')));
-    }
-
-    /** @return list<string> */
-    public static function fontSizeOptions(): array
-    {
-        return [
-            self::FONT_SIZE_NORMAL,
-            self::FONT_SIZE_LARGE,
-            self::FONT_SIZE_XLARGE,
-        ];
-    }
-
-    public function resolvedFontSize(): string
-    {
-        $size = $this->font_size_preference ?: self::FONT_SIZE_NORMAL;
-
-        return in_array($size, self::fontSizeOptions(), true)
-            ? $size
-            : self::FONT_SIZE_NORMAL;
     }
 
     public function attendancesTaken()
