@@ -17,6 +17,9 @@ class Kernel extends ConsoleKernel
             ->timezone(config('attendance.timezone'))
             ->when(fn () => config('attendance.auto_close_enabled'));
         $schedule->call(fn () => \App\Services\PendingRegistrationService::purgeStale())->daily();
+        $schedule->command('birthdays:notify-monthly')
+            ->monthlyOn(1, '08:00')
+            ->timezone(config('attendance.timezone', config('app.timezone')));
     }
 
     /**
@@ -33,5 +36,6 @@ class Kernel extends ConsoleKernel
         Commands\MarkAbsentUsers::class,
         Commands\SetSuperAdmin::class,
         Commands\FlushAllSessions::class,
+        Commands\NotifyMonthlyBirthdays::class,
     ];
 }

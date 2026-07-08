@@ -161,6 +161,39 @@ class User extends Authenticatable
         );
     }
 
+    public function formattedMobile(): ?string
+    {
+        if (! $this->mobile_number) {
+            return null;
+        }
+
+        return '0' . ltrim((string) $this->mobile_number, '0');
+    }
+
+    public function telUrl(): ?string
+    {
+        if (! $this->mobile_number) {
+            return null;
+        }
+
+        return 'tel:+20' . ltrim((string) $this->mobile_number, '0');
+    }
+
+    public function whatsappUrl(?string $message = null): ?string
+    {
+        if (! $this->mobile_number) {
+            return null;
+        }
+
+        $url = 'https://wa.me/20' . ltrim((string) $this->mobile_number, '0');
+
+        if ($message) {
+            $url .= '?text=' . rawurlencode($message);
+        }
+
+        return $url;
+    }
+
     // Override the "must verify email" behavior since we have custom OTP
     public function hasVerifiedEmail() {
         return $this->is_verified;  // admin verified flag instead of default email_verified_at

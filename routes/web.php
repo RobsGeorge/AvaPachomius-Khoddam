@@ -47,6 +47,7 @@ use App\Http\Controllers\EventAdminController;
 use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\LiveQuizController;
@@ -290,6 +291,9 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 
     Route::get('/graduation',                                   [GraduationController::class, 'index'])->name('graduation.index');
     Route::get('/courses/{course}/graduation',                  [GraduationController::class, 'show'])->name('graduation.show');
+
+    Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
+    Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
 });
 
 Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopImpersonating'])

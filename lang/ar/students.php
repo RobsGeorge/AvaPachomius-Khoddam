@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'roster_title'              => 'دليل الطلاب',
+    'roster_intro'              => 'بيانات التواصل وأعياد الميلاد القادمة للطلاب المسجلين.',
+    'no_courses'                => 'لا توجد دورات متاحة لحسابك.',
+    'no_students'               => 'لا يوجد طلاب مسجلون في هذه الدورة.',
+    'total_students'            => 'الطلاب المسجلون',
+    'all_students'              => 'جميع الطلاب',
+    'birthdays_this_month'      => 'أعياد الميلاد في :month',
+    'birthdays_next_month'      => 'أعياد الميلاد في :month',
+    'no_birthdays_month'        => 'لا توجد أعياد ميلاد في هذه الفترة.',
+    'years_old'                 => 'سنة',
+    'email'                     => 'بريد',
+    'call'                      => 'اتصال',
+    'whatsapp'                  => 'واتساب',
+    'send_announcement'         => 'إرسال أعياد الميلاد لهذا الشهر للطاقم',
+    'confirm_announce'          => 'إرسال بريد بأعياد ميلاد هذا الشهر إلى جميع المدرسين والمسؤولين في هذه الدورة؟',
+    'announcement_sent'         => 'تم إرسال إعلان أعياد الميلاد إلى :count من الطاقم.',
+    'no_birthdays_to_announce'  => 'لا توجد أعياد ميلاد للطلاب هذا الشهر — لم يُرسل شيء.',
+    'whatsapp_birthday_message' => 'عيد ميلاد سعيد يا :name! نتمنى لك يوماً رائعاً.',
+    'mail_subject'              => ':course — أعياد ميلاد الطلاب في :month',
+    'mail_greeting'             => 'مرحباً :name،',
+    'mail_intro'                => 'الطلاب التاليون في :course لديهم أعياد ميلاد خلال :month:',
+    'mail_footer'               => 'يمكنك عرض دليل الطلاب الكامل وبيانات التواصل من منصة خدام.',
+];

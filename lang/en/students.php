@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'roster_title'              => 'Student directory',
+    'roster_intro'              => 'Contact details and upcoming birthdays for enrolled students.',
+    'no_courses'                => 'No courses are available for your account.',
+    'no_students'               => 'No students are enrolled in this course.',
+    'total_students'            => 'Enrolled students',
+    'all_students'              => 'All students',
+    'birthdays_this_month'      => 'Birthdays in :month',
+    'birthdays_next_month'      => 'Birthdays in :month',
+    'no_birthdays_month'        => 'No birthdays in this period.',
+    'years_old'                 => 'years',
+    'email'                     => 'Email',
+    'call'                      => 'Call',
+    'whatsapp'                  => 'WhatsApp',
+    'send_announcement'         => 'Email staff this month\'s birthdays',
+    'confirm_announce'          => 'Send a birthday announcement email to all instructors and admins for this course?',
+    'announcement_sent'         => 'Birthday announcement sent to :count staff member(s).',
+    'no_birthdays_to_announce'  => 'No student birthdays this month — nothing was sent.',
+    'whatsapp_birthday_message' => 'Happy birthday, :name! Wishing you a wonderful day.',
+    'mail_subject'              => ':course — student birthdays in :month',
+    'mail_greeting'             => 'Hello :name,',
+    'mail_intro'                => 'The following students in :course have birthdays during :month:',
+    'mail_footer'               => 'You can view the full student directory and contact details in the Khoddam platform.',
+];

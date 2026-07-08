@@ -30,6 +30,7 @@ class NavigationHub
                 'attendance.all', 'attendance.user', 'attendance.by-date', 'attendance.user-report',
             ]);
             $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report']);
+            $links[] = self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce']);
             $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*']);
             $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*']);
         } else {
