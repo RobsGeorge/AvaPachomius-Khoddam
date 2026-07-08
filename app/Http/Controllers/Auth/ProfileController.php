@@ -37,6 +37,9 @@ class ProfileController extends Controller
             'photoGateBlocked' => $this->photoGate->isHardBlocked($user),
             'photoDeadline' => $this->photoGate->deadlineFor($user),
             'photoDaysRemaining' => $this->photoGate->daysRemaining($user),
+            'photoPendingReview' => $this->photoGate->shouldShowPendingBanner($user),
+            'photoRejected' => $this->photoGate->shouldShowRejectedBanner($user),
+            'photoRejectionNote' => $user->profile_photo_rejection_note,
         ]);
     }
 
@@ -59,8 +62,12 @@ class ProfileController extends Controller
 
         $user->profile_photo = $path;
         $user->profile_photo_uploaded_at = now($this->photoGate->timezone());
+        $user->profile_photo_status = User::PHOTO_STATUS_PENDING;
+        $user->profile_photo_reviewed_at = null;
+        $user->profile_photo_reviewed_by_user_id = null;
+        $user->profile_photo_rejection_note = null;
         $user->save();
 
-        return redirect()->route('profile')->with('success', __('pages.profile_photo_updated'));
+        return redirect()->route('profile')->with('success', __('pages.profile_photo_updated_pending'));
     }
 }

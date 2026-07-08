@@ -137,7 +137,12 @@ final class LegacySchemaSync
             'third_name' => "VARCHAR(30) NOT NULL DEFAULT ''",
             'profile_photo' => "VARCHAR(255) NOT NULL DEFAULT ''",
             'profile_photo_grace_started_at' => 'TIMESTAMP NULL',
+            'profile_photo_deadline_at' => 'TIMESTAMP NULL',
             'profile_photo_uploaded_at' => 'TIMESTAMP NULL',
+            'profile_photo_status' => 'VARCHAR(20) NULL',
+            'profile_photo_reviewed_at' => 'TIMESTAMP NULL',
+            'profile_photo_reviewed_by_user_id' => 'BIGINT UNSIGNED NULL',
+            'profile_photo_rejection_note' => 'TEXT NULL',
             'national_id' => "VARCHAR(14) NOT NULL DEFAULT ''",
             'mobile_number' => 'VARCHAR(15) NOT NULL',
             'email' => "VARCHAR(30) NOT NULL DEFAULT ''",
@@ -194,9 +199,20 @@ final class LegacySchemaSync
         MigrationSupport::addColumn('user', 'profile_photo_grace_started_at', function ($table) {
             $table->timestamp('profile_photo_grace_started_at')->nullable()->after('profile_photo');
         });
-        MigrationSupport::addColumn('user', 'profile_photo_uploaded_at', function ($table) {
-            $table->timestamp('profile_photo_uploaded_at')->nullable()->after('profile_photo_grace_started_at');
+        MigrationSupport::addColumn('user', 'profile_photo_deadline_at', function ($table) {
+            $table->timestamp('profile_photo_deadline_at')->nullable()->after('profile_photo_grace_started_at');
         });
+        MigrationSupport::addColumn('user', 'profile_photo_uploaded_at', function ($table) {
+            $table->timestamp('profile_photo_uploaded_at')->nullable()->after('profile_photo_deadline_at');
+        });
+        MigrationSupport::addStringColumn('user', 'profile_photo_status', 20, true, 'profile_photo_uploaded_at');
+        MigrationSupport::addColumn('user', 'profile_photo_reviewed_at', function ($table) {
+            $table->timestamp('profile_photo_reviewed_at')->nullable()->after('profile_photo_status');
+        });
+        MigrationSupport::addColumn('user', 'profile_photo_reviewed_by_user_id', function ($table) {
+            $table->unsignedBigInteger('profile_photo_reviewed_by_user_id')->nullable()->after('profile_photo_reviewed_at');
+        });
+        MigrationSupport::addTextColumn('user', 'profile_photo_rejection_note', true, 'profile_photo_reviewed_by_user_id');
         MigrationSupport::addStringColumn('user', 'national_id', 14, false);
         MigrationSupport::addStringColumn('user', 'mobile_number', 15, false);
         MigrationSupport::addStringColumn('user', 'email', 30, false);

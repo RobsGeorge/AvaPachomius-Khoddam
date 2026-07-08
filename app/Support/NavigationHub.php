@@ -66,6 +66,7 @@ class NavigationHub
             $links[] = self::link('user-course-roles.index', 'nav.roles', 'bi-people', ['user-course-roles.*', 'roles.*']);
             $links[] = self::link('admin.translations.index', 'nav.translations', 'bi-translate', ['admin.translations.*']);
             $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']);
+            $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']);
         }
 
         if ($user->is_superadmin || $user->isAdmin()) {

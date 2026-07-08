@@ -53,6 +53,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AnnouncementManageController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
+use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\LiveQuizController;
 use App\Http\Controllers\LiveQuizBuilderController;
 use App\Http\Controllers\LiveQuizHostController;
@@ -130,8 +131,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/birthdays', [StudentBirthdaysController::class, 'index'])->name('students.birthdays');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
-    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
-    Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner');
+    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show')->whereNumber('announcement');
+    Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner')->whereNumber('announcement');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
@@ -154,6 +155,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/courses/{course}/graduation-settings', [GraduationController::class, 'updateSettings'])->name('graduation-settings.update');
     Route::get('/attendance-settings', [AttendanceSettingsController::class, 'edit'])->name('attendance-settings.edit');
     Route::put('/attendance-settings', [AttendanceSettingsController::class, 'update'])->name('attendance-settings.update');
+    Route::get('/profile-photos', [ProfilePhotoReportController::class, 'index'])->name('profile-photos.index');
+    Route::put('/profile-photos/settings', [ProfilePhotoReportController::class, 'updateSettings'])->name('profile-photos.settings');
+    Route::post('/profile-photos/{user}/extend-deadline', [ProfilePhotoReportController::class, 'extendDeadline'])->name('profile-photos.extend-deadline');
+    Route::post('/profile-photos/{user}/reset-grace', [ProfilePhotoReportController::class, 'resetGrace'])->name('profile-photos.reset-grace');
+    Route::post('/profile-photos/{user}/approve', [ProfilePhotoReportController::class, 'approve'])->name('profile-photos.approve');
+    Route::post('/profile-photos/{user}/reject', [ProfilePhotoReportController::class, 'reject'])->name('profile-photos.reject');
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');

@@ -114,4 +114,17 @@ class AnnouncementModuleTest extends EventModuleTestCase
         $this->assertTrue($gate->shouldShowWarningBanner($student));
         $this->assertFalse($gate->isHardBlocked($student));
     }
+
+    public function test_announcements_manage_index_is_not_captured_by_show_route(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $admin = $this->createUser(['email' => 'announce-manage-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Manage Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $this->actingAs($admin)
+            ->get(route('announcements.manage.index'))
+            ->assertOk()
+            ->assertSee(__('announcements.manage_title'));
+    }
 }

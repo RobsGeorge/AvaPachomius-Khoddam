@@ -25,6 +25,12 @@ class User extends Authenticatable
 {
     use Notifiable, HasApiTokens, HasFactory;
 
+    public const PHOTO_STATUS_PENDING = 'pending';
+
+    public const PHOTO_STATUS_APPROVED = 'approved';
+
+    public const PHOTO_STATUS_REJECTED = 'rejected';
+
     /** Legacy `user` table may lack Laravel timestamps until schema sync runs. */
     public $timestamps = false;
 
@@ -35,6 +41,8 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'first_name', 'second_name', 'third_name', 'profile_photo',
         'profile_photo_grace_started_at', 'profile_photo_uploaded_at',
+        'profile_photo_deadline_at', 'profile_photo_status',
+        'profile_photo_reviewed_at', 'profile_photo_reviewed_by_user_id', 'profile_photo_rejection_note',
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
@@ -48,6 +56,8 @@ class User extends Authenticatable
         'registration_completed' => 'boolean',
         'profile_photo_grace_started_at' => 'datetime',
         'profile_photo_uploaded_at' => 'datetime',
+        'profile_photo_deadline_at' => 'datetime',
+        'profile_photo_reviewed_at' => 'datetime',
         'created_at'    => 'datetime',
         'updated_at'    => 'datetime',
         'otp_expires_at' => 'datetime',
@@ -168,6 +178,21 @@ class User extends Authenticatable
     public function hasProfilePhoto(): bool
     {
         return filled($this->profile_photo);
+    }
+
+    public function isProfilePhotoApproved(): bool
+    {
+        return $this->profile_photo_status === self::PHOTO_STATUS_APPROVED;
+    }
+
+    public function isProfilePhotoPending(): bool
+    {
+        return $this->profile_photo_status === self::PHOTO_STATUS_PENDING;
+    }
+
+    public function isProfilePhotoRejected(): bool
+    {
+        return $this->profile_photo_status === self::PHOTO_STATUS_REJECTED;
     }
 
     public function formattedMobile(): ?string

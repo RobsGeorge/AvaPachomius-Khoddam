@@ -25,6 +25,9 @@ class AppLayoutComposer
         $this->photoGate->ensureGraceStarted($user);
 
         $view->with('profilePhotoWarning', $this->photoGate->shouldShowWarningBanner($user));
+        $view->with('profilePhotoPending', $this->photoGate->shouldShowPendingBanner($user));
+        $view->with('profilePhotoRejected', $this->photoGate->shouldShowRejectedBanner($user));
+        $view->with('profilePhotoRejectionNote', $user->profile_photo_rejection_note);
         $view->with('profilePhotoDeadline', $this->photoGate->deadlineFor($user));
         $view->with('profilePhotoDaysRemaining', $this->photoGate->daysRemaining($user));
         $view->with('profilePhotoHardBlocked', $this->photoGate->isHardBlocked($user));

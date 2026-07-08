@@ -33,6 +33,19 @@
         </div>
     @endif
 
+    @if(!empty($photoPendingReview))
+        <div class="alert alert-info">{{ __('pages.profile_photo_pending_banner') }}</div>
+    @endif
+
+    @if(!empty($photoRejected))
+        <div class="alert alert-danger">
+            {{ __('pages.profile_photo_rejected_banner') }}
+            @if($photoRejectionNote)
+                <span class="d-block small mt-1">{{ $photoRejectionNote }}</span>
+            @endif
+        </div>
+    @endif
+
     <div class="app-card card mb-4">
         <div class="card-body text-center">
             <div class="profile-photo-wrap mx-auto mb-4">
