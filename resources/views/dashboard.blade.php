@@ -17,6 +17,22 @@
         </p>
     </div>
 
+    @if(isset($homepageAnnouncements) && $homepageAnnouncements->isNotEmpty())
+        <div class="app-card card shadow-sm mb-4">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-megaphone"></i> {{ __('announcements.title') }}
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+                @foreach($homepageAnnouncements as $announcement)
+                    <a href="{{ route('announcements.show', $announcement) }}" class="text-decoration-none announcement-home-card">
+                        <strong class="d-block mb-1">{{ $announcement->title }}</strong>
+                        <span class="text-muted-theme small">{{ \Illuminate\Support\Str::limit($announcement->body, 120) }}</span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($todayBirthdays->isNotEmpty())
         <div class="app-card card shadow-sm mb-4 border-success border-opacity-50 student-data-hub">
             <div class="card-header bg-success bg-opacity-10 fw-semibold">

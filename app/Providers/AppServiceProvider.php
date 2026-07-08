@@ -5,10 +5,12 @@ namespace App\Providers;
 use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
+use App\Http\View\Composers\AppLayoutComposer;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\MigrationsStarted;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -31,5 +33,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MigrationsStarted::class, function () {
             LegacySchemaSync::syncAll();
         });
+
+        View::composer(['layouts.app', 'layouts.navigation'], AppLayoutComposer::class);
     }
 }

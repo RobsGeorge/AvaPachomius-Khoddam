@@ -761,6 +761,96 @@ body.theme-dark .app-dropdown-link:hover {
     background: var(--color-surface);
 }
 
+.student-photo-trigger,
+.profile-photo-trigger {
+    display: block;
+    line-height: 0;
+    border-radius: 50%;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.student-photo-trigger:hover,
+.student-photo-trigger:focus,
+.profile-photo-trigger:hover,
+.profile-photo-trigger:focus {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+}
+
+.student-photo-modal-image {
+    width: min(280px, 70vw);
+    height: min(280px, 70vw);
+    object-fit: cover;
+    border: 3px solid var(--color-surface-border);
+}
+
+.profile-photo-wrap {
+    width: 128px;
+}
+
+.profile-photo-img,
+.profile-photo-placeholder {
+    width: 128px;
+    height: 128px;
+    object-fit: cover;
+    border: 2px solid var(--color-surface-border);
+}
+
+.profile-photo-placeholder {
+    background: var(--color-surface);
+}
+
+.nav-notification-badge {
+    position: absolute;
+    top: -4px;
+    inset-inline-end: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+.announcement-card-unread {
+    border-color: rgba(124, 58, 237, 0.45) !important;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02));
+}
+
+.announcement-banner {
+    border-bottom: 1px solid var(--color-surface-border);
+}
+
+.announcement-banner-dismissible {
+    background: rgba(124, 58, 237, 0.1);
+    color: var(--color-text);
+}
+
+.announcement-banner-locked {
+    background: rgba(245, 158, 11, 0.18);
+    color: var(--color-text);
+}
+
+.profile-photo-banner {
+    border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.announcement-home-card {
+    color: inherit;
+    padding: 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-surface-border);
+    transition: background var(--transition-fast);
+}
+
+.announcement-home-card:hover {
+    background: rgba(124, 58, 237, 0.06);
+}
+
 /* Student-facing responsive data cards */
 .student-data-hub .data-meta-list {
     display: grid;

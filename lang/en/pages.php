@@ -912,4 +912,10 @@ return [
     'answer'                              => 'Answer',
     'date'                                => 'Date',
     'student_response'                    => 'Student response',
+    'profile_photo_updated'               => 'Profile photo updated successfully.',
+    'profile_photo_required_banner'       => 'Please upload your personal photo before :deadline. The platform will be locked after the deadline if no photo is uploaded.',
+    'profile_photo_required_link'         => 'Upload photo now',
+    'profile_photo_required_locked'       => 'Your personal photo is required. Upload it to unlock the platform.',
+    'profile_photo_modal_title'           => 'Profile photo',
+    'view_photo'                          => 'View photo',
 ];

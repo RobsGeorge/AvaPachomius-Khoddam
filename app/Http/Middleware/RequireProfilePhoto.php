@@ -2,27 +2,29 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\MandatoryFeedbackService;
+use App\Services\ProfilePhotoGateService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class RequireMandatoryFeedback
+class RequireProfilePhoto
 {
     public function __construct(
-        private MandatoryFeedbackService $mandatoryFeedback
+        private ProfilePhotoGateService $photoGate
     ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
 
-        if (! $user || ! $user->isStudent()) {
+        if (! $user) {
             return $next($request);
         }
 
-        if (! $this->mandatoryFeedback->hasPending($user)) {
+        $this->photoGate->ensureGraceStarted($user);
+
+        if (! $this->photoGate->isHardBlocked($user)) {
             return $next($request);
         }
 
@@ -30,11 +32,9 @@ class RequireMandatoryFeedback
             return $next($request);
         }
 
-        $pending = $this->mandatoryFeedback->firstPending($user);
-
         return redirect()
-            ->route('feedback.surveys.show', $pending['survey_id'] ?? 0)
-            ->with('warning', __('pages.mandatory_feedback_required'));
+            ->route('profile')
+            ->with('warning', __('pages.profile_photo_required_locked'));
     }
 
     private function routeIsAllowed(Request $request): bool
@@ -43,22 +43,12 @@ class RequireMandatoryFeedback
             'profile',
             'profile.picture.update',
             'logout',
-            'feedback.index',
-            'feedback.surveys.show',
-            'feedback.surveys.submit',
-            'announcements.index',
-            'announcements.show',
-            'announcements.dismiss-banner',
             'locale.switch',
             'theme.update',
         ];
 
         $name = $request->route()?->getName();
 
-        if ($name && in_array($name, $allowed, true)) {
-            return true;
-        }
-
-        return false;
+        return $name && in_array($name, $allowed, true);
     }
 }

@@ -102,6 +102,15 @@
                 </button>
 
                 @auth
+                    @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
+                        <a href="{{ route('announcements.index') }}" class="app-toolbar-btn position-relative text-decoration-none" aria-label="{{ __('announcements.notifications') }}">
+                            <i class="bi bi-bell"></i>
+                            @if(!empty($unreadAnnouncementCount) && $unreadAnnouncementCount > 0)
+                                <span class="nav-notification-badge">{{ $unreadAnnouncementCount }}</span>
+                            @endif
+                        </a>
+                    @endif
+
                     <div class="dropdown d-none d-md-block">
                         <button class="app-toolbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle"></i>
@@ -164,6 +173,16 @@
                                 @endforeach
                             </div>
                         </details>
+                    @endif
+
+                    @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
+                        <a href="{{ route('announcements.index') }}" class="app-nav-link d-flex align-items-center gap-2 {{ request()->routeIs('announcements.*') ? 'active' : '' }}">
+                            <i class="bi bi-bell"></i>
+                            {{ __('announcements.notifications') }}
+                            @if(!empty($unreadAnnouncementCount) && $unreadAnnouncementCount > 0)
+                                <span class="badge bg-danger">{{ $unreadAnnouncementCount }}</span>
+                            @endif
+                        </a>
                     @endif
 
                     <hr class="my-1 border-secondary-subtle">

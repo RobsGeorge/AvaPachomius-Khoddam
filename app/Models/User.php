@@ -34,6 +34,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'first_name', 'second_name', 'third_name', 'profile_photo',
+        'profile_photo_grace_started_at', 'profile_photo_uploaded_at',
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
@@ -45,6 +46,8 @@ class User extends Authenticatable
         'is_verified'   => 'boolean',
         'is_superadmin' => 'boolean',
         'registration_completed' => 'boolean',
+        'profile_photo_grace_started_at' => 'datetime',
+        'profile_photo_uploaded_at' => 'datetime',
         'created_at'    => 'datetime',
         'updated_at'    => 'datetime',
         'otp_expires_at' => 'datetime',
@@ -160,6 +163,11 @@ class User extends Authenticatable
             (string) $this->second_name,
             (string) ($this->third_name ?? '')
         );
+    }
+
+    public function hasProfilePhoto(): bool
+    {
+        return filled($this->profile_photo);
     }
 
     public function formattedMobile(): ?string

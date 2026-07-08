@@ -850,4 +850,10 @@ return [
     'view_feedback'                   => 'عرض إجابتي',
     'submit_feedback'                 => 'إرسال التقييم',
     'mandatory_feedback_required'     => 'يرجى إكمال التقييم المطلوب قبل المتابعة.',
+    'profile_photo_updated'           => 'تم تحديث صورة الملف الشخصي بنجاح.',
+    'profile_photo_required_banner'   => 'يرجى رفع صورتك الشخصية قبل :deadline. سيتم قفل المنصة بعد الموعد إذا لم تُرفع صورة.',
+    'profile_photo_required_link'     => 'رفع الصورة الآن',
+    'profile_photo_required_locked'   => 'صورتك الشخصية مطلوبة. ارفعها لفتح المنصة.',
+    'profile_photo_modal_title'       => 'الصورة الشخصية',
+    'view_photo'                      => 'عرض الصورة',
 ];

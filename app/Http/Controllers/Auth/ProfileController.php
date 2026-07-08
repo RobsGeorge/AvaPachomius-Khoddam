@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ProfilePhotoGateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        private ProfilePhotoGateService $photoGate
+    ) {}
+
     public function index()
     {
         $user = Auth::user();
@@ -25,7 +30,14 @@ class ProfileController extends Controller
 
         $attendanceUrl = route('attendance.sessions', ['user_id' => $user->user_id], true);
 
-        return view('profile.show', compact('user', 'attendanceUrl', 'fullName'));
+        return view('profile.show', [
+            'user' => $user,
+            'attendanceUrl' => $attendanceUrl,
+            'fullName' => $fullName,
+            'photoGateBlocked' => $this->photoGate->isHardBlocked($user),
+            'photoDeadline' => $this->photoGate->deadlineFor($user),
+            'photoDaysRemaining' => $this->photoGate->daysRemaining($user),
+        ]);
     }
 
     public function updatePicture(Request $request)
@@ -46,8 +58,9 @@ class ProfileController extends Controller
         $path = $request->file('profile_photo')->store('profile_photos', 'public');
 
         $user->profile_photo = $path;
+        $user->profile_photo_uploaded_at = now($this->photoGate->timezone());
         $user->save();
 
-        return redirect()->route('profile')->with('success', 'تم تحديث صورة الملف الشخصي بنجاح.');
+        return redirect()->route('profile')->with('success', __('pages.profile_photo_updated'));
     }
 }

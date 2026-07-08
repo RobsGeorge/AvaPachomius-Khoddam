@@ -136,6 +136,8 @@ final class LegacySchemaSync
             'second_name' => "VARCHAR(30) NOT NULL DEFAULT ''",
             'third_name' => "VARCHAR(30) NOT NULL DEFAULT ''",
             'profile_photo' => "VARCHAR(255) NOT NULL DEFAULT ''",
+            'profile_photo_grace_started_at' => 'TIMESTAMP NULL',
+            'profile_photo_uploaded_at' => 'TIMESTAMP NULL',
             'national_id' => "VARCHAR(14) NOT NULL DEFAULT ''",
             'mobile_number' => 'VARCHAR(15) NOT NULL',
             'email' => "VARCHAR(30) NOT NULL DEFAULT ''",
@@ -189,6 +191,12 @@ final class LegacySchemaSync
         MigrationSupport::addStringColumn('user', 'second_name', 30, false);
         MigrationSupport::addStringColumn('user', 'third_name', 30, false);
         MigrationSupport::addStringColumn('user', 'profile_photo', 255, false);
+        MigrationSupport::addColumn('user', 'profile_photo_grace_started_at', function ($table) {
+            $table->timestamp('profile_photo_grace_started_at')->nullable()->after('profile_photo');
+        });
+        MigrationSupport::addColumn('user', 'profile_photo_uploaded_at', function ($table) {
+            $table->timestamp('profile_photo_uploaded_at')->nullable()->after('profile_photo_grace_started_at');
+        });
         MigrationSupport::addStringColumn('user', 'national_id', 14, false);
         MigrationSupport::addStringColumn('user', 'mobile_number', 15, false);
         MigrationSupport::addStringColumn('user', 'email', 30, false);

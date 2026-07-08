@@ -3,16 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\AnnouncementService;
 use App\Services\StudentRosterService;
 use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    public function index(StudentRosterService $rosterService)
+    public function index(StudentRosterService $rosterService, AnnouncementService $announcementService)
     {
         $todayBirthdays = $this->todaysBirthdays($rosterService);
+        $homepageAnnouncements = collect();
+        $user = auth()->user();
 
-        return view('dashboard', compact('todayBirthdays'));
+        if ($user instanceof User && $user->isStudent()) {
+            $homepageAnnouncements = $announcementService->homepageAnnouncements($user);
+        }
+
+        return view('dashboard', compact('todayBirthdays', 'homepageAnnouncements'));
     }
 
     private function todaysBirthdays(StudentRosterService $rosterService): Collection

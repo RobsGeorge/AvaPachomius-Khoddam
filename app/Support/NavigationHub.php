@@ -31,6 +31,7 @@ class NavigationHub
             ]);
             $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report']);
             $links[] = self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce']);
+            $links[] = self::link('announcements.manage.index', 'announcements.manage_title', 'bi-megaphone', ['announcements.manage.*']);
             $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*']);
             $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*']);
         } else {
@@ -38,6 +39,9 @@ class NavigationHub
             $links[] = self::link('exams.index', 'dashboard.view_exams', 'bi-patch-check', ['exams.index', 'exams.attempt.*']);
             $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my']);
             $links[] = self::link('students.birthdays', 'students.birthdays_title', 'bi-cake2', ['students.birthdays']);
+            $links[] = self::link('announcements.index', 'announcements.title', 'bi-megaphone', [
+                'announcements.index', 'announcements.show', 'announcements.dismiss-banner',
+            ]);
         }
 
         $links[] = self::link('feedback.index', 'dashboard.feedback', 'bi-chat-square-text', ['feedback.*']);

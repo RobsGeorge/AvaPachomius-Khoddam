@@ -9,6 +9,9 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
+    @if(session('warning'))
+        <div class="alert alert-warning">{{ session('warning') }}</div>
+    @endif
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -20,26 +23,42 @@
         </div>
     @endif
 
+    @if(!empty($photoGateBlocked))
+        <div class="alert alert-danger">
+            {{ __('pages.profile_photo_required_locked') }}
+        </div>
+    @elseif($photoDeadline)
+        <div class="alert alert-warning">
+            {{ __('pages.profile_photo_required_banner', ['deadline' => $photoDeadline->format('d/m/Y H:i')]) }}
+        </div>
+    @endif
+
     <div class="app-card card mb-4">
         <div class="card-body text-center">
-            <div class="relative w-32 h-32 rounded-full overflow-hidden mx-auto mb-4 cursor-pointer" style="width:128px;height:128px;margin:0 auto 1rem;">
+            <div class="profile-photo-wrap mx-auto mb-4">
                 @if($user->profile_photo)
-                    <img src="{{ asset('storage/' . $user->profile_photo) }}" alt="{{ __('pages.profile_photo') }}"
-                        class="w-100 h-100 object-fit-cover border rounded-circle" style="object-fit:cover;width:100%;height:100%;">
+                    <button type="button"
+                            class="btn p-0 border-0 profile-photo-trigger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#profilePhotoModal"
+                            aria-label="{{ __('pages.view_photo') }}">
+                        <img src="{{ asset('storage/' . $user->profile_photo) }}" alt="{{ __('pages.profile_photo') }}"
+                            class="profile-photo-img rounded-circle">
+                    </button>
                 @else
-                    <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center rounded-circle" style="width:100%;height:100%;">
+                    <div class="profile-photo-placeholder rounded-circle d-flex align-items-center justify-content-center">
                         <span class="text-muted-theme">{{ __('pages.no_photo') }}</span>
                     </div>
                 @endif
 
-                <form action="{{ route('profile.picture.update') }}" method="POST" enctype="multipart/form-data" class="position-absolute top-0 start-0 w-100 h-100">
+                <form action="{{ route('profile.picture.update') }}" method="POST" enctype="multipart/form-data" id="profilePhotoUploadForm">
                     @csrf
                     @method('PUT')
-                    <input type="file" name="profile_photo"
-                        class="opacity-0 w-100 h-100 cursor-pointer"
-                        style="opacity:0;width:100%;height:100%;cursor:pointer;"
-                        onchange="this.form.submit()"
-                        title="{{ __('pages.upload_new_photo') }}" />
+                    <label for="profile_photo_input" class="btn btn-sm btn-primary mt-3">
+                        <i class="bi bi-camera"></i> {{ __('pages.upload_new_photo') }}
+                    </label>
+                    <input type="file" name="profile_photo" id="profile_photo_input" class="d-none" accept="image/*"
+                           onchange="this.form.submit()">
                 </form>
             </div>
 
@@ -75,6 +94,23 @@
 @endsection
 
 @push('modals')
+@if($user->profile_photo)
+<div class="modal fade" id="profilePhotoModal" tabindex="-1" aria-labelledby="profilePhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="profilePhotoModalLabel">{{ __('pages.profile_photo_modal_title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ asset('storage/' . $user->profile_photo) }}" alt="{{ $fullName }}"
+                     class="img-fluid rounded-circle student-photo-modal-image">
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -89,4 +125,35 @@
         </div>
     </div>
 </div>
+
+@if(!empty($photoGateBlocked) && ! $user->profile_photo)
+<div class="modal fade" id="photoRequiredModal" tabindex="-1" aria-hidden="true" data-show-on-load="1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ __('pages.profile_photo_required_locked') }}</h5>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-3">{{ __('pages.upload_new_photo') }}</p>
+                <label for="profile_photo_modal_input" class="btn btn-primary">
+                    <i class="bi bi-camera"></i> {{ __('pages.profile_photo_required_link') }}
+                </label>
+                <input type="file" id="profile_photo_modal_input" class="d-none" accept="image/*"
+                       onchange="document.getElementById('profile_photo_input').files = this.files; document.getElementById('profilePhotoUploadForm').submit();">
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const requiredModal = document.getElementById('photoRequiredModal');
+    if (requiredModal?.dataset.showOnLoad === '1') {
+        bootstrap.Modal.getOrCreateInstance(requiredModal, { backdrop: 'static', keyboard: false }).show();
+    }
+});
+</script>
 @endpush

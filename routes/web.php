@@ -49,6 +49,8 @@ use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
+use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\AnnouncementManageController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\LiveQuizController;
@@ -127,6 +129,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/birthdays', [StudentBirthdaysController::class, 'index'])->name('students.birthdays');
+    Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
+    Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
@@ -296,6 +301,19 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
+
+    Route::prefix('announcements/manage')->name('announcements.manage.')->group(function () {
+        Route::get('/', [AnnouncementManageController::class, 'index'])->name('index');
+        Route::get('/create', [AnnouncementManageController::class, 'create'])->name('create');
+        Route::post('/', [AnnouncementManageController::class, 'store'])->name('store');
+        Route::get('/{announcement}/edit', [AnnouncementManageController::class, 'edit'])->name('edit');
+        Route::put('/{announcement}', [AnnouncementManageController::class, 'update'])->name('update');
+        Route::post('/{announcement}/publish', [AnnouncementManageController::class, 'publish'])->name('publish');
+        Route::post('/{announcement}/resend-email', [AnnouncementManageController::class, 'resendEmail'])->name('resend-email');
+        Route::get('/{announcement}/whatsapp', [AnnouncementManageController::class, 'whatsapp'])->name('whatsapp');
+        Route::post('/{announcement}/whatsapp', [AnnouncementManageController::class, 'markWhatsappSent'])->name('whatsapp.mark');
+        Route::get('/{announcement}/directory', [AnnouncementManageController::class, 'directory'])->name('directory');
+    });
 });
 
 Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopImpersonating'])
