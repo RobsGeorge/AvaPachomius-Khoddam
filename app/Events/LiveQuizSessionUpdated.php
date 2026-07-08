@@ -4,7 +4,7 @@ namespace App\Events;
 
 use App\Models\LiveQuizSession;
 use App\Services\LiveQuizSessionService;
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -22,7 +22,7 @@ class LiveQuizSessionUpdated implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [new Channel('live-quiz.'.$this->session->session_id)];
+        return [new PrivateChannel('live-quiz.'.$this->session->session_id)];
     }
 
     public function broadcastAs(): string

@@ -50,8 +50,14 @@ window.Echo = new Echo({
     wssPort: {{ (int) config('broadcasting.connections.reverb.options.port') }},
     forceTLS: @json(config('broadcasting.connections.reverb.options.scheme') === 'https'),
     enabledTransports: ['ws', 'wss'],
+    authEndpoint: @json(url('/broadcasting/auth')),
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+    },
 });
-window.Echo.channel('live-feedback.{{ $session->session_id }}').listen('.session.updated', (p) => {
+window.Echo.private('live-feedback.{{ $session->session_id }}').listen('.session.updated', (p) => {
     document.getElementById('submitted-count').textContent = p.submitted_count || 0;
     const aggs = p.aggregates || {};
     Object.keys(aggs).forEach(key => {

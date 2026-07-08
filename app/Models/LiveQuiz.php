@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\LiveJoinCodeService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 
 class LiveQuiz extends Model
 {
@@ -32,11 +32,7 @@ class LiveQuiz extends Model
 
     public static function generateJoinCode(): string
     {
-        do {
-            $code = strtoupper(Str::random(6));
-        } while (self::where('join_code', $code)->exists());
-
-        return $code;
+        return LiveJoinCodeService::generate();
     }
 
     public function course(): BelongsTo

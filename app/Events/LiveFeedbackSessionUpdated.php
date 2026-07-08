@@ -3,7 +3,7 @@
 namespace App\Events;
 
 use App\Models\LiveFeedbackSession;
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
@@ -20,7 +20,7 @@ class LiveFeedbackSessionUpdated implements ShouldBroadcastNow
 
     public function broadcastOn(): array
     {
-        return [new Channel('live-feedback.'.$this->session->session_id)];
+        return [new PrivateChannel('live-feedback.'.$this->session->session_id)];
     }
 
     public function broadcastAs(): string

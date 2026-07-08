@@ -30,7 +30,7 @@ window.Echo = new Echo({
 });
 
 @if(!empty($channel))
-window.Echo.channel(@json($channel))
+window.Echo.private(@json($channel))
     .listen('.session.updated', (payload) => {
         window.dispatchEvent(new CustomEvent('live-session-updated', { detail: payload }));
     });

@@ -53,6 +53,12 @@ window.Echo = new Echo({
     wssPort: {{ (int) config('broadcasting.connections.reverb.options.port') }},
     forceTLS: @json(config('broadcasting.connections.reverb.options.scheme') === 'https'),
     enabledTransports: ['ws', 'wss'],
+    authEndpoint: @json(url('/broadcasting/auth')),
+    auth: {
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+    },
 });
 let timerInterval = null;
 function renderPayload(p) {
@@ -101,7 +107,7 @@ function startTimer(seconds, startedAt) {
         if (remain <= 0) clearInterval(timerInterval);
     }, 250);
 }
-window.Echo.channel('live-quiz.{{ $session->session_id }}').listen('.session.updated', renderPayload);
+window.Echo.private('live-quiz.{{ $session->session_id }}').listen('.session.updated', renderPayload);
 </script>
 </body>
 </html>
