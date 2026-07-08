@@ -20,19 +20,27 @@ class AppLayoutComposer
 
     public function compose(View $view): void
     {
-        $settings = PortalSettings::current();
-        $view->with(
-            'portalThemeVersion',
-            is_array($settings->theme_colors_published)
+        $portalThemeVersion = null;
+        $userFontSize = User::FONT_SIZE_NORMAL;
+
+        try {
+            $settings = PortalSettings::current();
+            $portalThemeVersion = is_array($settings->theme_colors_published)
                 ? ($settings->theme_colors_published_at?->timestamp ?? 1)
-                : null
-        );
+                : null;
+
+            $user = Auth::user();
+            $userFontSize = $user instanceof User
+                ? $user->resolvedFontSize()
+                : User::FONT_SIZE_NORMAL;
+        } catch (\Throwable) {
+            // Brownfield DB may lag behind deploy; keep public pages usable.
+        }
+
+        $view->with('portalThemeVersion', $portalThemeVersion);
+        $view->with('userFontSize', $userFontSize);
 
         $user = Auth::user();
-        $view->with(
-            'userFontSize',
-            $user instanceof User ? $user->resolvedFontSize() : User::FONT_SIZE_NORMAL
-        );
 
         if (! $user) {
             return;

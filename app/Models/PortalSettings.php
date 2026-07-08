@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Database\LegacySchemaSync;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class PortalSettings extends Model
 {
@@ -33,10 +35,22 @@ class PortalSettings extends Model
 
     public static function current(): self
     {
-        return static::query()->firstOrCreate(['id' => 1], [
+        LegacySchemaSync::ensureDisplayPreferencesSchema();
+
+        if (! Schema::hasTable('portal_settings')) {
+            return new static([
+                'id' => 1,
+                'profile_photo_grace_days' => 3,
+                'profile_photo_gate_enabled' => true,
+            ]);
+        }
+
+        return static::query()->firstOrCreate(['id' => 1], array_filter([
             'profile_photo_grace_days' => 3,
             'profile_photo_gate_enabled' => true,
-            'profile_photo_gate_enabled_at' => now(),
-        ]);
+            'profile_photo_gate_enabled_at' => Schema::hasColumn('portal_settings', 'profile_photo_gate_enabled_at')
+                ? now()
+                : null,
+        ], fn ($value) => $value !== null));
     }
 }
