@@ -3,7 +3,7 @@
 @section('title', __('pages.exams_management'))
 
 @section('content')
-<div class="container py-4">
+<div class="container py-4 exams-hub">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h1 class="page-title mb-0">{{ __('pages.exams_management') }}</h1>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addExamModal">
@@ -24,40 +24,43 @@
         </div>
     @endif
 
-    <div class="app-card card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>{{ __('pages.exam_name') }}</th>
-                            <th>{{ __('pages.course') }}</th>
-                            <th>{{ __('pages.module') }}</th>
-                            <th>{{ __('exams.delivery_mode') }}</th>
-                            <th>{{ __('pages.duration') }}</th>
-                            <th>{{ __('pages.exam_schedules') }}</th>
-                            <th>{{ __('pages.study_resources') }}</th>
-                            <th>{{ __('pages.actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($exams as $exam)
-                            <tr>
-                                <td class="fw-semibold">{{ $exam->exam_name }}</td>
-                                <td>{{ $exam->course->title ?? '—' }}</td>
-                                <td>{{ $exam->module->title ?? '—' }}</td>
-                                <td>
+    <div class="row g-3">
+        @forelse($exams as $exam)
+            <div class="col-12">
+                <div class="app-card card shadow-sm exam-admin-card">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">{{ $exam->exam_name }}</h5>
+                                <div class="d-flex flex-wrap gap-1">
                                     <span class="badge {{ ($exam->delivery_mode ?? 'offline') === 'online' ? 'bg-primary' : 'bg-secondary' }}">
                                         {{ ($exam->delivery_mode ?? 'offline') === 'online' ? __('exams.mode_online') : __('exams.mode_offline') }}
                                     </span>
                                     @if($exam->is_published ?? false)
                                         <span class="badge bg-success">{{ __('exams.published') }}</span>
                                     @endif
-                                </td>
-                                <td>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
-                                <td>
-                                    @foreach($exam->schedules as $schedule)
-                                        <div class="small mb-1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <dl class="exam-meta-list mb-3">
+                            <div class="exam-meta-row">
+                                <dt>{{ __('pages.course') }}</dt>
+                                <dd>{{ $exam->course->title ?? '—' }}</dd>
+                            </div>
+                            <div class="exam-meta-row">
+                                <dt>{{ __('pages.module') }}</dt>
+                                <dd>{{ $exam->module->title ?? '—' }}</dd>
+                            </div>
+                            <div class="exam-meta-row">
+                                <dt>{{ __('pages.duration') }}</dt>
+                                <dd>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</dd>
+                            </div>
+                            <div class="exam-meta-row">
+                                <dt>{{ __('pages.exam_schedules') }}</dt>
+                                <dd>
+                                    @forelse($exam->schedules as $schedule)
+                                        <div class="mb-1">
                                             {{ $schedule->scheduled_date->format('Y-m-d H:i') }}
                                             @if($schedule->is_completed)
                                                 <span class="badge bg-success">{{ __('pages.done') }}</span>
@@ -65,7 +68,9 @@
                                                 <span class="badge bg-warning text-dark">{{ __('pages.not_done') }}</span>
                                             @endif
                                         </div>
-                                    @endforeach
+                                    @empty
+                                        <span class="text-muted">—</span>
+                                    @endforelse
                                     <button type="button"
                                             class="btn btn-link btn-sm p-0 js-open-schedule-modal"
                                             data-exam-id="{{ $exam->exam_id }}"
@@ -73,58 +78,88 @@
                                             data-schedule-url="{{ route('exams.schedule', $exam->exam_id) }}">
                                         + {{ __('pages.add_schedule') }}
                                     </button>
-                                </td>
-                                <td class="small text-muted-theme">{{ Str::limit($exam->study_resources, 60) }}</td>
-                                <td>
-                                    <div class="d-flex gap-1 flex-wrap">
-                                        <a href="{{ route('exams.builder', $exam) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-ui-checks"></i> {{ __('exams.design_exam') }}
-                                        </a>
-                                        <a href="{{ route('exams.grades', $exam) }}" class="btn btn-sm btn-outline-success">
-                                            <i class="bi bi-bar-chart"></i> {{ __('exams.grades_dashboard') }}
-                                        </a>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-theme js-open-edit-modal"
-                                                data-exam-id="{{ $exam->exam_id }}"
-                                                data-exam-name="{{ e($exam->exam_name) }}"
-                                                data-exam-type="{{ $exam->exam_type ?? 'exam' }}"
-                                                data-delivery-mode="{{ $exam->delivery_mode ?? 'offline' }}"
-                                                data-duration="{{ $exam->duration_minutes }}"
-                                                data-shuffle="{{ ($exam->shuffle_questions ?? false) ? '1' : '0' }}"
-                                                data-late-entry="{{ ($exam->allow_late_entry ?? true) ? '1' : '0' }}"
-                                                data-study-resources="{{ e($exam->study_resources ?? '') }}"
-                                                data-exam-description="{{ e($exam->exam_description ?? '') }}"
-                                                data-passing-score="{{ $exam->passing_score ?? '' }}"
-                                                data-course-id="{{ $exam->course_id }}"
-                                                data-module-id="{{ $exam->module_id }}"
-                                                data-update-url="{{ route('exams.update', $exam->exam_id) }}">
-                                            {{ __('pages.edit') }}
-                                        </button>
-                                        <form method="POST" action="{{ route('exams.destroy', $exam->exam_id) }}"
-                                              onsubmit="return confirm(@json(__('pages.confirm_delete_exam_js')))">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('pages.delete') }}</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center text-muted-theme py-4">{{ __('pages.no_exams_yet') }}</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                </dd>
+                            </div>
+                            @if($exam->study_resources)
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('pages.study_resources') }}</dt>
+                                    <dd class="small">{{ $exam->study_resources }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+
+                        <div class="d-flex flex-wrap gap-2 border-top pt-3">
+                            <a href="{{ route('exams.builder', $exam) }}" class="btn btn-sm btn-outline-primary flex-grow-1 flex-sm-grow-0">
+                                <i class="bi bi-ui-checks"></i> {{ __('exams.design_exam') }}
+                            </a>
+                            <a href="{{ route('exams.grades', $exam) }}" class="btn btn-sm btn-outline-success flex-grow-1 flex-sm-grow-0">
+                                <i class="bi bi-bar-chart"></i> {{ __('exams.grades_dashboard') }}
+                            </a>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-theme flex-grow-1 flex-sm-grow-0 js-open-edit-modal"
+                                    data-exam-id="{{ $exam->exam_id }}"
+                                    data-exam-name="{{ e($exam->exam_name) }}"
+                                    data-exam-type="{{ $exam->exam_type ?? 'exam' }}"
+                                    data-delivery-mode="{{ $exam->delivery_mode ?? 'offline' }}"
+                                    data-duration="{{ $exam->duration_minutes }}"
+                                    data-shuffle="{{ ($exam->shuffle_questions ?? false) ? '1' : '0' }}"
+                                    data-late-entry="{{ ($exam->allow_late_entry ?? true) ? '1' : '0' }}"
+                                    data-study-resources="{{ e($exam->study_resources ?? '') }}"
+                                    data-exam-description="{{ e($exam->exam_description ?? '') }}"
+                                    data-passing-score="{{ $exam->passing_score ?? '' }}"
+                                    data-course-id="{{ $exam->course_id }}"
+                                    data-module-id="{{ $exam->module_id }}"
+                                    data-update-url="{{ route('exams.update', $exam->exam_id) }}">
+                                {{ __('pages.edit') }}
+                            </button>
+                            <form method="POST" action="{{ route('exams.destroy', $exam->exam_id) }}" class="flex-grow-1 flex-sm-grow-0"
+                                  data-confirm="{{ __('pages.confirm_delete_exam_js') }}"
+                                  onsubmit="return confirm(this.dataset.confirm)">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">{{ __('pages.delete') }}</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        @empty
+            <div class="col-12">
+                <div class="app-tile text-center text-muted-theme py-5">{{ __('pages.no_exams_yet') }}</div>
+            </div>
+        @endforelse
     </div>
 </div>
 @endsection
 
+@push('styles')
+<style>
+.exams-hub .exam-meta-list { display: flex; flex-direction: column; gap: 0.65rem; }
+.exams-hub .exam-meta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 34%) minmax(0, 1fr);
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+}
+.exams-hub .exam-meta-row dt {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    word-break: break-word;
+}
+.exams-hub .exam-meta-row dd {
+    margin: 0;
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+.exams-hub .exam-admin-card .btn { white-space: normal; }
+</style>
+@endpush
+
 @push('modals')
 {{-- Add exam --}}
 <div class="modal fade" id="addExamModal" tabindex="-1" aria-labelledby="addExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <form method="POST" action="{{ route('exams.store') }}">
                 @csrf
@@ -213,7 +248,7 @@
 
 {{-- Shared schedule modal --}}
 <div class="modal fade" id="scheduleExamModal" tabindex="-1" aria-labelledby="scheduleExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <form method="POST" id="scheduleExamForm" action="#">
                 @csrf
@@ -237,7 +272,7 @@
 
 {{-- Shared edit modal --}}
 <div class="modal fade" id="editExamModal" tabindex="-1" aria-labelledby="editExamModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
         <div class="modal-content">
             <form method="POST" id="editExamForm" action="#">
                 @csrf
@@ -326,7 +361,6 @@
 @push('scripts')
 <script>
 (function () {
-    /** Remove stray Bootstrap backdrops that block the whole page. */
     function clearStuckModalState() {
         document.querySelectorAll('.modal-backdrop').forEach(function (el) { el.remove(); });
         document.body.classList.remove('modal-open');

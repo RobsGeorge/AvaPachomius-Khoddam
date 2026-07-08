@@ -3,7 +3,7 @@
 @section('title', __('pages.exams_schedule_results'))
 
 @section('content')
-<div class="container py-4 animate-in">
+<div class="container py-4 animate-in exams-hub">
     <div class="app-card card shadow-sm mb-4">
         <div class="card-body">
             <h2 class="page-title mb-2">{{ __('pages.exams_schedule_results') }}</h2>
@@ -15,55 +15,57 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    <div class="app-card card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>{{ __('pages.exam_name') }}</th>
-                            <th>{{ __('pages.module') }}</th>
-                            <th>{{ __('exams.delivery_mode') }}</th>
-                            <th>{{ __('pages.duration') }}</th>
-                            <th>{{ __('pages.exam_date') }}</th>
-                            <th>{{ __('pages.done') }}?</th>
-                            <th>{{ __('pages.my_grades') }}</th>
-                            <th>{{ __('pages.actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($exams as $exam)
-                            @forelse($exam->schedules as $schedule)
-                                @php
-                                    $result = $exam->results->firstWhere('schedule_id', $schedule->schedule_id);
-                                    $attempt = $exam->attempts->firstWhere('schedule_id', $schedule->schedule_id);
-                                    $done = $result && $result->isDone();
-                                    $cheater = $result && $result->isCheater();
-                                    $online = $exam->isOnline();
-                                    $started = $schedule->hasStarted();
-                                    $ended = $schedule->hasEnded();
-                                    $inProgress = $attempt && $attempt->hasStartedAttempt() && ! $attempt->isSubmitted();
-                                    $canLobby = $online && $started && ! $ended && ! $done && ! $inProgress;
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <div class="fw-semibold">{{ $exam->exam_name }}</div>
-                                        <small class="text-muted">{{ __('exams.type_' . ($exam->exam_type ?? 'exam')) }}</small>
-                                    </td>
-                                    <td>{{ $exam->module->title ?? '—' }}</td>
-                                    <td>
+    <div class="row g-3">
+        @forelse($exams as $exam)
+            @forelse($exam->schedules as $schedule)
+                @php
+                    $result = $exam->results->firstWhere('schedule_id', $schedule->schedule_id);
+                    $attempt = $exam->attempts->firstWhere('schedule_id', $schedule->schedule_id);
+                    $done = $result && $result->isDone();
+                    $cheater = $result && $result->isCheater();
+                    $online = $exam->isOnline();
+                    $started = $schedule->hasStarted();
+                    $ended = $schedule->hasEnded();
+                    $inProgress = $attempt && $attempt->hasStartedAttempt() && ! $attempt->isSubmitted();
+                    $canLobby = $online && $started && ! $ended && ! $done && ! $inProgress;
+                @endphp
+                <div class="col-12 col-lg-6">
+                    <div class="app-card card shadow-sm h-100 exam-schedule-card">
+                        <div class="card-body d-flex flex-column gap-3">
+                            <div>
+                                <h5 class="fw-bold mb-1">{{ $exam->exam_name }}</h5>
+                                <small class="text-muted">{{ __('exams.type_' . ($exam->exam_type ?? 'exam')) }}</small>
+                            </div>
+
+                            <dl class="exam-meta-list mb-0">
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('pages.module') }}</dt>
+                                    <dd>{{ $exam->module->title ?? '—' }}</dd>
+                                </div>
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('exams.delivery_mode') }}</dt>
+                                    <dd>
                                         <span class="badge {{ $online ? 'bg-primary' : 'bg-secondary' }}">
                                             {{ $online ? __('exams.mode_online') : __('exams.mode_offline') }}
                                         </span>
-                                    </td>
-                                    <td>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</td>
-                                    <td>
+                                    </dd>
+                                </div>
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('pages.duration') }}</dt>
+                                    <dd>{{ $exam->duration_minutes }} {{ __('pages.minutes') }}</dd>
+                                </div>
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('pages.exam_date') }}</dt>
+                                    <dd>
                                         {{ $schedule->scheduled_date->format('Y-m-d H:i') }}
                                         @if($online)
                                             <div class="small text-muted">{{ __('exams.timer_label') }} → {{ $schedule->endsAt()->format('H:i') }}</div>
                                         @endif
-                                    </td>
-                                    <td>
+                                    </dd>
+                                </div>
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('pages.done') }}?</dt>
+                                    <dd>
                                         @if($cheater)
                                             <span class="badge bg-danger">{{ __('exams.status_cheater') }}</span>
                                         @elseif($done)
@@ -79,12 +81,15 @@
                                         @else
                                             <span class="badge bg-warning text-dark">{{ __('pages.not_done') }}</span>
                                         @endif
-                                    </td>
-                                    <td>
+                                    </dd>
+                                </div>
+                                <div class="exam-meta-row">
+                                    <dt>{{ __('pages.my_grades') }}</dt>
+                                    <dd>
                                         @if($cheater)
                                             <span class="text-danger small">{{ __('exams.cheater_score_label') }}</span>
                                         @elseif($result && $result->score !== null && ! $result->isCheater())
-                                            {{ number_format($result->score, 1) }}%
+                                            <span class="fw-semibold">{{ number_format($result->score, 1) }}%</span>
                                         @elseif($done)
                                             {{ __('exams.score_pending') }}
                                         @elseif(! $online)
@@ -92,42 +97,72 @@
                                         @else
                                             —
                                         @endif
-                                    </td>
-                                    <td>
-                                        @if($online && $inProgress)
-                                            <a href="{{ route('exams.attempt.show', $schedule->schedule_id) }}"
-                                               class="btn btn-sm btn-warning">
-                                                <i class="bi bi-arrow-repeat"></i> {{ __('exams.continue_exam') }}
-                                            </a>
-                                        @elseif($online && $canLobby)
-                                            <a href="{{ route('exams.attempt.lobby', $schedule->schedule_id) }}"
-                                               class="btn btn-sm btn-primary">
-                                                <i class="bi bi-clipboard-check"></i> {{ __('exams.pre_exam_checklist') }}
-                                            </a>
-                                        @elseif($done || $cheater)
-                                            <a href="{{ route('exams.attempt.confirmation', $schedule->schedule_id) }}"
-                                               class="btn btn-sm btn-outline-theme">
-                                                {{ __('exams.confirmation_title') }}
-                                            </a>
-                                        @elseif(! $online)
-                                            <span class="text-muted small">{{ __('exams.no_online_entry') }}</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="text-muted small">{{ $exam->exam_name }} — {{ __('pages.no_exams_yet') }}</td>
-                                </tr>
-                            @endforelse
-                        @empty
-                            <tr>
-                                <td colspan="8" class="text-center text-muted-theme py-4">{{ __('pages.no_exams_yet') }}</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                                    </dd>
+                                </div>
+                            </dl>
+
+                            <div class="mt-auto pt-2 border-top">
+                                @if($online && $inProgress)
+                                    <a href="{{ route('exams.attempt.show', $schedule->schedule_id) }}"
+                                       class="btn btn-warning w-100">
+                                        <i class="bi bi-arrow-repeat"></i> {{ __('exams.continue_exam') }}
+                                    </a>
+                                @elseif($online && $canLobby)
+                                    <a href="{{ route('exams.attempt.lobby', $schedule->schedule_id) }}"
+                                       class="btn btn-primary w-100">
+                                        <i class="bi bi-clipboard-check"></i> {{ __('exams.pre_exam_checklist') }}
+                                    </a>
+                                @elseif($done || $cheater)
+                                    <a href="{{ route('exams.attempt.confirmation', $schedule->schedule_id) }}"
+                                       class="btn btn-outline-theme w-100">
+                                        {{ __('exams.confirmation_title') }}
+                                    </a>
+                                @elseif(! $online)
+                                    <span class="text-muted small d-block text-center">{{ __('exams.no_online_entry') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="app-card card shadow-sm">
+                        <div class="card-body text-muted small">
+                            {{ $exam->exam_name }} — {{ __('pages.no_exams_yet') }}
+                        </div>
+                    </div>
+                </div>
+            @endforelse
+        @empty
+            <div class="col-12">
+                <div class="app-tile text-center text-muted-theme py-5">{{ __('pages.no_exams_yet') }}</div>
             </div>
-        </div>
+        @endforelse
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+.exams-hub .exam-meta-list { display: flex; flex-direction: column; gap: 0.65rem; }
+.exams-hub .exam-meta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+    gap: 0.5rem 0.75rem;
+    align-items: start;
+}
+.exams-hub .exam-meta-row dt {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
+    word-break: break-word;
+}
+.exams-hub .exam-meta-row dd {
+    margin: 0;
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+.exams-hub .exam-schedule-card .btn { white-space: normal; }
+</style>
+@endpush

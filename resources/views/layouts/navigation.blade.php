@@ -1,3 +1,12 @@
+@php
+    use App\Support\NavigationHub;
+    $navUser = auth()->user();
+    $academicLinks = NavigationHub::academicLinks($navUser);
+    $systemLinks = NavigationHub::systemLinks($navUser);
+    $hasSystem = NavigationHub::hasSystem($navUser);
+    $academicActive = NavigationHub::isAcademicActive($navUser);
+    $systemActive = NavigationHub::isSystemActive($navUser);
+@endphp
 <nav class="app-nav sticky-top">
     <div class="container py-2">
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
@@ -13,72 +22,54 @@
                             {{ __('nav.home') }}
                         </a>
 
-                        @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
-                            <a href="{{ route('attendance.all') }}" class="app-nav-link {{ request()->routeIs('attendance.*') ? 'active' : '' }}">
-                                {{ __('nav.attendance') }}
-                            </a>
-                        @else
-                            <a href="{{ route('attendance.my') }}" class="app-nav-link {{ request()->routeIs('attendance.my') ? 'active' : '' }}">
-                                {{ __('nav.my_attendance') }}
-                            </a>
-                        @endif
+                        <div class="dropdown">
+                            <button class="app-nav-link dropdown-toggle border-0 bg-transparent {{ $academicActive ? 'active' : '' }}"
+                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ __('nav.academic') }}
+                            </button>
+                            <ul class="dropdown-menu app-dropdown-panel">
+                                <li>
+                                    <a class="dropdown-item app-dropdown-link fw-semibold {{ request()->routeIs('hubs.academic') ? 'active' : '' }}"
+                                       href="{{ route('hubs.academic') }}">
+                                        <i class="bi bi-grid me-2"></i>{{ __('nav.academic') }}
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                @foreach($academicLinks as $link)
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
+                                           href="{{ $link['url'] }}">
+                                            <i class="bi {{ $link['icon'] }} me-2"></i>{{ $link['label'] }}
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
 
-                        <a href="{{ route('curriculum.index') }}" class="app-nav-link {{ request()->routeIs('curriculum.*') ? 'active' : '' }}">
-                            {{ __('nav.curriculum') }}
-                        </a>
-
-                        <a href="{{ route('sessions.index') }}" class="app-nav-link {{ request()->routeIs('sessions.*') ? 'active' : '' }}">
-                            {{ __('nav.sessions') }}
-                        </a>
-
-                        <a href="{{ route('events.index') }}" class="app-nav-link {{ request()->routeIs('events.index', 'events.show', 'events.my-reservations') ? 'active' : '' }}">
-                            {{ __('nav.events') }}
-                        </a>
-
-                        @if(auth()->user()->isEventAdmin())
-                            <a href="{{ route('events.admin.index') }}" class="app-nav-link {{ request()->routeIs('events.admin.*', 'events.check-in.verify') ? 'active' : '' }}">
-                                {{ __('nav.events_admin') }}
-                            </a>
-                        @endif
-
-                        @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
-                            <a href="{{ route('graduation.index') }}" class="app-nav-link {{ request()->routeIs('graduation.*') ? 'active' : '' }}">
-                                {{ __('pages.graduation_title') }}
-                            </a>
-                            <a href="{{ route('modules.index') }}" class="app-nav-link {{ request()->routeIs('modules.*') ? 'active' : '' }}">
-                                {{ __('nav.modules') }}
-                            </a>
-                        @endif
-
-                        @if(auth()->user()->is_superadmin || auth()->user()->roles->contains('role_name', 'admin'))
-                            @if(auth()->user()->roles->contains('role_name', 'admin'))
-                                <a href="{{ route('user-course-roles.index') }}" class="app-nav-link {{ request()->routeIs('user-course-roles.*', 'roles.*') ? 'active' : '' }}">
-                                    {{ __('nav.roles') }}
-                                </a>
-                                <a href="{{ route('admin.translations.index') }}" class="app-nav-link {{ request()->routeIs('admin.translations.*') ? 'active' : '' }}">
-                                    {{ __('nav.translations') }}
-                                </a>
-                            @endif
-                            <a href="{{ route('admin.graduation-settings.index') }}" class="app-nav-link {{ request()->routeIs('admin.graduation-settings.*') ? 'active' : '' }}">
-                                {{ __('pages.graduation_configure_criteria') }}
-                            </a>
-                            @if(auth()->user()->roles->contains('role_name', 'admin'))
-                                <a href="{{ route('admin.attendance-settings.edit') }}" class="app-nav-link {{ request()->routeIs('admin.attendance-settings.*') ? 'active' : '' }}">
-                                    {{ __('pages.attendance_settings_title') }}
-                                </a>
-                            @endif
-                        @endif
-
-                        @if(auth()->user()->is_superadmin)
-                            <a href="{{ route('superadmin.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.index') ? 'active' : '' }}">
-                                <i class="bi bi-shield-lock-fill"></i> {{ __('nav.superadmin') }}
-                            </a>
-                            <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.audit.*') ? 'active' : '' }}">
-                                <i class="bi bi-journal-text"></i> {{ __('nav.audit_reports') }}
-                            </a>
-                            <a href="{{ route('superadmin.events.tests.index') }}" class="app-nav-link {{ request()->routeIs('superadmin.events.tests.*') ? 'active' : '' }}">
-                                <i class="bi bi-bug"></i> {{ __('nav.events_tests') }}
-                            </a>
+                        @if($hasSystem)
+                            <div class="dropdown">
+                                <button class="app-nav-link dropdown-toggle border-0 bg-transparent {{ $systemActive ? 'active' : '' }}"
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ __('nav.system_settings') }}
+                                </button>
+                                <ul class="dropdown-menu app-dropdown-panel">
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link fw-semibold {{ request()->routeIs('hubs.system') ? 'active' : '' }}"
+                                           href="{{ route('hubs.system') }}">
+                                            <i class="bi bi-gear me-2"></i>{{ __('nav.system_settings') }}
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    @foreach($systemLinks as $link)
+                                        <li>
+                                            <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
+                                               href="{{ $link['url'] }}">
+                                                <i class="bi {{ $link['icon'] }} me-2"></i>{{ $link['label'] }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
                         @endif
                     </div>
                 @endauth
@@ -137,35 +128,20 @@
         @auth
             <div class="d-md-none nav-links mt-2 pb-2" x-show="navOpen" x-transition x-cloak>
                 <div class="d-flex flex-column gap-1">
-                    <a href="{{ route('dashboard') }}" class="app-nav-link">{{ __('nav.home') }}</a>
-                    @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
-                        <a href="{{ route('attendance.all') }}" class="app-nav-link">{{ __('nav.attendance') }}</a>
-                        <a href="{{ route('graduation.index') }}" class="app-nav-link">{{ __('pages.graduation_title') }}</a>
-                        <a href="{{ route('modules.index') }}" class="app-nav-link">{{ __('nav.modules') }}</a>
-                    @else
-                        <a href="{{ route('attendance.my') }}" class="app-nav-link">{{ __('nav.my_attendance') }}</a>
+                    <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">{{ __('nav.home') }}</a>
+
+                    <a href="{{ route('hubs.academic') }}" class="app-nav-link {{ request()->routeIs('hubs.academic') ? 'active' : '' }}">{{ __('nav.academic') }}</a>
+                    @foreach($academicLinks as $link)
+                        <a href="{{ $link['url'] }}" class="app-nav-link ps-3 small {{ $link['active'] ? 'active' : '' }}">{{ $link['label'] }}</a>
+                    @endforeach
+
+                    @if($hasSystem)
+                        <a href="{{ route('hubs.system') }}" class="app-nav-link mt-1 {{ request()->routeIs('hubs.system') ? 'active' : '' }}">{{ __('nav.system_settings') }}</a>
+                        @foreach($systemLinks as $link)
+                            <a href="{{ $link['url'] }}" class="app-nav-link ps-3 small {{ $link['active'] ? 'active' : '' }}">{{ $link['label'] }}</a>
+                        @endforeach
                     @endif
-                    <a href="{{ route('curriculum.index') }}" class="app-nav-link">{{ __('nav.curriculum') }}</a>
-                    <a href="{{ route('sessions.index') }}" class="app-nav-link">{{ __('nav.sessions') }}</a>
-                    <a href="{{ route('events.index') }}" class="app-nav-link">{{ __('nav.events') }}</a>
-                    @if(auth()->user()->isEventAdmin())
-                        <a href="{{ route('events.admin.index') }}" class="app-nav-link">{{ __('nav.events_admin') }}</a>
-                    @endif
-                    @if(auth()->user()->is_superadmin || auth()->user()->roles->contains('role_name', 'admin'))
-                        @if(auth()->user()->roles->contains('role_name', 'admin'))
-                            <a href="{{ route('user-course-roles.index') }}" class="app-nav-link">{{ __('nav.roles') }}</a>
-                            <a href="{{ route('admin.translations.index') }}" class="app-nav-link">{{ __('nav.translations') }}</a>
-                        @endif
-                        <a href="{{ route('admin.graduation-settings.index') }}" class="app-nav-link">{{ __('pages.graduation_configure_criteria') }}</a>
-                        @if(auth()->user()->roles->contains('role_name', 'admin'))
-                            <a href="{{ route('admin.attendance-settings.edit') }}" class="app-nav-link">{{ __('pages.attendance_settings_title') }}</a>
-                        @endif
-                    @endif
-                            @if(auth()->user()->is_superadmin)
-                            <a href="{{ route('superadmin.index') }}" class="app-nav-link">{{ __('nav.superadmin') }}</a>
-                            <a href="{{ route('superadmin.audit.index') }}" class="app-nav-link">{{ __('nav.audit_reports') }}</a>
-                            <a href="{{ route('superadmin.events.tests.index') }}" class="app-nav-link">{{ __('nav.events_tests') }}</a>
-                        @endif
+
                     <hr class="my-1 border-secondary-subtle">
                     <a href="{{ route('profile') }}" class="app-nav-link">{{ __('nav.profile') }}</a>
                     <a href="{{ route('logout') }}" class="app-nav-link">{{ __('nav.logout') }}</a>

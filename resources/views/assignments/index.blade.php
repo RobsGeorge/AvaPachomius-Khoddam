@@ -27,6 +27,56 @@
                         </div>
                     @endif
 
+                    @if(Auth::user()->isStudent())
+                        <div class="student-data-hub">
+                            @forelse($assignments as $assignment)
+                                @php
+                                    $submission = $studentSubmissions->get($assignment->assignment_id);
+                                @endphp
+                                <article class="data-card">
+                                    <div class="data-card-title">{{ $assignment->assignment_name }}</div>
+                                    <dl class="data-meta-list mb-0">
+                                        <div class="data-meta-row">
+                                            <dt>{{ __('pages.description') }}</dt>
+                                            <dd>{{ Str::limit($assignment->assignment_description, 500) }}</dd>
+                                        </div>
+                                        <div class="data-meta-row">
+                                            <dt>{{ __('pages.total_points') }}</dt>
+                                            <dd>{{ $assignment->total_points }}</dd>
+                                        </div>
+                                        <div class="data-meta-row">
+                                            <dt>{{ __('pages.due_date') }}</dt>
+                                            <dd>{{ $assignment->due_date->format('Y-m-d H:i') }}</dd>
+                                        </div>
+                                        <div class="data-meta-row">
+                                            <dt>{{ __('pages.submission_status') }}</dt>
+                                            <dd>
+                                                @if($submission && $submission->points_earned !== null)
+                                                    <span class="badge bg-success">{{ __('pages.status_graded') }} ({{ $submission->points_earned }}/{{ $assignment->total_points }})</span>
+                                                @elseif($submission)
+                                                    <span class="badge bg-primary">{{ __('pages.status_submitted') }}</span>
+                                                @elseif(!$assignment->isSubmissionOpen())
+                                                    <span class="badge bg-danger">{{ __('pages.status_overdue') }}</span>
+                                                @else
+                                                    <span class="badge bg-secondary">{{ __('pages.status_not_submitted') }}</span>
+                                                @endif
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                    <div class="data-card-actions">
+                                        <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                        @if(!$submission && $assignment->isSubmissionOpen())
+                                            <a href="{{ route('assignments.show', $assignment) }}#submit" class="btn btn-primary btn-sm">{{ __('pages.submit_assignment') }}</a>
+                                        @elseif($submission && $assignment->isSubmissionOpen())
+                                            <a href="{{ route('assignments.show', $assignment) }}#my-submission" class="btn btn-warning btn-sm">{{ __('pages.update_submission') }}</a>
+                                        @endif
+                                    </div>
+                                </article>
+                            @empty
+                                <p class="text-center text-muted-theme py-4 mb-0">{{ __('pages.no_assignments') }}</p>
+                            @endforelse
+                        </div>
+                    @else
                     <div class="table-responsive">
                         <table class="table table-striped align-middle">
                             <thead>
@@ -101,6 +151,7 @@
                             </tbody>
                         </table>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

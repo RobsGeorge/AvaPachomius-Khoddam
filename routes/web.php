@@ -20,6 +20,7 @@ use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HubController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\ExamController;
@@ -123,6 +124,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
+    Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 

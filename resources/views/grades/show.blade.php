@@ -93,67 +93,74 @@
             </div>
 
             @if($cat->items->isNotEmpty())
-                <div class="table-responsive">
-                    <table class="table table-sm align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>{{ __('pages.item_name') }}</th>
-                                <th>{{ __('pages.date') }}</th>
-                                <th class="text-center">{{ __('pages.your_score') }}</th>
-                                <th class="text-center">{{ __('pages.max_score') }}</th>
-                                <th class="text-center">{{ __('pages.percentage') }}</th>
-                                <th>{{ __('pages.grader_notes') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($cat->items as $item)
-                                @php
-                                    $grade = $item->grades->firstWhere('user_id', $userId);
-                                    $itemPct = ($item->max_score > 0 && $grade && $grade->score !== null)
-                                        ? round(($grade->score / $item->max_score) * 100, 1) : null;
-                                @endphp
-                                <tr>
-                                    <td class="fw-semibold">{{ $item->title }}
-                                        @if($item->description)
-                                            <i class="bi bi-info-circle text-muted ms-1" title="{{ $item->description }}"></i>
-                                        @endif
-                                    </td>
-                                    <td class="text-muted small">{{ $item->item_date ? $item->item_date->format('Y-m-d') : '—' }}</td>
-                                    <td class="text-center fw-semibold">
+                <div class="student-data-hub p-3">
+                    @foreach($cat->items as $item)
+                        @php
+                            $grade = $item->grades->firstWhere('user_id', $userId);
+                            $itemPct = ($item->max_score > 0 && $grade && $grade->score !== null)
+                                ? round(($grade->score / $item->max_score) * 100, 1) : null;
+                        @endphp
+                        <article class="data-card">
+                            <div class="data-card-title">
+                                {{ $item->title }}
+                                @if($item->description)
+                                    <i class="bi bi-info-circle text-muted ms-1" title="{{ $item->description }}"></i>
+                                @endif
+                            </div>
+                            <dl class="data-meta-list mb-0">
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.date') }}</dt>
+                                    <dd>{{ $item->item_date ? $item->item_date->format('Y-m-d') : '—' }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.your_score') }}</dt>
+                                    <dd>
                                         @if($grade && $grade->score !== null)
-                                            <span class="text-{{ \App\Models\GradeCategory::gradeColor($itemPct) }}">
+                                            <span class="text-{{ \App\Models\GradeCategory::gradeColor($itemPct) }} fw-semibold">
                                                 {{ number_format($grade->score, 1) }}
                                             </span>
                                         @else
                                             <span class="text-muted">—</span>
                                         @endif
-                                    </td>
-                                    <td class="text-center text-muted">{{ number_format($item->max_score, 1) }}</td>
-                                    <td class="text-center">
+                                    </dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.max_score') }}</dt>
+                                    <dd>{{ number_format($item->max_score, 1) }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.percentage') }}</dt>
+                                    <dd>
                                         @if($itemPct !== null)
-                                            <span class="badge bg-{{ \App\Models\GradeCategory::gradeColor($itemPct) }}">
-                                                {{ $itemPct }}%
-                                            </span>
+                                            <span class="badge bg-{{ \App\Models\GradeCategory::gradeColor($itemPct) }}">{{ $itemPct }}%</span>
                                         @else
                                             <span class="text-muted-theme small">{{ __('pages.not_corrected') }}</span>
                                         @endif
-                                    </td>
-                                    <td class="text-muted small">{{ $grade?->notes ?? '—' }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot class="table-light fw-semibold">
-                            <tr>
-                                <td colspan="2">{{ __('pages.total') }}</td>
-                                <td class="text-center">{{ number_format($rawScore, 1) }}</td>
-                                <td class="text-center">{{ number_format($maxScore, 1) }}</td>
-                                <td class="text-center">
-                                    <span class="badge bg-{{ $catColor }}">{{ number_format($catPct, 1) }}%</span>
-                                </td>
-                                <td>{{ __('pages.contribution') }} {{ number_format($contrib, 2) }} / {{ number_format($cat->weight_percentage, 1) }}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
+                                    </dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.grader_notes') }}</dt>
+                                    <dd class="text-muted small">{{ $grade?->notes ?? '—' }}</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    @endforeach
+                    <div class="data-card border-{{ $catColor }} bg-{{ $catColor }} bg-opacity-10">
+                        <dl class="data-meta-list mb-0">
+                            <div class="data-meta-row">
+                                <dt class="fw-bold">{{ __('pages.total') }}</dt>
+                                <dd class="fw-semibold">{{ number_format($rawScore, 1) }} / {{ number_format($maxScore, 1) }}</dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.percentage') }}</dt>
+                                <dd><span class="badge bg-{{ $catColor }}">{{ number_format($catPct, 1) }}%</span></dd>
+                            </div>
+                            <div class="data-meta-row">
+                                <dt>{{ __('pages.contribution') }}</dt>
+                                <dd>{{ number_format($contrib, 2) }} / {{ number_format($cat->weight_percentage, 1) }}</dd>
+                            </div>
+                        </dl>
+                    </div>
                 </div>
             @else
                 <div class="card-body text-muted-theme small py-2">{{ __('pages.no_items_in_category') }}</div>

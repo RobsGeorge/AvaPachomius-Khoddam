@@ -18,4 +18,9 @@ return [
     'events'            => 'Events',
     'events_admin'      => 'Event admin',
     'events_tests'      => 'Events tests',
+    'academic'          => 'Academic',
+    'academic_desc'     => 'Curriculum, sessions, assignments, exams, feedback, and more.',
+    'system_settings'   => 'System settings',
+    'system_settings_desc' => 'Roles, translations, graduation criteria, and admin tools.',
+    'open'              => 'Open',
 ];

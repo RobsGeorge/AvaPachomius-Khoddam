@@ -35,4 +35,10 @@ return [
     'feedback'               => 'Module feedback',
     'feedback_desc'          => 'Answer open surveys or review your past submissions.',
     'view_feedback'          => 'Open feedback hub',
+    'academic_hub'           => 'Academic hub',
+    'academic_hub_desc'      => 'All learning tools: curriculum, sessions, assignments, exams, events, and feedback.',
+    'open_academic'          => 'Open academic hub',
+    'system_hub'             => 'System settings',
+    'system_hub_desc'        => 'Administration: roles, translations, policies, and super-admin tools.',
+    'open_system'            => 'Open system settings',
 ];

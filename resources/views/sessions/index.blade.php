@@ -34,6 +34,7 @@
         </div>
     @endif
 
+    @if($canManageSessions)
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -143,6 +144,41 @@
             </div>
         </div>
     </div>
+    @else
+    <div class="student-data-hub">
+        @forelse($sessions as $session)
+            <article class="data-card app-card card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="data-card-title">{{ $session->session_title }}</div>
+                    <dl class="data-meta-list mb-0">
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.number') }}</dt>
+                            <dd>{{ $sessions->firstItem() + $loop->index }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.date') }}</dt>
+                            <dd>
+                                <span class="badge bg-light text-dark border">
+                                    {{ \Carbon\Carbon::parse($session->session_date)->format('Y-m-d') }}
+                                </span>
+                            </dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.course') }}</dt>
+                            <dd>{{ $session->course->title ?? '—' }}</dd>
+                        </div>
+                        <div class="data-meta-row">
+                            <dt>{{ __('pages.module') }}</dt>
+                            <dd>{{ $session->module->title ?? '—' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </article>
+        @empty
+            <p class="text-center text-muted-theme py-4">{{ __('pages.no_sessions_yet') }}</p>
+        @endforelse
+    </div>
+    @endif
 
     @include('partials.pagination', ['paginator' => $sessions])
 </div>
