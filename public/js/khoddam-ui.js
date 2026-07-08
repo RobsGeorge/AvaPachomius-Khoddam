@@ -60,10 +60,52 @@
         });
     }
 
+    function buildThemeCssBlock(palette) {
+        const lines = [];
+        const modes = [
+            ['light', 'body.theme-light'],
+            ['dark', 'body.theme-dark'],
+        ];
+
+        modes.forEach(([mode, selector]) => {
+            const colors = palette[mode] || {};
+            const primary = colors.primary || '#7c3aed';
+            const primaryHover = colors.primary_hover || primary;
+            const title = colors.title || primary;
+            const link = colors.link || primary;
+
+            lines.push(`${selector} {`);
+            lines.push(`    --color-primary: ${primary};`);
+            lines.push(`    --color-primary-hover: ${primaryHover};`);
+            lines.push(`    --color-title: ${title};`);
+            lines.push(`    --color-title-accent: ${primary};`);
+            lines.push(`    --color-link: ${link};`);
+            lines.push(`    --color-link-hover: ${primaryHover};`);
+            lines.push(`    --color-nav-active: ${primary};`);
+            lines.push('}');
+        });
+
+        return lines.join('\n');
+    }
+
+    function applyThemePreview(palette) {
+        let style = document.getElementById('portal-theme-preview');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'portal-theme-preview';
+            document.head.appendChild(style);
+        }
+        style.textContent = buildThemeCssBlock(palette);
+    }
+
+    function clearThemePreview() {
+        document.getElementById('portal-theme-preview')?.remove();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initTheme();
         initReveal();
     });
 
-    window.KhoddamUI = { applyTheme };
+    window.KhoddamUI = { applyTheme, applyThemePreview, clearThemePreview, buildThemeCssBlock };
 })();

@@ -8,6 +8,7 @@ use App\Services\ProfilePhotoGateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
@@ -69,5 +70,24 @@ class ProfileController extends Controller
         $user->save();
 
         return redirect()->route('profile')->with('success', __('pages.profile_photo_updated_pending'));
+    }
+
+    public function updatePreferences(Request $request)
+    {
+        $validated = $request->validate([
+            'font_size' => ['required', Rule::in(User::fontSizeOptions())],
+        ]);
+
+        $user = Auth::user();
+        if (! $user instanceof User) {
+            abort(500, 'Authenticated user is not a valid User instance.');
+        }
+
+        $user->font_size_preference = $validated['font_size'];
+        $user->save();
+
+        return redirect()
+            ->route('profile')
+            ->with('success', __('pages.font_size_updated'));
     }
 }

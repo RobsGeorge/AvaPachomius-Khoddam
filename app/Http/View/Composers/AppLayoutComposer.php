@@ -2,9 +2,11 @@
 
 namespace App\Http\View\Composers;
 
+use App\Models\PortalSettings;
 use App\Services\AnnouncementService;
 use App\Services\ProfilePhotoGateService;
 use App\Services\StudentOnboardingService;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -18,7 +20,19 @@ class AppLayoutComposer
 
     public function compose(View $view): void
     {
+        $settings = PortalSettings::current();
+        $view->with(
+            'portalThemeVersion',
+            is_array($settings->theme_colors_published)
+                ? ($settings->theme_colors_published_at?->timestamp ?? 1)
+                : null
+        );
+
         $user = Auth::user();
+        $view->with(
+            'userFontSize',
+            $user instanceof User ? $user->resolvedFontSize() : User::FONT_SIZE_NORMAL
+        );
 
         if (! $user) {
             return;

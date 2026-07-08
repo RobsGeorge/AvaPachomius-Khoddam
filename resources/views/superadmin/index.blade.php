@@ -15,6 +15,9 @@
         <a href="{{ route('superadmin.events.tests.index') }}" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-bug"></i> {{ __('events.tests_dashboard') }}
         </a>
+        <a href="{{ route('superadmin.theme.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-palette"></i> {{ __('pages.theme_colors_manage') }}
+        </a>
     </div>
 
     @if(session('success'))

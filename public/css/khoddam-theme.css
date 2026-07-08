@@ -130,6 +130,18 @@ html {
     scroll-behavior: smooth;
 }
 
+html[data-font-size="normal"] {
+    font-size: 100%;
+}
+
+html[data-font-size="large"] {
+    font-size: 112.5%;
+}
+
+html[data-font-size="xlarge"] {
+    font-size: 125%;
+}
+
 [x-cloak] {
     display: none !important;
 }
@@ -913,9 +925,9 @@ body.theme-dark .app-dropdown-link:hover {
 
 .lecture-compact-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
     padding: 0.65rem 0.85rem;
     border: 1px solid var(--color-surface-border);
     border-radius: var(--radius-sm);
@@ -950,7 +962,7 @@ body.theme-dark .lecture-compact-item:hover {
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--color-muted);
+    color: var(--color-text-muted);
     background: rgba(124, 58, 237, 0.08);
 }
 
@@ -977,9 +989,46 @@ body.theme-dark .lecture-compact-index {
     margin-top: 0.25rem;
 }
 
-.lecture-compact-slides {
-    flex-shrink: 0;
+.lecture-compact-materials {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-top: 0.15rem;
+    border-top: 1px solid var(--color-surface-border);
+}
+
+.lecture-compact-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.lecture-compact-actions .btn {
     white-space: nowrap;
+}
+
+.lecture-compact-notes {
+    font-size: 0.875rem;
+    color: var(--color-text);
+}
+
+.lecture-compact-notes-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.2rem;
+}
+
+.lecture-compact-notes-body {
+    white-space: pre-line;
+    line-height: 1.45;
+}
+
+.lecture-compact-notes-more {
+    margin-top: 0.15rem;
+    text-decoration: none;
 }
 
 @media (max-width: 576px) {
@@ -987,13 +1036,8 @@ body.theme-dark .lecture-compact-index {
         padding: 0.65rem 0.75rem 0.85rem;
     }
 
-    .lecture-compact-item {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .lecture-compact-slides {
-        width: 100%;
+    .lecture-compact-actions .btn {
+        flex: 1 1 auto;
         justify-content: center;
     }
 }

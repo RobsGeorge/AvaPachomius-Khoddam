@@ -42,6 +42,7 @@ class RequireMandatoryFeedback
         $allowed = [
             'profile',
             'profile.picture.update',
+            'profile.preferences.update',
             'logout',
             'feedback.index',
             'feedback.surveys.show',

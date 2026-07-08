@@ -89,6 +89,38 @@
         </div>
     </div>
 
+    <div class="app-card card mb-4">
+        <div class="card-body">
+            <h3 class="page-title h5 mb-2">{{ __('pages.display_preferences_title') }}</h3>
+            <p class="text-muted-theme small mb-4">{{ __('pages.display_preferences_hint') }}</p>
+
+            <form action="{{ route('profile.preferences.update') }}" method="POST" id="fontSizeForm">
+                @csrf
+                @method('PUT')
+
+                <fieldset>
+                    <legend class="form-label fw-semibold mb-3">{{ __('pages.font_size_label') }}</legend>
+                    <div class="d-flex flex-column gap-2">
+                        @foreach(\App\Models\User::fontSizeOptions() as $size)
+                            <div class="form-check">
+                                <input class="form-check-input"
+                                       type="radio"
+                                       name="font_size"
+                                       id="font-size-{{ $size }}"
+                                       value="{{ $size }}"
+                                       {{ $user->resolvedFontSize() === $size ? 'checked' : '' }}
+                                       onchange="this.form.submit()">
+                                <label class="form-check-label" for="font-size-{{ $size }}">
+                                    {{ __('pages.font_size_' . $size) }}
+                                </label>
+                            </div>
+                        @endforeach
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+
     <div class="app-card card text-center">
         <div class="card-body">
             <h3 class="page-title h5 mb-4">{{ __('pages.qr_attendance_title') }}</h3>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FeedbackSubmission;
 use App\Models\FeedbackSurvey;
 use App\Models\Course;
+use App\Models\Module;
 use App\Models\Session;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

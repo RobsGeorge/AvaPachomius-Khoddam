@@ -46,12 +46,14 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventAdminController;
 use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\SuperAdminEventTestController;
+use App\Http\Controllers\SuperAdminThemeController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AnnouncementManageController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\PortalThemeCssController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
@@ -64,6 +66,7 @@ use App\Http\Controllers\LiveQuizPlayController;
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::post('/theme', [ThemeController::class, 'update'])->name('theme.update');
+Route::get('/css/portal-theme.css', [PortalThemeCssController::class, 'show'])->name('portal.theme.css');
 
 require __DIR__.'/auth.php';
 
@@ -128,6 +131,7 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
+    Route::put('/profile/preferences', [ProfileController::class, 'updatePreferences'])->name('profile.preferences.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/birthdays', [StudentBirthdaysController::class, 'index'])->name('students.birthdays');
@@ -345,6 +349,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/event-admins/{userId}',  [SuperAdminController::class, 'destroyEventAdmin'])->name('event-admins.destroy');
     Route::get('/events/tests',             [SuperAdminEventTestController::class, 'index'])->name('events.tests.index');
     Route::post('/events/tests/run',        [SuperAdminEventTestController::class, 'run'])->name('events.tests.run');
+    Route::get('/theme',                    [SuperAdminThemeController::class, 'index'])->name('theme.index');
+    Route::post('/theme/draft',             [SuperAdminThemeController::class, 'saveDraft'])->name('theme.draft');
+    Route::post('/theme/publish',           [SuperAdminThemeController::class, 'publish'])->name('theme.publish');
+    Route::delete('/theme/draft',          [SuperAdminThemeController::class, 'discardDraft'])->name('theme.draft.discard');
 });
 
 // Legacy URL redirects (old content/curriculum routes)

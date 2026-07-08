@@ -144,6 +144,7 @@ final class LegacySchemaSync
             'profile_photo_reviewed_by_user_id' => 'BIGINT UNSIGNED NULL',
             'profile_photo_rejection_note' => 'TEXT NULL',
             'student_onboarding_completed_at' => 'TIMESTAMP NULL',
+            'font_size_preference' => "VARCHAR(20) NOT NULL DEFAULT 'normal'",
             'national_id' => "VARCHAR(14) NOT NULL DEFAULT ''",
             'mobile_number' => 'VARCHAR(15) NOT NULL',
             'email' => "VARCHAR(30) NOT NULL DEFAULT ''",
@@ -216,6 +217,13 @@ final class LegacySchemaSync
         MigrationSupport::addTextColumn('user', 'profile_photo_rejection_note', true, 'profile_photo_reviewed_by_user_id');
         MigrationSupport::addColumn('user', 'student_onboarding_completed_at', function ($table) {
             $table->timestamp('student_onboarding_completed_at')->nullable()->after('profile_photo_rejection_note');
+        });
+        MigrationSupport::addColumn('user', 'font_size_preference', function (Blueprint $table) {
+            $definition = $table->string('font_size_preference', 20)->default('normal');
+
+            if (Schema::hasColumn('user', 'student_onboarding_completed_at')) {
+                $definition->after('student_onboarding_completed_at');
+            }
         });
         MigrationSupport::addStringColumn('user', 'national_id', 14, false);
         MigrationSupport::addStringColumn('user', 'mobile_number', 15, false);
