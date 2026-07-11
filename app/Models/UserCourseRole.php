@@ -11,7 +11,20 @@ class UserCourseRole extends Model
 
     protected $primaryKey = 'user_course_role_id';
 
-    protected $fillable = ['user_id', 'course_id', 'role_id'];
+    protected $fillable = [
+        'user_id',
+        'course_id',
+        'role_id',
+        'eligible_for_grace',
+        'pending_grace_marks',
+        'staff_archived_at',
+    ];
+
+    protected $casts = [
+        'eligible_for_grace' => 'boolean',
+        'pending_grace_marks' => 'float',
+        'staff_archived_at' => 'datetime',
+    ];
 
     public $timestamps = false;
 

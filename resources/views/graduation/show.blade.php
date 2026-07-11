@@ -17,11 +17,26 @@
             <a href="{{ route('grades.admin', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
                 <i class="bi bi-gear"></i> {{ __('pages.grading_management') }}
             </a>
+            <a href="{{ route('courses.closing.show', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-door-closed"></i> {{ __('course_graduation.manage_closing') }}
+            </a>
+            @if($usingSnapshot ?? false)
+                <a href="{{ route('graduation.export', $course->course_id) }}" class="btn btn-outline-success btn-sm">
+                    <i class="bi bi-download"></i> {{ __('course_graduation.export_csv') }}
+                </a>
+            @endif
         </div>
     </div>
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
+    @if($usingSnapshot ?? false)
+        <div class="alert alert-info d-flex gap-3 align-items-start mb-4">
+            <i class="bi bi-lock-fill fs-4 flex-shrink-0"></i>
+            <div>{{ __('course_graduation.snapshot_report') }}</div>
+        </div>
     @endif
 
     @if(! $criteriaConfigured)

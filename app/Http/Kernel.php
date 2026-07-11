@@ -77,5 +77,7 @@ class Kernel extends HttpKernel
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,
         'events.admin' => \App\Http\Middleware\EventsAdminMiddleware::class,
         'course.application' => \App\Http\Middleware\RequireApprovedCourseApplication::class,
+        'course.grading' => \App\Http\Middleware\EnsureCourseAllowsGrading::class,
+        'course.assessments' => \App\Http\Middleware\EnsureCourseAllowsAssessments::class,
     ];
 }

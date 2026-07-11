@@ -56,6 +56,7 @@ return [
         'below_passing_grade' => 'طلاب دون درجة النجاح',
         'custom_reminder' => 'تذكيرات مخصصة',
         'course_application_submitted' => 'طلب التحاق جديد بالدورة',
+        'course_graduation_announced' => 'إعلان درجات الدورة',
     ],
 
     'generated' => [

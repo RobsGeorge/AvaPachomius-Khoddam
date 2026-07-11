@@ -18,6 +18,7 @@ return [
             'below_passing_grade',
             'attendance_absent_streak',
             'session_unclosed',
+            'course_graduation_announced',
         ],
         'events' => [
             'event_nearby',
@@ -191,6 +192,17 @@ return [
             'defaults' => [
                 'portal_enabled' => true,
                 'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'course_graduation_announced' => [
+            'label' => 'notifications.types.course_graduation_announced',
+            'category' => 'academic',
+            'audience' => ['admin', 'instructor'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => false,
                 'whatsapp_enabled' => false,
                 'config' => [],
             ],

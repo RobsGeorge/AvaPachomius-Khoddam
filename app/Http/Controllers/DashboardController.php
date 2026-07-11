@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\User;
 use App\Services\AnnouncementService;
 use App\Services\NotificationFeedService;
@@ -27,7 +28,11 @@ class DashboardController extends Controller
             ? $notificationFeed->unreadCount($user)
             : 0;
 
-        return view('dashboard', compact('todayBirthdays', 'homepageAnnouncements', 'unreadNotificationCount'));
+        $completedCourses = $user instanceof User && $user->isStudent()
+            ? $this->announcedCoursesForStudent($user)
+            : collect();
+
+        return view('dashboard', compact('todayBirthdays', 'homepageAnnouncements', 'unreadNotificationCount', 'completedCourses'));
     }
 
     private function todaysBirthdays(StudentRosterService $rosterService): Collection
@@ -59,5 +64,18 @@ class DashboardController extends Controller
         }
 
         return $todayBirthdays->unique('user_id')->values();
+    }
+
+    private function announcedCoursesForStudent(User $user): Collection
+    {
+        $studentCourseIds = app(StudentRosterService::class)
+            ->studentEnrolledCourses($user)
+            ->pluck('course_id');
+
+        return Course::query()
+            ->whereNotNull('grades_announced_at')
+            ->whereIn('course_id', $studentCourseIds)
+            ->orderByDesc('grades_announced_at')
+            ->get();
     }
 }

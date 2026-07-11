@@ -56,6 +56,7 @@ return [
         'below_passing_grade' => 'Students below passing grade',
         'custom_reminder' => 'Custom reminders',
         'course_application_submitted' => 'New course application',
+        'course_graduation_announced' => 'Course grades announced',
     ],
 
     'generated' => [

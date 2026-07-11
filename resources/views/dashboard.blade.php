@@ -33,6 +33,22 @@
         </div>
     @endif
 
+    @if(isset($completedCourses) && $completedCourses->isNotEmpty())
+        <div class="app-card card shadow-sm mb-4 border-primary border-opacity-50">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-mortarboard"></i> {{ __('course_graduation.final_grades_title') }}
+            </div>
+            <div class="card-body d-flex flex-column gap-2">
+                @foreach($completedCourses as $course)
+                    <a href="{{ route('courses.final-grades', $course->course_id) }}" class="btn btn-outline-primary btn-sm text-start">
+                        {{ $course->title }} — {{ $course->year }}
+                        <span class="float-end"><i class="bi bi-chevron-right"></i></span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if($todayBirthdays->isNotEmpty())
         <div class="app-card card shadow-sm mb-4 border-success border-opacity-50 student-data-hub">
             <div class="card-header bg-success bg-opacity-10 fw-semibold">

@@ -13,6 +13,17 @@ use App\Models\GradeCategory;
 
 class Course extends Model
 {
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_GRADING_LOCKED = 'grading_locked';
+
+    public const STATUS_ANNOUNCED = 'announced';
+
+    public const STATUS_CLOSED = 'closed';
+
+    public const STATUS_ARCHIVED = 'archived';
+
+    public const GRACE_MODE_MANUAL = 'manual';
 
     protected $table = 'course';
 
@@ -25,11 +36,29 @@ class Course extends Model
         'default_session_start_time',
         'passing_percentage',
         'min_attendance_percentage',
+        'status',
+        'grading_locked_at',
+        'grades_announced_at',
+        'closed_at',
+        'closed_by_user_id',
+        'grace_marks_enabled',
+        'max_grace_marks',
+        'grace_eligibility_mode',
     ];
 
     protected $casts = [
         'passing_percentage'        => 'float',
         'min_attendance_percentage' => 'float',
+        'grading_locked_at'         => 'datetime',
+        'grades_announced_at'       => 'datetime',
+        'closed_at'                 => 'datetime',
+        'grace_marks_enabled'       => 'boolean',
+        'max_grace_marks'           => 'float',
+    ];
+
+    protected $attributes = [
+        'status' => self::STATUS_ACTIVE,
+        'grace_eligibility_mode' => self::GRACE_MODE_MANUAL,
     ];
 
     public function sessions()
@@ -91,6 +120,65 @@ class Course extends Model
     {
         return $this->hasMany(GradeCategory::class, 'course_id', 'course_id')
                     ->orderBy('ordering');
+    }
+
+    public function graduations()
+    {
+        return $this->hasMany(CourseGraduation::class, 'course_id', 'course_id')
+            ->orderByDesc('announced_at');
+    }
+
+    public function latestGraduation()
+    {
+        return $this->hasOne(CourseGraduation::class, 'course_id', 'course_id')
+            ->latestOfMany('announced_at');
+    }
+
+    public function certificateTemplates()
+    {
+        return $this->hasMany(CourseCertificateTemplate::class, 'course_id', 'course_id');
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE
+            || $this->status === null
+            || $this->status === '';
+    }
+
+    public function isGradingLocked(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_GRADING_LOCKED,
+            self::STATUS_ANNOUNCED,
+            self::STATUS_CLOSED,
+            self::STATUS_ARCHIVED,
+        ], true);
+    }
+
+    public function areGradesAnnounced(): bool
+    {
+        return $this->grades_announced_at !== null
+            && in_array($this->status, [
+                self::STATUS_ANNOUNCED,
+                self::STATUS_CLOSED,
+                self::STATUS_ARCHIVED,
+            ], true);
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, [self::STATUS_CLOSED, self::STATUS_ARCHIVED], true);
+    }
+
+    public function allowsGradeEditing(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function allowsStudentAssessments(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
     }
 
     /** Total weighted grade for a student (0–100). Requires gradeCategories.items.grades loaded. */

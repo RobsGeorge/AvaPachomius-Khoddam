@@ -41,6 +41,8 @@ use App\Http\Controllers\GradeCategoryController;
 use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\GraduationController;
+use App\Http\Controllers\CertificateDownloadController;
+use App\Http\Controllers\FinalGradesController;
 use App\Http\Controllers\AttendanceSettingsController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventAdminController;
@@ -58,6 +60,8 @@ use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\Admin\RegistrationApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationFormController;
+use App\Http\Controllers\Admin\CourseCertificateTemplateController;
+use App\Http\Controllers\Admin\CourseClosingController;
 use App\Http\Controllers\ApplicationStatusController;
 use App\Http\Controllers\CourseApplicationController as StudentCourseApplicationController;
 use App\Http\Controllers\NotificationController;
@@ -225,7 +229,7 @@ Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttenda
 Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post');
 
 // Exam routes
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'course.assessments'])->group(function () {
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
     Route::get('/exams/schedules/{schedule}/lobby', [ExamAttemptController::class, 'lobby'])->name('exams.attempt.lobby');
     Route::post('/exams/schedules/{schedule}/begin', [ExamAttemptController::class, 'begin'])->name('exams.attempt.begin');
@@ -317,6 +321,8 @@ Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFee
 Route::middleware(['auth', 'course.application'])->group(function () {
     Route::get('/courses/{course}/curriculum',      [CurriculumController::class, 'show'])->name('curriculum.show');
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
+    Route::get('/courses/{course}/final-grades',   [FinalGradesController::class, 'show'])->name('courses.final-grades');
+    Route::get('/certificates/{uuid}',              [CertificateDownloadController::class, 'download'])->name('certificates.download');
 });
 
 // Curriculum & grades — admin/instructor management
@@ -356,10 +362,19 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     Route::put('/grade-items/{item}',                           [GradeItemController::class, 'update'])->name('grade-items.update');
     Route::delete('/grade-items/{item}',                        [GradeItemController::class, 'destroy'])->name('grade-items.destroy');
     Route::get('/grade-items/{item}/scores',                    [StudentGradeController::class, 'itemScores'])->name('grade-items.scores');
-    Route::post('/grade-items/{item}/scores',                   [StudentGradeController::class, 'bulkSave'])->name('grade-items.scores.save');
+    Route::post('/grade-items/{item}/scores',                   [StudentGradeController::class, 'bulkSave'])->name('grade-items.scores.save')->middleware('course.grading');
 
     Route::get('/graduation',                                   [GraduationController::class, 'index'])->name('graduation.index');
     Route::get('/courses/{course}/graduation',                  [GraduationController::class, 'show'])->name('graduation.show');
+    Route::get('/courses/{course}/graduation/export',            [GraduationController::class, 'exportCsv'])->name('graduation.export');
+
+    Route::get('/courses/{course}/closing', [CourseClosingController::class, 'show'])->name('courses.closing.show');
+    Route::post('/courses/{course}/closing/lock-grading', [CourseClosingController::class, 'lockGrading'])->name('courses.closing.lock');
+    Route::put('/courses/{course}/closing/grace-marks', [CourseClosingController::class, 'updateGrace'])->name('courses.closing.grace');
+    Route::post('/courses/{course}/closing/announce', [CourseClosingController::class, 'announce'])->name('courses.closing.announce');
+    Route::post('/courses/{course}/closing/close', [CourseClosingController::class, 'close'])->name('courses.closing.close');
+    Route::get('/courses/{course}/certificate-template', [CourseCertificateTemplateController::class, 'edit'])->name('courses.certificate-template.edit');
+    Route::put('/courses/{course}/certificate-template', [CourseCertificateTemplateController::class, 'update'])->name('courses.certificate-template.update');
 
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');

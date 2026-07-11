@@ -17,9 +17,14 @@ class StudentGradeController extends Controller
     /** Student view: own grades for a course */
     public function show(string $courseId)
     {
-        $course  = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
-        $userId  = Auth::user()->user_id;
-        $total   = $course->studentTotalGrade($userId);
+        $course = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
+
+        if ($course->areGradesAnnounced() && Auth::user()?->isStudent()) {
+            return redirect()->route('courses.final-grades', $course->course_id);
+        }
+
+        $userId = Auth::user()->user_id;
+        $total  = $course->studentTotalGrade($userId);
 
         return view('grades.show', compact('course', 'userId', 'total'));
     }
@@ -69,7 +74,11 @@ class StudentGradeController extends Controller
     /** Admin: save all scores for a specific item (bulk upsert) */
     public function bulkSave(Request $request, string $itemId)
     {
-        $item   = GradeItem::with('category')->findOrFail($itemId);
+        $item   = GradeItem::with('category.course')->findOrFail($itemId);
+        $course = $item->category->course;
+
+        abort_unless($course->allowsGradeEditing(), 403, __('course_graduation.errors.grading_locked'));
+
         $scores = $request->input('scores', []);
         $notes  = $request->input('notes', []);
 

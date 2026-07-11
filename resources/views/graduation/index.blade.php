@@ -75,6 +75,16 @@
                                     @endif
                                 </td>
                                 <td>
+                                    @php
+                                        $lifecycle = match($row['course']->status ?? 'active') {
+                                            'grading_locked' => __('course_graduation.status_grading_locked'),
+                                            'announced' => __('course_graduation.status_announced'),
+                                            'closed' => __('course_graduation.status_closed'),
+                                            'archived' => __('course_graduation.status_archived'),
+                                            default => __('course_graduation.status_active'),
+                                        };
+                                    @endphp
+                                    <span class="badge bg-secondary mb-1">{{ $lifecycle }}</span><br>
                                     @if($row['configured'])
                                         <span class="badge bg-success">{{ __('pages.graduation_criteria_configured') }}</span>
                                     @else
