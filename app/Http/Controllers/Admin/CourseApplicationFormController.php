@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CourseApplicationForm;
 use App\Models\CourseApplicationFormField;
 use App\Models\CourseApplicationFormStep;
 use App\Models\Role;
