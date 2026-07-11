@@ -44,6 +44,8 @@ class Course extends Model
         'grace_marks_enabled',
         'max_grace_marks',
         'grace_eligibility_mode',
+        'permissions_version',
+        'roles_cloned_from_course_id',
     ];
 
     protected $casts = [
@@ -114,6 +116,11 @@ class Course extends Model
     public function userCourseRoles()
     {
         return $this->hasMany(UserCourseRole::class, 'course_id', 'course_id');
+    }
+
+    public function roles()
+    {
+        return $this->hasMany(Role::class, 'course_id', 'course_id');
     }
 
     public function gradeCategories()

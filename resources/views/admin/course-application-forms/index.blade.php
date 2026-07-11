@@ -37,7 +37,10 @@
                                 <span class="badge bg-secondary">{{ __('course_applications.no') }}</span>
                             @endif
                         </td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
+                            <a href="{{ route('admin.courses.application-form.preview', $course->course_id) }}" class="btn btn-sm btn-outline-secondary">
+                                {{ __('course_applications.applicant_view') }}
+                            </a>
                             <a href="{{ route('admin.courses.application-form.edit', $course->course_id) }}" class="btn btn-sm btn-primary">
                                 {{ __('course_applications.manage_form') }}
                             </a>

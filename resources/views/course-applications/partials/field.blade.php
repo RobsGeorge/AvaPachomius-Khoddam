@@ -5,6 +5,8 @@
     $hasError = $errors->has($name);
     $isRejected = in_array($field->field_key, $rejectedFields ?? [], true);
     $comment = $rejectedComments[$field->field_key]->comment ?? null;
+    $previewMode = $previewMode ?? false;
+    $disabledAttr = $previewMode ? 'disabled' : '';
 @endphp
 
 @if($field->type === CourseApplicationFormField::TYPE_SECTION_HEADING)
@@ -31,19 +33,19 @@
         @switch($field->type)
             @case(CourseApplicationFormField::TYPE_LONG_TEXT)
                 <textarea id="field-{{ $field->field_key }}" name="{{ $name }}" rows="4"
-                          class="form-control @if($hasError) is-invalid @endif @if($isRejected) border-danger @endif">{{ $value }}</textarea>
+                          class="form-control @if($hasError) is-invalid @endif @if($isRejected) border-danger @endif" {{ $disabledAttr }}>{{ $value }}</textarea>
                 @break
             @case(CourseApplicationFormField::TYPE_SINGLE_CHOICE)
                 @foreach(($field->config['options'] ?? []) as $option)
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="{{ $name }}" id="{{ $field->field_key }}-{{ $option['value'] }}"
-                               value="{{ $option['value'] }}" @checked($value == $option['value'])>
+                               value="{{ $option['value'] }}" @checked($value == $option['value']) {{ $disabledAttr }}>
                         <label class="form-check-label" for="{{ $field->field_key }}-{{ $option['value'] }}">{{ $option['label'] }}</label>
                     </div>
                 @endforeach
                 @break
             @case(CourseApplicationFormField::TYPE_DROPDOWN)
-                <select id="field-{{ $field->field_key }}" name="{{ $name }}" class="form-select @if($hasError) is-invalid @endif">
+                <select id="field-{{ $field->field_key }}" name="{{ $name }}" class="form-select @if($hasError) is-invalid @endif" {{ $disabledAttr }}>
                     <option value="">{{ __('pages.select_option') }}</option>
                     @foreach(($field->config['options'] ?? []) as $option)
                         <option value="{{ $option['value'] }}" @selected($value == $option['value'])>{{ $option['label'] }}</option>
@@ -57,7 +59,7 @@
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="{{ $name }}[]"
                                id="{{ $field->field_key }}-{{ $option['value'] }}" value="{{ $option['value'] }}"
-                               @checked(in_array($option['value'], $selected, true))>
+                               @checked(in_array($option['value'], $selected, true)) {{ $disabledAttr }}>
                         <label class="form-check-label" for="{{ $field->field_key }}-{{ $option['value'] }}">{{ $option['label'] }}</label>
                     </div>
                 @endforeach
@@ -65,7 +67,7 @@
             @case(CourseApplicationFormField::TYPE_CHECKBOX)
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="{{ $name }}" value="1" id="field-{{ $field->field_key }}"
-                           @checked(filter_var($value, FILTER_VALIDATE_BOOLEAN))>
+                           @checked(filter_var($value, FILTER_VALIDATE_BOOLEAN)) {{ $disabledAttr }}>
                     <label class="form-check-label" for="field-{{ $field->field_key }}">{{ $field->help_text ?: $field->label }}</label>
                 </div>
                 @break
@@ -75,7 +77,7 @@
                     <div class="small text-muted-theme mb-1">{{ basename($value) }}</div>
                 @endif
                 <input type="file" id="field-{{ $field->field_key }}" name="{{ $name }}"
-                       class="form-control @if($hasError) is-invalid @endif">
+                       class="form-control @if($hasError) is-invalid @endif" {{ $disabledAttr }}>
                 @break
             @default
                 <input type="{{ match($field->type) {
@@ -86,7 +88,7 @@
                     CourseApplicationFormField::TYPE_DATE => 'date',
                     default => 'text',
                 } }}" id="field-{{ $field->field_key }}" name="{{ $name }}" value="{{ is_scalar($value) ? $value : '' }}"
-                       class="form-control @if($hasError) is-invalid @endif @if($isRejected) border-danger @endif">
+                       class="form-control @if($hasError) is-invalid @endif @if($isRejected) border-danger @endif" {{ $disabledAttr }}>
         @endswitch
 
         @if($field->help_text && ! in_array($field->type, [CourseApplicationFormField::TYPE_CHECKBOX, CourseApplicationFormField::TYPE_PARAGRAPH], true))

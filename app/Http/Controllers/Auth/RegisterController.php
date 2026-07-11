@@ -151,6 +151,8 @@ class RegisterController extends Controller
                 'is_verified'            => false,
                 'is_superadmin'          => false,
                 'registration_completed' => false,
+                'created_at'             => now(),
+                'updated_at'             => now(),
             ]));
 
             $otp = rand(100000, 999999);

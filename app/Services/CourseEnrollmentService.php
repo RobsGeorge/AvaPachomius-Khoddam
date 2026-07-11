@@ -13,10 +13,10 @@ class CourseEnrollmentService
     /** @return Collection<int, User> */
     public function enrolledStudents(int|string $courseId): Collection
     {
-        $studentRoleId = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->value('role_id');
+        $studentRoleIds = $this->studentRoleIds();
 
         $studentIds = UserCourseRole::where('course_id', $courseId)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->pluck('user_id')
             ->unique();
 
@@ -28,9 +28,7 @@ class CourseEnrollmentService
     /** @return Collection<int, User> */
     public function courseStaff(int|string $courseId, bool $includeArchived = false): Collection
     {
-        $staffRoleIds = Role::query()
-            ->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
-            ->pluck('role_id');
+        $staffRoleIds = $this->staffRoleIds();
 
         $query = UserCourseRole::where('course_id', $courseId)
             ->whereIn('role_id', $staffRoleIds);
@@ -46,11 +44,31 @@ class CourseEnrollmentService
 
     public function studentEnrollment(int $userId, int|string $courseId): ?UserCourseRole
     {
-        $studentRoleId = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->value('role_id');
+        $studentRoleIds = $this->studentRoleIds();
 
         return UserCourseRole::where('course_id', $courseId)
             ->where('user_id', $userId)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->first();
+    }
+
+    private function studentRoleIds(): Collection
+    {
+        return Role::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->pluck('role_id');
+    }
+
+    private function staffRoleIds(): Collection
+    {
+        return Role::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
+                    ->orWhereIn('slug', ['admin', 'instructor']);
+            })
+            ->pluck('role_id');
     }
 }

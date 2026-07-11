@@ -11,26 +11,50 @@ use Illuminate\Support\Collection;
 
 class StudentRosterService
 {
+    public function __construct(
+        private CoursePermissionResolver $resolver,
+    ) {}
+
     public function accessibleCourses(User $user): Collection
     {
-        if ($user->isAdmin() || ($user->is_superadmin ?? false)) {
+        if ($user->is_superadmin ?? false) {
             return Course::query()->orderBy('title')->get();
         }
 
-        return $user->courses()->orderBy('title')->get();
+        $courseIds = $user->userCourseRoles()
+            ->whereNull('staff_archived_at')
+            ->pluck('course_id')
+            ->merge(
+                $user->userCourseRoles()
+                    ->whereNotNull('staff_archived_at')
+                    ->whereHas('role', fn ($q) => $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                        ->orWhere('slug', 'student'))
+                    ->pluck('course_id')
+            )
+            ->unique();
+
+        return Course::query()
+            ->whereIn('course_id', $courseIds)
+            ->orderBy('title')
+            ->get();
     }
 
     public function studentEnrolledCourses(User $user): Collection
     {
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = Role::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->pluck('role_id');
 
-        if (! $studentRoleId) {
+        if ($studentRoleIds->isEmpty()) {
             return collect();
         }
 
         $courseIds = UserCourseRole::query()
             ->where('user_id', $user->user_id)
-            ->where('role_id', $studentRoleId)
+            ->whereIn('role_id', $studentRoleIds)
             ->pluck('course_id')
             ->unique();
 
@@ -42,24 +66,27 @@ class StudentRosterService
 
     public function authorizeCourse(User $user, string $courseId): void
     {
-        if ($user->isAdmin() || ($user->is_superadmin ?? false)) {
+        if ($user->is_superadmin ?? false) {
             return;
         }
 
-        abort_unless(
-            $user->courses()->where('course.course_id', $courseId)->exists(),
-            403
-        );
+        $course = Course::find($courseId);
+        abort_unless($course && $this->resolver->hasCourseAccess($user, $course), 403);
     }
 
     public function enrolledStudents(Course|string $course): Collection
     {
         $courseId = $course instanceof Course ? $course->course_id : $course;
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = Role::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->pluck('role_id');
 
         $studentIds = UserCourseRole::query()
             ->where('course_id', $courseId)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->pluck('user_id')
             ->unique();
 
@@ -70,24 +97,28 @@ class StudentRosterService
             ->get();
     }
 
-    public function courseStaff(string $courseId): Collection
+    public function courseStaff(string $courseId, bool $includeArchived = false): Collection
     {
-        $roleIds = Role::query()
+        $staffRoleIds = Role::query()
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['admin'])
-                    ->orWhereRaw('LOWER(role_name) = ?', ['instructor']);
+                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
+                    ->orWhereIn('slug', ['admin', 'instructor']);
             })
             ->pluck('role_id');
 
-        if ($roleIds->isEmpty()) {
+        if ($staffRoleIds->isEmpty()) {
             return collect();
         }
 
-        $userIds = UserCourseRole::query()
+        $query = UserCourseRole::query()
             ->where('course_id', $courseId)
-            ->whereIn('role_id', $roleIds)
-            ->pluck('user_id')
-            ->unique();
+            ->whereIn('role_id', $staffRoleIds);
+
+        if (! $includeArchived) {
+            $query->whereNull('staff_archived_at');
+        }
+
+        $userIds = $query->pluck('user_id')->unique();
 
         return User::query()
             ->whereIn('user_id', $userIds)
@@ -121,12 +152,5 @@ class StudentRosterService
             ->filter(fn (User $student) => $student->isBirthdayToday($on))
             ->sortBy(fn (User $student) => $student->displayName())
             ->values();
-    }
-
-    private function studentRoleId(): ?int
-    {
-        return Role::query()
-            ->whereRaw('LOWER(role_name) = ?', ['student'])
-            ->value('role_id');
     }
 }

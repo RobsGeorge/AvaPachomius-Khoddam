@@ -15,6 +15,7 @@ use App\Models\UserCourseRole;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\CoursePermissionResolver;
 
 class CourseClosingService
 {
@@ -102,12 +103,17 @@ class CourseClosingService
             ]);
         }
 
-        $studentRoleId = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->value('role_id');
+        $studentRoleIds = Role::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->pluck('role_id');
 
         foreach ($rows as $userId => $row) {
             $enrollment = UserCourseRole::where('course_id', $course->course_id)
                 ->where('user_id', $userId)
-                ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+                ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
                 ->first();
 
             if (! $enrollment) {
@@ -232,6 +238,8 @@ class CourseClosingService
                 'closed_by_user_id'  => $actor->user_id,
             ]);
 
+            app(CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course->fresh());
+
             return $course->fresh();
         });
     }
@@ -243,10 +251,15 @@ class CourseClosingService
             return [];
         }
 
-        $studentRoleId = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->value('role_id');
+        $studentRoleIds = Role::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->pluck('role_id');
 
         return UserCourseRole::where('course_id', $course->course_id)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->where('eligible_for_grace', true)
             ->get()
             ->mapWithKeys(fn (UserCourseRole $row) => [

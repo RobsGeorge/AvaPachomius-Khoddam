@@ -13,6 +13,9 @@
             <p class="text-muted-theme mb-0">{{ __('course_applications.form_intro') }}</p>
         </div>
         <div class="d-flex gap-2">
+            <a href="{{ route('admin.courses.application-form.preview', $courseModel->course_id) }}" class="btn btn-outline-primary btn-sm">
+                {{ __('course_applications.applicant_view') }}
+            </a>
             <a href="{{ route('admin.courses.application-forms.index') }}" class="btn btn-outline-secondary btn-sm">
                 {{ __('course_applications.all_courses') }}
             </a>

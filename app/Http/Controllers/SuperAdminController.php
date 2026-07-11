@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
+use App\Services\RoleTemplateService;
 use Illuminate\Http\Request;
 
 class SuperAdminController extends Controller
@@ -43,7 +44,10 @@ class SuperAdminController extends Controller
                 ->withInput();
         }
 
-        UserCourseRole::create($request->only('user_id', 'course_id', 'role_id'));
+        UserCourseRole::updateOrCreate(
+            ['user_id' => $request->user_id, 'course_id' => $request->course_id],
+            ['role_id' => $request->role_id]
+        );
 
         return redirect()->route('superadmin.index')->with('success', __('pages.role_assigned'));
     }
@@ -81,14 +85,26 @@ class SuperAdminController extends Controller
             'description' => 'required|string|max:255',
             'year'        => 'required|integer|min:2000|max:2100',
             'default_session_start_time' => 'required|date_format:H:i',
+            'clone_templates' => 'boolean',
+            'inherit_from_course_id' => 'nullable|exists:course,course_id',
         ]);
 
-        Course::create([
+        $course = Course::create([
             'title' => $request->input('title'),
             'description' => $request->input('description'),
             'year' => $request->input('year'),
             'default_session_start_time' => $request->input('default_session_start_time').':00',
         ]);
+
+        $templates = app(RoleTemplateService::class);
+        if ($request->boolean('clone_templates', true)) {
+            if ($request->filled('inherit_from_course_id')) {
+                $source = Course::findOrFail($request->inherit_from_course_id);
+                $templates->copyRolesFromCourse($course, $source);
+            } else {
+                $templates->cloneTemplatesIntoCourse($course);
+            }
+        }
 
         return redirect()->route('superadmin.index')->with('success', __('pages.course_created'));
     }

@@ -275,4 +275,30 @@ class RegistrationApplicationReviewTest extends EventModuleTestCase
         $this->assertSame(RegistrationApplication::STATUS_PENDING_REVIEW, $application->status);
         $this->assertNull($application->overall_rejection_note);
     }
+
+    public function test_profile_shows_registration_date_from_application_when_created_at_missing(): void
+    {
+        $submitted = now()->subDays(10);
+        $user = $this->createUser([
+            'is_verified' => true,
+            'registration_completed' => true,
+            'application_status' => RegistrationApplication::STATUS_APPROVED,
+            'created_at' => null,
+        ]);
+
+        RegistrationApplication::create([
+            'user_id' => $user->user_id,
+            'status' => RegistrationApplication::STATUS_APPROVED,
+            'snapshot' => ['first_name' => $user->first_name],
+            'version' => 1,
+            'submitted_at' => $submitted,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('profile'))
+            ->assertOk()
+            ->assertSee($submitted->format('Y-m-d'));
+
+        $this->assertSame($submitted->format('Y-m-d'), $user->fresh()->formattedRegistrationDate());
+    }
 }

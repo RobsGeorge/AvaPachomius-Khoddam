@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\Course;
 use App\Models\User;
+use App\Services\CoursePermissionResolver;
 
 class NavigationHub
 {
@@ -12,55 +14,99 @@ class NavigationHub
             return [];
         }
 
-        $links = [
-            self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*']),
-            self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*']),
-        ];
+        $resolver = app(CoursePermissionResolver::class);
+        $links = [];
 
-        if ($user->isInstructorOrAdmin()) {
+        if (self::canAnyCourse($user, $resolver, ['curriculum.view', 'curriculum.manage'])) {
+            $links[] = self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['curriculum.manage'])) {
+            $links[] = self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage');
+            $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['assignment.manage'])) {
             $links[] = self::link('assignments.dashboard', 'dashboard.manage_assignments', 'bi-journal-text', [
                 'assignments.dashboard', 'assignments.create', 'assignments.edit', 'assignments.status',
-            ]);
+            ], 'assignment.manage');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['assignment.view', 'assignment.manage'])) {
             $links[] = self::link('assignments.index', 'dashboard.view_assignments', 'bi-journal-check', [
                 'assignments.index', 'assignments.show',
-            ]);
+            ], 'assignment.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['exam.author', 'exam.grade'])) {
             $links[] = self::link('exams.dashboard', 'dashboard.manage_exams', 'bi-patch-check', [
                 'exams.dashboard', 'exams.builder', 'exams.grades', 'exams.admin-dashboard',
-            ]);
+            ], 'exam.author');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['exam.view', 'exam.take'])) {
             $links[] = self::link('exams.index', 'dashboard.view_exams', 'bi-calendar2-check', [
                 'exams.index', 'exams.attempt.*',
-            ]);
+            ], 'exam.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
             $links[] = self::link('attendance.all', 'nav.attendance', 'bi-calendar-check', [
                 'attendance.all', 'attendance.user', 'attendance.by-date', 'attendance.user-report',
-            ]);
-            $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report']);
-            $links[] = self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce']);
-            $links[] = self::link('announcements.manage.index', 'announcements.manage_title', 'bi-megaphone', ['announcements.manage.*']);
-            $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*']);
-            $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*']);
-        } else {
+            ], 'attendance.view_all');
+            $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
+            $links[] = self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce'], 'roster.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
+            $links[] = self::link('announcements.manage.index', 'announcements.manage_title', 'bi-megaphone', ['announcements.manage.*'], 'announcement.manage');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['graduation.view', 'course.close'])) {
+            $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*'], 'graduation.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['course.view']) && ! self::canAnyCourse($user, $resolver, ['curriculum.manage'])) {
             $links[] = self::link('available-courses.index', 'course_applications.available_courses_title', 'bi-mortarboard', [
                 'available-courses.index', 'courses.apply', 'courses.apply.store',
                 'courses.application.status', 'courses.application.edit', 'courses.application.update',
-            ]);
-            $links[] = self::link('assignments.index', 'dashboard.view_assignments', 'bi-journal-text', ['assignments.*']);
-            $links[] = self::link('exams.index', 'dashboard.view_exams', 'bi-patch-check', ['exams.index', 'exams.attempt.*']);
-            $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my']);
-            $links[] = self::link('students.birthdays', 'students.birthdays_title', 'bi-cake2', ['students.birthdays']);
-            $links[] = self::link('announcements.index', 'announcements.title', 'bi-megaphone', [
-                'announcements.index', 'announcements.show', 'announcements.dismiss-banner',
-            ]);
+            ], 'course.view');
         }
 
-        $links[] = self::link('feedback.index', 'dashboard.feedback', 'bi-chat-square-text', ['feedback.*']);
-        $links[] = self::link('live-quiz.index', 'dashboard.live_quiz', 'bi-lightning-charge', ['live-quiz.*']);
-        $links[] = self::link('events.index', 'nav.events', 'bi-calendar-event', ['events.index', 'events.show']);
-        $links[] = self::link('events.my-reservations', 'events.my_reservations', 'bi-ticket-perforated', ['events.my-reservations']);
+        if (self::canAnyCourse($user, $resolver, ['attendance.view_own']) && ! self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
+            $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['roster.view']) && ! self::canAnyCourse($user, $resolver, ['roster.announce'])) {
+            $links[] = self::link('students.birthdays', 'students.birthdays_title', 'bi-cake2', ['students.birthdays'], 'roster.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['announcement.view']) && ! self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
+            $links[] = self::link('announcements.index', 'announcements.title', 'bi-megaphone', [
+                'announcements.index', 'announcements.show', 'announcements.dismiss-banner',
+            ], 'announcement.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['feedback.view', 'feedback.manage'])) {
+            $links[] = self::link('feedback.index', 'dashboard.feedback', 'bi-chat-square-text', ['feedback.*'], 'feedback.view');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['live_quiz.play', 'live_quiz.manage'])) {
+            $links[] = self::link('live-quiz.index', 'dashboard.live_quiz', 'bi-lightning-charge', ['live-quiz.*'], 'live_quiz.play');
+        }
+
+        if ($user->canInSystem('events.view') || self::canAnyCourse($user, $resolver, ['events.view'])) {
+            $links[] = self::link('events.index', 'nav.events', 'bi-calendar-event', ['events.index', 'events.show'], 'events.view');
+            $links[] = self::link('events.my-reservations', 'events.my_reservations', 'bi-ticket-perforated', ['events.my-reservations'], 'events.reserve');
+        }
 
         if ($user->isEventAdmin()) {
             $links[] = self::link('events.admin.index', 'nav.events_admin', 'bi-gear', [
                 'events.admin.*', 'events.check-in.verify',
-            ]);
+            ], 'events.admin');
         }
 
         return $links;
@@ -73,25 +119,71 @@ class NavigationHub
         }
 
         $links = [];
+        $resolver = app(CoursePermissionResolver::class);
 
-        if ($user->isAdmin()) {
-            $links[] = self::link('user-course-roles.index', 'nav.roles', 'bi-people', ['user-course-roles.*', 'roles.*']);
-            $links[] = self::link('admin.translations.index', 'nav.translations', 'bi-translate', ['admin.translations.*']);
-            $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']);
-            $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']);
-            $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*']);
-            $links[] = self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*']);
-            $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*']);
+        if ($user->canInSystem('user.assign_role') || $user->canInSystem('system.role.manage')) {
+            $links[] = self::link('user-course-roles.index', 'nav.roles', 'bi-people', ['user-course-roles.*', 'roles.*'], 'system.role.manage');
         }
 
-        if ($user->is_superadmin || $user->isAdmin()) {
-            $links[] = self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*']);
+        if ($user->canInSystem('translation.manage')) {
+            $links[] = self::link('admin.translations.index', 'nav.translations', 'bi-translate', ['admin.translations.*'], 'translation.manage');
+        }
+
+        if ($user->canInSystem('attendance.configure')) {
+            $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*'], 'attendance.configure');
+        }
+
+        if ($user->canInSystem('profile_photo.review')) {
+            $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*'], 'profile_photo.review');
+        }
+
+        if ($user->canInSystem('registration.review')) {
+            $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*'], 'registration.review');
+        }
+
+        if ($user->canInSystem('course_application.form_builder')) {
+            $links[] = self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*'], 'course_application.form_builder');
+        }
+
+        if ($user->canInSystem('course_application.review')) {
+            $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*'], 'course_application.review');
+        }
+
+        if ($user->canInSystem('graduation.settings') || ($user->is_superadmin ?? false)) {
+            $links[] = self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*'], 'graduation.settings');
+        }
+
+        $courseWithRoleManage = $user->userCourseRoles()
+            ->whereNull('staff_archived_at')
+            ->pluck('course_id')
+            ->first(function ($courseId) use ($user, $resolver) {
+                $course = Course::find($courseId);
+
+                return $course && $resolver->canInCourse($user, 'role.manage', $course);
+            });
+
+        if ($courseWithRoleManage) {
+            $course = Course::find($courseWithRoleManage);
+            $links[] = [
+                'url' => route('courses.roles.index', $course),
+                'label' => __('rbac.title'),
+                'icon' => 'bi-shield-check',
+                'active' => request()->routeIs('courses.roles.*'),
+                'permission' => 'role.manage',
+            ];
         }
 
         if ($user->is_superadmin) {
-            $links[] = self::link('superadmin.index', 'nav.superadmin', 'bi-shield-lock-fill', ['superadmin.index']);
-            $links[] = self::link('superadmin.audit.index', 'nav.audit_reports', 'bi-journal-text', ['superadmin.audit.*']);
-            $links[] = self::link('superadmin.events.tests.index', 'nav.events_tests', 'bi-bug', ['superadmin.events.tests.*']);
+            $links[] = self::link('superadmin.index', 'nav.superadmin', 'bi-shield-lock-fill', ['superadmin.index'], 'platform.audit');
+            $links[] = self::link('superadmin.audit.index', 'nav.audit_reports', 'bi-journal-text', ['superadmin.audit.*'], 'platform.audit');
+            $links[] = self::link('superadmin.templates.index', 'rbac.manage_templates', 'bi-diagram-3', ['superadmin.templates.*'], 'platform.role_templates');
+            $links[] = self::link('superadmin.group-visibility.index', 'rbac.group_visibility', 'bi-eye', ['superadmin.group-visibility.*'], 'platform.group_visibility');
+            $links[] = self::link('superadmin.system-roles.index', 'rbac.system_roles', 'bi-person-gear', ['superadmin.system-roles.*'], 'system.role.manage');
+            $links[] = self::link('superadmin.events.tests.index', 'nav.events_tests', 'bi-bug', ['superadmin.events.tests.*'], 'platform.audit');
+        }
+
+        if ($user->isAdmin() && empty($links)) {
+            return self::legacySystemLinks($user);
         }
 
         return $links;
@@ -132,13 +224,14 @@ class NavigationHub
         return self::anyActive(self::systemLinks($user));
     }
 
-    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns): array
+    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null): array
     {
         return [
             'url' => route($routeName),
             'label' => __($labelKey),
             'icon' => $icon,
             'active' => request()->routeIs(...$patterns),
+            'permission' => $permission,
         ];
     }
 
@@ -151,5 +244,49 @@ class NavigationHub
         }
 
         return false;
+    }
+
+    private static function canAnyCourse(User $user, CoursePermissionResolver $resolver, array $permissions): bool
+    {
+        if ($user->is_superadmin ?? false) {
+            return true;
+        }
+
+        foreach ($permissions as $perm) {
+            if ($user->canInSystem($perm)) {
+                return true;
+            }
+        }
+
+        foreach ($user->userCourseRoles()->whereNull('staff_archived_at')->pluck('course_id') as $courseId) {
+            $course = Course::find($courseId);
+            if ($course && $resolver->canAnyInCourse($user, $permissions, $course)) {
+                return true;
+            }
+        }
+
+        if ($user->isInstructorOrAdmin()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /** Fallback while migrating legacy admin users without system role grants. */
+    private static function legacySystemLinks(User $user): array
+    {
+        $links = [];
+        if ($user->isAdmin()) {
+            $links[] = self::link('user-course-roles.index', 'nav.roles', 'bi-people', ['user-course-roles.*', 'roles.*']);
+            $links[] = self::link('admin.translations.index', 'nav.translations', 'bi-translate', ['admin.translations.*']);
+            $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']);
+            $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']);
+            $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*']);
+            $links[] = self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*']);
+            $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*']);
+            $links[] = self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*']);
+        }
+
+        return $links;
     }
 }

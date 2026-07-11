@@ -52,6 +52,36 @@ class CourseApplicationFormController extends Controller
         return view('admin.course-application-forms.edit', compact('courseModel', 'form', 'courses', 'roles', 'fieldTypes'));
     }
 
+    public function preview(Request $request, string $course)
+    {
+        $courseModel = Course::findOrFail($course);
+        $user = Auth::user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        $form = $this->forms->getOrCreateForCourse($courseModel, $user);
+        $form->load(['steps.fields']);
+        $steps = $form->steps;
+
+        if ($steps->isEmpty()) {
+            return redirect()
+                ->route('admin.courses.application-form.edit', $courseModel->course_id)
+                ->with('warning', __('course_applications.preview_no_steps'));
+        }
+
+        $stepIndex = max(0, min((int) $request->query('step', 0), $steps->count() - 1));
+        $currentStep = $steps->get($stepIndex);
+
+        return view('admin.course-application-forms.preview', compact(
+            'courseModel',
+            'form',
+            'steps',
+            'stepIndex',
+            'currentStep',
+        ));
+    }
+
     public function update(Request $request, string $course)
     {
         $courseModel = Course::findOrFail($course);

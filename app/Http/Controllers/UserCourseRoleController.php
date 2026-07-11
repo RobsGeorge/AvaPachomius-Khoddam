@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\Role;
 use App\Services\PendingRegistrationService;
+use App\Services\CoursePermissionResolver;
+use App\Services\RoleTemplateService;
 use Illuminate\Support\Facades\Password;
 
 class UserCourseRoleController extends Controller
@@ -54,7 +56,15 @@ class UserCourseRoleController extends Controller
                 ->withInput();
         }
 
-        UserCourseRole::create($request->only('user_id', 'course_id', 'role_id'));
+        UserCourseRole::updateOrCreate(
+            ['user_id' => $request->user_id, 'course_id' => $request->course_id],
+            ['role_id' => $request->role_id]
+        );
+
+        $course = Course::find($request->course_id);
+        if ($course) {
+            app(CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
+        }
 
         return redirect()->route('user-course-roles.index')->with('success', 'تم تعيين الدور بنجاح');
     }

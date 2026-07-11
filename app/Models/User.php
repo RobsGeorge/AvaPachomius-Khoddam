@@ -15,6 +15,8 @@ use App\Models\Attendance;
 use App\Models\UserAssessment;
 use App\Models\Role;
 use App\Models\EventAdmin;
+use App\Models\UserSystemRole;
+use App\Services\CoursePermissionResolver;
 use App\Mail\ResetPasswordMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
@@ -56,6 +58,7 @@ class User extends Authenticatable
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
         'registration_completed', 'application_status',
+        'created_at', 'updated_at',
     ];
 
     protected $casts = [
@@ -127,8 +130,52 @@ class User extends Authenticatable
         return $this->hasMany(UserCourseRole::class, 'user_id', 'user_id');
     }
 
-    public function hasRole(string $roleName): bool
+    public function systemRoles()
     {
+        return $this->belongsToMany(
+            Role::class,
+            'user_system_role',
+            'user_id',
+            'role_id',
+            'user_id',
+            'role_id'
+        );
+    }
+
+    public function userSystemRoles()
+    {
+        return $this->hasMany(UserSystemRole::class, 'user_id', 'user_id');
+    }
+
+    public function permissionsInCourse(Course $course): \Illuminate\Support\Collection
+    {
+        return app(CoursePermissionResolver::class)->permissionsInCourse($this, $course);
+    }
+
+    public function canInCourse(string $permission, Course $course): bool
+    {
+        return app(CoursePermissionResolver::class)->canInCourse($this, $permission, $course);
+    }
+
+    public function canInSystem(string $permission): bool
+    {
+        return app(CoursePermissionResolver::class)->canInSystem($this, $permission);
+    }
+
+    public function canAnyInCourse(array $permissions, Course $course): bool
+    {
+        return app(CoursePermissionResolver::class)->canAnyInCourse($this, $permissions, $course);
+    }
+
+    public function hasRole(string $roleName, ?string $courseId = null): bool
+    {
+        if ($courseId) {
+            return $this->userCourseRoles()
+                ->where('course_id', $courseId)
+                ->whereHas('role', fn ($q) => $q->whereRaw('LOWER(role_name) = ?', [strtolower($roleName)]))
+                ->exists();
+        }
+
         return $this->roles->contains(
             fn ($role) => strcasecmp($role->role_name, $roleName) === 0
         );
@@ -153,19 +200,32 @@ class User extends Authenticatable
         return $this->hasRole('instructor');
     }
 
-    public function isAdmin(): bool
+    public function isAdmin(?string $courseId = null): bool
     {
-        return $this->hasRole('admin');
+        if ($courseId) {
+            return $this->hasRole('admin', $courseId);
+        }
+
+        return $this->hasRole('admin') || $this->canInSystem('system.role.manage');
     }
 
-    public function isInstructorOrAdmin(): bool
+    public function isInstructorOrAdmin(?string $courseId = null): bool
     {
-        return $this->isAdmin() || $this->isInstructor();
+        if ($courseId) {
+            return $this->hasRole('admin', $courseId) || $this->hasRole('instructor', $courseId);
+        }
+
+        return $this->isAdmin() || $this->isInstructor()
+            || $this->userCourseRoles()->whereNull('staff_archived_at')->whereHas('role', function ($q) {
+                $q->whereIn('slug', ['admin', 'instructor'])
+                    ->orWhereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor']);
+            })->exists();
     }
 
     public function isEventAdmin(): bool
     {
         return ($this->is_superadmin ?? false)
+            || $this->canInSystem('events.admin')
             || $this->hasRole('admin')
             || EventAdmin::where('user_id', $this->user_id)->exists();
     }
@@ -224,6 +284,24 @@ class User extends Authenticatable
     public function registrationApplications()
     {
         return $this->hasMany(RegistrationApplication::class, 'user_id', 'user_id');
+    }
+
+    public function registrationDate(): ?Carbon
+    {
+        if ($this->created_at instanceof Carbon) {
+            return $this->created_at;
+        }
+
+        $submitted = $this->registrationApplications()
+            ->orderBy('submitted_at')
+            ->value('submitted_at');
+
+        return $submitted ? Carbon::parse($submitted) : null;
+    }
+
+    public function formattedRegistrationDate(): string
+    {
+        return $this->registrationDate()?->format('Y-m-d') ?? __('pages.not_available');
     }
 
     public function formattedMobile(): ?string

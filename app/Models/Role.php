@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Role extends Model
 {
@@ -14,7 +15,45 @@ class Role extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['role_name', 'role_decription'];
+    protected $fillable = [
+        'role_name',
+        'role_decription',
+        'course_id',
+        'slug',
+        'description',
+        'is_system',
+        'is_template',
+        'cloned_from_role_id',
+        'permissions_version',
+    ];
+
+    protected $casts = [
+        'is_system' => 'boolean',
+        'is_template' => 'boolean',
+        'permissions_version' => 'integer',
+    ];
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class, 'course_id', 'course_id');
+    }
+
+    public function clonedFrom(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'cloned_from_role_id', 'role_id');
+    }
+
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Permission::class,
+            'role_permission',
+            'role_id',
+            'permission_id',
+            'role_id',
+            'permission_id'
+        );
+    }
 
     public function users()
     {
@@ -28,9 +67,33 @@ class Role extends Model
         )->withPivot('course_id', 'user_course_role_id');
     }
 
-    public function userCourseRoles()
+    public function userCourseRoles(): HasMany
     {
         return $this->hasMany(UserCourseRole::class, 'role_id', 'role_id');
     }
-}
 
+    public function systemUsers(): HasMany
+    {
+        return $this->hasMany(UserSystemRole::class, 'role_id', 'role_id');
+    }
+
+    public function isCourseScoped(): bool
+    {
+        return $this->course_id !== null;
+    }
+
+    public function isTemplate(): bool
+    {
+        return (bool) $this->is_template;
+    }
+
+    public function displayName(): string
+    {
+        return $this->role_name;
+    }
+
+    public function effectiveSlug(): string
+    {
+        return $this->slug ?? \Illuminate\Support\Str::slug($this->role_name);
+    }
+}

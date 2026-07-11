@@ -134,6 +134,14 @@ class PendingRegistrationService
             $user->is_verified = true;
         }
 
+        if (Schema::hasColumn('user', 'created_at') && $user->created_at === null) {
+            $user->created_at = now();
+        }
+
+        if (Schema::hasColumn('user', 'updated_at')) {
+            $user->updated_at = now();
+        }
+
         $user->save();
 
         if (Schema::hasColumn('user', 'application_status')) {

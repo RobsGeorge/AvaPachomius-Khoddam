@@ -41,11 +41,19 @@ abstract class EventModuleTestCase extends TestCase
         ], $overrides));
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\RbacSeeder::class);
+    }
+
     protected function createRole(string $name): Role
     {
         return Role::create([
             'role_name' => $name,
             'role_decription' => substr($name, 0, 25),
+            'slug' => strtolower($name),
+            'is_template' => false,
         ]);
     }
 
@@ -63,11 +71,25 @@ abstract class EventModuleTestCase extends TestCase
 
     protected function assignCourseRole(User $user, Course $course, Role $role): void
     {
-        UserCourseRole::create([
-            'user_id' => $user->user_id,
+        UserCourseRole::updateOrCreate(
+            ['user_id' => $user->user_id, 'course_id' => $course->course_id],
+            ['role_id' => $role->role_id]
+        );
+    }
+
+    protected function courseRoleWithPermissions(Course $course, string $slug, array $permissionKeys): Role
+    {
+        $role = Role::create([
+            'role_name' => ucfirst($slug),
+            'role_decription' => $slug,
+            'slug' => $slug,
             'course_id' => $course->course_id,
-            'role_id' => $role->role_id,
         ]);
+
+        $ids = \App\Models\Permission::whereIn('key', $permissionKeys)->pluck('permission_id');
+        $role->permissions()->sync($ids);
+
+        return $role;
     }
 
     protected function makeEventAdmin(User $user, ?User $assignedBy = null): void

@@ -70,6 +70,8 @@ use App\Http\Controllers\LiveQuizController;
 use App\Http\Controllers\LiveQuizBuilderController;
 use App\Http\Controllers\LiveQuizHostController;
 use App\Http\Controllers\LiveQuizPlayController;
+use App\Http\Controllers\CourseRoleController;
+use App\Http\Controllers\SystemRoleController;
 
 
 
@@ -121,7 +123,7 @@ Route::middleware(['auth', 'attendance.staff'])->group(function () {
     Route::post('/attendance/record/{session}', [AttendanceController::class, 'recordAttendance'])->name('attendance.record');
 });
 
-Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
+Route::middleware(['auth', 'permission:staff'])->group(function () {
     // View all attendance records
     Route::get('/attendance/all', [AttendanceController::class, 'viewAllAttendance'])->name('attendance.all');
 
@@ -211,6 +213,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/courses/application-forms', [CourseApplicationFormController::class, 'index'])->name('courses.application-forms.index');
     Route::get('/courses/{course}/application-form', [CourseApplicationFormController::class, 'edit'])->name('courses.application-form.edit');
+    Route::get('/courses/{course}/application-form/preview', [CourseApplicationFormController::class, 'preview'])->name('courses.application-form.preview');
     Route::put('/courses/{course}/application-form', [CourseApplicationFormController::class, 'update'])->name('courses.application-form.update');
     Route::post('/courses/{course}/application-form/steps', [CourseApplicationFormController::class, 'storeStep'])->name('courses.application-form.steps.store');
     Route::put('/courses/{course}/application-form/steps/{step}', [CourseApplicationFormController::class, 'updateStep'])->name('courses.application-form.steps.update');
@@ -224,9 +227,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');
 
-Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttendanceByDate'])->name('attendance.by-date');
+Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttendanceByDate'])->name('attendance.by-date')->middleware(['auth', 'permission:attendance.view_all']);
 
-Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post');
+Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post')->middleware(['auth', 'permission:attendance.edit']);
 
 // Exam routes
 Route::middleware(['auth', 'course.assessments'])->group(function () {
@@ -242,7 +245,7 @@ Route::middleware(['auth', 'course.assessments'])->group(function () {
     Route::get('/exams/schedules/{schedule}/confirmation', [ExamAttemptController::class, 'confirmation'])->name('exams.attempt.confirmation');
 });
 
-Route::middleware(['auth', 'role:instructor,admin'])->group(function () {
+Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
     Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
     Route::post('/exams', [ExamController::class, 'store'])->name('exams.store');
@@ -264,7 +267,7 @@ Route::middleware(['auth', 'role:instructor,admin'])->group(function () {
 });
 
 // Assignment routes
-Route::middleware(['auth', 'role:instructor,admin'])->group(function () {
+Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/assignments/dashboard', [AssignmentController::class, 'dashboard'])->name('assignments.dashboard');
     Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
@@ -278,12 +281,12 @@ Route::middleware(['auth', 'role:instructor,admin'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
     Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->name('assignments.show');
-    Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->name('assignments.submit')->middleware('role:student');
-    Route::put('/assignment-submissions/{submission}/update', [AssignmentController::class, 'updateSubmission'])->name('assignments.update-submission')->middleware('role:student');
+    Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->name('assignments.submit')->middleware('permission:assignment.submit');
+    Route::put('/assignment-submissions/{submission}/update', [AssignmentController::class, 'updateSubmission'])->name('assignments.update-submission')->middleware('permission:assignment.submit');
 });
 
 // Events & conferences — register /events/admin before /events/{event} wildcard
-Route::middleware(['auth', 'events.admin'])->prefix('events/admin')->name('events.admin.')->group(function () {
+Route::middleware(['auth', 'permission:events.admin'])->prefix('events/admin')->name('events.admin.')->group(function () {
     Route::get('/', [EventAdminController::class, 'index'])->name('index');
     Route::get('/create', [EventAdminController::class, 'create'])->name('create');
     Route::post('/', [EventAdminController::class, 'store'])->name('store');
@@ -306,7 +309,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name('events.cancel')->whereNumber('event');
 });
 
-Route::middleware(['auth', 'events.admin'])->group(function () {
+Route::middleware(['auth', 'permission:events.admin'])->group(function () {
     Route::get('/events/{event}/check-in/verify/{user}', [EventCheckInController::class, 'verify'])
         ->name('events.check-in.verify')
         ->whereNumber('event')
@@ -314,8 +317,8 @@ Route::middleware(['auth', 'events.admin'])->group(function () {
 });
 
 // Content feedback routes
-Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback');
-Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
+Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedbackForm'])->name('contents.feedback')->middleware('auth');
+Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback')->middleware('auth');
 
 // Curriculum — student read-only views
 Route::middleware(['auth', 'course.application'])->group(function () {
@@ -326,7 +329,7 @@ Route::middleware(['auth', 'course.application'])->group(function () {
 });
 
 // Curriculum & grades — admin/instructor management
-Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
+Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::resource('modules', ModuleController::class);
     Route::resource('sessions', SessionController::class)->except(['index']);
     Route::post('/sessions/{session}/close-attendance', [SessionController::class, 'closeAttendance'])
@@ -393,6 +396,18 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
     });
 });
 
+// Course-scoped dynamic role management
+Route::middleware(['auth'])->prefix('courses/{course}')->name('courses.roles.')->group(function () {
+    Route::get('/roles', [CourseRoleController::class, 'index'])->name('index');
+    Route::post('/roles', [CourseRoleController::class, 'store'])->name('store');
+    Route::get('/roles/{role}/edit', [CourseRoleController::class, 'edit'])->name('edit');
+    Route::put('/roles/{role}', [CourseRoleController::class, 'update'])->name('update');
+    Route::delete('/roles/{role}', [CourseRoleController::class, 'destroy'])->name('destroy');
+    Route::post('/roles/copy', [CourseRoleController::class, 'copyFrom'])->name('copy');
+    Route::post('/roles/assignments', [CourseRoleController::class, 'storeAssignment'])->name('assignments.store');
+    Route::delete('/roles/assignments/{assignment}', [CourseRoleController::class, 'destroyAssignment'])->name('assignments.destroy');
+});
+
 Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopImpersonating'])
     ->middleware(['auth', 'impersonator.stop'])
     ->name('superadmin.impersonate.stop');
@@ -413,6 +428,15 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/event-admins/{userId}',  [SuperAdminController::class, 'destroyEventAdmin'])->name('event-admins.destroy');
     Route::get('/events/tests',             [SuperAdminEventTestController::class, 'index'])->name('events.tests.index');
     Route::post('/events/tests/run',        [SuperAdminEventTestController::class, 'run'])->name('events.tests.run');
+
+    Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');
+    Route::put('/templates/{role}',         [SystemRoleController::class, 'updateTemplate'])->name('templates.update');
+    Route::get('/group-visibility',         [SystemRoleController::class, 'groupVisibility'])->name('group-visibility.index');
+    Route::post('/group-visibility',        [SystemRoleController::class, 'updateGroupVisibility'])->name('group-visibility.update');
+    Route::get('/system-roles',             [SystemRoleController::class, 'systemRoles'])->name('system-roles.index');
+    Route::post('/system-roles',            [SystemRoleController::class, 'storeSystemRole'])->name('system-roles.store');
+    Route::post('/system-roles/assign',     [SystemRoleController::class, 'assignSystemRole'])->name('system-roles.assign');
+    Route::delete('/system-roles/assignments/{assignment}', [SystemRoleController::class, 'destroySystemRoleAssignment'])->name('system-roles.assignments.destroy');
 });
 
 // Legacy URL redirects (old content/curriculum routes)
@@ -433,7 +457,7 @@ Route::middleware('auth')->prefix('live-quiz')->name('live-quiz.')->group(functi
     Route::get('/', [LiveQuizController::class, 'index'])->name('index');
 });
 
-Route::middleware(['auth', 'role:admin,instructor'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
+Route::middleware(['auth', 'permission:staff'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
     Route::get('/create', [LiveQuizController::class, 'create'])->name('create');
     Route::post('/', [LiveQuizController::class, 'store'])->name('store');
     Route::get('/{liveQuiz}', [LiveQuizController::class, 'show'])->name('show');
@@ -454,7 +478,7 @@ Route::middleware(['auth', 'role:admin,instructor'])->prefix('live-quiz')->name(
 Route::middleware('auth')->prefix('feedback')->name('feedback.')->group(function () {
     Route::get('/', [FeedbackHubController::class, 'index'])->name('index');
 
-    Route::middleware('role:admin,instructor')->group(function () {
+    Route::middleware('permission:staff')->group(function () {
         Route::get('/surveys/create', [FeedbackSurveyAdminController::class, 'create'])->name('surveys.create');
         Route::post('/surveys', [FeedbackSurveyAdminController::class, 'store'])->name('surveys.store');
         Route::get('/surveys/{survey}/edit', [FeedbackSurveyAdminController::class, 'edit'])->name('surveys.edit')->whereNumber('survey');

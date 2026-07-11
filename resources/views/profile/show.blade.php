@@ -84,7 +84,7 @@
                 <p><strong>{{ __('pages.job') }}:</strong> {{ $user->job ?? __('pages.not_available') }}</p>
                 <p><strong>{{ __('pages.email') }}:</strong> {{ $user->email }}</p>
                 <p><strong>{{ __('pages.registration_date') }}:</strong>
-                    {{ $user->created_at?->format('Y-m-d') ?? __('pages.not_available') }}</p>
+                    {{ $user->formattedRegistrationDate() }}</p>
             </div>
         </div>
     </div>

@@ -83,6 +83,22 @@ class CourseApplicationReviewTest extends EventModuleTestCase
         $this->assertTrue($form->is_enabled);
     }
 
+    public function test_admin_can_preview_applicant_view(): void
+    {
+        $roles = $this->seedBasicRoles();
+        $admin = $this->createUser(['email' => 'course-app-preview@example.com']);
+        $course = $this->createCourse(['title' => 'Preview Course']);
+        $this->assignCourseRole($admin, $course, $roles['admin']);
+        $form = $this->createEnabledForm($course, $roles);
+
+        $this->actingAs($admin)
+            ->get(route('admin.courses.application-form.preview', $course->course_id))
+            ->assertOk()
+            ->assertSee(__('course_applications.applicant_view'))
+            ->assertSee(__('course_applications.applicant_preview_banner'))
+            ->assertSee('Why join?');
+    }
+
     public function test_student_submit_creates_pending_application_and_notifies_staff(): void
     {
         Mail::fake();

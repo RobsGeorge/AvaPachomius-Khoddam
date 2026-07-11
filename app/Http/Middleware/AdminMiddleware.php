@@ -16,13 +16,27 @@ class AdminMiddleware
             abort(403, 'Unauthorized');
         }
 
-        $allowed = ($user->is_superadmin ?? false)
-            || $user->roles->contains('role_name', 'admin');
-
-        if (! $allowed) {
-            abort(403, 'Unauthorized');
+        if ($user->is_superadmin ?? false) {
+            return $next($request);
         }
 
-        return $next($request);
+        $systemPerms = [
+            'system.role.manage', 'user.assign_role', 'registration.review',
+            'course_application.review', 'course_application.form_builder',
+            'translation.manage', 'attendance.configure', 'graduation.settings',
+            'profile_photo.review', 'user.approve',
+        ];
+
+        foreach ($systemPerms as $perm) {
+            if ($user->canInSystem($perm)) {
+                return $next($request);
+            }
+        }
+
+        if ($user->hasRole('admin')) {
+            return $next($request);
+        }
+
+        abort(403, 'Unauthorized');
     }
 }

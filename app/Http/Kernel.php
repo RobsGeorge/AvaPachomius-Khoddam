@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         'role'       => \App\Http\Middleware\RoleMiddleware::class,
+        'permission' => \App\Http\Middleware\RequirePermission::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'impersonator.stop' => \App\Http\Middleware\AllowImpersonatorStop::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,
