@@ -76,6 +76,7 @@ class NavigationHub
             $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']);
             $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']);
             $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*']);
+            $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*', 'admin.courses.application-form.*']);
         }
 
         if ($user->is_superadmin || $user->isAdmin()) {

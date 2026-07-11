@@ -62,6 +62,12 @@ class RequireMandatoryFeedback
             'notifications.mark-all-read',
             'notifications.reminders.store',
             'notifications.reminders.destroy',
+            'course-applications.index',
+            'courses.apply',
+            'courses.apply.store',
+            'courses.application.status',
+            'courses.application.edit',
+            'courses.application.update',
         ];
 
         $name = $request->route()?->getName();

@@ -56,7 +56,10 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\Admin\RegistrationApplicationController;
+use App\Http\Controllers\Admin\CourseApplicationController;
+use App\Http\Controllers\Admin\CourseApplicationFormController;
 use App\Http\Controllers\ApplicationStatusController;
+use App\Http\Controllers\CourseApplicationController as StudentCourseApplicationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\LiveQuizController;
@@ -152,6 +155,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner')->whereNumber('announcement');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
+    Route::get('/course-applications', [StudentCourseApplicationController::class, 'index'])->name('course-applications.index');
+    Route::get('/courses/{course}/apply', [StudentCourseApplicationController::class, 'apply'])->name('courses.apply');
+    Route::post('/courses/{course}/apply', [StudentCourseApplicationController::class, 'store'])->name('courses.apply.store');
+    Route::get('/courses/{course}/application/status', [StudentCourseApplicationController::class, 'status'])->name('courses.application.status');
+    Route::get('/courses/{course}/application/edit', [StudentCourseApplicationController::class, 'edit'])->name('courses.application.edit');
+    Route::put('/courses/{course}/application', [StudentCourseApplicationController::class, 'update'])->name('courses.application.update');
     Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
     Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
@@ -187,6 +196,24 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/registration-applications/{application}/approve', [RegistrationApplicationController::class, 'approve'])->name('registration-applications.approve');
     Route::post('/registration-applications/{application}/reject', [RegistrationApplicationController::class, 'reject'])->name('registration-applications.reject');
     Route::post('/registration-applications/{application}/restore', [RegistrationApplicationController::class, 'restore'])->name('registration-applications.restore');
+
+    Route::get('/course-applications', [CourseApplicationController::class, 'index'])->name('course-applications.index');
+    Route::get('/course-applications/{application}', [CourseApplicationController::class, 'show'])->name('course-applications.show');
+    Route::post('/course-applications/{application}/request-corrections', [CourseApplicationController::class, 'requestCorrections'])->name('course-applications.request-corrections');
+    Route::post('/course-applications/{application}/approve', [CourseApplicationController::class, 'approve'])->name('course-applications.approve');
+    Route::post('/course-applications/{application}/reject', [CourseApplicationController::class, 'reject'])->name('course-applications.reject');
+    Route::post('/course-applications/{application}/restore', [CourseApplicationController::class, 'restore'])->name('course-applications.restore');
+
+    Route::get('/courses/{course}/application-form', [CourseApplicationFormController::class, 'edit'])->name('courses.application-form.edit');
+    Route::put('/courses/{course}/application-form', [CourseApplicationFormController::class, 'update'])->name('courses.application-form.update');
+    Route::post('/courses/{course}/application-form/steps', [CourseApplicationFormController::class, 'storeStep'])->name('courses.application-form.steps.store');
+    Route::put('/courses/{course}/application-form/steps/{step}', [CourseApplicationFormController::class, 'updateStep'])->name('courses.application-form.steps.update');
+    Route::delete('/courses/{course}/application-form/steps/{step}', [CourseApplicationFormController::class, 'destroyStep'])->name('courses.application-form.steps.destroy');
+    Route::post('/courses/{course}/application-form/steps/reorder', [CourseApplicationFormController::class, 'reorderSteps'])->name('courses.application-form.steps.reorder');
+    Route::post('/courses/{course}/application-form/steps/{step}/fields', [CourseApplicationFormController::class, 'storeField'])->name('courses.application-form.fields.store');
+    Route::put('/courses/{course}/application-form/fields/{field}', [CourseApplicationFormController::class, 'updateField'])->name('courses.application-form.fields.update');
+    Route::delete('/courses/{course}/application-form/fields/{field}', [CourseApplicationFormController::class, 'destroyField'])->name('courses.application-form.fields.destroy');
+    Route::post('/courses/{course}/application-form/steps/{step}/fields/reorder', [CourseApplicationFormController::class, 'reorderFields'])->name('courses.application-form.fields.reorder');
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');
@@ -285,7 +312,7 @@ Route::get('/contents/{content}/feedback', [ContentController::class, 'showFeedb
 Route::post('/contents/{content}/feedback', [ContentController::class, 'storeFeedback'])->name('contents.store-feedback');
 
 // Curriculum — student read-only views
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'course.application'])->group(function () {
     Route::get('/courses/{course}/curriculum',      [CurriculumController::class, 'show'])->name('curriculum.show');
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
 });

@@ -184,5 +184,16 @@ return [
                 'config' => [],
             ],
         ],
+        'course_application_submitted' => [
+            'label' => 'notifications.types.course_application_submitted',
+            'category' => 'academic',
+            'audience' => ['admin', 'instructor'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
     ],
 ];

@@ -55,6 +55,7 @@ return [
         'event_reservation_cancelled' => 'Event reservation cancelled',
         'below_passing_grade' => 'Students below passing grade',
         'custom_reminder' => 'Custom reminders',
+        'course_application_submitted' => 'New course application',
     ],
 
     'generated' => [

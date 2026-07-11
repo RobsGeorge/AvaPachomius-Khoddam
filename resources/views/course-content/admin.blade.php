@@ -10,6 +10,9 @@
             <small class="text-muted fw-semibold">{{ $course->title }} — {{ $course->year }}</small>
         </div>
         <div class="d-flex gap-2">
+            <a href="{{ route('admin.courses.application-form.edit', $course->course_id) }}" class="btn btn-outline-warning btn-sm">
+                <i class="bi bi-ui-checks"></i> {{ __('course_applications.manage_form') }}
+            </a>
             <a href="{{ route('grades.admin', $course->course_id) }}" class="btn btn-outline-success btn-sm">
                 <i class="bi bi-bar-chart-line"></i> {{ __('pages.grading_weights') }}
             </a>

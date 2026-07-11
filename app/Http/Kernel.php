@@ -76,5 +76,6 @@ class Kernel extends HttpKernel
         'impersonator.stop' => \App\Http\Middleware\AllowImpersonatorStop::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,
         'events.admin' => \App\Http\Middleware\EventsAdminMiddleware::class,
+        'course.application' => \App\Http\Middleware\RequireApprovedCourseApplication::class,
     ];
 }

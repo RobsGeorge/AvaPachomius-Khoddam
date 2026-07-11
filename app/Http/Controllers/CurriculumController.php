@@ -5,13 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\FeedbackSubmission;
 use App\Models\FeedbackSurvey;
 use App\Models\Course;
+use App\Models\CourseApplicationForm;
 use App\Models\Module;
 use App\Models\Session;
+use App\Models\User;
+use App\Services\CourseApplicationService;
+use App\Services\StudentRosterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CurriculumController extends Controller
 {
+    public function __construct(
+        private CourseApplicationService $courseApplications,
+        private StudentRosterService $roster,
+    ) {}
+
     /** Course picker — entry point for the curriculum (modules → sessions → lectures). */
     public function index()
     {
@@ -19,20 +28,41 @@ class CurriculumController extends Controller
 
         if ($user->hasAnyRole(['admin', 'instructor'])) {
             $courses = Course::orderBy('title')->get();
+            $applyCourses = collect();
+            $applicationStatuses = [];
         } else {
             $courses = $user->courses()->distinct()->orderBy('title')->get();
+            $enrolledIds = $this->roster->studentEnrolledCourses($user)->pluck('course_id');
+            $applyCourses = CourseApplicationForm::query()
+                ->where('is_enabled', true)
+                ->with('course')
+                ->get()
+                ->filter(fn (CourseApplicationForm $form) => ! $enrolledIds->contains($form->course_id))
+                ->values();
+            $applicationStatuses = [];
+            foreach ($applyCourses as $form) {
+                $applicationStatuses[$form->course_id] = $this->courseApplications->courseApplicationStatus(
+                    $user,
+                    $form->course_id
+                );
+            }
         }
 
-        if ($courses->count() === 1) {
+        if ($courses->count() === 1 && ($user->hasAnyRole(['admin', 'instructor']) || $applyCourses->isEmpty())) {
             return redirect()->route('curriculum.show', $courses->first()->course_id);
         }
 
-        return view('curriculum.index', compact('courses'));
+        return view('curriculum.index', compact('courses', 'applyCourses', 'applicationStatuses'));
     }
 
     /** Student view: curriculum organised by module, week, and lecture. */
     public function show(string $courseId)
     {
+        $user = Auth::user();
+        if ($user instanceof User) {
+            $this->roster->authorizeCourse($user, $courseId);
+        }
+
         $course = Course::with([
             'modules.courseSessions.lectures.materials',
             'modules.lectures.materials',
