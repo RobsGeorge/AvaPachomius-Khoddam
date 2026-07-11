@@ -10,11 +10,16 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
         <div>
             <h1 class="page-title mb-1">{{ __('course_applications.form_title') }}</h1>
-            <p class="text-muted-theme mb-0">{{ $courseModel->title }} — {{ __('course_applications.form_intro') }}</p>
+            <p class="text-muted-theme mb-0">{{ __('course_applications.form_intro') }}</p>
         </div>
-        <a href="{{ route('curriculum.admin', $courseModel->course_id) }}" class="btn btn-outline-secondary btn-sm">
-            {{ __('pages.back') }}
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('admin.courses.application-forms.index') }}" class="btn btn-outline-secondary btn-sm">
+                {{ __('course_applications.all_courses') }}
+            </a>
+            <a href="{{ route('curriculum.admin', $courseModel->course_id) }}" class="btn btn-outline-secondary btn-sm">
+                {{ __('pages.back') }}
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -27,6 +32,16 @@
                 @csrf
                 @method('PUT')
                 <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label for="course_id" class="form-label">{{ __('course_applications.select_course') }}</label>
+                        <select name="course_id" id="course_id" class="form-select" required>
+                            @foreach($courses as $course)
+                                <option value="{{ $course->course_id }}" @selected(old('course_id', $courseModel->course_id) == $course->course_id)>
+                                    {{ $course->title }}@if($course->year) ({{ $course->year }})@endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                     <div class="col-12">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="is_enabled" id="is_enabled" value="1"
@@ -34,11 +49,14 @@
                             <label class="form-check-label" for="is_enabled">{{ __('course_applications.enable_form') }}</label>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <label for="title" class="form-label">{{ __('pages.course_title') }}</label>
-                        <input type="text" name="title" id="title" class="form-control" value="{{ old('title', $form->title) }}" required>
+                    <div class="col-md-6">
+                        <label for="title" class="form-label">{{ __('course_applications.form_display_title') }}</label>
+                        <input type="text" name="title" id="title" class="form-control"
+                               value="{{ old('title', $form->title ?: $courseModel->title) }}"
+                               placeholder="{{ $courseModel->title }}">
+                        <div class="form-text">{{ __('course_applications.form_display_title_hint') }}</div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label for="default_role_id" class="form-label">{{ __('course_applications.default_role') }}</label>
                         <select name="default_role_id" id="default_role_id" class="form-select">
                             <option value="">{{ __('pages.select_role') }}</option>
@@ -133,36 +151,43 @@
                 </button>
             </div>
         </div>
-
-        @include('admin.course-application-forms.partials.step-modals', ['step' => $step, 'courseModel' => $courseModel])
-        @include('admin.course-application-forms.partials.field-modals', ['step' => $step, 'fieldTypes' => $fieldTypes, 'courseModel' => $courseModel])
     @empty
         <div class="alert alert-info">{{ __('pages.no_records') }}</div>
     @endforelse
 </div>
-
-<div class="modal fade" id="add-step-modal" tabindex="-1">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ route('admin.courses.application-form.steps.store', $courseModel->course_id) }}" class="modal-content">
-            @csrf
-            <div class="modal-header">
-                <h5 class="modal-title">{{ __('course_applications.add_step') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">{{ __('pages.title') }}</label>
-                    <input type="text" name="title" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">{{ __('pages.description') }}</label>
-                    <textarea name="description" rows="2" class="form-control"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">{{ __('pages.save') }}</button>
-            </div>
-        </form>
-    </div>
-</div>
 @endsection
+
+@push('modals')
+    <div class="modal fade" id="add-step-modal" tabindex="-1" aria-labelledby="add-step-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('admin.courses.application-form.steps.store', $courseModel->course_id) }}">
+                    @csrf
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="add-step-modal-label">{{ __('course_applications.add_step') }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="add-step-title">{{ __('pages.title') }}</label>
+                            <input type="text" name="title" id="add-step-title" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="add-step-description">{{ __('pages.description') }}</label>
+                            <textarea name="description" id="add-step-description" rows="2" class="form-control"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('pages.cancel') }}</button>
+                        <button type="submit" class="btn btn-primary">{{ __('pages.save') }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @foreach($form->steps as $step)
+        @include('admin.course-application-forms.partials.step-modals', ['step' => $step, 'courseModel' => $courseModel])
+        @include('admin.course-application-forms.partials.field-modals', ['step' => $step, 'fieldTypes' => $fieldTypes, 'courseModel' => $courseModel])
+    @endforeach
+@endpush

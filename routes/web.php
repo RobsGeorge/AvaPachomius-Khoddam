@@ -155,7 +155,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner')->whereNumber('announcement');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
-    Route::get('/course-applications', [StudentCourseApplicationController::class, 'index'])->name('course-applications.index');
+    Route::get('/course-applications', fn () => redirect()->route('available-courses.index'))->name('course-applications.index');
+    Route::get('/available-courses', [StudentCourseApplicationController::class, 'index'])->name('available-courses.index');
     Route::get('/courses/{course}/apply', [StudentCourseApplicationController::class, 'apply'])->name('courses.apply');
     Route::post('/courses/{course}/apply', [StudentCourseApplicationController::class, 'store'])->name('courses.apply.store');
     Route::get('/courses/{course}/application/status', [StudentCourseApplicationController::class, 'status'])->name('courses.application.status');
@@ -204,6 +205,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/course-applications/{application}/reject', [CourseApplicationController::class, 'reject'])->name('course-applications.reject');
     Route::post('/course-applications/{application}/restore', [CourseApplicationController::class, 'restore'])->name('course-applications.restore');
 
+    Route::get('/courses/application-forms', [CourseApplicationFormController::class, 'index'])->name('courses.application-forms.index');
     Route::get('/courses/{course}/application-form', [CourseApplicationFormController::class, 'edit'])->name('courses.application-form.edit');
     Route::put('/courses/{course}/application-form', [CourseApplicationFormController::class, 'update'])->name('courses.application-form.update');
     Route::post('/courses/{course}/application-form/steps', [CourseApplicationFormController::class, 'storeStep'])->name('courses.application-form.steps.store');

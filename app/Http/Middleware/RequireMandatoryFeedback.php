@@ -63,6 +63,7 @@ class RequireMandatoryFeedback
             'notifications.reminders.store',
             'notifications.reminders.destroy',
             'course-applications.index',
+            'available-courses.index',
             'courses.apply',
             'courses.apply.store',
             'courses.application.status',

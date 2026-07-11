@@ -31,7 +31,15 @@ class CourseApplicationController extends Controller
             abort(403);
         }
 
-        $enrolledIds = $this->roster->studentEnrolledCourses($user)->pluck('course_id');
+        return view('course-applications.index', $this->availableCoursesData($user));
+    }
+
+    /** @return array<string, mixed> */
+    private function availableCoursesData(User $user): array
+    {
+        $enrolledCourses = $this->roster->studentEnrolledCourses($user);
+        $enrolledIds = $enrolledCourses->pluck('course_id');
+
         $openForms = CourseApplicationForm::query()
             ->where('is_enabled', true)
             ->with('course')
@@ -39,12 +47,12 @@ class CourseApplicationController extends Controller
             ->get()
             ->filter(fn (CourseApplicationForm $form) => ! $enrolledIds->contains($form->course_id));
 
-        $statuses = [];
+        $applicationStatuses = [];
         foreach ($openForms as $form) {
-            $statuses[$form->course_id] = $this->applications->courseApplicationStatus($user, $form->course_id);
+            $applicationStatuses[$form->course_id] = $this->applications->courseApplicationStatus($user, $form->course_id);
         }
 
-        return view('course-applications.index', compact('openForms', 'statuses'));
+        return compact('enrolledCourses', 'openForms', 'applicationStatuses');
     }
 
     public function apply(Request $request, string $course)
@@ -58,7 +66,7 @@ class CourseApplicationController extends Controller
         $form = CourseApplicationForm::forCourse($courseModel);
 
         if (! $form || ! $form->is_enabled) {
-            return redirect()->route('curriculum.index')
+            return redirect()->route('available-courses.index')
                 ->with('warning', __('course_applications.form_not_enabled'));
         }
 

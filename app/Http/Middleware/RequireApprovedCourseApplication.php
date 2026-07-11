@@ -75,6 +75,7 @@ class RequireApprovedCourseApplication
             'courses.apply',
             'courses.apply.store',
             'course-applications.index',
+            'available-courses.index',
             'profile',
             'profile.picture.update',
             'logout',

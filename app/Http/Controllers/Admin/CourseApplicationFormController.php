@@ -19,6 +19,21 @@ class CourseApplicationFormController extends Controller
         private CourseApplicationFormService $forms,
     ) {}
 
+    public function index()
+    {
+        $user = Auth::user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        $courses = Course::orderBy('title')->get();
+        $forms = CourseApplicationForm::query()
+            ->get()
+            ->keyBy('course_id');
+
+        return view('admin.course-application-forms.index', compact('courses', 'forms'));
+    }
+
     public function edit(string $course)
     {
         $courseModel = Course::findOrFail($course);
@@ -29,10 +44,11 @@ class CourseApplicationFormController extends Controller
 
         $form = $this->forms->getOrCreateForCourse($courseModel, $user);
         $form->load(['steps.fields']);
+        $courses = Course::orderBy('title')->get();
         $roles = Role::orderBy('role_name')->get();
         $fieldTypes = CourseApplicationFormField::allTypes();
 
-        return view('admin.course-application-forms.edit', compact('courseModel', 'form', 'roles', 'fieldTypes'));
+        return view('admin.course-application-forms.edit', compact('courseModel', 'form', 'courses', 'roles', 'fieldTypes'));
     }
 
     public function update(Request $request, string $course)
@@ -41,13 +57,27 @@ class CourseApplicationFormController extends Controller
         $form = $this->forms->getOrCreateForCourse($courseModel);
 
         $validated = $request->validate([
+            'course_id' => ['required', 'exists:course,course_id'],
             'is_enabled' => ['sometimes', 'boolean'],
-            'title' => ['required', 'string', 'max:150'],
+            'title' => ['nullable', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:5000'],
             'default_role_id' => ['nullable', 'exists:roles,role_id'],
         ]);
 
+        if ((int) $validated['course_id'] !== (int) $courseModel->course_id) {
+            $targetCourse = Course::findOrFail($validated['course_id']);
+            $targetForm = $this->forms->getOrCreateForCourse($targetCourse);
+            $validated['is_enabled'] = $request->boolean('is_enabled');
+            $validated['title'] = $validated['title'] ?: $targetCourse->title;
+            $this->forms->updateForm($targetForm, $validated);
+
+            return redirect()
+                ->route('admin.courses.application-form.edit', $targetCourse->course_id)
+                ->with('success', __('course_applications.form_saved'));
+        }
+
         $validated['is_enabled'] = $request->boolean('is_enabled');
+        $validated['title'] = $validated['title'] ?: $courseModel->title;
 
         $this->forms->updateForm($form, $validated);
 

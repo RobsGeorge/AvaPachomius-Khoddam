@@ -39,6 +39,10 @@ class NavigationHub
             $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*']);
             $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*']);
         } else {
+            $links[] = self::link('available-courses.index', 'course_applications.available_courses_title', 'bi-mortarboard', [
+                'available-courses.index', 'courses.apply', 'courses.apply.store',
+                'courses.application.status', 'courses.application.edit', 'courses.application.update',
+            ]);
             $links[] = self::link('assignments.index', 'dashboard.view_assignments', 'bi-journal-text', ['assignments.*']);
             $links[] = self::link('exams.index', 'dashboard.view_exams', 'bi-patch-check', ['exams.index', 'exams.attempt.*']);
             $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my']);
@@ -76,7 +80,8 @@ class NavigationHub
             $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']);
             $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']);
             $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*']);
-            $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*', 'admin.courses.application-form.*']);
+            $links[] = self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*']);
+            $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*']);
         }
 
         if ($user->is_superadmin || $user->isAdmin()) {

@@ -70,6 +70,7 @@ class CourseApplicationReviewTest extends EventModuleTestCase
 
         $this->actingAs($admin)
             ->put(route('admin.courses.application-form.update', $course->course_id), [
+                'course_id' => $course->course_id,
                 'is_enabled' => '1',
                 'title' => 'Join Year Two',
                 'description' => 'Application required',
@@ -321,5 +322,27 @@ class CourseApplicationReviewTest extends EventModuleTestCase
         $this->actingAs($student)
             ->get(route('curriculum.show', $course->course_id))
             ->assertOk();
+    }
+
+    public function test_student_can_view_available_courses_page(): void
+    {
+        $roles = $this->seedBasicRoles();
+        $enrolledCourse = $this->createCourse(['title' => 'Enrolled Course']);
+        $openCourse = $this->createCourse(['title' => 'Open Course']);
+        $this->createEnabledForm($openCourse, $roles);
+
+        $student = $this->createUser([
+            'email' => 'available-courses-student@example.com',
+            'application_status' => 'approved',
+            'is_verified' => true,
+        ]);
+        $this->assignCourseRole($student, $enrolledCourse, $roles['student']);
+
+        $this->actingAs($student)
+            ->get(route('available-courses.index'))
+            ->assertOk()
+            ->assertSee(__('course_applications.available_courses_title'))
+            ->assertSee('Enrolled Course')
+            ->assertSee('Open Course');
     }
 }
