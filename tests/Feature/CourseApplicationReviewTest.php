@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Course;
 use App\Models\CourseApplication;
 use App\Models\CourseApplicationFieldReview;
 use App\Models\CourseApplicationForm;
@@ -16,7 +17,8 @@ use Tests\Support\EventModuleTestCase;
 
 class CourseApplicationReviewTest extends EventModuleTestCase
 {
-    protected function createEnabledForm($course, $roles): CourseApplicationForm
+    /** @param array{student: \App\Models\Role, admin: \App\Models\Role} $roles */
+    protected function createEnabledForm(Course $course, array $roles): CourseApplicationForm
     {
         $formService = app(CourseApplicationFormService::class);
         $form = $formService->getOrCreateForCourse($course);

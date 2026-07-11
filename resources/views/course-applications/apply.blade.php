@@ -3,6 +3,9 @@
 @section('title', __('course_applications.apply_title'))
 
 @section('content')
+@php
+    $progressPercent = $steps->count() ? (($stepIndex + 1) / $steps->count()) * 100 : 100;
+@endphp
 <div class="container py-4 animate-in">
     <div class="mb-4">
         <h1 class="page-title mb-1">{{ __('course_applications.apply_title') }}</h1>
@@ -19,7 +22,7 @@
 
     <div class="mb-3">
         <div class="progress" style="height: 8px;">
-            <div class="progress-bar" style="width: {{ $steps->count() ? (($stepIndex + 1) / $steps->count()) * 100 : 100 }}%"></div>
+            <div class="progress-bar" @style(['width' => $progressPercent.'%'])></div>
         </div>
         <div class="small text-muted-theme mt-1">
             {{ __('course_applications.step_of', ['current' => $stepIndex + 1, 'total' => max(1, $steps->count())]) }}

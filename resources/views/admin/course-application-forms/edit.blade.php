@@ -76,7 +76,8 @@
                     <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
                             data-bs-target="#edit-step-{{ $step->id }}">{{ __('pages.edit') }}</button>
                     <form method="POST" action="{{ route('admin.courses.application-form.steps.destroy', [$courseModel->course_id, $step]) }}"
-                          onsubmit="return confirm('{{ __('pages.confirm_delete') }}')">
+                          data-confirm="{{ __('pages.confirm_delete') }}"
+                          onsubmit="return confirm(this.dataset.confirm);">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('pages.delete') }}</button>
@@ -109,7 +110,8 @@
                                                 data-bs-target="#edit-field-{{ $field->id }}">{{ __('pages.edit') }}</button>
                                         <form method="POST" class="d-inline"
                                               action="{{ route('admin.courses.application-form.fields.destroy', [$courseModel->course_id, $field]) }}"
-                                              onsubmit="return confirm('{{ __('pages.confirm_delete') }}')">
+                                              data-confirm="{{ __('pages.confirm_delete') }}"
+                                              onsubmit="return confirm(this.dataset.confirm);">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('pages.delete') }}</button>
