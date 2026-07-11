@@ -154,12 +154,63 @@ class NotificationHubTest extends EventModuleTestCase
 
         $count = app(NotificationScannerService::class)->fireDueReminders();
 
-        $this->assertGreaterThan(0, $count);
+        $this->assertSame(1, $count);
         $this->assertTrue(
             UserNotification::query()
                 ->where('user_id', $student->user_id)
                 ->where('type', 'custom_reminder')
                 ->exists()
+        );
+    }
+
+    public function test_custom_reminder_dedupe_key_uses_scheduled_occurrence(): void
+    {
+        $student = $this->createUser(['email' => 'notif-reminder-dedupe@example.com']);
+        $remindAt = now()->subMinutes(2);
+
+        $reminder = \App\Models\UserNotificationReminder::create([
+            'user_id' => $student->user_id,
+            'title' => 'Study session',
+            'body' => 'Review notes',
+            'remind_at' => $remindAt,
+            'recurrence' => 'daily',
+            'channels' => ['portal'],
+        ]);
+
+        $generator = app(NotificationGeneratorService::class);
+        $dedupeKey = 'custom_reminder:'.$reminder->id.':'.$remindAt->format('Y-m-d-H-i');
+
+        $generator->createOrUpdate(
+            $student,
+            'custom_reminder',
+            $reminder->title,
+            $reminder->body ?? '',
+            route('notifications.index'),
+            'user_notification_reminder',
+            $reminder->id,
+            UserNotification::PRIORITY_NORMAL,
+            [],
+            $dedupeKey
+        );
+        $generator->createOrUpdate(
+            $student,
+            'custom_reminder',
+            $reminder->title,
+            $reminder->body ?? '',
+            route('notifications.index'),
+            'user_notification_reminder',
+            $reminder->id,
+            UserNotification::PRIORITY_NORMAL,
+            [],
+            $dedupeKey
+        );
+
+        $this->assertSame(
+            1,
+            UserNotification::query()
+                ->where('user_id', $student->user_id)
+                ->where('type', 'custom_reminder')
+                ->count()
         );
     }
 

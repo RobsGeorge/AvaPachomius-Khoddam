@@ -212,7 +212,7 @@ class User extends Authenticatable
 
     public function needsProfilePhotoReview(): bool
     {
-        return $this->hasProfilePhoto() && ! $this->isProfilePhotoApproved();
+        return $this->isProfilePhotoPending();
     }
 
     public function isApplicationApproved(): bool

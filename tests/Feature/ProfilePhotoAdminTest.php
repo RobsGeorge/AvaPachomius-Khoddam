@@ -235,4 +235,16 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             return $mail->hasTo($student->email);
         });
     }
+
+    public function test_rejected_photo_does_not_show_admin_review_actions(): void
+    {
+        $student = $this->createUser([
+            'email' => 'rejected-stale-photo@example.com',
+            'profile_photo' => 'profile_photos/stale-after-reject.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_REJECTED,
+        ]);
+
+        $this->assertFalse($student->isProfilePhotoPending());
+        $this->assertFalse($student->needsProfilePhotoReview());
+    }
 }

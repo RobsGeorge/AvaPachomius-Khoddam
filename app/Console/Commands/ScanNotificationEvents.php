@@ -9,7 +9,7 @@ class ScanNotificationEvents extends Command
 {
     protected $signature = 'notifications:scan-events';
 
-    protected $description = 'Scan nearby events and birthdays for notifications';
+    protected $description = 'Scan nearby events for notifications';
 
     public function handle(NotificationScannerService $scanner): int
     {

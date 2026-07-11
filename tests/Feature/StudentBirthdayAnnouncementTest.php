@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\DailyBirthdayAnnouncementMail;
 use App\Mail\MonthlyBirthdayAnnouncementMail;
 use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
 
@@ -116,5 +118,100 @@ class StudentBirthdayAnnouncementTest extends EventModuleTestCase
         $this->actingAs($admin)
             ->get('/courses/'.$course->course_id.'/students/birthday-announcement')
             ->assertStatus(405);
+    }
+
+    public function test_daily_birthday_command_emails_staff_and_creates_portal_notifications(): void
+    {
+        Mail::fake();
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $instructorRole = $this->createRole('instructor');
+
+        $admin = $this->createUser(['email' => 'daily-birthday-admin@example.com']);
+        $instructor = $this->createUser(['email' => 'daily-birthday-instructor@example.com']);
+        $course = $this->createCourse(['title' => 'Daily Birthday Course']);
+
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+
+        $today = now(config('attendance.timezone', config('app.timezone')));
+
+        $student = $this->createUser([
+            'email' => 'daily-birthday-student@example.com',
+            'date_of_birth' => sprintf('2000-%02d-%02d', $today->month, $today->day),
+        ]);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->artisan('birthdays:notify-daily', ['--date' => $today->toDateString()])
+            ->assertSuccessful();
+
+        Mail::assertSent(DailyBirthdayAnnouncementMail::class, 2);
+
+        $this->assertSame(
+            2,
+            UserNotification::query()
+                ->where('type', 'birthday_today')
+                ->where('dedupe_key', 'birthday_today:'.$course->course_id.':'.$today->format('Y-m-d'))
+                ->count()
+        );
+    }
+
+    public function test_daily_birthday_command_skips_when_no_birthdays_today(): void
+    {
+        Mail::fake();
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+
+        $admin = $this->createUser(['email' => 'daily-quiet-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Quiet Daily Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $student = $this->createUser([
+            'email' => 'daily-quiet-student@example.com',
+            'date_of_birth' => '2000-01-15',
+        ]);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->artisan('birthdays:notify-daily', ['--date' => '2026-06-01'])
+            ->assertSuccessful();
+
+        Mail::assertNothingSent();
+        $this->assertSame(0, UserNotification::query()->where('type', 'birthday_today')->count());
+    }
+
+    public function test_daily_birthday_announcement_mail_renders_without_error(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+
+        $admin = $this->createUser(['email' => 'daily-render-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Daily Render Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $today = now(config('attendance.timezone', config('app.timezone')));
+
+        $student = $this->createUser([
+            'email' => 'daily-render-student@example.com',
+            'date_of_birth' => sprintf('2000-%02d-%02d', $today->month, $today->day),
+        ]);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $rosterService = app(\App\Services\StudentRosterService::class);
+        $students = $rosterService->enrolledStudents($course);
+        $birthdayStudents = $rosterService->studentsWithBirthdayToday($students, $today);
+
+        $mailable = new DailyBirthdayAnnouncementMail(
+            $course,
+            $birthdayStudents,
+            $today,
+            $admin
+        );
+
+        $html = $mailable->render();
+
+        $this->assertStringContainsString($student->displayName(), $html);
+        $this->assertStringContainsString($course->title, $html);
     }
 }

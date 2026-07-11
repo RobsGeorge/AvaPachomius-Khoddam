@@ -36,6 +36,8 @@ abstract class EventModuleTestCase extends TestCase
             'password' => Hash::make('password'),
             'is_verified' => true,
             'is_superadmin' => false,
+            'registration_completed' => true,
+            'application_status' => User::APPLICATION_STATUS_APPROVED,
         ], $overrides));
     }
 

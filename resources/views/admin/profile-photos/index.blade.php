@@ -101,7 +101,7 @@
                         <td>{{ $student->profile_photo_uploaded_at?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>
                             <div class="d-flex flex-column gap-2">
-                                @if($student->needsProfilePhotoReview())
+                                @if($student->isProfilePhotoPending())
                                     <div class="d-flex flex-wrap gap-2">
                                         <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}" class="d-inline">
                                             @csrf
@@ -185,7 +185,7 @@
                         </div>
                     </dl>
                     <div class="data-card-actions d-flex flex-column gap-2">
-                        @if($student->needsProfilePhotoReview())
+                        @if($student->isProfilePhotoPending())
                             <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-success w-100">

@@ -40,11 +40,7 @@ class NotificationScannerService
 
     public function scanEventsAndBirthdays(): int
     {
-        $count = 0;
-        $count += $this->scanNearbyEvents();
-        $count += $this->scanBirthdaysToday();
-
-        return $count;
+        return $this->scanNearbyEvents();
     }
 
     public function scanInstructorAlerts(): int
@@ -252,6 +248,10 @@ class NotificationScannerService
                 continue;
             }
 
+            $occurrenceKey = $reminder->recurrence === \App\Models\UserNotificationReminder::RECURRENCE_ONCE
+                ? 'once'
+                : $reminder->remind_at->format('Y-m-d-H-i');
+
             $this->generator->createOrUpdate(
                 $user,
                 'custom_reminder',
@@ -262,7 +262,7 @@ class NotificationScannerService
                 $reminder->id,
                 UserNotification::PRIORITY_NORMAL,
                 [],
-                'custom_reminder:'.$reminder->id.':'.now()->format('Y-m-d-H-i')
+                'custom_reminder:'.$reminder->id.':'.$occurrenceKey
             );
 
             $nextFired = now();
@@ -392,43 +392,6 @@ class NotificationScannerService
                     UserNotification::PRIORITY_NORMAL,
                     [],
                     "event_nearby:{$event->event_id}:user:{$student->user_id}"
-                );
-                $count++;
-            }
-        }
-
-        return $count;
-    }
-
-    private function scanBirthdaysToday(): int
-    {
-        $count = 0;
-        $courses = \App\Models\Course::all();
-
-        foreach ($courses as $course) {
-            $students = $this->roster->enrolledStudents($course);
-            $birthdayStudents = $this->roster->studentsWithBirthdayToday($students);
-
-            if ($birthdayStudents->isEmpty()) {
-                continue;
-            }
-
-            $recipients = $students->merge($this->roster->courseStaff($course->course_id))->unique('user_id');
-
-            foreach ($recipients as $recipient) {
-                $this->preferences->ensureDefaults($recipient);
-                $names = $birthdayStudents->map->displayName()->join(', ');
-                $this->generator->createOrUpdate(
-                    $recipient,
-                    'birthday_today',
-                    __('notifications.generated.birthday_title'),
-                    __('notifications.generated.birthday_body', ['names' => $names]),
-                    route('students.birthdays'),
-                    'course',
-                    $course->course_id,
-                    UserNotification::PRIORITY_NORMAL,
-                    [],
-                    'birthday_today:'.$course->course_id.':'.now()->format('Y-m-d')
                 );
                 $count++;
             }
