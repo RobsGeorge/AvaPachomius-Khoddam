@@ -7,6 +7,10 @@ use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Models\Course;
 use App\Models\Role;
+use App\Models\RegistrationApplication;
+use App\Models\RegistrationReviewTemplate;
+use App\Services\RegistrationApplicationService;
+use App\Services\RegistrationReviewMailService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -115,18 +119,32 @@ class PendingRegistrationService
             );
     }
 
-    /** Mark a pending account as fully registered and assign the default student role. */
+    /** Mark signup complete and queue the application for admin review. */
     public static function markCompleted(User $user): void
     {
-        $user->is_verified = true;
+        $user->is_verified = false;
 
         if (Schema::hasColumn('user', 'registration_completed')) {
             $user->registration_completed = true;
         }
 
+        if (Schema::hasColumn('user', 'application_status')) {
+            $user->application_status = RegistrationApplication::STATUS_PENDING_REVIEW;
+        } else {
+            $user->is_verified = true;
+        }
+
         $user->save();
 
-        self::assignDefaultStudentRole($user);
+        if (Schema::hasColumn('user', 'application_status')) {
+            app(RegistrationApplicationService::class)->createFromUser($user);
+            app(RegistrationReviewMailService::class)->send(
+                $user,
+                RegistrationReviewTemplate::KEY_RECEIVED
+            );
+        } else {
+            self::assignDefaultStudentRole($user);
+        }
     }
 
     /** @return array{key: string, label: string, hint: string|null} */

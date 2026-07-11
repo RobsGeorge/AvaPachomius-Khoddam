@@ -91,6 +91,7 @@ class EventAdminController extends Controller
     {
         $event->update(['status' => Event::STATUS_PUBLISHED]);
         EventAuditService::log('admin.publish', 'published', ['event_id' => $event->event_id]);
+        app(\App\Services\NotificationScannerService::class)->notifyEventPublished($event->fresh());
 
         return back()->with('success', __('events.admin_published'));
     }

@@ -46,6 +46,16 @@ class RequireProfilePhoto
             'locale.switch',
             'theme.update',
             'onboarding.complete',
+            'application.status',
+            'application.edit',
+            'application.update',
+            'notifications.index',
+            'notifications.show',
+            'notifications.settings',
+            'notifications.settings.update',
+            'notifications.mark-all-read',
+            'notifications.reminders.store',
+            'notifications.reminders.destroy',
         ];
 
         $name = $request->route()?->getName();

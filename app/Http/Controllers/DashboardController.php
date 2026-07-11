@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Services\AnnouncementService;
+use App\Services\NotificationFeedService;
 use App\Services\StudentRosterService;
 use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    public function index(StudentRosterService $rosterService, AnnouncementService $announcementService)
-    {
+    public function index(
+        StudentRosterService $rosterService,
+        AnnouncementService $announcementService,
+        NotificationFeedService $notificationFeed
+    ) {
         $todayBirthdays = $this->todaysBirthdays($rosterService);
         $homepageAnnouncements = collect();
         $user = auth()->user();
@@ -19,7 +23,11 @@ class DashboardController extends Controller
             $homepageAnnouncements = $announcementService->homepageAnnouncements($user);
         }
 
-        return view('dashboard', compact('todayBirthdays', 'homepageAnnouncements'));
+        $unreadNotificationCount = $user instanceof User
+            ? $notificationFeed->unreadCount($user)
+            : 0;
+
+        return view('dashboard', compact('todayBirthdays', 'homepageAnnouncements', 'unreadNotificationCount'));
     }
 
     private function todaysBirthdays(StudentRosterService $rosterService): Collection

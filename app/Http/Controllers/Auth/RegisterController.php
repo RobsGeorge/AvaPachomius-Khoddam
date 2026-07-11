@@ -13,6 +13,7 @@ use App\Mail\SendOTPEmail;
 use App\Services\AuditLogService;
 use App\Services\PendingRegistrationService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
 use App\Support\PasswordRules;
 use Illuminate\Support\Facades\Hash;
@@ -200,6 +201,14 @@ class RegisterController extends Controller
             'profile_photo' => $profilePhotoPath ?? '',
         ];
 
+        if (filled($profilePhotoPath)) {
+            $attributes['profile_photo_uploaded_at'] = now(config('attendance.timezone', config('app.timezone')));
+            $attributes['profile_photo_status'] = User::PHOTO_STATUS_PENDING;
+            $attributes['profile_photo_reviewed_at'] = null;
+            $attributes['profile_photo_reviewed_by_user_id'] = null;
+            $attributes['profile_photo_rejection_note'] = null;
+        }
+
         if (Schema::hasColumn('user', 'name')) {
             $attributes['name'] = User::fullNameFromParts(
                 $request->first_name,
@@ -320,7 +329,7 @@ class RegisterController extends Controller
         ]);
     }
 
-    protected function storeFile($file, $directory): string
+    protected function storeFile(UploadedFile $file, string $directory): string
     {
         $filename = uniqid() . '.' . $file->getClientOriginalExtension();
         $file->storeAs("public/{$directory}", $filename);
@@ -346,7 +355,7 @@ class RegisterController extends Controller
 
     // ── Password setup ────────────────────────────────────────────────────────
 
-    public function showSetPasswordForm($user_id)
+    public function showSetPasswordForm(int|string $user_id)
     {
         $user = User::where('user_id', $user_id)->firstOrFail();
 

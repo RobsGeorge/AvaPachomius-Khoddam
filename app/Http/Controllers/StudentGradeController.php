@@ -94,6 +94,15 @@ class StudentGradeController extends Controller
                     'graded_at'    => now(),
                 ]
             );
+
+            $grade = StudentGrade::query()
+                ->where('item_id', $itemId)
+                ->where('user_id', $userId)
+                ->first();
+
+            if ($grade) {
+                app(\App\Services\NotificationScannerService::class)->notifyGradePosted($grade);
+            }
         }
 
         return redirect()

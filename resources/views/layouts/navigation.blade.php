@@ -102,14 +102,12 @@
                 </button>
 
                 @auth
-                    @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
-                        <a href="{{ route('announcements.index') }}" class="app-toolbar-btn position-relative text-decoration-none" aria-label="{{ __('announcements.notifications') }}">
-                            <i class="bi bi-bell"></i>
-                            @if(!empty($unreadAnnouncementCount) && $unreadAnnouncementCount > 0)
-                                <span class="nav-notification-badge">{{ $unreadAnnouncementCount }}</span>
-                            @endif
-                        </a>
-                    @endif
+                    <a href="{{ route('notifications.index') }}" class="app-toolbar-btn position-relative text-decoration-none" aria-label="{{ __('notifications.hub_title') }}">
+                        <i class="bi bi-bell"></i>
+                        @if(!empty($unreadNotificationCount) && $unreadNotificationCount > 0)
+                            <span class="nav-notification-badge">{{ $unreadNotificationCount }}</span>
+                        @endif
+                    </a>
 
                     <div class="dropdown d-none d-md-block">
                         <button class="app-toolbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
@@ -175,15 +173,13 @@
                         </details>
                     @endif
 
-                    @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
-                        <a href="{{ route('announcements.index') }}" class="app-nav-link d-flex align-items-center gap-2 {{ request()->routeIs('announcements.*') ? 'active' : '' }}" @click="navOpen = false">
-                            <i class="bi bi-bell"></i>
-                            {{ __('announcements.notifications') }}
-                            @if(!empty($unreadAnnouncementCount) && $unreadAnnouncementCount > 0)
-                                <span class="badge bg-danger">{{ $unreadAnnouncementCount }}</span>
-                            @endif
-                        </a>
-                    @endif
+                    <a href="{{ route('notifications.index') }}" class="app-nav-link d-flex align-items-center gap-2 {{ request()->routeIs('notifications.*') ? 'active' : '' }}" @click="navOpen = false">
+                        <i class="bi bi-bell"></i>
+                        {{ __('notifications.hub_title') }}
+                        @if(!empty($unreadNotificationCount) && $unreadNotificationCount > 0)
+                            <span class="badge bg-danger">{{ $unreadNotificationCount }}</span>
+                        @endif
+                    </a>
 
                     <hr class="my-1 border-secondary-subtle">
                     <a href="{{ route('profile') }}" class="app-nav-link {{ request()->routeIs('profile') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.profile') }}</a>

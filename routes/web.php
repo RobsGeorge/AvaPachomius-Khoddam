@@ -55,6 +55,10 @@ use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
+use App\Http\Controllers\Admin\RegistrationApplicationController;
+use App\Http\Controllers\ApplicationStatusController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationSettingsController;
 use App\Http\Controllers\LiveQuizController;
 use App\Http\Controllers\LiveQuizBuilderController;
 use App\Http\Controllers\LiveQuizHostController;
@@ -127,6 +131,18 @@ Route::middleware(['auth', 'role:admin,instructor'])->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/application/status', [ApplicationStatusController::class, 'status'])->name('application.status');
+    Route::get('/application/edit', [ApplicationStatusController::class, 'edit'])->name('application.edit');
+    Route::put('/application', [ApplicationStatusController::class, 'update'])->name('application.update');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
+    Route::put('/notifications/settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
+    Route::post('/notifications/reminders', [NotificationSettingsController::class, 'storeReminder'])->name('notifications.reminders.store');
+    Route::delete('/notifications/reminders/{reminder}', [NotificationSettingsController::class, 'destroyReminder'])->name('notifications.reminders.destroy');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'show'])->name('notifications.show')->whereNumber('notification');
+
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -163,6 +179,14 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/profile-photos/{user}/reset-grace', [ProfilePhotoReportController::class, 'resetGrace'])->name('profile-photos.reset-grace');
     Route::post('/profile-photos/{user}/approve', [ProfilePhotoReportController::class, 'approve'])->name('profile-photos.approve');
     Route::post('/profile-photos/{user}/reject', [ProfilePhotoReportController::class, 'reject'])->name('profile-photos.reject');
+    Route::get('/registration-applications', [RegistrationApplicationController::class, 'index'])->name('registration-applications.index');
+    Route::get('/registration-applications/templates', [RegistrationApplicationController::class, 'templates'])->name('registration-applications.templates');
+    Route::put('/registration-applications/templates', [RegistrationApplicationController::class, 'updateTemplates'])->name('registration-applications.templates.update');
+    Route::get('/registration-applications/{application}', [RegistrationApplicationController::class, 'show'])->name('registration-applications.show');
+    Route::post('/registration-applications/{application}/request-corrections', [RegistrationApplicationController::class, 'requestCorrections'])->name('registration-applications.request-corrections');
+    Route::post('/registration-applications/{application}/approve', [RegistrationApplicationController::class, 'approve'])->name('registration-applications.approve');
+    Route::post('/registration-applications/{application}/reject', [RegistrationApplicationController::class, 'reject'])->name('registration-applications.reject');
+    Route::post('/registration-applications/{application}/restore', [RegistrationApplicationController::class, 'restore'])->name('registration-applications.restore');
 });
 
 Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');

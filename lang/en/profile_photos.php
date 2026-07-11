@@ -36,4 +36,11 @@ return [
     'no_students' => 'No students match this filter.',
     'view_photo' => 'View',
     'confirm_reset_grace' => 'Reset this student\'s grace period and remove their photo? They will start again on next login.',
+    'confirm_reject' => 'Reject this photo? The student will be notified and must upload a new personal photo.',
+    'rejection_email_subject' => 'Your profile photo was not approved',
+    'rejection_email_header' => 'Profile photo review',
+    'rejection_email_greeting' => 'Hello :name,',
+    'rejection_email_body' => 'Your uploaded profile photo does not meet the portal requirements (for example, it may be unclear or not a real personal photo).',
+    'rejection_email_action' => 'Please sign in and upload a new clear photo of yourself. The portal is waiting for your new photo.',
+    'rejection_email_button' => 'Upload a new photo',
 ];

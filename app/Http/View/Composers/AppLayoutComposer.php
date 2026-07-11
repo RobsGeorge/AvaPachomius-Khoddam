@@ -3,8 +3,12 @@
 namespace App\Http\View\Composers;
 
 use App\Services\AnnouncementService;
+use App\Services\NotificationFeedService;
 use App\Services\ProfilePhotoGateService;
+use App\Services\RegistrationApplicationService;
 use App\Services\StudentOnboardingService;
+use App\Models\RegistrationApplication;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -13,7 +17,9 @@ class AppLayoutComposer
     public function __construct(
         private ProfilePhotoGateService $photoGate,
         private AnnouncementService $announcements,
-        private StudentOnboardingService $onboarding
+        private StudentOnboardingService $onboarding,
+        private RegistrationApplicationService $applications,
+        private NotificationFeedService $notifications
     ) {}
 
     public function compose(View $view): void
@@ -34,6 +40,16 @@ class AppLayoutComposer
         $view->with('profilePhotoDaysRemaining', $this->photoGate->daysRemaining($user));
         $view->with('profilePhotoHardBlocked', $this->photoGate->isHardBlocked($user));
 
+        if (Schema::hasColumn('user', 'application_status') && ! $this->applications->isApproved($user) && ! $user->isAdmin() && ! $user->is_superadmin) {
+            $view->with('applicationReviewBanner', match ($user->application_status) {
+                RegistrationApplication::STATUS_NEEDS_CORRECTION => 'correction',
+                RegistrationApplication::STATUS_REJECTED => 'rejected',
+                default => 'pending',
+            });
+        } else {
+            $view->with('applicationReviewBanner', null);
+        }
+
         if ($user->isStudent()) {
             $view->with('unreadAnnouncementCount', $this->announcements->unreadCount($user));
             $view->with('activeAnnouncementBanners', $this->announcements->activeBanners($user));
@@ -41,6 +57,8 @@ class AppLayoutComposer
             $view->with('unreadAnnouncementCount', 0);
             $view->with('activeAnnouncementBanners', collect());
         }
+
+        $view->with('unreadNotificationCount', $this->notifications->unreadCount($user));
 
         if ($this->onboarding->shouldShow($user)) {
             $locale = $this->onboarding->localeForWizard();

@@ -20,6 +20,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('birthdays:notify-monthly')
             ->monthlyOn(1, '08:00')
             ->timezone(config('attendance.timezone', config('app.timezone')));
+        $schedule->command('notifications:scan-deadlines')->hourly();
+        $schedule->command('notifications:scan-events')->dailyAt('07:00');
+        $schedule->command('notifications:scan-instructor')->dailyAt('08:00');
+        $schedule->command('notifications:scan-grades-risk')->weeklyOn(1, '09:00');
+        $schedule->command('notifications:fire-reminders')->everyFiveMinutes();
     }
 
     /**
@@ -37,5 +42,10 @@ class Kernel extends ConsoleKernel
         Commands\SetSuperAdmin::class,
         Commands\FlushAllSessions::class,
         Commands\NotifyMonthlyBirthdays::class,
+        Commands\ScanGradesRiskNotifications::class,
+        Commands\ScanInstructorNotifications::class,
+        Commands\ScanNotificationDeadlines::class,
+        Commands\ScanNotificationEvents::class,
+        Commands\FireNotificationReminders::class,
     ];
 }

@@ -83,6 +83,8 @@ class AnnouncementService
                     ],
                     []
                 );
+
+                app(NotificationScannerService::class)->notifyAnnouncement($recipient, $announcement);
             }
 
             if ($announcement->hasChannel(Announcement::CHANNEL_EMAIL)) {

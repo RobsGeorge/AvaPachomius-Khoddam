@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Support\NavigationHub;
+use App\Services\NotificationFeedService;
 
 class HubController extends Controller
 {
-    public function academic()
+    public function academic(NotificationFeedService $notificationFeed)
     {
-        $links = NavigationHub::academicLinks(auth()->user());
+        $user = auth()->user();
+        $links = NavigationHub::academicLinks($user);
+        $unreadNotificationCount = $user ? $notificationFeed->unreadCount($user) : 0;
 
-        return view('hubs.academic', compact('links'));
+        return view('hubs.academic', compact('links', 'unreadNotificationCount'));
     }
 
     public function system()

@@ -29,7 +29,7 @@ class LectureController extends Controller
             (int) $request->course_id
         );
 
-        Lecture::create([
+        $lecture = Lecture::create([
             'module_id'    => $request->module_id,
             'session_id'   => $session->session_id,
             'title'        => $request->title,
@@ -40,6 +40,8 @@ class LectureController extends Controller
             'notes'        => $request->notes,
             'order_index'  => $request->order_index ?? 0,
         ]);
+
+        app(\App\Services\NotificationScannerService::class)->notifyNewLecture($lecture);
 
         return redirect()
             ->route('curriculum.admin', $request->course_id)

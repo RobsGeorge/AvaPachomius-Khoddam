@@ -21,7 +21,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260712c">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260715b">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     @stack('styles')
@@ -42,6 +42,7 @@
         @include('layouts.navigation')
 
         @include('layouts.partials.profile-photo-banner')
+        @include('layouts.partials.application-review-banner')
         @include('layouts.partials.announcement-banners')
 
         @include('layouts.impersonation-banner')
@@ -58,7 +59,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260712c"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260715b"></script>
     @stack('scripts')
 </body>
 </html>

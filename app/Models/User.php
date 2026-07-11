@@ -31,6 +31,14 @@ class User extends Authenticatable
 
     public const PHOTO_STATUS_REJECTED = 'rejected';
 
+    public const APPLICATION_STATUS_PENDING_REVIEW = 'pending_review';
+
+    public const APPLICATION_STATUS_NEEDS_CORRECTION = 'needs_correction';
+
+    public const APPLICATION_STATUS_APPROVED = 'approved';
+
+    public const APPLICATION_STATUS_REJECTED = 'rejected';
+
     /** Legacy `user` table may lack Laravel timestamps until schema sync runs. */
     public $timestamps = false;
 
@@ -47,7 +55,7 @@ class User extends Authenticatable
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
-        'registration_completed',
+        'registration_completed', 'application_status',
     ];
 
     protected $casts = [
@@ -189,12 +197,33 @@ class User extends Authenticatable
 
     public function isProfilePhotoPending(): bool
     {
-        return $this->profile_photo_status === self::PHOTO_STATUS_PENDING;
+        if ($this->isProfilePhotoApproved() || $this->isProfilePhotoRejected()) {
+            return false;
+        }
+
+        return $this->hasProfilePhoto()
+            && ($this->profile_photo_status === self::PHOTO_STATUS_PENDING || $this->profile_photo_status === null);
     }
 
     public function isProfilePhotoRejected(): bool
     {
         return $this->profile_photo_status === self::PHOTO_STATUS_REJECTED;
+    }
+
+    public function needsProfilePhotoReview(): bool
+    {
+        return $this->hasProfilePhoto() && ! $this->isProfilePhotoApproved();
+    }
+
+    public function isApplicationApproved(): bool
+    {
+        return $this->application_status === self::APPLICATION_STATUS_APPROVED
+            && (bool) $this->is_verified;
+    }
+
+    public function registrationApplications()
+    {
+        return $this->hasMany(RegistrationApplication::class, 'user_id', 'user_id');
     }
 
     public function formattedMobile(): ?string

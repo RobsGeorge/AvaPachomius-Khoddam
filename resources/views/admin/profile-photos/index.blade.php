@@ -101,16 +101,24 @@
                         <td>{{ $student->profile_photo_uploaded_at?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>
                             <div class="d-flex flex-column gap-2">
-                                @if($student->isProfilePhotoPending())
-                                    <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-success">{{ __('profile_photos.approve') }}</button>
-                                    </form>
-                                    <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}" class="d-inline">
+                                @if($student->needsProfilePhotoReview())
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="bi bi-check-lg"></i> {{ __('profile_photos.approve') }}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}"
+                                          data-confirm="{{ __('profile_photos.confirm_reject') }}"
+                                          onsubmit="return confirm(this.dataset.confirm)">
                                         @csrf
                                         <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
                                                placeholder="{{ __('profile_photos.rejection_note') }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('profile_photos.reject') }}</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                            <i class="bi bi-x-lg"></i> {{ __('profile_photos.reject') }}
+                                        </button>
                                     </form>
                                 @endif
 
@@ -177,16 +185,22 @@
                         </div>
                     </dl>
                     <div class="data-card-actions d-flex flex-column gap-2">
-                        @if($student->isProfilePhotoPending())
+                        @if($student->needsProfilePhotoReview())
                             <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}">
                                 @csrf
-                                <button type="submit" class="btn btn-sm btn-success w-100">{{ __('profile_photos.approve') }}</button>
+                                <button type="submit" class="btn btn-sm btn-success w-100">
+                                    <i class="bi bi-check-lg"></i> {{ __('profile_photos.approve') }}
+                                </button>
                             </form>
-                            <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}">
+                            <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}"
+                                  data-confirm="{{ __('profile_photos.confirm_reject') }}"
+                                  onsubmit="return confirm(this.dataset.confirm)">
                                 @csrf
                                 <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
                                        placeholder="{{ __('profile_photos.rejection_note') }}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">{{ __('profile_photos.reject') }}</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                    <i class="bi bi-x-lg"></i> {{ __('profile_photos.reject') }}
+                                </button>
                             </form>
                         @endif
                         <form method="POST" action="{{ route('admin.profile-photos.extend-deadline', $student) }}" class="d-flex flex-column gap-1">

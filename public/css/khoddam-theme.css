@@ -816,6 +816,20 @@ body.theme-dark .app-dropdown-link:hover {
     text-align: center;
 }
 
+.notification-unread {
+    background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+    border-inline-start: 3px solid var(--color-primary);
+}
+
+.notification-announcement.notification-unread {
+    background: color-mix(in srgb, #f59e0b 12%, var(--color-surface));
+    border-inline-start-color: #f59e0b;
+}
+
+.hub-tile-highlight {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
 .announcement-card-unread {
     border-color: rgba(124, 58, 237, 0.45) !important;
     background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02));

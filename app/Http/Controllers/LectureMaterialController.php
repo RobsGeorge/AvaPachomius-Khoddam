@@ -17,6 +17,11 @@ class LectureMaterialController extends Controller
 
         LectureMaterial::create($request->only('lecture_id', 'title', 'link'));
 
+        $lecture = \App\Models\Lecture::query()->find($request->lecture_id);
+        if ($lecture) {
+            app(\App\Services\NotificationScannerService::class)->notifyNewLecture($lecture);
+        }
+
         return redirect()
             ->route('lectures.edit', $request->lecture_id)
             ->with('success', 'تمت إضافة المادة بنجاح');

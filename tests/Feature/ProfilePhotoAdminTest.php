@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\PortalSettings;
 use App\Models\User;
 use App\Services\ProfilePhotoGateService;
+use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
 
 class ProfilePhotoAdminTest extends EventModuleTestCase
@@ -170,5 +171,68 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             ->assertRedirect();
 
         $this->assertFalse(PortalSettings::current()->fresh()->profile_photo_gate_enabled);
+    }
+
+    public function test_registration_photo_sets_pending_review_status(): void
+    {
+        $student = $this->createUser([
+            'email' => 'registered-photo@example.com',
+            'profile_photo' => 'profile_photos/register.jpg',
+            'profile_photo_uploaded_at' => now(),
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+        ]);
+
+        $this->assertTrue($student->isProfilePhotoPending());
+        $this->assertSame('pending_review', app(ProfilePhotoGateService::class)->reportStatus($student));
+    }
+
+    public function test_legacy_registration_photo_without_status_is_pending_review(): void
+    {
+        $student = $this->createUser([
+            'email' => 'legacy-photo@example.com',
+            'profile_photo' => 'profile_photos/legacy.jpg',
+            'profile_photo_status' => null,
+        ]);
+
+        $this->assertTrue($student->isProfilePhotoPending());
+        $this->assertTrue($student->needsProfilePhotoReview());
+        $this->assertSame('pending_review', app(ProfilePhotoGateService::class)->reportStatus($student));
+    }
+
+    public function test_admin_reject_resets_grace_and_sends_email(): void
+    {
+        Mail::fake();
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+
+        $admin = $this->createUser(['email' => 'reject-admin@example.com']);
+        $student = $this->createUser([
+            'email' => 'reject-student@example.com',
+            'profile_photo' => 'profile_photos/reject-me.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+            'profile_photo_grace_started_at' => now()->subDay(),
+            'profile_photo_deadline_at' => now()->addDay(),
+        ]);
+        $course = $this->createCourse(['title' => 'Reject Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.reject', $student), [
+                'profile_photo_rejection_note' => 'Not a personal photo',
+            ])
+            ->assertRedirect();
+
+        $student->refresh();
+        $this->assertTrue($student->isProfilePhotoRejected());
+        $this->assertSame('', $student->profile_photo);
+        $this->assertNull($student->profile_photo_grace_started_at);
+        $this->assertNull($student->profile_photo_deadline_at);
+        $this->assertSame('Not a personal photo', $student->profile_photo_rejection_note);
+
+        Mail::assertSent(\App\Mail\ProfilePhotoRejectedMail::class, function ($mail) use ($student) {
+            return $mail->hasTo($student->email);
+        });
     }
 }

@@ -40,6 +40,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\LogUserActivity::class,
             \App\Http\Middleware\RequireMandatoryFeedback::class,
             \App\Http\Middleware\RequireProfilePhoto::class,
+            \App\Http\Middleware\RequireApprovedApplication::class,
         ],
 
         'api' => [

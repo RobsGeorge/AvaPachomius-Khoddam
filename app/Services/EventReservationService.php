@@ -106,6 +106,8 @@ class EventReservationService
                 $this->promoteNextWaitlist($event);
             }
 
+            app(\App\Services\NotificationScannerService::class)->notifyReservationCancelled($reservation->fresh(['event', 'user']));
+
             return $reservation->fresh();
         });
     }

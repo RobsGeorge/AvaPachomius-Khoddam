@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Mail\ProfilePhotoRejectedMail;
 use App\Models\PortalSettings;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class ProfilePhotoAdminService
@@ -117,11 +120,26 @@ class ProfilePhotoAdminService
             'profile_photo' => '',
             'profile_photo_status' => User::PHOTO_STATUS_REJECTED,
             'profile_photo_uploaded_at' => null,
+            'profile_photo_grace_started_at' => null,
+            'profile_photo_deadline_at' => null,
             'profile_photo_reviewed_at' => now($this->gate->timezone()),
             'profile_photo_reviewed_by_user_id' => $admin->user_id,
             'profile_photo_rejection_note' => $note,
         ])->save();
 
-        return $student->fresh();
+        $student = $student->fresh();
+
+        if (filled($student->email)) {
+            try {
+                Mail::to($student->email)->send(new ProfilePhotoRejectedMail($student));
+            } catch (\Throwable $e) {
+                Log::warning('Profile photo rejection email failed', [
+                    'user_id' => $student->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $student;
     }
 }
