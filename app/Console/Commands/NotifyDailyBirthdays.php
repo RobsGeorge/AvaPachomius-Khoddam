@@ -24,7 +24,7 @@ class NotifyDailyBirthdays extends Command
         $courseId = $this->option('course');
         $dateLabel = $on->toDateString();
 
-        $this->info("Sending today's birthday announcements for {$dateLabel}...");
+        $this->info("Sending birthday announcements for {$dateLabel}...");
 
         if ($courseId) {
             $course = \App\Models\Course::findOrFail($courseId);
