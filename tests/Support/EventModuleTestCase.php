@@ -99,6 +99,8 @@ abstract class EventModuleTestCase extends TestCase
             'assigned_by_id' => ($assignedBy ?? $user)->user_id,
             'assigned_at' => now(),
         ]);
+
+        app(\App\Services\EventAdminRoleService::class)->grant($user);
     }
 
     /** @param  array<string, mixed>  $overrides */

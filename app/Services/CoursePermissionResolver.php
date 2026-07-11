@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Course;
+use App\Models\EventAdmin;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
@@ -78,6 +79,10 @@ class CoursePermissionResolver
             return true;
         }
 
+        if ($permission === 'events.admin' && EventAdmin::where('user_id', $user->user_id)->exists()) {
+            return true;
+        }
+
         return $this->permissionsInSystem($user)->contains($permission);
     }
 
@@ -143,8 +148,15 @@ class CoursePermissionResolver
 
     public function bumpCoursePermissionsVersion(Course $course): void
     {
+        $courseId = $course->course_id;
+        $version = (int) ($course->permissions_version ?? 0);
+
+        $userIds = UserCourseRole::where('course_id', $courseId)->pluck('user_id')->unique();
+        foreach ($userIds as $userId) {
+            Cache::forget("perms:{$courseId}:{$userId}:{$version}");
+        }
+
         $course->increment('permissions_version');
-        Cache::forget("perms:{$course->course_id}:*");
     }
 
     public function clearUserCache(User $user, ?Course $course = null): void

@@ -16,7 +16,7 @@ class CertificateDownloadController extends Controller
 
         abort_unless(
             Auth::id() === $certificate->user_id
-            || auth()->user()?->roles->contains(fn ($r) => in_array(strtolower($r->role_name), ['admin', 'instructor'], true)),
+            || auth()->user()?->roles?->contains(fn ($r) => in_array(strtolower($r->role_name), ['admin', 'instructor'], true)),
             403
         );
 

@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
 use App\Services\RoleTemplateService;
@@ -132,10 +133,14 @@ class SuperAdminController extends Controller
             'user_id' => 'required|exists:user,user_id',
         ]);
 
+        $user = User::findOrFail($data['user_id']);
+
         \App\Models\EventAdmin::firstOrCreate(
-            ['user_id' => $data['user_id']],
+            ['user_id' => $user->user_id],
             ['assigned_by_id' => auth()->id(), 'assigned_at' => now()]
         );
+
+        app(EventAdminRoleService::class)->grant($user);
 
         \App\Services\EventAuditService::log('admin.assign', 'success', [
             'target_user_id' => $data['user_id'],
@@ -146,7 +151,13 @@ class SuperAdminController extends Controller
 
     public function destroyEventAdmin(string $userId)
     {
+        $user = User::find($userId);
+
         \App\Models\EventAdmin::where('user_id', $userId)->delete();
+
+        if ($user) {
+            app(EventAdminRoleService::class)->revoke($user);
+        }
 
         \App\Services\EventAuditService::log('admin.unassign', 'success', [
             'target_user_id' => (int) $userId,

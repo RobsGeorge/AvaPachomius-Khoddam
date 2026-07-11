@@ -87,7 +87,7 @@ class GraduationService
                 'attendance_pct'       => $attendancePct,
                 'raw_total_grade'      => $rawTotal,
                 'grace_marks_applied'  => 0.0,
-                'total_grade'          => $rawTotal,
+                'total_grade'          => 0.0,
                 'letter'               => 'F',
                 'letter_ar'            => GradeCategory::letterGradeAr(0),
                 'color'                => 'danger',

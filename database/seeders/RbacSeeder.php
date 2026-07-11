@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\EventAdmin;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\UserCourseRole;
+use App\Services\EventAdminRoleService;
 use App\Services\RoleTemplateService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
@@ -73,28 +73,6 @@ class RbacSeeder extends Seeder
 
     private function migrateEventAdmins(): void
     {
-        $eventsPerm = Permission::where('key', 'events.admin')->first();
-        if (! $eventsPerm) {
-            return;
-        }
-
-        $role = Role::firstOrCreate(
-            ['slug' => 'event-administrator', 'course_id' => null, 'is_template' => false],
-            [
-                'role_name' => 'Event Administrator',
-                'role_decription' => 'Events admin',
-                'description' => 'Migrated from event_admins table',
-                'is_system' => true,
-            ]
-        );
-
-        $role->permissions()->syncWithoutDetaching([$eventsPerm->permission_id]);
-
-        foreach (EventAdmin::pluck('user_id') as $userId) {
-            \App\Models\UserSystemRole::firstOrCreate([
-                'user_id' => $userId,
-                'role_id' => $role->role_id,
-            ]);
-        }
+        app(EventAdminRoleService::class)->syncFromEventAdminsTable();
     }
 }
