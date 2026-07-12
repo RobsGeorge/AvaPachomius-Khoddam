@@ -41,12 +41,7 @@ class StudentRosterService
 
     public function studentEnrolledCourses(User $user): Collection
     {
-        $studentRoleIds = Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
-            })
-            ->pluck('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
         if ($studentRoleIds->isEmpty()) {
             return collect();
@@ -77,12 +72,7 @@ class StudentRosterService
     public function enrolledStudents(Course|string $course): Collection
     {
         $courseId = $course instanceof Course ? $course->course_id : $course;
-        $studentRoleIds = Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
-            })
-            ->pluck('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
         $studentIds = UserCourseRole::query()
             ->where('course_id', $courseId)
@@ -99,12 +89,7 @@ class StudentRosterService
 
     public function courseStaff(string $courseId, bool $includeArchived = false): Collection
     {
-        $staffRoleIds = Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
-                    ->orWhereIn('slug', ['admin', 'instructor']);
-            })
-            ->pluck('role_id');
+        $staffRoleIds = Role::staffRoleIds();
 
         if ($staffRoleIds->isEmpty()) {
             return collect();

@@ -76,10 +76,13 @@ class GradeCategoryController extends Controller
 
     private function getStudentCount(string $courseId): int
     {
-        $studentRoleId = \App\Models\Role::where('role_name', 'Student')->value('role_id');
-        if (!$studentRoleId) return 0;
+        $studentRoleIds = \App\Models\Role::studentRoleIds();
+        if ($studentRoleIds->isEmpty()) {
+            return 0;
+        }
+
         return \App\Models\UserCourseRole::where('course_id', $courseId)
-            ->where('role_id', $studentRoleId)
+            ->whereIn('role_id', $studentRoleIds)
             ->count();
     }
 }

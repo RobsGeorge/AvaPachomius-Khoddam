@@ -27,9 +27,9 @@ class CourseClosingController extends Controller
             ? $this->closing->preview($course)
             : collect();
 
-        $studentRoleId = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->value('role_id');
+        $studentRoleIds = Role::studentRoleIds();
         $enrollments = UserCourseRole::where('course_id', $course->course_id)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->with('user')
             ->get()
             ->keyBy('user_id');

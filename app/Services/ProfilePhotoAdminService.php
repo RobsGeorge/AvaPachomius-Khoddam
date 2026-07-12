@@ -22,16 +22,14 @@ class ProfilePhotoAdminService
     /** @return Collection<int, User> */
     public function studentReport(?string $filter = null): Collection
     {
-        $studentRoleId = Role::query()
-            ->whereRaw('LOWER(role_name) = ?', ['student'])
-            ->value('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
-        if (! $studentRoleId) {
+        if ($studentRoleIds->isEmpty()) {
             return collect();
         }
 
         $studentIds = UserCourseRole::query()
-            ->where('role_id', $studentRoleId)
+            ->whereIn('role_id', $studentRoleIds)
             ->pluck('user_id')
             ->unique();
 

@@ -47,17 +47,17 @@ class AttendanceController extends Controller
         private AttendanceCloseService $attendanceClose,
     ) {}
 
-    private function studentRoleId(): ?int
+    private function studentRoleIds(): Collection
     {
-        return Role::where('role_name', 'Student')->value('role_id');
+        return Role::studentRoleIds();
     }
 
     /** Limit attendance queries to enrolled students when the Student role exists. */
     private function scopeToStudents(Builder $query, string $userIdColumn = 'attendance.user_id'): Builder
     {
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = $this->studentRoleIds();
 
-        if (! $studentRoleId) {
+        if ($studentRoleIds->isEmpty()) {
             return $query;
         }
 
@@ -65,20 +65,20 @@ class AttendanceController extends Controller
             return $query;
         }
 
-        return $query->whereIn($userIdColumn, function ($sub) use ($studentRoleId) {
+        return $query->whereIn($userIdColumn, function ($sub) use ($studentRoleIds) {
             $sub->select('user_id')
                 ->from('user_course_role')
-                ->where('role_id', $studentRoleId);
+                ->whereIn('role_id', $studentRoleIds);
         });
     }
 
     /** @return \Illuminate\Support\Collection<int, int> */
     private function enrolledStudentIds()
     {
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = $this->studentRoleIds();
 
         return DB::table('user_course_role')
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->distinct()
             ->pluck('user_id');
     }

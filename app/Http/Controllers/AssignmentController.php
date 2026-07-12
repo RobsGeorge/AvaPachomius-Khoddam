@@ -359,9 +359,7 @@ class AssignmentController extends Controller
 
     private function enrolledStudents()
     {
-        $studentRoleIds = Role::query()
-            ->whereRaw('LOWER(role_name) = ?', ['student'])
-            ->pluck('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
         if ($studentRoleIds->isEmpty()) {
             return collect();

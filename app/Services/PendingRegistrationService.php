@@ -199,10 +199,22 @@ class PendingRegistrationService
     public static function assignDefaultStudentRole(User $user): void
     {
         try {
-            $studentRole = Role::where('role_name', 'Student')->first();
             $defaultCourse = Course::find(1);
 
-            if (! $studentRole || ! $defaultCourse) {
+            if (! $defaultCourse) {
+                return;
+            }
+
+            $studentRole = Role::studentRoleForCourse($defaultCourse->course_id)
+                ?? Role::query()
+                    ->whereNull('course_id')
+                    ->where(function ($q) {
+                        $q->where('slug', 'student')
+                            ->orWhereRaw('LOWER(role_name) = ?', ['student']);
+                    })
+                    ->first();
+
+            if (! $studentRole) {
                 return;
             }
 

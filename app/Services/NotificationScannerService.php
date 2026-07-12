@@ -56,9 +56,7 @@ class NotificationScannerService
     public function scanBelowPassingGrades(): int
     {
         $count = 0;
-        $staffRoleIds = Role::query()
-            ->whereIn('role_name', ['admin', 'instructor'])
-            ->pluck('role_id');
+        $staffRoleIds = Role::staffRoleIds();
 
         $courseIds = UserCourseRole::query()
             ->whereIn('role_id', $staffRoleIds)
@@ -506,8 +504,9 @@ class NotificationScannerService
             ->get()
             ->groupBy('assignment_id');
 
+        $staffRoleIds = Role::staffRoleIds();
         $staffUsers = User::query()
-            ->whereHas('userCourseRoles.role', fn ($q) => $q->whereIn('role_name', ['admin', 'instructor']))
+            ->whereHas('userCourseRoles', fn ($q) => $q->whereIn('role_id', $staffRoleIds))
             ->get();
 
         foreach ($ungraded as $assignmentId => $submissions) {
@@ -552,21 +551,23 @@ class NotificationScannerService
             return $this->roster->courseStaff($event->course_id);
         }
 
+        $staffRoleIds = Role::staffRoleIds();
+
         return User::query()
-            ->whereHas('userCourseRoles.role', fn ($q) => $q->whereIn('role_name', ['admin', 'instructor']))
+            ->whereHas('userCourseRoles', fn ($q) => $q->whereIn('role_id', $staffRoleIds))
             ->get();
     }
 
     /** @return list<int> */
     private function allStudentIds(): array
     {
-        $studentRoleId = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->value('role_id');
-        if (! $studentRoleId) {
+        $studentRoleIds = Role::studentRoleIds();
+        if ($studentRoleIds->isEmpty()) {
             return [];
         }
 
         return UserCourseRole::query()
-            ->where('role_id', $studentRoleId)
+            ->whereIn('role_id', $studentRoleIds)
             ->distinct()
             ->pluck('user_id')
             ->all();

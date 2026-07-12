@@ -149,20 +149,30 @@ class CoursePermissionResolver
     public function bumpCoursePermissionsVersion(Course $course): void
     {
         $courseId = $course->course_id;
-        $version = (int) ($course->permissions_version ?? 0);
+        $course->refresh();
+        $oldVersion = (int) ($course->permissions_version ?? 0);
+
+        $course->increment('permissions_version');
+        $newVersion = $oldVersion + 1;
 
         $userIds = UserCourseRole::where('course_id', $courseId)->pluck('user_id')->unique();
         foreach ($userIds as $userId) {
-            Cache::forget("perms:{$courseId}:{$userId}:{$version}");
+            Cache::forget("perms:{$courseId}:{$userId}:{$oldVersion}");
+            Cache::forget("perms:{$courseId}:{$userId}:{$newVersion}");
         }
 
-        $course->increment('permissions_version');
+        $course->refresh();
     }
 
     public function clearUserCache(User $user, ?Course $course = null): void
     {
         if ($course) {
-            Cache::forget("perms:{$course->course_id}:{$user->user_id}:{$course->permissions_version}");
+            $course->refresh();
+            $version = (int) ($course->permissions_version ?? 0);
+            Cache::forget("perms:{$course->course_id}:{$user->user_id}:{$version}");
+            if ($version > 0) {
+                Cache::forget("perms:{$course->course_id}:{$user->user_id}:".($version - 1));
+            }
         }
         Cache::forget("perms:system:{$user->user_id}");
     }

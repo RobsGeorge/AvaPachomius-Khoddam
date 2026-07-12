@@ -156,10 +156,10 @@ class AttendanceCloseService
             return collect();
         }
 
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = Role::studentRoleIds();
 
         return UserCourseRole::where('course_id', $courseId)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->pluck('user_id')
             ->unique()
             ->values();
@@ -246,7 +246,7 @@ class AttendanceCloseService
             return collect();
         }
 
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = Role::studentRoleIds();
         $like = '%'.$query.'%';
 
         $usersQuery = User::query()
@@ -260,11 +260,11 @@ class AttendanceCloseService
             })
             ->limit(20);
 
-        if ($studentRoleId) {
-            $usersQuery->whereIn('user_id', function ($sub) use ($studentRoleId) {
+        if ($studentRoleIds->isNotEmpty()) {
+            $usersQuery->whereIn('user_id', function ($sub) use ($studentRoleIds) {
                 $sub->select('user_id')
                     ->from('user_course_role')
-                    ->where('role_id', $studentRoleId);
+                    ->whereIn('role_id', $studentRoleIds);
             });
         }
 
@@ -316,11 +316,11 @@ class AttendanceCloseService
 
     private function assertStudentCanBeRecorded(Session $session, User $user, bool $allowNonEnrolled): void
     {
-        $studentRoleId = $this->studentRoleId();
+        $studentRoleIds = Role::studentRoleIds();
 
-        if ($studentRoleId) {
+        if ($studentRoleIds->isNotEmpty()) {
             $hasStudentRole = UserCourseRole::where('user_id', $user->user_id)
-                ->where('role_id', $studentRoleId)
+                ->whereIn('role_id', $studentRoleIds)
                 ->exists();
 
             if (! $hasStudentRole) {
@@ -344,10 +344,5 @@ class AttendanceCloseService
                 'status' => __('pages.attendance_invalid_status'),
             ]);
         }
-    }
-
-    private function studentRoleId(): ?int
-    {
-        return Role::where('role_name', 'Student')->value('role_id');
     }
 }

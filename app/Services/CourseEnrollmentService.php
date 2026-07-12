@@ -54,21 +54,11 @@ class CourseEnrollmentService
 
     private function studentRoleIds(): Collection
     {
-        return Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
-            })
-            ->pluck('role_id');
+        return Role::studentRoleIds();
     }
 
     private function staffRoleIds(): Collection
     {
-        return Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
-                    ->orWhereIn('slug', ['admin', 'instructor']);
-            })
-            ->pluck('role_id');
+        return Role::staffRoleIds();
     }
 }

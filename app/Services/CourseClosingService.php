@@ -103,12 +103,7 @@ class CourseClosingService
             ]);
         }
 
-        $studentRoleIds = Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
-            })
-            ->pluck('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
         foreach ($rows as $userId => $row) {
             $enrollment = UserCourseRole::where('course_id', $course->course_id)
@@ -216,9 +211,7 @@ class CourseClosingService
                 ->update(['is_enabled' => false]);
 
             if ($archiveStaff) {
-                $staffRoleIds = Role::query()
-                    ->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
-                    ->pluck('role_id');
+                $staffRoleIds = Role::staffRoleIds();
 
                 UserCourseRole::where('course_id', $course->course_id)
                     ->whereIn('role_id', $staffRoleIds)
@@ -251,12 +244,7 @@ class CourseClosingService
             return [];
         }
 
-        $studentRoleIds = Role::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
-            })
-            ->pluck('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
         return UserCourseRole::where('course_id', $course->course_id)
             ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))

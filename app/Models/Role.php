@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Role extends Model
 {
@@ -95,5 +96,38 @@ class Role extends Model
     public function effectiveSlug(): string
     {
         return $this->slug ?? \Illuminate\Support\Str::slug($this->role_name);
+    }
+
+    /** @return Collection<int, int> */
+    public static function studentRoleIds(): Collection
+    {
+        return static::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->pluck('role_id');
+    }
+
+    /** @return Collection<int, int> */
+    public static function staffRoleIds(): Collection
+    {
+        return static::query()
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
+                    ->orWhereIn('slug', ['admin', 'instructor']);
+            })
+            ->pluck('role_id');
+    }
+
+    public static function studentRoleForCourse(int|string $courseId): ?self
+    {
+        return static::query()
+            ->where('course_id', $courseId)
+            ->where(function ($q) {
+                $q->whereRaw('LOWER(role_name) = ?', ['student'])
+                    ->orWhere('slug', 'student');
+            })
+            ->first();
     }
 }

@@ -142,4 +142,30 @@ class AttendanceRosterTest extends EventModuleTestCase
             ->assertOk()
             ->assertSee($session->session_title);
     }
+
+    public function test_attendance_report_includes_course_scoped_student_enrollments(): void
+    {
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'report-admin@example.com']);
+        $course = $this->createCourse();
+
+        $studentRole = \App\Models\Role::create([
+            'role_name' => 'student',
+            'role_decription' => 'student',
+            'slug' => 'student',
+            'course_id' => $course->course_id,
+        ]);
+
+        $student = $this->createUser([
+            'first_name' => 'Report',
+            'second_name' => 'Student',
+            'email' => 'report-student@example.com',
+        ]);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($admin)
+            ->get(route('attendance.report'))
+            ->assertOk()
+            ->assertDontSee(__('pages.no_students_registered'), false)
+            ->assertSee('Report Student');
+    }
 }

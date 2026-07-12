@@ -123,10 +123,10 @@ class StudentGradeController extends Controller
 
     private function enrolledStudents(string $courseId)
     {
-        $studentRoleId = Role::where('role_name', 'Student')->value('role_id');
+        $studentRoleIds = Role::studentRoleIds();
 
         $studentIds = UserCourseRole::where('course_id', $courseId)
-            ->when($studentRoleId, fn ($q) => $q->where('role_id', $studentRoleId))
+            ->when($studentRoleIds->isNotEmpty(), fn ($q) => $q->whereIn('role_id', $studentRoleIds))
             ->pluck('user_id')
             ->unique();
 

@@ -12,6 +12,7 @@ use App\Models\UserCourseRole;
 use App\Services\CoursePermissionResolver;
 use App\Services\RoleTemplateService;
 use App\Support\NavigationHub;
+use Illuminate\Support\Facades\Cache;
 use Tests\Support\EventModuleTestCase;
 
 class DynamicRoleManagementTest extends EventModuleTestCase
@@ -179,5 +180,38 @@ class DynamicRoleManagementTest extends EventModuleTestCase
         $this->actingAs($admin)
             ->delete(route('courses.roles.destroy', [$course, $role]))
             ->assertStatus(422);
+    }
+
+    public function test_bump_course_permissions_version_clears_current_and_next_cache_keys(): void
+    {
+        $user = $this->createUser();
+        $course = $this->createCourse();
+        $role = $this->courseRoleWithPermissions($course, 'viewer', ['exam.view']);
+        $this->assignCourseRole($user, $course, $role);
+
+        $resolver = app(CoursePermissionResolver::class);
+        $resolver->permissionsInCourse($user, $course->fresh());
+
+        $version = (int) $course->fresh()->permissions_version;
+        $cacheKey = "perms:{$course->course_id}:{$user->user_id}:{$version}";
+        $this->assertTrue(Cache::has($cacheKey));
+
+        $role->permissions()->sync(
+            Permission::where('key', 'exam.grade')->pluck('permission_id')
+        );
+
+        $staleCourse = Course::find($course->course_id);
+        $resolver->bumpCoursePermissionsVersion($staleCourse);
+
+        $course->refresh();
+        $newVersion = (int) $course->permissions_version;
+        $newCacheKey = "perms:{$course->course_id}:{$user->user_id}:{$newVersion}";
+
+        $this->assertFalse(Cache::has($cacheKey));
+        $this->assertFalse(Cache::has($newCacheKey));
+
+        $permissions = $resolver->permissionsInCourse($user, $course->fresh());
+        $this->assertTrue($permissions->contains('exam.grade'));
+        $this->assertFalse($permissions->contains('exam.view'));
     }
 }
