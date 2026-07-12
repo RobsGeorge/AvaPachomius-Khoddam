@@ -124,6 +124,10 @@ class NotificationPreferenceService
             $roles[] = 'admin';
         }
 
+        if ($user->isEventAdmin() && ! in_array('admin', $roles, true)) {
+            $roles[] = 'admin';
+        }
+
         if ($user->isInstructorOrAdmin()) {
             $roles[] = 'instructor';
         }

@@ -129,6 +129,10 @@ class CourseApplicationService
         $staff = $this->roster->courseStaff((string) $application->course_id);
 
         foreach ($staff as $member) {
+            if (! $member->canAccessAdminCourseApplications()) {
+                continue;
+            }
+
             $this->notifications->createOrUpdate(
                 $member,
                 'course_application_submitted',

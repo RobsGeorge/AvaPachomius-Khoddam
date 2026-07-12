@@ -110,7 +110,54 @@ class AttendanceRosterTest extends EventModuleTestCase
             ->assertSee(__('pages.not_recorded'))
             ->assertSee(__('pages.roster_missing'))
             ->assertSee('Roster Student 1')
-            ->assertSee('Roster Student 2');
+            ->assertSee('Roster Student 2')
+            ->assertSee('id="add-session-attendance-modal"', false)
+            ->assertSee('data-bs-target="#add-session-attendance-modal"', false)
+            ->assertSee(__('pages.close_attendance'), false)
+            ->assertSee(__('pages.view_sessions_list'), false)
+            ->assertSee(__('pages.attendance_status_open'), false);
+    }
+
+    public function test_single_session_report_shows_closed_metadata(): void
+    {
+        ['admin' => $admin, 'session' => $session] = $this->seedSessionWithStudents(1);
+
+        $closedAt = now()->subHour();
+        $session->update([
+            'attendance_closed_at' => $closedAt,
+            'attendance_closed_by_id' => $admin->user_id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('attendance.all', [
+                'filter_by' => 'session',
+                'session_id' => $session->session_id,
+            ]))
+            ->assertOk()
+            ->assertSee(__('pages.attendance_status_closed'), false)
+            ->assertSee($closedAt->format('Y-m-d H:i'), false)
+            ->assertSee($admin->displayName(), false)
+            ->assertDontSee(__('pages.close_attendance'), false);
+    }
+
+    public function test_close_attendance_from_session_report_redirects_back_to_report(): void
+    {
+        ['admin' => $admin, 'session' => $session, 'students' => $students] = $this->seedSessionWithStudents(1);
+
+        $this->actingAs($admin)
+            ->from(route('attendance.all', [
+                'filter_by' => 'session',
+                'session_id' => $session->session_id,
+            ]))
+            ->post(route('sessions.close-attendance', $session->session_id))
+            ->assertRedirect(route('attendance.all', [
+                'filter_by' => 'session',
+                'session_id' => $session->session_id,
+            ]))
+            ->assertSessionHas('success');
+
+        $this->assertNotNull($session->fresh()->attendance_closed_at);
+        $this->assertSame($admin->user_id, $session->fresh()->attendance_closed_by_id);
     }
 
     public function test_session_roster_service_reports_missing_students(): void

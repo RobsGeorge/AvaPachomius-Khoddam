@@ -6,6 +6,7 @@ use App\Models\Attendance;
 use App\Models\Course;
 use App\Models\Module;
 use App\Models\Session;
+use App\Models\User;
 use App\Services\AttendanceCloseService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
@@ -20,9 +21,11 @@ class SessionController extends Controller
         private AttendanceCloseService $attendanceClose,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $canManageSessions = auth()->user()->hasAnyRole(['admin', 'instructor']);
+        $user = auth()->user();
+        $canManageSessions = $user instanceof User
+            && (($user->is_superadmin ?? false) || $user->isInstructorOrAdmin());
 
         $query = Session::with(['course', 'module', 'attendanceClosedBy'])
             ->orderBy('session_date', 'desc');
@@ -37,32 +40,68 @@ class SessionController extends Controller
             ]);
         }
 
-        $sessions = $query->paginate(20);
+        $sessions = $query->paginate(20)->appends($request->only('session_id'));
 
         $missingCounts = [];
+        $focusSession = null;
+        $focusMissingCount = 0;
+        $focusSessionId = $request->integer('session_id') ?: null;
+
         if ($canManageSessions) {
             foreach ($sessions as $session) {
                 $missingCounts[$session->session_id] = $this->attendanceClose->missingRecordCount($session);
+            }
+
+            if ($focusSessionId) {
+                $focusSession = Session::with(['course', 'module', 'attendanceClosedBy'])
+                    ->withCount([
+                        'attendances as attended_count' => fn ($q) => $q->whereIn(
+                            'status',
+                            Attendance::ATTENDED_STATUSES
+                        ),
+                        'attendances as recorded_count',
+                    ])
+                    ->find($focusSessionId);
+
+                if ($focusSession) {
+                    $focusMissingCount = $this->attendanceClose->missingRecordCount($focusSession);
+                }
             }
         }
 
         $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
 
-        return view('sessions.index', compact('sessions', 'todayLocal', 'canManageSessions', 'missingCounts'));
+        return view('sessions.index', compact(
+            'sessions',
+            'todayLocal',
+            'canManageSessions',
+            'missingCounts',
+            'focusSession',
+            'focusMissingCount',
+            'focusSessionId',
+        ));
     }
 
     public function show(Session $session)
     {
-        return redirect()->route('attendance.all', [
-            'filter_by' => 'session',
+        return redirect()->route('sessions.index', [
             'session_id' => $session->session_id,
         ]);
     }
 
     public function closeAttendance(Session $session)
     {
+        $user = auth()->user();
+        if (! $user instanceof User
+            || (! ($user->is_superadmin ?? false)
+                && ! ($session->course_id
+                    ? $user->isInstructorOrAdmin((string) $session->course_id)
+                    : $user->isInstructorOrAdmin()))) {
+            abort(403, __('pages.not_authorized'));
+        }
+
         if ($session->isAttendanceClosed()) {
-            return redirect()->route('sessions.index')
+            return redirect()->back()
                 ->with('warning', __('pages.attendance_already_closed'));
         }
 
@@ -70,18 +109,18 @@ class SessionController extends Controller
         $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
 
         if (! $sessionDate || $sessionDate > $todayLocal) {
-            return redirect()->route('sessions.index')
+            return redirect()->back()
                 ->with('error', __('pages.attendance_cannot_close_future_session'));
         }
 
-        $result = $this->attendanceClose->closeSession($session, (int) auth()->user()->user_id);
+        $result = $this->attendanceClose->closeSession($session, (int) $user->user_id);
 
         if ($result['already_closed']) {
-            return redirect()->route('sessions.index')
+            return redirect()->back()
                 ->with('warning', __('pages.attendance_already_closed'));
         }
 
-        return redirect()->route('sessions.index')
+        return redirect()->back()
             ->with('success', __('pages.attendance_closed_success_detail', [
                 'absent' => $result['absent_marked'],
                 'late' => $result['late_marked'],

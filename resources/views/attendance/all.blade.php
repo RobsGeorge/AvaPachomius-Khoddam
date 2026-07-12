@@ -11,6 +11,12 @@
             @if(session('success'))
                 <div class="alert alert-success mb-3">{{ session('success') }}</div>
             @endif
+            @if(session('warning'))
+                <div class="alert alert-warning mb-3">{{ session('warning') }}</div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-danger mb-3">{{ session('error') }}</div>
+            @endif
 
             <form method="GET" action="{{ route('attendance.all') }}" id="attendance-filter-form" class="app-card card mb-4">
                 <div class="card-body">
@@ -100,14 +106,12 @@
                             @if(! empty($group['meta']))
                                 <span class="badge bg-light text-dark border">{{ $group['meta'] }}</span>
                             @endif
-                            @if($group['session']?->isAttendanceClosed())
-                                <span class="badge bg-secondary">{{ __('pages.attendance_status_closed') }}</span>
-                            @endif
                             <span class="badge bg-secondary ms-auto">
                                 {{ __('pages.records_in_group', ['count' => $stats['total']]) }}
                             </span>
                         </div>
                     </div>
+                    @include('attendance.partials.session-report-header')
                     <div class="card-body p-0">
                         @if(! empty($group['roster']))
                             <div class="px-3 py-2 border-bottom bg-light small d-flex flex-wrap gap-3">

@@ -230,6 +230,19 @@ class User extends Authenticatable
             || EventAdmin::where('user_id', $this->user_id)->exists();
     }
 
+    public function canAccessAdminCourseApplications(): bool
+    {
+        if ($this->is_superadmin ?? false) {
+            return true;
+        }
+
+        if ($this->canInSystem('course_application.review')) {
+            return true;
+        }
+
+        return $this->hasRole('admin');
+    }
+
     public function isBeingImpersonated(): bool
     {
         return ImpersonationService::isActive()

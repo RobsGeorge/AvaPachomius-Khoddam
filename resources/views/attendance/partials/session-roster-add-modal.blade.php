@@ -1,3 +1,4 @@
+@push('modals')
 <div class="modal fade" id="add-session-attendance-modal" tabindex="-1" aria-labelledby="add-session-attendance-label" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -47,6 +48,7 @@
         </div>
     </div>
 </div>
+@endpush
 
 @push('scripts')
 <script>

@@ -34,6 +34,53 @@
         </div>
     @endif
 
+    @if($canManageSessions && ($focusSession ?? null))
+        @php
+            $focusDate = $focusSession->session_date?->format('Y-m-d');
+            $canCloseFocus = ! $focusSession->isAttendanceClosed()
+                && $focusDate
+                && $focusDate <= $todayLocal;
+        @endphp
+        <div class="alert alert-warning border-warning shadow-sm mb-4" id="focus-session-{{ $focusSession->session_id }}">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <h2 class="h5 mb-2">{{ __('notifications.generated.session_unclosed_title', ['title' => $focusSession->session_title]) }}</h2>
+                    <p class="mb-1 text-muted-theme">
+                        {{ $focusSession->course->title ?? '—' }}
+                        · {{ $focusSession->session_date?->format('Y-m-d') }}
+                    </p>
+                    @if($focusSession->isAttendanceClosed())
+                        <span class="badge bg-success">{{ __('pages.attendance_status_closed') }}</span>
+                    @else
+                        <span class="badge bg-warning text-dark">{{ __('pages.attendance_status_open') }}</span>
+                    @endif
+                    @if(($focusMissingCount ?? 0) > 0)
+                        <span class="badge bg-danger ms-1">
+                            {{ __('pages.missing_records_count', ['count' => $focusMissingCount]) }}
+                        </span>
+                    @endif
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('attendance.all', ['filter_by' => 'session', 'session_id' => $focusSession->session_id]) }}"
+                       class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-people"></i> {{ __('pages.view_session_roster') }}
+                    </a>
+                    @if($canCloseFocus)
+                        <form method="POST"
+                              action="{{ route('sessions.close-attendance', $focusSession->session_id) }}"
+                              data-confirm="{{ __('pages.confirm_close_attendance') }}"
+                              onsubmit="return confirm(this.dataset.confirm)">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if($canManageSessions)
     <div class="app-card card shadow-sm">
         <div class="card-body p-0">

@@ -97,7 +97,7 @@ class BirthdayNotificationService
                 'birthday_today',
                 __('notifications.generated.birthday_title'),
                 __('notifications.generated.birthday_body', ['names' => $names]),
-                route('students.birthdays'),
+                route('students.roster'),
                 'course',
                 $course->course_id,
                 UserNotification::PRIORITY_NORMAL,

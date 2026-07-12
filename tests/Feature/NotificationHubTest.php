@@ -155,12 +155,16 @@ class NotificationHubTest extends EventModuleTestCase
         $count = app(NotificationScannerService::class)->fireDueReminders();
 
         $this->assertSame(1, $count);
-        $this->assertTrue(
-            UserNotification::query()
-                ->where('user_id', $student->user_id)
-                ->where('type', 'custom_reminder')
-                ->exists()
-        );
+        $notification = UserNotification::query()
+            ->where('user_id', $student->user_id)
+            ->where('type', 'custom_reminder')
+            ->first();
+        $this->assertNotNull($notification);
+        $this->assertNull($notification->action_url);
+
+        $this->actingAs($student)
+            ->get(route('notifications.show', $notification))
+            ->assertRedirect(route('notifications.index'));
     }
 
     public function test_custom_reminder_dedupe_key_uses_scheduled_occurrence(): void
@@ -185,7 +189,7 @@ class NotificationHubTest extends EventModuleTestCase
             'custom_reminder',
             $reminder->title,
             $reminder->body ?? '',
-            route('notifications.index'),
+            null,
             'user_notification_reminder',
             $reminder->id,
             UserNotification::PRIORITY_NORMAL,
@@ -197,7 +201,7 @@ class NotificationHubTest extends EventModuleTestCase
             'custom_reminder',
             $reminder->title,
             $reminder->body ?? '',
-            route('notifications.index'),
+            null,
             'user_notification_reminder',
             $reminder->id,
             UserNotification::PRIORITY_NORMAL,
@@ -245,7 +249,7 @@ class NotificationHubTest extends EventModuleTestCase
         $this->assertSame('wamid.test', $delivery->provider_message_id);
     }
 
-    public function test_sessions_show_redirects_to_attendance_for_session(): void
+    public function test_sessions_show_redirects_to_sessions_index_with_focus(): void
     {
         $admin = $this->createUser(['is_superadmin' => true, 'email' => 'notif-session-admin@example.com']);
         $course = $this->createCourse();
@@ -257,13 +261,12 @@ class NotificationHubTest extends EventModuleTestCase
 
         $this->actingAs($admin)
             ->get(route('sessions.show', $session))
-            ->assertRedirect(route('attendance.all', [
-                'filter_by' => 'session',
+            ->assertRedirect(route('sessions.index', [
                 'session_id' => $session->session_id,
             ]));
     }
 
-    public function test_session_notification_link_reaches_attendance_page(): void
+    public function test_session_notification_link_reaches_close_attendance_page(): void
     {
         $admin = $this->createUser(['is_superadmin' => true, 'email' => 'notif-session-follow@example.com']);
         $course = $this->createCourse();
@@ -286,6 +289,7 @@ class NotificationHubTest extends EventModuleTestCase
             ->followingRedirects()
             ->get(route('notifications.show', $notification))
             ->assertOk()
-            ->assertSee('Week 3 Lecture');
+            ->assertSee('Week 3 Lecture')
+            ->assertSee(__('pages.close_attendance'), false);
     }
 }

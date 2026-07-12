@@ -186,7 +186,7 @@ class AttendanceController extends Controller
 
         if ($filterBy === 'session' && $request->filled('session_id')) {
             [$groups, $groupPaginator, $singleSessionReport] = $this->buildSingleSessionReport(
-                Session::with('course')->findOrFail($request->input('session_id')),
+                Session::with(['course', 'attendanceClosedBy'])->findOrFail($request->input('session_id')),
                 $baseQuery,
                 $request,
             );
@@ -201,7 +201,7 @@ class AttendanceController extends Controller
                 }
 
                 [$groups, $groupPaginator, $singleSessionReport] = $this->buildSingleSessionReport(
-                    Session::with('course')->findOrFail($sessionId),
+                    Session::with(['course', 'attendanceClosedBy'])->findOrFail($sessionId),
                     $baseQuery,
                     $request,
                 );
@@ -234,6 +234,25 @@ class AttendanceController extends Controller
         $dailyStats = $this->getDailyStatistics();
         $userStats = $this->getUserStatistics();
 
+        $sessionReportSession = null;
+        $canManageSessionAttendance = false;
+        $sessionReportMissingCount = 0;
+        $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
+
+        if ($singleSessionReport && $groups !== []) {
+            $sessionReportSession = $groups[0]['session'] ?? null;
+            if ($sessionReportSession instanceof Session) {
+                $sessionReportSession->loadMissing(['attendanceClosedBy', 'course']);
+                $canManageSessionAttendance = $this->canManageSessionAttendance(
+                    auth()->user(),
+                    $sessionReportSession,
+                );
+                if ($canManageSessionAttendance) {
+                    $sessionReportMissingCount = $this->attendanceClose->missingRecordCount($sessionReportSession);
+                }
+            }
+        }
+
         return view('attendance.all', compact(
             'groups',
             'filterBy',
@@ -246,7 +265,28 @@ class AttendanceController extends Controller
             'overallStats',
             'dailyStats',
             'userStats',
+            'sessionReportSession',
+            'canManageSessionAttendance',
+            'sessionReportMissingCount',
+            'todayLocal',
         ));
+    }
+
+    private function canManageSessionAttendance(?User $user, Session $session): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->is_superadmin ?? false) {
+            return true;
+        }
+
+        if ($session->course_id) {
+            return $user->isInstructorOrAdmin((string) $session->course_id);
+        }
+
+        return $user->isInstructorOrAdmin();
     }
 
     /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator, 2: bool} */

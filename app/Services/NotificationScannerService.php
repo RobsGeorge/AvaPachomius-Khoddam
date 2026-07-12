@@ -6,6 +6,7 @@ use App\Models\Announcement;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\Event;
+use App\Models\EventAdmin;
 use App\Models\ExamSchedule;
 use App\Models\GradeItem;
 use App\Models\Lecture;
@@ -116,7 +117,7 @@ class NotificationScannerService
 
         $this->preferences->ensureDefaults($student);
         $course = $grade->item?->category?->course;
-        $url = $course ? route('grades.show', $course) : route('notifications.index');
+        $url = $course ? route('grades.show', $course) : null;
 
         $this->generator->createOrUpdate(
             $student,
@@ -188,7 +189,7 @@ class NotificationScannerService
             return;
         }
 
-        $staff = $this->eventStaff($event);
+        $staff = $this->eventAdministrators($event);
         foreach ($staff as $user) {
             $this->preferences->ensureDefaults($user);
             $this->generator->createOrUpdate(
@@ -255,7 +256,7 @@ class NotificationScannerService
                 'custom_reminder',
                 $reminder->title,
                 $reminder->body ?? '',
-                route('notifications.index'),
+                null,
                 'user_notification_reminder',
                 $reminder->id,
                 UserNotification::PRIORITY_NORMAL,
@@ -421,10 +422,7 @@ class NotificationScannerService
                     'session_unclosed',
                     __('notifications.generated.session_unclosed_title', ['title' => $session->session_title ?? '']),
                     __('notifications.generated.session_unclosed_body', ['date' => $session->session_date?->format('d/m/Y')]),
-                    route('attendance.all', [
-                        'filter_by' => 'session',
-                        'session_id' => $session->session_id,
-                    ]),
+                    route('sessions.show', $session),
                     'session',
                     $session->session_id,
                     UserNotification::PRIORITY_NORMAL,
@@ -545,6 +543,25 @@ class NotificationScannerService
         return User::query()
             ->whereIn('user_id', $this->allStudentIds())
             ->get();
+    }
+
+    /** @return Collection<int, User> */
+    private function eventAdministrators(Event $event): Collection
+    {
+        $eventAdminIds = EventAdmin::query()->pluck('user_id');
+
+        return User::query()
+            ->where(function ($query) use ($eventAdminIds) {
+                $query->where('is_superadmin', true)
+                    ->orWhereIn('user_id', $eventAdminIds)
+                    ->orWhereHas('userSystemRoles.role.permissions', function ($permissionQuery) {
+                        $permissionQuery->where('key', 'events.admin');
+                    });
+            })
+            ->get()
+            ->filter(fn (User $user) => $user->isEventAdmin())
+            ->unique('user_id')
+            ->values();
     }
 
     /** @return Collection<int, User> */
