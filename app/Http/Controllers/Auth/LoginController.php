@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogService;
+use App\Services\CourseContextService;
 use App\Services\RegistrationApplicationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Schema;
 class LoginController extends Controller
 {
     public function __construct(
-        private RegistrationApplicationService $applications
+        private RegistrationApplicationService $applications,
+        private CourseContextService $courseContext,
     ) {}
 
     public function showLoginForm()
@@ -47,6 +49,7 @@ class LoginController extends Controller
                 Auth::logout();
             } else {
                 $loginSucceeded = true;
+                $redirectRoute = $this->courseContext->resolvePostLoginRoute($user);
             }
         } else {
             $failureReason = 'Invalid credentials';

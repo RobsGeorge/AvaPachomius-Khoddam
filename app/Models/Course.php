@@ -31,7 +31,12 @@ class Course extends Model
 
     protected $fillable = [
         'title',
+        'title_ar',
+        'title_en',
         'description',
+        'description_ar',
+        'description_en',
+        'branding_theme',
         'year',
         'default_session_start_time',
         'passing_percentage',
@@ -56,7 +61,61 @@ class Course extends Model
         'closed_at'                 => 'datetime',
         'grace_marks_enabled'       => 'boolean',
         'max_grace_marks'           => 'float',
+        'branding_theme'            => 'array',
     ];
+
+    /** @return list<string> */
+    public static function selectableStatuses(): array
+    {
+        return [
+            self::STATUS_ACTIVE,
+            self::STATUS_GRADING_LOCKED,
+            self::STATUS_ANNOUNCED,
+        ];
+    }
+
+    public function isSelectableForContext(): bool
+    {
+        return in_array($this->status, self::selectableStatuses(), true)
+            || ($this->status === null || $this->status === '');
+    }
+
+    public function localizedTitle(?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+        $key = $locale === 'ar' ? 'title_ar' : 'title_en';
+        $localized = $this->{$key};
+
+        if (is_string($localized) && trim($localized) !== '') {
+            return trim($localized);
+        }
+
+        return (string) ($this->title ?? '');
+    }
+
+    public function localizedDescription(?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+        $key = $locale === 'ar' ? 'description_ar' : 'description_en';
+        $localized = $this->{$key};
+
+        if (is_string($localized) && trim($localized) !== '') {
+            return trim($localized);
+        }
+
+        return (string) ($this->description ?? '');
+    }
+
+    /** @return array{primary: ?string, accent: ?string} */
+    public function brandingColors(): array
+    {
+        $theme = $this->branding_theme ?? [];
+
+        return [
+            'primary' => $theme['primary'] ?? null,
+            'accent' => $theme['accent'] ?? null,
+        ];
+    }
 
     protected $attributes = [
         'status' => self::STATUS_ACTIVE,

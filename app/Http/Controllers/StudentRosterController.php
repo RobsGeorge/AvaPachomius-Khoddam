@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Course;
 use App\Services\BirthdayNotificationService;
+use App\Services\CourseContextService;
 use App\Services\StudentRosterService;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,8 @@ class StudentRosterController extends Controller
 {
     public function __construct(
         private StudentRosterService $rosterService,
-        private BirthdayNotificationService $notificationService
+        private BirthdayNotificationService $notificationService,
+        private CourseContextService $courseContext,
     ) {}
 
     public function index(Request $request)
@@ -34,9 +36,11 @@ class StudentRosterController extends Controller
         }
 
         $requestedCourseId = $request->input('course');
-        $course = $requestedCourseId
-            ? $courses->firstWhere('course_id', $requestedCourseId) ?? $courses->first()
-            : $courses->first();
+        $course = $this->courseContext->resolveAccessibleCourse(
+            $user,
+            $courses,
+            $requestedCourseId !== null ? (string) $requestedCourseId : null,
+        );
 
         $this->rosterService->authorizeCourse($user, $course->course_id);
 

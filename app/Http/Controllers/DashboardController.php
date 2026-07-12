@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Course;
 use App\Models\User;
 use App\Services\AnnouncementService;
+use App\Services\CourseContextService;
 use App\Services\NotificationFeedService;
 use App\Services\StudentRosterService;
 use Illuminate\Support\Collection;
@@ -14,14 +15,22 @@ class DashboardController extends Controller
     public function index(
         StudentRosterService $rosterService,
         AnnouncementService $announcementService,
-        NotificationFeedService $notificationFeed
+        NotificationFeedService $notificationFeed,
+        CourseContextService $courseContext,
     ) {
         $todayBirthdays = $this->todaysBirthdays($rosterService);
         $homepageAnnouncements = collect();
         $user = auth()->user();
+        $currentCourse = current_course();
 
         if ($user instanceof User && $user->isStudent()) {
             $homepageAnnouncements = $announcementService->homepageAnnouncements($user);
+            if ($currentCourse) {
+                $homepageAnnouncements = $homepageAnnouncements->filter(
+                    fn ($announcement) => $announcement->course_id === null
+                        || (int) $announcement->course_id === (int) $currentCourse->course_id
+                )->values();
+            }
         }
 
         $unreadNotificationCount = $user instanceof User
@@ -29,10 +38,20 @@ class DashboardController extends Controller
             : 0;
 
         $completedCourses = $user instanceof User && $user->isStudent()
-            ? $this->announcedCoursesForStudent($user)
+            ? $this->announcedCoursesForStudent($user, $currentCourse)
             : collect();
 
-        return view('dashboard', compact('todayBirthdays', 'homepageAnnouncements', 'unreadNotificationCount', 'completedCourses'));
+        $showNoCoursesCta = $user instanceof User
+            && $courseContext->requiresCourseContext($user)
+            && $courseContext->selectableCourses($user)->isEmpty();
+
+        return view('dashboard', compact(
+            'todayBirthdays',
+            'homepageAnnouncements',
+            'unreadNotificationCount',
+            'completedCourses',
+            'showNoCoursesCta',
+        ));
     }
 
     private function todaysBirthdays(StudentRosterService $rosterService): Collection
@@ -43,7 +62,14 @@ class DashboardController extends Controller
             return collect();
         }
 
+        $currentCourse = current_course();
         $todayBirthdays = collect();
+
+        if ($currentCourse) {
+            return $rosterService->studentsWithBirthdayToday(
+                $rosterService->enrolledStudents($currentCourse)
+            )->unique('user_id')->values();
+        }
 
         if ($user->isStudent() && ! $user->isInstructorOrAdmin()) {
             foreach ($rosterService->studentEnrolledCourses($user) as $course) {
@@ -66,11 +92,17 @@ class DashboardController extends Controller
         return $todayBirthdays->unique('user_id')->values();
     }
 
-    private function announcedCoursesForStudent(User $user): Collection
+    private function announcedCoursesForStudent(User $user, ?Course $currentCourse = null): Collection
     {
         $studentCourseIds = app(StudentRosterService::class)
             ->studentEnrolledCourses($user)
             ->pluck('course_id');
+
+        if ($currentCourse) {
+            $studentCourseIds = $studentCourseIds->filter(
+                fn ($id) => (int) $id === (int) $currentCourse->course_id
+            );
+        }
 
         return Course::query()
             ->whereNotNull('grades_announced_at')

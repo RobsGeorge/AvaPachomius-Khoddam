@@ -3,6 +3,7 @@
 namespace App\Http\View\Composers;
 
 use App\Services\AnnouncementService;
+use App\Services\CourseContextService;
 use App\Services\NotificationFeedService;
 use App\Services\ProfilePhotoGateService;
 use App\Services\RegistrationApplicationService;
@@ -19,7 +20,8 @@ class AppLayoutComposer
         private AnnouncementService $announcements,
         private StudentOnboardingService $onboarding,
         private RegistrationApplicationService $applications,
-        private NotificationFeedService $notifications
+        private NotificationFeedService $notifications,
+        private CourseContextService $courseContext,
     ) {}
 
     public function compose(View $view): void
@@ -68,5 +70,16 @@ class AppLayoutComposer
         } else {
             $view->with('showStudentOnboarding', false);
         }
+
+        $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
+        $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
+
+        $view->with('currentCourse', $currentCourse);
+        $view->with('requiresCourseContext', $requiresCourseContext);
+        $view->with('selectableCourses', $requiresCourseContext
+            ? $this->courseContext->selectableCourses($user)
+            : collect());
+        $view->with('instituteName', __('app.institute_name'));
+        $view->with('courseBrandingCss', $this->courseContext->brandingCss($currentCourse));
     }
 }

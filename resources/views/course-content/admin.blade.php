@@ -64,6 +64,72 @@
         </div>
     </div>
 
+    {{-- Localized names and course branding --}}
+    <div class="app-card card shadow-sm mb-4">
+        <div class="card-header fw-semibold">
+            <i class="bi bi-palette"></i> {{ __('course_context.branding_title') }}
+        </div>
+        <div class="card-body">
+            <p class="text-muted-theme small">{{ __('course_context.branding_hint') }}</p>
+            <form method="POST" action="{{ route('courses.update-details', $course->course_id) }}" class="row g-3">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="title" value="{{ old('title', $course->title) }}">
+                <input type="hidden" name="description" value="{{ old('description', $course->description) }}">
+                <input type="hidden" name="year" value="{{ old('year', $course->year) }}">
+                <input type="hidden" name="default_session_start_time" value="{{ old('default_session_start_time', $course->formattedDefaultSessionStartTime()) }}">
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ __('course_context.title_ar') }}</label>
+                    <input type="text" name="title_ar" class="form-control form-control-sm"
+                           value="{{ old('title_ar', $course->title_ar) }}" maxlength="120">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ __('course_context.title_en') }}</label>
+                    <input type="text" name="title_en" class="form-control form-control-sm"
+                           value="{{ old('title_en', $course->title_en) }}" maxlength="120">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ __('course_context.description_ar') }}</label>
+                    <textarea name="description_ar" class="form-control form-control-sm" rows="2">{{ old('description_ar', $course->description_ar) }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold">{{ __('course_context.description_en') }}</label>
+                    <textarea name="description_en" class="form-control form-control-sm" rows="2">{{ old('description_en', $course->description_en) }}</textarea>
+                </div>
+                @php $branding = $course->brandingColors(); @endphp
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">{{ __('course_context.theme_primary') }}</label>
+                    <input type="color" name="branding_primary" class="form-control form-control-color w-100"
+                           value="{{ old('branding_primary', $branding['primary'] ?? '#7c3aed') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold">{{ __('course_context.theme_accent') }}</label>
+                    <input type="color" name="branding_accent" class="form-control form-control-color w-100"
+                           value="{{ old('branding_accent', $branding['accent'] ?? '#d4af37') }}">
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <div class="p-3 rounded border w-100" style="background: var(--color-surface); border-color: var(--color-border) !important;">
+                        <div class="small text-muted-theme mb-2">{{ __('course_context.current_course') }}</div>
+                        <div class="fw-semibold" style="color: var(--color-primary);">{{ $course->localizedTitle() }}</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input type="checkbox" name="inherit_theme" value="1" class="form-check-input" id="inherit_theme"
+                               @checked(old('inherit_theme', empty($course->branding_theme)))>
+                        <label class="form-check-label" for="inherit_theme">{{ __('course_context.inherit_theme') }}</label>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-save"></i> {{ __('pages.save') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     {{-- Module management strip --}}
     <div class="card shadow-sm mb-4 border-primary">
         <div class="card-header fw-semibold text-primary">

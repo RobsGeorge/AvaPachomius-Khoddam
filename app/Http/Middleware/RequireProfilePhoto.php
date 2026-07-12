@@ -63,10 +63,26 @@ class RequireProfilePhoto
             'courses.application.status',
             'courses.application.edit',
             'courses.application.update',
+            'courses.select',
+            'courses.select.store',
         ];
 
         $name = $request->route()?->getName();
 
-        return $name && in_array($name, $allowed, true);
+        if (! $name) {
+            return false;
+        }
+
+        if (in_array($name, $allowed, true)) {
+            return true;
+        }
+
+        foreach (['admin.', 'hubs.', 'user-course-roles.', 'roles.', 'available-courses.'] as $prefix) {
+            if (str_starts_with($name, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

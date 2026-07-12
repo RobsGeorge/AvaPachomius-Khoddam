@@ -30,6 +30,11 @@ class SessionController extends Controller
         $query = Session::with(['course', 'module', 'attendanceClosedBy'])
             ->orderBy('session_date', 'desc');
 
+        $currentCourse = current_course();
+        if ($currentCourse) {
+            $query->where('course_id', $currentCourse->course_id);
+        }
+
         if ($canManageSessions) {
             $query->withCount([
                 'attendances as attended_count' => fn ($q) => $q->whereIn(
@@ -129,9 +134,15 @@ class SessionController extends Controller
 
     public function create()
     {
-        $courses = Course::with('modules')->orderBy('title')->get();
+        $currentCourse = current_course();
+        $courses = $currentCourse
+            ? Course::with('modules')->whereKey($currentCourse->course_id)->orderBy('title')->get()
+            : Course::with('modules')->orderBy('title')->get();
 
-        return view('sessions.create', compact('courses'));
+        return view('sessions.create', [
+            'courses' => $courses,
+            'defaultCourseId' => $currentCourse?->course_id,
+        ]);
     }
 
     public function store(Request $request)

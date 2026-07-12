@@ -4,19 +4,29 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Services\CoursePermissionResolver;
+use App\Services\StudentRosterService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class AssignmentController extends Controller
 {
+    public function __construct(
+        private StudentRosterService $roster,
+        private CoursePermissionResolver $permissions,
+    ) {}
+
     public function index()
     {
-        $assignments = Assignment::orderBy('due_date', 'desc')->get();
+        $assignments = $this->assignmentsQuery()->get();
         $studentSubmissions = collect();
         $submissionCounts = collect();
 
@@ -31,6 +41,7 @@ class AssignmentController extends Controller
             if (Auth::user()->isInstructorOrAdmin()) {
                 $submissionCounts = AssignmentSubmission::query()
                     ->selectRaw('assignment_id, COUNT(*) as count')
+                    ->whereIn('assignment_id', $assignments->pluck('assignment_id'))
                     ->groupBy('assignment_id')
                     ->pluck('count', 'assignment_id');
             }
@@ -41,16 +52,25 @@ class AssignmentController extends Controller
 
     public function create()
     {
-        return view('assignments.create');
+        $this->authorizeAssignmentManage();
+
+        $currentCourse = current_course();
+        $courses = $currentCourse
+            ? Course::whereKey($currentCourse->course_id)->orderBy('title')->get()
+            : Course::orderBy('title')->get();
+
+        return view('assignments.create', [
+            'courses' => $courses,
+            'defaultCourseId' => $currentCourse?->course_id,
+        ]);
     }
 
     public function store(Request $request)
     {
-        Log::info('Assignment creation request received', [
-            'all_data' => $request->all()
-        ]);
+        $this->authorizeAssignmentManage();
 
         $validated = $request->validate([
+            'course_id' => 'required|exists:course,course_id',
             'assignment_name' => 'required|string|max:255',
             'assignment_description' => 'required|string',
             'total_points' => 'required|integer|min:1',
@@ -59,28 +79,12 @@ class AssignmentController extends Controller
             'resources' => 'nullable|string',
         ]);
 
-        Log::info('Validated assignment data', [
-            'validated_data' => $validated
-        ]);
+        $this->authorizeManageCourse((int) $validated['course_id']);
 
         try {
-            Log::info('Attempting to create assignment', [
-                'data' => $validated
-            ]);
-
             $assignment = Assignment::create($validated);
 
-            Log::info('Assignment creation result', [
-                'assignment' => $assignment->toArray(),
-                'exists' => $assignment->exists,
-                'wasRecentlyCreated' => $assignment->wasRecentlyCreated
-            ]);
-
-            if (!$assignment->exists) {
-                Log::error('Failed to create assignment', [
-                    'data' => $validated,
-                    'error' => 'Assignment was not saved to database'
-                ]);
+            if (! $assignment->exists) {
                 return redirect()->back()
                     ->withInput()
                     ->with('error', __('pages.assignment_create_failed'));
@@ -92,7 +96,6 @@ class AssignmentController extends Controller
             Log::error('Error creating assignment', [
                 'data' => $validated,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
 
             return redirect()->back()
@@ -103,6 +106,8 @@ class AssignmentController extends Controller
 
     public function show(Assignment $assignment)
     {
+        $this->authorizeViewAssignment($assignment);
+
         $submissions = $assignment->submissions()->with('user')->orderByDesc('submitted_at')->get();
         $currentSubmission = null;
         $canSubmit = false;
@@ -130,7 +135,12 @@ class AssignmentController extends Controller
 
     public function submissionStatusReport(Assignment $assignment)
     {
-        $students = $this->enrolledStudents();
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
+
+        $students = $this->enrolledStudents($assignment);
         $submissions = $assignment->submissions()->with('user')->get()->keyBy('user_id');
 
         $rows = $students->map(function (User $student) use ($assignment, $submissions) {
@@ -156,11 +166,21 @@ class AssignmentController extends Controller
 
     public function edit(Assignment $assignment)
     {
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
+
         return view('assignments.edit', compact('assignment'));
     }
 
     public function update(Request $request, Assignment $assignment)
     {
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
+
         $validated = $request->validate([
             'assignment_name' => 'required|string|max:255',
             'assignment_description' => 'required|string',
@@ -172,13 +192,15 @@ class AssignmentController extends Controller
 
         try {
             $assignment->update($validated);
+
             return redirect()->route('assignments.index')
                 ->with('success', __('pages.assignment_updated'));
         } catch (\Exception $e) {
             Log::error('Error updating assignment', [
                 'assignment_id' => $assignment->assignment_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', __('pages.assignment_update_failed'));
@@ -187,15 +209,22 @@ class AssignmentController extends Controller
 
     public function destroy(Assignment $assignment)
     {
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
+
         try {
             $assignment->delete();
+
             return redirect()->route('assignments.index')
                 ->with('success', __('pages.assignment_deleted'));
         } catch (\Exception $e) {
             Log::error('Error deleting assignment', [
                 'assignment_id' => $assignment->assignment_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()
                 ->with('error', __('pages.assignment_delete_failed'));
         }
@@ -203,11 +232,13 @@ class AssignmentController extends Controller
 
     public function submit(Request $request, Assignment $assignment)
     {
-        if (!Auth::user()->isStudent()) {
+        $this->authorizeViewAssignment($assignment);
+
+        if (! Auth::user()->isStudent()) {
             abort(403);
         }
 
-        if (!$assignment->isSubmissionOpen()) {
+        if (! $assignment->isSubmissionOpen()) {
             return back()->with('error', __('pages.submission_deadline_passed'));
         }
 
@@ -217,7 +248,7 @@ class AssignmentController extends Controller
 
         $validated = $request->validate([
             'submission_content' => 'required|string',
-            'file' => 'required|file|mimes:pdf|max:' . Assignment::MAX_UPLOAD_KB,
+            'file' => 'required|file|mimes:pdf|max:'.Assignment::MAX_UPLOAD_KB,
         ], [
             'submission_content.required' => __('pages.submission_content_required'),
             'file.required' => __('pages.pdf_required'),
@@ -242,9 +273,13 @@ class AssignmentController extends Controller
     public function grade(Request $request, AssignmentSubmission $submission)
     {
         $assignment = $submission->assignment;
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
 
         $validated = $request->validate([
-            'points_earned' => 'required|integer|min:0|max:' . $assignment->total_points,
+            'points_earned' => 'required|integer|min:0|max:'.$assignment->total_points,
             'feedback' => 'nullable|string',
         ], [
             'points_earned.max' => __('pages.grade_exceeds_total', ['max' => $assignment->total_points]),
@@ -264,8 +299,9 @@ class AssignmentController extends Controller
         } catch (\Exception $e) {
             Log::error('Error grading assignment', [
                 'submission_id' => $submission->submission_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return redirect()->back()
                 ->with('error', __('pages.grade_failed'));
         }
@@ -273,23 +309,33 @@ class AssignmentController extends Controller
 
     public function dashboard()
     {
-        $totalAssignments = Assignment::count();
-        $upcomingAssignments = Assignment::where('due_date', '>', now())->count();
-        $completedAssignments = Assignment::where('due_date', '<', now())->count();
+        $this->authorizeAssignmentManage();
 
-        $upcomingAssignmentsList = Assignment::where('due_date', '>', now())
+        $assignmentsQuery = $this->assignmentsQuery();
+        $assignmentIds = $assignmentsQuery->pluck('assignment_id');
+
+        $totalAssignments = $assignmentsQuery->count();
+        $upcomingAssignments = (clone $assignmentsQuery)->where('due_date', '>', now())->count();
+        $completedAssignments = (clone $assignmentsQuery)->where('due_date', '<', now())->count();
+
+        $upcomingAssignmentsList = (clone $assignmentsQuery)
+            ->where('due_date', '>', now())
             ->orderBy('due_date')
             ->take(5)
             ->get();
 
         $recentSubmissions = AssignmentSubmission::with(['user', 'assignment'])
+            ->whereIn('assignment_id', $assignmentIds)
             ->orderBy('submitted_at', 'desc')
             ->take(5)
             ->get();
 
-        $totalStudents = $this->enrolledStudents()->count();
+        $course = current_course();
+        $totalStudents = $course
+            ? $this->roster->enrolledStudents($course)->count()
+            : $this->enrolledStudents()->count();
 
-        $assignmentSummaries = Assignment::orderBy('due_date', 'desc')->get()->map(function (Assignment $assignment) use ($totalStudents) {
+        $assignmentSummaries = $assignmentsQuery->get()->map(function (Assignment $assignment) use ($totalStudents) {
             $submittedCount = $assignment->submissions()->count();
             $gradedCount = $assignment->submissions()->whereNotNull('points_earned')->count();
 
@@ -314,17 +360,19 @@ class AssignmentController extends Controller
 
     public function updateSubmission(Request $request, AssignmentSubmission $submission)
     {
-        if (!Auth::user()->isStudent() || $submission->user_id !== Auth::id()) {
+        $this->authorizeViewAssignment($submission->assignment);
+
+        if (! Auth::user()->isStudent() || $submission->user_id !== Auth::id()) {
             abort(403);
         }
 
-        if (!$submission->assignment->isSubmissionOpen()) {
+        if (! $submission->assignment->isSubmissionOpen()) {
             return back()->with('error', __('pages.submission_deadline_passed'));
         }
 
         $validated = $request->validate([
             'submission_content' => 'required|string',
-            'file' => 'nullable|file|mimes:pdf|max:' . Assignment::MAX_UPLOAD_KB,
+            'file' => 'nullable|file|mimes:pdf|max:'.Assignment::MAX_UPLOAD_KB,
         ], [
             'submission_content.required' => __('pages.submission_content_required'),
             'file.mimes' => __('pages.pdf_only'),
@@ -351,14 +399,35 @@ class AssignmentController extends Controller
         } catch (\Exception $e) {
             Log::error('Error updating submission', [
                 'submission_id' => $submission->submission_id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return back()->with('error', __('pages.submission_update_failed'));
         }
     }
 
-    private function enrolledStudents()
+    private function assignmentsQuery(): Builder
     {
+        $query = Assignment::query()->orderBy('due_date', 'desc');
+
+        $currentCourse = current_course();
+        if ($currentCourse) {
+            $query->where('course_id', $currentCourse->course_id);
+        }
+
+        return $query;
+    }
+
+    private function enrolledStudents(?Assignment $assignment = null): Collection
+    {
+        $courseId = $assignment?->course_id ?? current_course()?->course_id;
+
+        if ($courseId) {
+            $course = Course::find($courseId);
+
+            return $course ? $this->roster->enrolledStudents($course) : collect();
+        }
+
         $studentRoleIds = Role::studentRoleIds();
 
         if ($studentRoleIds->isEmpty()) {
@@ -375,6 +444,63 @@ class AssignmentController extends Controller
             ->orderBy('first_name')
             ->orderBy('second_name')
             ->get();
+    }
+
+    private function authorizeAssignmentManage(): void
+    {
+        $user = Auth::user();
+        if (! $user || ($user->is_superadmin ?? false)) {
+            return;
+        }
+
+        $course = current_course();
+        if ($course && $this->permissions->canInCourse($user, 'assignment.manage', $course)) {
+            return;
+        }
+
+        if ($user->isInstructorOrAdmin()) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function authorizeManageCourse(?int $courseId): void
+    {
+        if (! $courseId) {
+            return;
+        }
+
+        $user = Auth::user();
+        if (! $user || ($user->is_superadmin ?? false)) {
+            return;
+        }
+
+        $course = Course::findOrFail($courseId);
+        if ($this->permissions->canInCourse($user, 'assignment.manage', $course) || $user->isInstructorOrAdmin((string) $courseId)) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function authorizeViewAssignment(Assignment $assignment): void
+    {
+        $user = Auth::user();
+        if (! $user || ($user->is_superadmin ?? false)) {
+            return;
+        }
+
+        if (! $assignment->course_id) {
+            return;
+        }
+
+        $this->roster->authorizeCourse($user, (string) $assignment->course_id);
+
+        $current = current_course();
+        if ($current && (int) $current->course_id !== (int) $assignment->course_id) {
+            abort(404);
+        }
     }
 
     private function resolveSubmissionStatus(Assignment $assignment, ?AssignmentSubmission $submission): string

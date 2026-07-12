@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Assignment extends Model
@@ -14,6 +15,7 @@ class Assignment extends Model
     protected $primaryKey = 'assignment_id';
     
     protected $fillable = [
+        'course_id',
         'assignment_name',
         'assignment_description',
         'total_points',
@@ -24,7 +26,13 @@ class Assignment extends Model
 
     protected $casts = [
         'due_date' => 'datetime',
+        'course_id' => 'integer',
     ];
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class, 'course_id', 'course_id');
+    }
 
     public function isSubmissionOpen(): bool
     {

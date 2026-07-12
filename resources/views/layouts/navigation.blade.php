@@ -11,10 +11,56 @@
     <div class="container py-2">
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3 flex-wrap">
-                <a href="{{ auth()->check() ? route('dashboard') : route('login') }}" class="brand-link">
-                    <i class="bi bi-mortarboard-fill ms-1"></i>
-                    {{ __('app.name') }}
-                </a>
+                @auth
+                    @if(empty($requiresCourseContext))
+                        <a href="{{ route('dashboard') }}" class="brand-link">
+                            <i class="bi bi-mortarboard-fill ms-1"></i>
+                            {{ __('app.name') }}
+                        </a>
+                    @elseif(!empty($currentCourse))
+                        <div class="dropdown">
+                            <button type="button"
+                                    class="brand-link dropdown-toggle border-0 bg-transparent p-0"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="{{ __('course_context.switch_course') }}">
+                                <i class="bi bi-mortarboard-fill ms-1"></i>
+                                {{ $currentCourse->localizedTitle() }}
+                            </button>
+                            <ul class="dropdown-menu app-dropdown-panel">
+                                @foreach($selectableCourses ?? [] as $row)
+                                    @php $switchCourse = $row['course']; @endphp
+                                    <li>
+                                        <form method="POST" action="{{ route('courses.select.store') }}">
+                                            @csrf
+                                            <input type="hidden" name="course_id" value="{{ $switchCourse->course_id }}">
+                                            <button type="submit"
+                                                    class="dropdown-item app-dropdown-link {{ ($currentCourse->course_id ?? null) === $switchCourse->course_id ? 'active fw-semibold' : '' }}">
+                                                {{ $switchCourse->localizedTitle() }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item app-dropdown-link" href="{{ route('courses.select') }}">
+                                        <i class="bi bi-grid me-2"></i>{{ __('course_context.switch_course') }}
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    @else
+                        <a href="{{ route('courses.select') }}" class="brand-link">
+                            <i class="bi bi-mortarboard-fill ms-1"></i>
+                            {{ $instituteName ?? __('app.institute_name') }}
+                        </a>
+                    @endif
+                @else
+                    <a href="{{ route('login') }}" class="brand-link">
+                        <i class="bi bi-mortarboard-fill ms-1"></i>
+                        {{ __('app.name') }}
+                    </a>
+                @endauth
 
                 @auth
                     <div class="d-none d-md-flex align-items-center gap-1 nav-links">

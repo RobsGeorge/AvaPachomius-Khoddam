@@ -21,6 +21,15 @@ class AnnouncementController extends Controller
 
         $deliveries = $this->announcements->studentInbox($user);
 
+        if ($course = current_course()) {
+            $deliveries = $deliveries->filter(function ($delivery) use ($course) {
+                $announcementCourseId = $delivery->announcement?->course_id;
+
+                return $announcementCourseId === null
+                    || (int) $announcementCourseId === (int) $course->course_id;
+            })->values();
+        }
+
         return view('announcements.index', compact('deliveries'));
     }
 

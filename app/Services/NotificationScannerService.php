@@ -293,9 +293,11 @@ class NotificationScannerService
             ->where('due_date', '<=', now()->addDay())
             ->get();
 
-        $studentIds = $this->allStudentIds();
-
         foreach ($assignments as $assignment) {
+            $studentIds = $assignment->course_id
+                ? $this->studentIdsForCourse((int) $assignment->course_id)
+                : $this->allStudentIds();
+
             foreach ($studentIds as $studentId) {
                 $student = User::query()->find($studentId);
                 if (! $student) {
@@ -506,18 +508,21 @@ class NotificationScannerService
             ->groupBy('assignment_id');
 
         $staffRoleIds = Role::staffRoleIds();
-        $staffUsers = User::query()
-            ->whereHas('userCourseRoles', fn ($q) => $q->whereIn('role_id', $staffRoleIds))
-            ->get();
 
         foreach ($ungraded as $assignmentId => $submissions) {
+            $assignment = $submissions->first()?->assignment;
+            if (! $assignment) {
+                continue;
+            }
+
+            $staffUsers = $this->staffForAssignment($assignment);
+
             foreach ($staffUsers as $staff) {
                 $this->preferences->ensureDefaults($staff);
-                $assignment = $submissions->first()?->assignment;
                 $this->generator->createOrUpdate(
                     $staff,
                     'assignment_needs_grading',
-                    __('notifications.generated.needs_grading_title', ['title' => $assignment?->assignment_name ?? '']),
+                    __('notifications.generated.needs_grading_title', ['title' => $assignment->assignment_name ?? '']),
                     __('notifications.generated.needs_grading_body', ['count' => $submissions->count()]),
                     route('assignments.status', $assignmentId),
                     'assignment',
@@ -591,5 +596,40 @@ class NotificationScannerService
             ->distinct()
             ->pluck('user_id')
             ->all();
+    }
+
+    /** @return list<int> */
+    private function studentIdsForCourse(int $courseId): array
+    {
+        $studentRoleIds = Role::studentRoleIds();
+        if ($studentRoleIds->isEmpty()) {
+            return [];
+        }
+
+        return UserCourseRole::query()
+            ->where('course_id', $courseId)
+            ->whereIn('role_id', $studentRoleIds)
+            ->distinct()
+            ->pluck('user_id')
+            ->all();
+    }
+
+    /** @return Collection<int, User> */
+    private function staffForAssignment(Assignment $assignment): Collection
+    {
+        $staffRoleIds = Role::staffRoleIds();
+        if ($staffRoleIds->isEmpty()) {
+            return collect();
+        }
+
+        $query = User::query()
+            ->whereHas('userCourseRoles', function ($q) use ($staffRoleIds, $assignment) {
+                $q->whereIn('role_id', $staffRoleIds);
+                if ($assignment->course_id) {
+                    $q->where('course_id', $assignment->course_id);
+                }
+            });
+
+        return $query->get();
     }
 }

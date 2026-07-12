@@ -15,6 +15,11 @@ class ModuleController extends Controller
         $query = Module::with('courses')->orderBy('title');
         $counts = ['lectures'];
 
+        $currentCourse = current_course();
+        if ($currentCourse) {
+            $query->whereHas('courses', fn ($q) => $q->where('course.course_id', $currentCourse->course_id));
+        }
+
         $showExamCount = Schema::hasTable('exams') && Schema::hasColumn('exams', 'module_id');
 
         if ($showExamCount) {
@@ -28,9 +33,15 @@ class ModuleController extends Controller
 
     public function create()
     {
-        $courses = Course::orderBy('title')->get();
+        $currentCourse = current_course();
+        $courses = $currentCourse
+            ? Course::whereKey($currentCourse->course_id)->orderBy('title')->get()
+            : Course::orderBy('title')->get();
 
-        return view('modules.create', compact('courses'));
+        return view('modules.create', [
+            'courses' => $courses,
+            'defaultCourseId' => $currentCourse?->course_id,
+        ]);
     }
 
     public function store(Request $request)

@@ -85,7 +85,10 @@ class NotificationActionLinkTest extends EventModuleTestCase
         $course = $this->createCourse();
         $this->assignCourseRole($student, $course, $roles['student']);
 
+        app(\App\Services\CourseContextService::class)->setCurrentCourse($student, $course->course_id);
+
         $assignment = Assignment::create([
+            'course_id' => $course->course_id,
             'assignment_name' => 'Linked assignment',
             'assignment_description' => 'Submit soon',
             'total_points' => 10,

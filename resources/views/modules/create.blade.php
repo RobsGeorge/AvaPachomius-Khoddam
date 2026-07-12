@@ -40,7 +40,7 @@
                     <select name="course_id" class="form-select @error('course_id') is-invalid @enderror">
                         <option value="">{{ __('pages.select_course') }}</option>
                         @foreach($courses as $course)
-                            <option value="{{ $course->course_id }}" @selected(old('course_id') == $course->course_id)>
+                            <option value="{{ $course->course_id }}" @selected(old('course_id', $defaultCourseId ?? null) == $course->course_id)>
                                 {{ $course->title }} ({{ $course->year }})
                             </option>
                         @endforeach

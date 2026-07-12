@@ -7,6 +7,7 @@ use App\Models\CourseGraduationStudent;
 use App\Models\GradeCategory;
 use App\Services\GraduationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class GraduationController extends Controller
@@ -18,6 +19,13 @@ class GraduationController extends Controller
     /** Overview across all courses. */
     public function index()
     {
+        $user = Auth::user();
+        $currentCourse = current_course();
+
+        if ($currentCourse && ! ($user->is_superadmin ?? false)) {
+            return redirect()->route('graduation.show', $currentCourse->course_id);
+        }
+
         $courses = Course::orderBy('year', 'desc')->orderBy('title')->get();
 
         $summaries = $courses->map(function (Course $course) {

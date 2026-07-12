@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'select_title' => 'Choose your course',
+    'select_intro' => 'Select the course you want to work in. You can switch courses anytime from the navigation bar.',
+    'your_role' => 'Your role: :role',
+    'status_active' => 'Active',
+    'status_grading_locked' => 'Grading locked',
+    'status_announced' => 'Grades announced',
+    'switch_course' => 'Switch course',
+    'current_course' => 'Current course',
+    'no_active_courses' => 'You are not enrolled in any active courses right now.',
+    'no_active_courses_hint' => 'When a course becomes available, it will appear here for you to select.',
+    'invalid_course' => 'You cannot access this course.',
+    'course_selected' => 'Course selected successfully.',
+    'branding_title' => 'Course branding',
+    'branding_hint' => 'Optional display names and colors for this course. Leave colors empty to use the institute default theme.',
+    'title_ar' => 'Arabic title',
+    'title_en' => 'English title',
+    'description_ar' => 'Arabic description',
+    'description_en' => 'English description',
+    'theme_primary' => 'Primary color',
+    'theme_accent' => 'Accent color',
+    'branding_saved' => 'Course branding saved.',
+    'inherit_theme' => 'Use institute default theme (no custom colors)',
+];

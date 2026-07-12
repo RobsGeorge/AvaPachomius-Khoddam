@@ -103,7 +103,7 @@ class AttendanceController extends Controller
         $student = User::find($userId);
         $today = now()->toDateString();
 
-        $sessions = Session::with('course')
+        $sessions = $this->scopeSessionsToCurrentCourse(Session::with('course'))
             ->whereDate('session_date', $today)
             ->orderBy('session_title')
             ->get();
@@ -217,7 +217,7 @@ class AttendanceController extends Controller
             $subgroupByStatus = true;
         }
 
-        $sessionOptions = Session::query()
+        $sessionOptions = $this->scopeSessionsToCurrentCourse(Session::query())
             ->with('course')
             ->orderByDesc('session_date')
             ->orderBy('session_title')
@@ -319,6 +319,7 @@ class AttendanceController extends Controller
     private function filteredAttendanceQuery(Request $request, string $filterBy): Builder
     {
         $query = $this->scopeToStudents(Attendance::query());
+        $query = $this->scopeAttendanceToCurrentCourse($query);
 
         if ($filterBy === 'date' && $request->filled('session_date')) {
             $query->whereHas('session', function ($sessionQuery) use ($request) {
@@ -348,6 +349,28 @@ class AttendanceController extends Controller
         return $query;
     }
 
+    private function scopeAttendanceToCurrentCourse(Builder $query): Builder
+    {
+        $course = current_course();
+        if (! $course) {
+            return $query;
+        }
+
+        return $query->whereHas('session', function ($sessionQuery) use ($course) {
+            $sessionQuery->where('course_id', $course->course_id);
+        });
+    }
+
+    private function scopeSessionsToCurrentCourse(Builder $query): Builder
+    {
+        $course = current_course();
+        if (! $course) {
+            return $query;
+        }
+
+        return $query->where('course_id', $course->course_id);
+    }
+
     /** @return Collection<int, int> */
     private function sessionIdsForModule(int $moduleId): Collection
     {
@@ -367,7 +390,7 @@ class AttendanceController extends Controller
     {
         $attendanceSessionIds = $this->scopeToStudents(Attendance::query())->select('session_id');
 
-        $moduleIds = Session::query()
+        $moduleIds = $this->scopeSessionsToCurrentCourse(Session::query())
             ->whereIn('session_id', $attendanceSessionIds)
             ->whereNotNull('module_id')
             ->pluck('module_id')

@@ -11,6 +11,16 @@
 
     <h1 class="page-title">{{ __('dashboard.title') }}</h1>
 
+    @if(!empty($showNoCoursesCta))
+        <div class="app-card card shadow-sm mb-4 border-warning border-opacity-50">
+            <div class="card-body text-center py-4">
+                <i class="bi bi-journal-x fs-1 text-muted-theme d-block mb-3"></i>
+                <h2 class="h5">{{ __('course_context.no_active_courses') }}</h2>
+                <p class="text-muted-theme mb-0">{{ __('course_context.no_active_courses_hint') }}</p>
+            </div>
+        </div>
+    @endif
+
     <div class="text-center my-5">
         <p class="display-5 fw-bold page-title mb-0">
             {{ __('dashboard.hello', ['name' => Auth::user()->first_name ?? __('dashboard.user_fallback')]) }}

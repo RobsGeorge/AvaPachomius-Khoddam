@@ -6,6 +6,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\CourseContextController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ContentController;
@@ -82,6 +83,8 @@ require __DIR__.'/auth.php';
 
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/courses/select', [CourseContextController::class, 'show'])->name('courses.select');
+    Route::post('/courses/select', [CourseContextController::class, 'store'])->name('courses.select.store');
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');

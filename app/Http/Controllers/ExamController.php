@@ -30,6 +30,11 @@ class ExamController extends Controller
             $query->where('is_published', true);
         }
 
+        $currentCourse = current_course();
+        if ($currentCourse) {
+            $query->where('course_id', $currentCourse->course_id);
+        }
+
         $exams = $query->get();
 
         return view('exams.index', compact('exams'));
@@ -37,9 +42,22 @@ class ExamController extends Controller
 
     public function dashboard()
     {
-        $courses = Course::orderBy('title')->get(['course_id', 'title', 'year']);
-        $modules = Module::with('courses')->orderBy('title')->get();
-        $exams = Exam::with(['module', 'course', 'schedules', 'results'])->orderBy('exam_name')->get();
+        $currentCourse = current_course();
+        $courses = $currentCourse
+            ? Course::whereKey($currentCourse->course_id)->get(['course_id', 'title', 'year'])
+            : Course::orderBy('title')->get(['course_id', 'title', 'year']);
+
+        $modulesQuery = Module::with('courses')->orderBy('title');
+        if ($currentCourse) {
+            $modulesQuery->whereHas('courses', fn ($q) => $q->where('course.course_id', $currentCourse->course_id));
+        }
+        $modules = $modulesQuery->get();
+
+        $examsQuery = Exam::with(['module', 'course', 'schedules', 'results'])->orderBy('exam_name');
+        if ($currentCourse) {
+            $examsQuery->where('course_id', $currentCourse->course_id);
+        }
+        $exams = $examsQuery->get();
 
         return view('exams.dashboard', compact('exams', 'courses', 'modules'));
     }

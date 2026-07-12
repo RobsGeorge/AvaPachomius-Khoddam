@@ -20,6 +20,22 @@
                         @csrf
 
                         <div class="form-group mb-3">
+                            <label for="course_id">{{ __('pages.course') }} <span class="text-danger">*</span></label>
+                            <select name="course_id" id="course_id" class="form-select @error('course_id') is-invalid @enderror" required>
+                                <option value="">{{ __('pages.select_course') }}</option>
+                                @foreach($courses as $course)
+                                    <option value="{{ $course->course_id }}"
+                                        @selected(old('course_id', $defaultCourseId ?? null) == $course->course_id)>
+                                        {{ $course->localizedTitle() }}@if($course->year) ({{ $course->year }})@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('course_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group mb-3">
                             <label for="assignment_name">{{ __('pages.assignment_name') }}</label>
                             <input type="text" class="form-control @error('assignment_name') is-invalid @enderror"
                                    id="assignment_name" name="assignment_name" value="{{ old('assignment_name') }}" required>

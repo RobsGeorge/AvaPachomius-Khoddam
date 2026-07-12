@@ -94,6 +94,7 @@ class NotificationHubTest extends EventModuleTestCase
         $this->assignCourseRole($student, $course, $roles['student']);
 
         Assignment::create([
+            'course_id' => $course->course_id,
             'assignment_name' => 'Due Tomorrow',
             'assignment_description' => 'Test assignment',
             'total_points' => 10,

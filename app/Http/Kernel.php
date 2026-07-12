@@ -41,6 +41,8 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\RequireMandatoryFeedback::class,
             \App\Http\Middleware\RequireProfilePhoto::class,
             \App\Http\Middleware\RequireApprovedApplication::class,
+            \App\Http\Middleware\SyncCourseContextFromRoute::class,
+            \App\Http\Middleware\EnsureCourseContext::class,
         ],
 
         'api' => [
@@ -80,5 +82,6 @@ class Kernel extends HttpKernel
         'course.application' => \App\Http\Middleware\RequireApprovedCourseApplication::class,
         'course.grading' => \App\Http\Middleware\EnsureCourseAllowsGrading::class,
         'course.assessments' => \App\Http\Middleware\EnsureCourseAllowsAssessments::class,
+        'course.context' => \App\Http\Middleware\EnsureCourseContext::class,
     ];
 }

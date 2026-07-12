@@ -153,17 +153,26 @@ class NavigationHub
             $links[] = self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*'], 'graduation.settings');
         }
 
-        $courseWithRoleManage = $user->userCourseRoles()
-            ->whereNull('staff_archived_at')
-            ->pluck('course_id')
-            ->first(function ($courseId) use ($user, $resolver) {
-                $course = Course::find($courseId);
+        $courseWithRoleManage = null;
+        $currentCourse = current_course();
 
-                return $course && $resolver->canInCourse($user, 'role.manage', $course);
-            });
+        if ($currentCourse && $resolver->canInCourse($user, 'role.manage', $currentCourse)) {
+            $courseWithRoleManage = $currentCourse->course_id;
+        } else {
+            $courseWithRoleManage = $user->userCourseRoles()
+                ->whereNull('staff_archived_at')
+                ->pluck('course_id')
+                ->first(function ($courseId) use ($user, $resolver) {
+                    $course = Course::find($courseId);
+
+                    return $course && $resolver->canInCourse($user, 'role.manage', $course);
+                });
+        }
 
         if ($courseWithRoleManage) {
-            $course = Course::find($courseWithRoleManage);
+            $course = $currentCourse && (int) $currentCourse->course_id === (int) $courseWithRoleManage
+                ? $currentCourse
+                : Course::find($courseWithRoleManage);
             $links[] = [
                 'url' => route('courses.roles.index', $course),
                 'label' => __('rbac.title'),
@@ -226,6 +235,28 @@ class NavigationHub
 
     protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null): array
     {
+        $course = current_course();
+        if ($course && $routeName === 'curriculum.index') {
+            return [
+                'url' => route('curriculum.show', $course->course_id),
+                'label' => __($labelKey),
+                'icon' => $icon,
+                'active' => request()->routeIs(...$patterns)
+                    || request()->routeIs('curriculum.show', 'curriculum.admin'),
+                'permission' => $permission,
+            ];
+        }
+
+        if ($course && $routeName === 'graduation.index') {
+            return [
+                'url' => route('graduation.show', $course->course_id),
+                'label' => __($labelKey),
+                'icon' => $icon,
+                'active' => request()->routeIs('graduation.show', 'graduation.export', 'graduation.*'),
+                'permission' => $permission,
+            ];
+        }
+
         return [
             'url' => route($routeName),
             'label' => __($labelKey),

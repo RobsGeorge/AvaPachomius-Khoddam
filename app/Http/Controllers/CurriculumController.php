@@ -23,6 +23,11 @@ class CurriculumController extends Controller
     {
         $user = Auth::user();
 
+        $currentCourse = current_course();
+        if ($currentCourse && ! ($user->is_superadmin ?? false)) {
+            return redirect()->route('curriculum.show', $currentCourse->course_id);
+        }
+
         if ($user->hasAnyRole(['admin', 'instructor'])) {
             $courses = Course::orderBy('title')->get();
         } else {
@@ -211,19 +216,51 @@ class CurriculumController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:30',
             'description' => 'required|string|max:255',
+            'title_ar' => 'nullable|string|max:120',
+            'title_en' => 'nullable|string|max:120',
+            'description_ar' => 'nullable|string|max:2000',
+            'description_en' => 'nullable|string|max:2000',
+            'branding_primary' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'branding_accent' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'inherit_theme' => 'sometimes|boolean',
             'year' => 'required|integer|min:2000|max:2100',
             'default_session_start_time' => 'required|date_format:H:i',
         ]);
 
-        $course->update([
+        $courseUpdate = [
             'title' => $validated['title'],
             'description' => $validated['description'],
             'year' => $validated['year'],
             'default_session_start_time' => $validated['default_session_start_time'].':00',
-        ]);
+        ];
+
+        if ($request->has('title_ar') || $request->has('title_en') || $request->has('description_ar') || $request->has('description_en')) {
+            $courseUpdate['title_ar'] = $validated['title_ar'] ?? null;
+            $courseUpdate['title_en'] = $validated['title_en'] ?? null;
+            $courseUpdate['description_ar'] = $validated['description_ar'] ?? null;
+            $courseUpdate['description_en'] = $validated['description_en'] ?? null;
+        }
+
+        if ($request->has('branding_primary') || $request->has('branding_accent') || $request->boolean('inherit_theme')) {
+            if ($request->boolean('inherit_theme')) {
+                $courseUpdate['branding_theme'] = null;
+            } else {
+                $brandingTheme = array_filter([
+                    'primary' => $validated['branding_primary'] ?? null,
+                    'accent' => $validated['branding_accent'] ?? null,
+                ]);
+                $courseUpdate['branding_theme'] = $brandingTheme === [] ? null : $brandingTheme;
+            }
+        }
+
+        $course->update($courseUpdate);
+
+        $message = ($request->has('title_ar') || $request->has('branding_primary') || $request->boolean('inherit_theme'))
+            ? __('course_context.branding_saved')
+            : __('pages.course_details_saved');
 
         return redirect()
             ->route('curriculum.admin', $courseId)
-            ->with('success', __('pages.course_details_saved'));
+            ->with('success', $message);
     }
 }

@@ -34,7 +34,7 @@
                         <option value="">{{ __('pages.select_course') }}</option>
                         @foreach($courses as $course)
                             <option value="{{ $course->course_id }}"
-                                {{ old('course_id') == $course->course_id ? 'selected' : '' }}>
+                                {{ old('course_id', $defaultCourseId ?? null) == $course->course_id ? 'selected' : '' }}>
                                 {{ $course->title }} ({{ $course->year }})
                             </option>
                         @endforeach

@@ -24,6 +24,10 @@
     <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260715b">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    @if(!empty($courseBrandingCss))
+        <style>{!! $courseBrandingCss !!}</style>
+    @endif
+
     @stack('styles')
 </head>
 
