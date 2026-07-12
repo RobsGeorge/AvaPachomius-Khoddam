@@ -421,7 +421,10 @@ class NotificationScannerService
                     'session_unclosed',
                     __('notifications.generated.session_unclosed_title', ['title' => $session->session_title ?? '']),
                     __('notifications.generated.session_unclosed_body', ['date' => $session->session_date?->format('d/m/Y')]),
-                    route('sessions.show', $session),
+                    route('attendance.all', [
+                        'filter_by' => 'session',
+                        'session_id' => $session->session_id,
+                    ]),
                     'session',
                     $session->session_id,
                     UserNotification::PRIORITY_NORMAL,

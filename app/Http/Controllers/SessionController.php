@@ -51,6 +51,14 @@ class SessionController extends Controller
         return view('sessions.index', compact('sessions', 'todayLocal', 'canManageSessions', 'missingCounts'));
     }
 
+    public function show(Session $session)
+    {
+        return redirect()->route('attendance.all', [
+            'filter_by' => 'session',
+            'session_id' => $session->session_id,
+        ]);
+    }
+
     public function closeAttendance(Session $session)
     {
         if ($session->isAttendanceClosed()) {

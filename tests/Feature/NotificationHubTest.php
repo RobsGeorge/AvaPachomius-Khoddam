@@ -244,4 +244,48 @@ class NotificationHubTest extends EventModuleTestCase
         $this->assertSame(\App\Models\NotificationWhatsappDelivery::STATUS_SENT, $delivery->status);
         $this->assertSame('wamid.test', $delivery->provider_message_id);
     }
+
+    public function test_sessions_show_redirects_to_attendance_for_session(): void
+    {
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'notif-session-admin@example.com']);
+        $course = $this->createCourse();
+        $session = \App\Models\Session::create([
+            'course_id' => $course->course_id,
+            'session_title' => 'Week 3 Lecture',
+            'session_date' => now()->subDays(10)->toDateString(),
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sessions.show', $session))
+            ->assertRedirect(route('attendance.all', [
+                'filter_by' => 'session',
+                'session_id' => $session->session_id,
+            ]));
+    }
+
+    public function test_session_notification_link_reaches_attendance_page(): void
+    {
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'notif-session-follow@example.com']);
+        $course = $this->createCourse();
+        $session = \App\Models\Session::create([
+            'course_id' => $course->course_id,
+            'session_title' => 'Week 3 Lecture',
+            'session_date' => now()->subDays(10)->toDateString(),
+        ]);
+
+        $notification = UserNotification::create([
+            'user_id' => $admin->user_id,
+            'type' => 'session_unclosed',
+            'title' => 'Close attendance',
+            'body' => 'Session still open',
+            'action_url' => route('sessions.show', $session),
+            'dedupe_key' => "session_unclosed:{$session->session_id}",
+        ]);
+
+        $this->actingAs($admin)
+            ->followingRedirects()
+            ->get(route('notifications.show', $notification))
+            ->assertOk()
+            ->assertSee('Week 3 Lecture');
+    }
 }
