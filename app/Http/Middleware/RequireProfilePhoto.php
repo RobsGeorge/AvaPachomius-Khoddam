@@ -77,7 +77,7 @@ class RequireProfilePhoto
             return true;
         }
 
-        foreach (['admin.', 'hubs.', 'user-course-roles.', 'roles.', 'available-courses.'] as $prefix) {
+        foreach (['admin.', 'hubs.', 'user-course-roles.', 'roles.', 'available-courses.', 'events.'] as $prefix) {
             if (str_starts_with($name, $prefix)) {
                 return true;
             }

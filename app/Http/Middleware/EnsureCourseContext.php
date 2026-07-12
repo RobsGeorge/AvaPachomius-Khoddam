@@ -53,6 +53,8 @@ class EnsureCourseContext
             return $next($request);
         }
 
+        $this->courseContext->autoSelectSingleCourse($user);
+
         if ($this->courseContext->currentCourse($user)) {
             return $next($request);
         }
@@ -74,6 +76,7 @@ class EnsureCourseContext
         'roles.',
         'hubs.',
         'available-courses.',
+        'events.',
     ];
 
     private function isExceptedRoute(string $routeName): bool

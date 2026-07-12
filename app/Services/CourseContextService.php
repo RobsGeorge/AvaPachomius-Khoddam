@@ -193,6 +193,18 @@ class CourseContextService
         return 'courses.select';
     }
 
+    public function autoSelectSingleCourse(User $user): void
+    {
+        if (! $this->requiresCourseContext($user) || $this->currentCourse($user)) {
+            return;
+        }
+
+        $selectable = $this->selectableCourses($user);
+        if ($selectable->count() === 1) {
+            $this->setCurrentCourse($user, (int) $selectable->first()['course']->course_id);
+        }
+    }
+
     public function brandingCss(?Course $course): ?string
     {
         if (! $course) {
