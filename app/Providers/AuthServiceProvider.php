@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Permission;
 use App\Services\CoursePermissionResolver;
+use App\Services\RolePreviewService;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -18,7 +19,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         Gate::before(function ($user, $ability) {
-            if ($user->is_superadmin ?? false) {
+            if (RolePreviewService::superadminBypassesPermissions($user)) {
                 return true;
             }
 

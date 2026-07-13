@@ -29,6 +29,10 @@ class CoursePermissionResolver
 
     public function permissionsInCourse(User $user, Course $course): Collection
     {
+        if (RolePreviewService::isActive() && ($user->is_superadmin ?? false)) {
+            return $this->previewPermissionsInCourse($course);
+        }
+
         if ($user->is_superadmin ?? false) {
             return $this->courseRbacReady() ? Permission::pluck('key') : collect();
         }
@@ -43,6 +47,10 @@ class CoursePermissionResolver
 
     public function permissionsInSystem(User $user): Collection
     {
+        if (RolePreviewService::isActive() && ($user->is_superadmin ?? false)) {
+            return $this->previewPermissionsInSystem();
+        }
+
         if ($user->is_superadmin ?? false) {
             return $this->systemRbacReady() ? Permission::pluck('key') : collect();
         }
@@ -71,7 +79,7 @@ class CoursePermissionResolver
 
     public function canInCourse(User $user, string $permission, Course $course): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -80,7 +88,7 @@ class CoursePermissionResolver
 
     public function canInSystem(User $user, string $permission): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -93,7 +101,7 @@ class CoursePermissionResolver
 
     public function canAnyInCourse(User $user, array $permissions, Course $course): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -110,7 +118,7 @@ class CoursePermissionResolver
 
     public function canAnyInSystem(User $user, array $permissions): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -127,8 +135,17 @@ class CoursePermissionResolver
 
     public function hasCourseAccess(User $user, Course|string $course): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
+        }
+
+        if (RolePreviewService::isActive() && ($user->is_superadmin ?? false)) {
+            $previewCourseId = session(RolePreviewService::SESSION_COURSE_ID);
+            $resolved = $course instanceof Course ? $course : Course::find($course);
+
+            return $resolved
+                && $previewCourseId
+                && (int) $resolved->course_id === (int) $previewCourseId;
         }
 
         $course = $course instanceof Course ? $course : Course::find($course);
@@ -194,6 +211,58 @@ class CoursePermissionResolver
             'user.assign_role', 'course.close', 'assignment.submit',
             'exam.take', 'exam.proctor', 'events.reserve',
         ], true);
+    }
+
+    private function previewPermissionsInCourse(Course $course): Collection
+    {
+        if (! $this->courseRbacReady() || RolePreviewService::isGeneral()) {
+            return collect();
+        }
+
+        $previewCourseId = session(RolePreviewService::SESSION_COURSE_ID);
+        if (! $previewCourseId || (int) $course->course_id !== (int) $previewCourseId) {
+            return collect();
+        }
+
+        $role = RolePreviewService::previewRole();
+        if (! $role) {
+            return collect();
+        }
+
+        return $this->permissionsForRole($role, $course);
+    }
+
+    private function previewPermissionsInSystem(): Collection
+    {
+        if (! RolePreviewService::isGeneral() || ! $this->systemRbacReady()) {
+            return collect();
+        }
+
+        $role = RolePreviewService::previewRole();
+        if (! $role) {
+            return collect();
+        }
+
+        return $this->permissionsForRole($role, null);
+    }
+
+    private function permissionsForRole(Role $role, ?Course $course): Collection
+    {
+        if (! $this->courseRbacReady()) {
+            return collect();
+        }
+
+        $keys = DB::table('role_permission')
+            ->join('permissions', 'permissions.permission_id', '=', 'role_permission.permission_id')
+            ->where('role_permission.role_id', $role->role_id)
+            ->whereNull('permissions.deprecated_at')
+            ->pluck('permissions.key');
+
+        if ($course instanceof Course) {
+            return $this->filterByLifecycle($course, $keys);
+        }
+
+        return $keys;
     }
 
     private function resolveCoursePermissions(User $user, Course $course): Collection

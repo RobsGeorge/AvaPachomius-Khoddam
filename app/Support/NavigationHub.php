@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Course;
 use App\Models\User;
 use App\Services\CoursePermissionResolver;
+use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
 
 class NavigationHub
@@ -375,7 +376,7 @@ class NavigationHub
 
     private static function canAnyCourse(User $user, CoursePermissionResolver $resolver, array $permissions): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -383,6 +384,17 @@ class NavigationHub
             if ($user->canInSystem($perm)) {
                 return true;
             }
+        }
+
+        if (RolePreviewService::isActive()) {
+            if (RolePreviewService::isGeneral()) {
+                return false;
+            }
+
+            $course = RolePreviewService::previewCourse();
+
+            return $course instanceof Course
+                && $resolver->canAnyInCourse($user, $permissions, $course);
         }
 
         foreach ($user->userCourseRoles()->activeStaff()->pluck('course_id') as $courseId) {

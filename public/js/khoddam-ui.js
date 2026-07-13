@@ -237,6 +237,27 @@
         return /delete|destroy|remove|cancel|flush|حذف|إلغاء/.test(text);
     }
 
+    function releaseSwalBodyLock() {
+        document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+    }
+
+    function submitConfirmedForm(form) {
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        if (typeof Swal !== 'undefined') {
+            Swal.close();
+        }
+
+        releaseSwalBodyLock();
+
+        // Native submit bypasses submit listeners (avoids SweetAlert re-intercept loop).
+        form.submit();
+    }
+
     function migrateInlineConfirmHandlers() {
         document.querySelectorAll('form[onsubmit]').forEach((form) => {
             const code = form.getAttribute('onsubmit') || '';
@@ -281,11 +302,6 @@
                 return;
             }
 
-            if (form.dataset.khoddamConfirmed === '1') {
-                delete form.dataset.khoddamConfirmed;
-                return;
-            }
-
             const message = form.dataset.confirm;
             if (!message) {
                 return;
@@ -298,8 +314,7 @@
                 if (!ok) {
                     return;
                 }
-                form.dataset.khoddamConfirmed = '1';
-                form.requestSubmit();
+                submitConfirmedForm(form);
             });
         }, true);
 
@@ -322,8 +337,7 @@
                 if (!ok) {
                     return;
                 }
-                form.dataset.khoddamConfirmed = '1';
-                form.requestSubmit();
+                submitConfirmedForm(form);
             });
         }, true);
     }

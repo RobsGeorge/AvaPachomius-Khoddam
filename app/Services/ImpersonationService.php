@@ -39,9 +39,15 @@ class ImpersonationService
             abort(403);
         }
 
-        if (self::isActive()) {
+        if (ImpersonationService::isActive()) {
             throw ValidationException::withMessages([
                 'user' => [__('pages.impersonate_already_active')],
+            ]);
+        }
+
+        if (RolePreviewService::isActive()) {
+            throw ValidationException::withMessages([
+                'user' => [__('pages.impersonate_while_role_preview')],
             ]);
         }
 

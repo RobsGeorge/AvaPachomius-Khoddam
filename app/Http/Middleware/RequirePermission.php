@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Course;
 use App\Services\CoursePermissionResolver;
+use App\Services\RolePreviewService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,7 +20,7 @@ class RequirePermission
         $user = $request->user();
         abort_unless($user, 403);
 
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return $next($request);
         }
 

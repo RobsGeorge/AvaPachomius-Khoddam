@@ -428,6 +428,10 @@ Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopI
     ->middleware(['auth', 'impersonator.stop'])
     ->name('superadmin.impersonate.stop');
 
+Route::post('/superadmin/role-preview/stop', [SuperAdminController::class, 'stopRolePreview'])
+    ->middleware(['auth', 'superadmin'])
+    ->name('superadmin.role-preview.stop');
+
 // Superadmin routes — accessible only by users with is_superadmin = true
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
@@ -438,6 +442,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');
+    Route::post('/role-preview',            [SuperAdminController::class, 'previewRole'])->name('role-preview');
     Route::post('/assignments',              [SuperAdminController::class, 'store'])->name('store');
     Route::delete('/assignments/{id}',       [SuperAdminController::class, 'destroy'])->name('destroy');
     Route::post('/roles',                    [SuperAdminController::class, 'storeRole'])->name('roles.store');

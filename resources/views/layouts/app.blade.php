@@ -52,6 +52,7 @@
         @include('layouts.partials.announcement-banners')
 
         @include('layouts.impersonation-banner')
+        @include('layouts.role-preview-banner')
 
         <main class="app-main flex-grow-1">
             @include('layouts.partials.flash-toast')
@@ -67,7 +68,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260713g"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260713h"></script>
     @stack('scripts')
 </body>
 </html>

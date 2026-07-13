@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\ImpersonationService;
+use App\Services\RolePreviewService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -169,6 +170,10 @@ class User extends Authenticatable
 
     public function hasRole(string $roleName, ?string $courseId = null): bool
     {
+        if (RolePreviewService::matchesRoleName($this, $roleName, $courseId)) {
+            return true;
+        }
+
         if ($courseId) {
             return $this->userCourseRoles()
                 ->where('course_id', $courseId)
@@ -183,25 +188,56 @@ class User extends Authenticatable
 
     public function hasAnyRole(array $roleNames): bool
     {
-        return $this->roles->contains(
-            fn ($role) => collect($roleNames)->contains(
-                fn ($name) => strcasecmp($role->role_name, $name) === 0
-            )
-        );
+        foreach ($roleNames as $name) {
+            if ($this->hasRole($name)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function previewRoleSlug(): ?string
+    {
+        if (! ($this->is_superadmin ?? false) || ! RolePreviewService::isActive()) {
+            return null;
+        }
+
+        return RolePreviewService::previewRole()?->effectiveSlug();
     }
 
     public function isStudent(): bool
     {
+        $slug = $this->previewRoleSlug();
+        if ($slug !== null) {
+            return $slug === 'student';
+        }
+
         return $this->hasRole('student');
     }
 
     public function isInstructor(): bool
     {
+        $slug = $this->previewRoleSlug();
+        if ($slug !== null) {
+            return $slug === 'instructor';
+        }
+
         return $this->hasRole('instructor');
     }
 
     public function isAdmin(?string $courseId = null): bool
     {
+        $slug = $this->previewRoleSlug();
+        if ($slug !== null) {
+            if ($courseId && ! RolePreviewService::isGeneral()) {
+                return $slug === 'admin'
+                    && (int) $courseId === (int) session(RolePreviewService::SESSION_COURSE_ID);
+            }
+
+            return $slug === 'admin' || $this->canInSystem('system.role.manage');
+        }
+
         if ($courseId) {
             return $this->hasRole('admin', $courseId);
         }
@@ -211,6 +247,16 @@ class User extends Authenticatable
 
     public function isInstructorOrAdmin(?string $courseId = null): bool
     {
+        $slug = $this->previewRoleSlug();
+        if ($slug !== null) {
+            if ($courseId && ! RolePreviewService::isGeneral()) {
+                return in_array($slug, ['admin', 'instructor'], true)
+                    && (int) $courseId === (int) session(RolePreviewService::SESSION_COURSE_ID);
+            }
+
+            return in_array($slug, ['admin', 'instructor'], true) || $this->canInSystem('system.role.manage');
+        }
+
         if ($courseId) {
             return $this->hasRole('admin', $courseId) || $this->hasRole('instructor', $courseId);
         }
@@ -224,8 +270,11 @@ class User extends Authenticatable
 
     public function isEventAdmin(): bool
     {
-        return ($this->is_superadmin ?? false)
-            || $this->canInSystem('events.admin')
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
+            return true;
+        }
+
+        return $this->canInSystem('events.admin')
             || $this->hasRole('admin')
             || EventAdmin::where('user_id', $this->user_id)->exists();
     }

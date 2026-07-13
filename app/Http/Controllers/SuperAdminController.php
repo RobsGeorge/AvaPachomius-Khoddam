@@ -10,6 +10,7 @@ use App\Services\CourseRoleAssignmentService;
 use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
+use App\Services\RolePreviewService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use App\Support\NavigationHub;
@@ -41,8 +42,20 @@ class SuperAdminController extends Controller
     public function security()
     {
         $users = User::with('roles')->orderBy('first_name')->get();
+        $courses = Course::orderBy('year', 'desc')->orderBy('title')->get();
+        $rolesByCourse = Role::assignableToCourses()
+            ->with('course')
+            ->orderBy('role_name')
+            ->get()
+            ->groupBy('course_id');
+        $systemRoles = Role::query()
+            ->whereNull('course_id')
+            ->where('is_template', false)
+            ->where('is_system', true)
+            ->orderBy('role_name')
+            ->get();
 
-        return view('superadmin.security', compact('users'));
+        return view('superadmin.security', compact('users', 'courses', 'rolesByCourse', 'systemRoles'));
     }
 
     public function eventAdmins()
@@ -254,5 +267,62 @@ class SuperAdminController extends Controller
         return redirect()
             ->route('superadmin.index')
             ->with('success', __('pages.impersonate_stopped'));
+    }
+
+    public function previewRole(Request $request)
+    {
+        $superadmin = $request->user();
+        abort_unless($superadmin?->is_superadmin, 403);
+
+        $isGeneral = $request->boolean('general_role');
+
+        if ($isGeneral) {
+            $validated = $request->validate([
+                'general_role' => ['sometimes', 'boolean'],
+                'role_id' => [
+                    'required',
+                    Rule::exists('roles', 'role_id')->where(
+                        fn ($query) => $query
+                            ->whereNull('course_id')
+                            ->where('is_template', false)
+                            ->where('is_system', true)
+                    ),
+                ],
+            ]);
+
+            $role = Role::findOrFail($validated['role_id']);
+            RolePreviewService::startGeneralRole($superadmin, $role, $request);
+        } else {
+            $validated = $request->validate([
+                'course_id' => ['required', 'integer', 'exists:course,course_id'],
+                'role_id' => [
+                    'required',
+                    Rule::exists('roles', 'role_id')->where(
+                        fn ($query) => $query
+                            ->where('course_id', $request->input('course_id'))
+                            ->where('is_template', false)
+                    ),
+                ],
+            ]);
+
+            $course = Course::findOrFail($validated['course_id']);
+            $role = Role::findOrFail($validated['role_id']);
+            RolePreviewService::startCourseRole($superadmin, $course, $role, $request);
+        }
+
+        return redirect()
+            ->route('dashboard')
+            ->with('success', __('pages.role_preview_started', [
+                'label' => RolePreviewService::label(),
+            ]));
+    }
+
+    public function stopRolePreview(Request $request)
+    {
+        RolePreviewService::stop($request);
+
+        return redirect()
+            ->route('superadmin.security')
+            ->with('success', __('pages.role_preview_stopped'));
     }
 }
