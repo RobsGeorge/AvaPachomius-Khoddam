@@ -76,6 +76,17 @@ return [
                 'config' => ['lead_hours' => 24],
             ],
         ],
+        'session_upcoming' => [
+            'label' => 'notifications.types.session_upcoming',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => ['lead_hours' => 24],
+            ],
+        ],
         'grade_posted' => [
             'label' => 'notifications.types.grade_posted',
             'category' => 'academic',

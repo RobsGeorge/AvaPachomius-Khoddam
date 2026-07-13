@@ -73,7 +73,7 @@
                                name="preferences[{{ $type }}][config][unclosed_days]"
                                value="{{ old("preferences.{$type}.config.unclosed_days", $pref?->config['unclosed_days'] ?? 7) }}">
                     @endif
-                    @if(in_array($type, ['assignment_deadline', 'exam_upcoming'], true))
+                    @if(in_array($type, ['assignment_deadline', 'exam_upcoming', 'session_upcoming'], true))
                         <label class="form-label small">{{ __('notifications.config_lead_hours') }}</label>
                         <input type="number" min="1" max="168" class="form-control form-control-sm w-auto"
                                name="preferences[{{ $type }}][config][lead_hours]"

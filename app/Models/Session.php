@@ -24,6 +24,7 @@ class Session extends Model
         'session_title',
         'session_date',
         'session_start_time',
+        'notify_students',
         'attendance_closed_at',
         'attendance_closed_by_id',
     ];
@@ -31,10 +32,16 @@ class Session extends Model
     protected $casts = [
         'session_date' => 'date',
         'week_number'  => 'integer',
+        'notify_students' => 'boolean',
         'attendance_closed_at' => 'datetime',
         'created_at'   => 'datetime',
         'updated_at'   => 'datetime',
     ];
+
+    public function shouldNotifyStudents(): bool
+    {
+        return (bool) ($this->notify_students ?? true);
+    }
 
     public function isAttendanceClosed(): bool
     {
@@ -78,6 +85,18 @@ class Session extends Model
             'session_id',
             'module_id'
         )->withPivot('week_number');
+    }
+
+    public function notificationTargets()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'session_notification_targets',
+            'session_id',
+            'user_id',
+            'session_id',
+            'user_id'
+        )->withTimestamps();
     }
 }
 

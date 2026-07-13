@@ -114,7 +114,7 @@ class RoleTemplateService
             'grade.view', 'grade.manage',
             'attendance.record', 'attendance.view_all', 'attendance.report', 'attendance.edit',
             'announcement.view', 'announcement.manage', 'announcement.publish',
-            'roster.view', 'roster.announce',
+            'roster.view', 'roster.announce', 'session.notify',
             'graduation.view', 'graduation.configure', 'course.close', 'certificate.manage',
             'feedback.view', 'feedback.manage', 'feedback.report',
             'live_quiz.play', 'live_quiz.host', 'live_quiz.manage',

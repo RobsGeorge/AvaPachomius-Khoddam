@@ -27,7 +27,8 @@ class NotificationScannerService
         private NotificationPreferenceService $preferences,
         private StudentRosterService $roster,
         private GraduationService $graduation,
-        private AttendanceCloseService $attendanceClose
+        private AttendanceCloseService $attendanceClose,
+        private SessionNotificationService $sessionNotifications,
     ) {}
 
     public function scanDeadlines(): int
@@ -35,6 +36,7 @@ class NotificationScannerService
         $count = 0;
         $count += $this->scanAssignmentDeadlines();
         $count += $this->scanExamUpcoming();
+        $count += $this->scanUpcomingSessions();
 
         return $count;
     }
@@ -326,6 +328,42 @@ class NotificationScannerService
                     [],
                     "assignment_deadline:{$assignment->assignment_id}:24h"
                 );
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    private function scanUpcomingSessions(): int
+    {
+        $count = 0;
+        $now = now($this->sessionNotifications->timezone());
+
+        $sessions = Session::query()
+            ->where('notify_students', true)
+            ->whereDate('session_date', '>=', $now->toDateString())
+            ->with(['course', 'notificationTargets'])
+            ->get();
+
+        foreach ($sessions as $session) {
+            if (! $this->sessionNotifications->isFutureSession($session, $now)) {
+                continue;
+            }
+
+            $startAt = $this->sessionNotifications->sessionStartAt($session);
+            $recipients = $this->sessionNotifications->resolveRecipients($session);
+
+            foreach ($recipients as $student) {
+                $this->preferences->ensureDefaults($student);
+                $leadHours = (int) $this->preferences->configValue($student, 'session_upcoming', 'lead_hours', 24);
+                $windowEnd = $now->copy()->addHours($leadHours);
+
+                if ($startAt->greaterThan($windowEnd)) {
+                    continue;
+                }
+
+                $this->sessionNotifications->notifyStudent($session, $student, 'auto', $leadHours);
                 $count++;
             }
         }

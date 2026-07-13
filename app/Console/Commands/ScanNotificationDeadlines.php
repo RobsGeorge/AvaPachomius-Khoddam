@@ -9,7 +9,7 @@ class ScanNotificationDeadlines extends Command
 {
     protected $signature = 'notifications:scan-deadlines';
 
-    protected $description = 'Scan assignment and exam deadlines for notifications';
+    protected $description = 'Scan assignment, exam, and session deadlines for notifications';
 
     public function handle(NotificationScannerService $scanner): int
     {

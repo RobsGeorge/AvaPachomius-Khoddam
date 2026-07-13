@@ -200,6 +200,8 @@
                     </div>
                 </div>
 
+                @include('sessions.partials.notification-settings', ['rosterStudents' => $rosterStudents])
+
                 <div class="d-flex gap-2 mt-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle"></i> {{ __('pages.create_sessions_btn') }}

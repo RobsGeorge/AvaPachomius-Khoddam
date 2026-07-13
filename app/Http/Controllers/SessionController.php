@@ -8,6 +8,8 @@ use App\Models\Module;
 use App\Models\Session;
 use App\Models\User;
 use App\Services\AttendanceCloseService;
+use App\Services\SessionNotificationService;
+use App\Services\StudentRosterService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -19,6 +21,8 @@ class SessionController extends Controller
 {
     public function __construct(
         private AttendanceCloseService $attendanceClose,
+        private SessionNotificationService $sessionNotifications,
+        private StudentRosterService $rosterService,
     ) {}
 
     public function index(Request $request)
@@ -75,11 +79,13 @@ class SessionController extends Controller
         }
 
         $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
+        $canNotifySessions = $canManageSessions && $this->userCanNotifySessions($user);
 
         return view('sessions.index', compact(
             'sessions',
             'todayLocal',
             'canManageSessions',
+            'canNotifySessions',
             'missingCounts',
             'focusSession',
             'focusMissingCount',
@@ -92,6 +98,73 @@ class SessionController extends Controller
         return redirect()->route('sessions.index', [
             'session_id' => $session->session_id,
         ]);
+    }
+
+    public function notifyStudents(Session $session)
+    {
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        if (! $session->shouldNotifyStudents()) {
+            return redirect()->back()->with('warning', __('pages.session_notify_disabled'));
+        }
+
+        if (! $this->sessionNotifications->isFutureSession($session)) {
+            return redirect()->back()->with('warning', __('pages.session_notify_past'));
+        }
+
+        $result = $this->sessionNotifications->notifySession($session, $user, 'manual');
+
+        if ($result['count'] === 0) {
+            return redirect()->back()->with('warning', __('pages.session_notify_none'));
+        }
+
+        return redirect()->back()->with('success', __('pages.session_notify_sent', ['count' => $result['count']]));
+    }
+
+    public function notifyNextSession()
+    {
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        $currentCourse = current_course();
+        if (! $currentCourse) {
+            return redirect()->route('sessions.index')
+                ->with('warning', __('pages.session_notify_no_next'));
+        }
+
+        $session = $this->sessionNotifications->nextNotifiableSession($currentCourse);
+        if (! $session) {
+            return redirect()->route('sessions.index')
+                ->with('warning', __('pages.session_notify_no_next'));
+        }
+
+        $result = $this->sessionNotifications->notifySession($session, $user, 'manual');
+
+        if ($result['count'] === 0) {
+            return redirect()->route('sessions.index')
+                ->with('warning', __('pages.session_notify_none'));
+        }
+
+        return redirect()->route('sessions.index')
+            ->with('success', __('pages.session_notify_sent', ['count' => $result['count']]));
+    }
+
+    public function toggleNotifyStudents(Request $request, Session $session)
+    {
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+        $this->sessionNotifications->authorizeNotify($user, $session);
+
+        $validated = $request->validate([
+            'notify_students' => ['required', 'boolean'],
+        ]);
+
+        $session->update([
+            'notify_students' => (bool) $validated['notify_students'],
+        ]);
+
+        return redirect()->back()->with('success', __('pages.session_notify_toggled'));
     }
 
     public function closeAttendance(Session $session)
@@ -142,6 +215,9 @@ class SessionController extends Controller
         return view('sessions.create', [
             'courses' => $courses,
             'defaultCourseId' => $currentCourse?->course_id,
+            'rosterStudents' => $this->rosterStudentsForCourseId(
+                old('course_id', $currentCourse?->course_id)
+            ),
         ]);
     }
 
@@ -225,7 +301,11 @@ class SessionController extends Controller
         $isSingle = count($datesToCreate) === 1;
         $moduleId = (int) $validated['module_id'];
 
+        $notifyStudents = $this->parseNotifyStudentsFlag($request);
+        $targetUserIds = $this->parseTargetUserIds($request);
+
         try {
+            $createdSessions = [];
             foreach ($datesToCreate as $index => $date) {
                 $title = $isSingle
                     ? $validated['session_title']
@@ -238,9 +318,12 @@ class SessionController extends Controller
                     'session_title' => mb_substr($title, 0, 30),
                     'session_date'  => $date,
                     'session_start_time' => $validated['session_start_time'] ?? null,
+                    'notify_students' => $notifyStudents,
                 ]);
 
                 $this->linkSessionToModule($session, $moduleId, $index + 1);
+                $this->sessionNotifications->syncTargets($session, $targetUserIds);
+                $createdSessions[] = $session;
             }
         } catch (QueryException $e) {
             Log::error('Session create failed', [
@@ -264,10 +347,14 @@ class SessionController extends Controller
 
     public function edit(string $id)
     {
-        $session = Session::with('module')->findOrFail($id);
+        $session = Session::with(['module', 'notificationTargets'])->findOrFail($id);
         $courses = Course::with('modules')->orderBy('title')->get();
 
-        return view('sessions.edit', compact('session', 'courses'));
+        return view('sessions.edit', [
+            'session' => $session,
+            'courses' => $courses,
+            'rosterStudents' => $this->rosterStudentsForCourseId($session->course_id),
+        ]);
     }
 
     public function update(Request $request, string $id)
@@ -297,7 +384,13 @@ class SessionController extends Controller
         $this->assertModuleBelongsToCourse((int) $validated['module_id'], (int) $validated['course_id']);
 
         $session = Session::findOrFail($id);
-        $session->update($validated);
+        $session->update(array_merge($validated, [
+            'notify_students' => $this->parseNotifyStudentsFlag($request),
+        ]));
+        $this->sessionNotifications->syncTargets(
+            $session->fresh(),
+            $this->parseTargetUserIds($request)
+        );
         $this->linkSessionToModule($session, (int) $validated['module_id']);
 
         return redirect()->route('sessions.index')
@@ -399,5 +492,47 @@ class SessionController extends Controller
         }
 
         return null;
+    }
+
+    private function parseNotifyStudentsFlag(Request $request): bool
+    {
+        return $request->boolean('notify_students', true);
+    }
+
+    /** @return list<int> */
+    private function parseTargetUserIds(Request $request): array
+    {
+        return collect((array) $request->input('notification_target_user_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function rosterStudentsForCourseId(mixed $courseId): \Illuminate\Support\Collection
+    {
+        if (! $courseId) {
+            return collect();
+        }
+
+        return $this->rosterService->enrolledStudents((int) $courseId);
+    }
+
+    private function userCanNotifySessions(User $user): bool
+    {
+        if ($user->is_superadmin ?? false) {
+            return true;
+        }
+
+        $currentCourse = current_course();
+        if ($currentCourse) {
+            return app(\App\Services\CoursePermissionResolver::class)
+                ->canInCourse($user, 'session.notify', $currentCourse);
+        }
+
+        return $user->userCourseRoles()
+            ->activeStaff()
+            ->exists();
     }
 }

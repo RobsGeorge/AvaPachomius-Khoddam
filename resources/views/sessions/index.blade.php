@@ -7,9 +7,21 @@
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h1 class="page-title mb-0">{{ __('pages.sessions') }}</h1>
         @if($canManageSessions)
-            <a href="{{ route('sessions.create') }}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> {{ __('pages.create_sessions') }}
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                @if(($canNotifySessions ?? false) && current_course())
+                    <form method="POST" action="{{ route('sessions.notify-next') }}"
+                          data-confirm="{{ __('pages.confirm_notify_session') }}"
+                          onsubmit="return confirm(this.dataset.confirm)">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-info">
+                            <i class="bi bi-bell"></i> {{ __('pages.notify_next_session') }}
+                        </button>
+                    </form>
+                @endif
+                <a href="{{ route('sessions.create') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> {{ __('pages.create_sessions') }}
+                </a>
+            </div>
         @endif
     </div>
 
@@ -136,6 +148,7 @@
                                        title="{{ __('pages.view_session_roster') }}">
                                         <i class="bi bi-people"></i>
                                     </a>
+                                    @include('sessions.partials.notify-actions', ['session' => $session])
                                     @if(($missingCounts[$session->session_id] ?? 0) > 0)
                                         <span class="badge bg-warning text-dark align-self-center"
                                               title="{{ __('pages.roster_missing') }}">
@@ -243,6 +256,7 @@
                                    class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-people"></i> {{ __('pages.view_session_roster') }}
                                 </a>
+                                @include('sessions.partials.notify-actions', ['session' => $session])
                                 @if(($missingCounts[$session->session_id] ?? 0) > 0)
                                     <span class="badge bg-warning text-dark align-self-center">
                                         {{ __('pages.missing_records_count', ['count' => $missingCounts[$session->session_id]]) }}

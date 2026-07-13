@@ -101,6 +101,11 @@
                     @enderror
                 </div>
 
+                @include('sessions.partials.notification-settings', [
+                    'session' => $session,
+                    'rosterStudents' => $rosterStudents,
+                ])
+
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle"></i> {{ __('pages.save_changes') }}

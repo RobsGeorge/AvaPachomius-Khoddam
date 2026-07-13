@@ -338,6 +338,12 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::resource('sessions', SessionController::class)->except(['index']);
     Route::post('/sessions/{session}/close-attendance', [SessionController::class, 'closeAttendance'])
         ->name('sessions.close-attendance');
+    Route::post('/sessions/{session}/notify-students', [SessionController::class, 'notifyStudents'])
+        ->name('sessions.notify-students');
+    Route::post('/sessions/notify-next', [SessionController::class, 'notifyNextSession'])
+        ->name('sessions.notify-next');
+    Route::patch('/sessions/{session}/notify-toggle', [SessionController::class, 'toggleNotifyStudents'])
+        ->name('sessions.toggle-notify');
     Route::post('/sessions/{session}/attendance/fill-missing', [SessionAttendanceController::class, 'fillMissing'])
         ->name('sessions.attendance.fill-missing');
     Route::post('/sessions/{session}/attendance', [SessionAttendanceController::class, 'store'])
