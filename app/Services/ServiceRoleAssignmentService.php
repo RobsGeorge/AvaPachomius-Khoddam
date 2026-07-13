@@ -43,6 +43,32 @@ class ServiceRoleAssignmentService
         ]);
     }
 
+    /**
+     * Ensure the user is a member of the given course's service, enrolling them with
+     * the default member role if needed. Used by application-approval flows, where
+     * admitting a user to a course implies membership in its parent service (unlike
+     * the manual roles-hub assignment, which stays strict). No-op when the service
+     * layer is inactive or the course has no service.
+     */
+    public function ensureMembershipForCourse(User $user, int $courseId): void
+    {
+        if (! self::schemaReady()) {
+            return;
+        }
+
+        $course = \App\Models\Course::find($courseId);
+        if (! $course || ! $course->service_id) {
+            return;
+        }
+
+        $service = ChurchService::find($course->service_id);
+        if (! $service || $this->userBelongsToService($user, $service)) {
+            return;
+        }
+
+        $this->assign($user, $service, $this->memberRoleFor($service), false, true);
+    }
+
     public function adminRoleFor(ChurchService $service): Role
     {
         $role = Role::query()

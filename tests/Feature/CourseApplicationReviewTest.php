@@ -234,7 +234,7 @@ class CourseApplicationReviewTest extends EventModuleTestCase
         $course = $this->createCourse();
         $admin = $this->createUser(['email' => 'course-approve-admin@example.com']);
         $this->assignCourseRole($admin, $course, $roles['admin']);
-        $this->createEnabledForm($course, $roles);
+        $form = $this->createEnabledForm($course, $roles);
 
         $student = $this->createUser([
             'email' => 'course-approve-student@example.com',
@@ -271,7 +271,7 @@ class CourseApplicationReviewTest extends EventModuleTestCase
             UserCourseRole::query()
                 ->where('user_id', $student->user_id)
                 ->where('course_id', $course->course_id)
-                ->where('role_id', $roles['student']->role_id)
+                ->where('role_id', $form->default_role_id)
                 ->exists()
         );
 
