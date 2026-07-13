@@ -7,6 +7,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Policies\RolePermissionPolicy;
+use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,8 +17,20 @@ class ServiceRoleController extends Controller
     public function __construct(
         private RolePermissionPolicy $policy,
         private RolesHubService $hub,
+        private RoleTemplateService $templates,
     ) {}
 
+    public function cloneTemplates(Request $request, ChurchService $service)
+    {
+        $actor = $request->user();
+        abort_unless($actor instanceof User && $this->policy->manageServiceRoles($actor, $service), 403);
+
+        $this->templates->cloneTemplatesIntoService($service);
+
+        return redirect()
+            ->to($this->hub->hubUrl(section: 'service', service: $service))
+            ->with('success', __('service.templates_cloned'));
+    }
     public function store(Request $request, ChurchService $service)
     {
         $actor = $request->user();

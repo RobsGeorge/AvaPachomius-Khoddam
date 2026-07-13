@@ -36,6 +36,12 @@
                 <div class="row g-2">
                     @if($canManageService)
                         <div class="col-lg-5">
+                            <form method="POST" action="{{ route('services.roles.clone-templates', $service) }}" class="mb-2">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    <i class="bi bi-copy"></i> {{ __('service.clone_templates') }}
+                                </button>
+                            </form>
                             <details class="roles-hub-panel mb-2" open>
                                 <summary class="roles-hub-summary">{{ __('service.create_role') }}</summary>
                                 <form method="POST" action="{{ route('services.roles.store', $service) }}" class="pt-2">

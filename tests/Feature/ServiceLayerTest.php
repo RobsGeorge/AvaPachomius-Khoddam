@@ -109,4 +109,68 @@ class ServiceLayerTest extends EventModuleTestCase
         $this->assertTrue($admin->canInService('service.role.manage', $service));
         $this->assertTrue($admin->canInService('service.member.add_cross', $service));
     }
+
+    public function test_service_a_member_cannot_see_service_b_in_context_picker(): void
+    {
+        $user = $this->createUser(['email' => 'svc-iso@example.com']);
+        $serviceA = $this->createService(['title' => 'Isolated A']);
+        $serviceB = $this->createService(['title' => 'Isolated B']);
+        $this->assignServiceRole($user, $serviceA);
+
+        $selectable = app(\App\Services\ServiceContextService::class)->selectableServices($user);
+
+        $this->assertTrue($selectable->contains('service_id', $serviceA->service_id));
+        $this->assertFalse($selectable->contains('service_id', $serviceB->service_id));
+    }
+
+    public function test_clone_service_templates_creates_service_roles(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-tpl@example.com']);
+        $service = $this->createService(['title' => 'Template Service']);
+
+        $this->actingAs($super)
+            ->post(route('services.roles.clone-templates', $service))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('roles', [
+            'service_id' => $service->service_id,
+            'slug' => 'service-admin',
+            'is_template' => false,
+        ]);
+    }
+
+    public function test_service_application_approve_adds_member(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-app-admin@example.com']);
+        $applicant = $this->createUser(['email' => 'svc-applicant@example.com']);
+        $service = $this->createService(['title' => 'Apply Service']);
+
+        $application = app(\App\Services\ServiceApplicationService::class)
+            ->submit($applicant, $service, ['message' => 'Please add me']);
+
+        $this->actingAs($super)
+            ->post(route('admin.service-applications.approve', $application))
+            ->assertRedirect(route('admin.service-applications.index'));
+
+        $this->assertTrue(
+            app(ServiceRoleAssignmentService::class)->userBelongsToService($applicant, $service)
+        );
+    }
+
+    public function test_service_roster_lists_only_that_service_members(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-roster@example.com']);
+        $member = $this->createUser(['email' => 'svc-roster-member@example.com']);
+        $other = $this->createUser(['email' => 'svc-roster-other@example.com']);
+        $serviceA = $this->createService(['title' => 'Roster A']);
+        $serviceB = $this->createService(['title' => 'Roster B']);
+        $this->assignServiceRole($member, $serviceA);
+        $this->assignServiceRole($other, $serviceB);
+
+        $this->actingAs($super)
+            ->get(route('services.roster', ['service' => $serviceA->service_id]))
+            ->assertOk()
+            ->assertSee($member->email)
+            ->assertDontSee($other->email);
+    }
 }

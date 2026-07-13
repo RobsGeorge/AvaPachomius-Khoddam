@@ -469,6 +469,19 @@ return [
                 'type' => 'both',
                 'routes' => ['services.members.*', 'roles.hub'],
             ],
+            'service_application.review' => [
+                'label_en' => 'Review service applications',
+                'label_ar' => 'مراجعة طلبات الانضمام للخدمة',
+                'type' => 'both',
+                'routes' => ['admin.service-applications.*'],
+                'nav' => ['system.service_applications'],
+            ],
+            'service_application.form_builder' => [
+                'label_en' => 'Manage service application forms',
+                'label_ar' => 'إدارة نماذج طلبات الخدمة',
+                'type' => 'both',
+                'routes' => ['services.apply', 'services.apply.store'],
+            ],
         ],
     ],
 

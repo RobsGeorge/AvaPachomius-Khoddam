@@ -26,7 +26,9 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - Users have a primary Service; admins may cross-add existing Service users
   into another Service. Course enroll requires Service membership.
 - Distinct from multi-subsidiary P6 “Service” tenant type.
-- Expand-contract implementation started under user request (schema + membership
-  + Roles Hub Service section). Deferred: Service applications, full org lift
-  of announcements/roster, `course.service_id` NOT NULL contraction, BelongsToChurch
-  when tenancy lands. Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md`
+- Implemented (expand): schema, membership, Roles Hub Service section + templates,
+  service context picker, service roster, service-targeted announcements,
+  minimal service applications (single-message form).
+- Still deferred: richer form builder, `course.service_id` NOT NULL contraction,
+  BelongsToChurch when tenancy lands.
+  Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`

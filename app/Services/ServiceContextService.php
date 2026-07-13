@@ -7,42 +7,93 @@ use App\Models\User;
 use App\Models\UserServiceRole;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Session as SessionStore;
+use Illuminate\Validation\ValidationException;
 
 class ServiceContextService
 {
     public const SESSION_KEY = 'current_service_id';
 
-    public function currentService(): ?ChurchService
+    public function requiresServiceContext(?User $user): bool
+    {
+        if (! $user instanceof User || ! ChurchService::tableReady()) {
+            return false;
+        }
+
+        return ! ($user->is_superadmin ?? false);
+    }
+
+    public function supportsOptionalServiceContext(?User $user): bool
+    {
+        return $user instanceof User
+            && ChurchService::tableReady()
+            && ($user->is_superadmin ?? false);
+    }
+
+    public function currentService(?User $user = null): ?ChurchService
     {
         if (! ChurchService::tableReady()) {
             return null;
         }
 
-        $id = session(self::SESSION_KEY);
+        $user ??= auth()->user();
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $id = SessionStore::get(self::SESSION_KEY);
         if (! $id) {
             return null;
         }
 
-        return ChurchService::find($id);
+        $service = ChurchService::find($id);
+        if (! $service || ! $this->userCanSelectService($user, $service)) {
+            return null;
+        }
+
+        return $service;
     }
 
-    public function setCurrentService(?ChurchService $service): void
+    public function setCurrentService(User $user, ChurchService|int $service): void
     {
-        if ($service) {
-            session([self::SESSION_KEY => $service->service_id]);
-        } else {
-            session()->forget(self::SESSION_KEY);
+        $model = $service instanceof ChurchService
+            ? $service
+            : ChurchService::find($service);
+
+        if (! $model || ! $this->userCanSelectService($user, $model)) {
+            throw ValidationException::withMessages([
+                'service_id' => __('service.invalid_selection'),
+            ]);
         }
+
+        SessionStore::put(self::SESSION_KEY, $model->service_id);
+    }
+
+    public function clearCurrentService(): void
+    {
+        SessionStore::forget(self::SESSION_KEY);
+    }
+
+    public function userCanSelectService(User $user, ChurchService $service): bool
+    {
+        if ($user->is_superadmin ?? false) {
+            return true;
+        }
+
+        if (! Schema::hasTable('user_service_role')) {
+            return false;
+        }
+
+        return UserServiceRole::query()
+            ->where('user_id', $user->user_id)
+            ->where('service_id', $service->service_id)
+            ->exists();
     }
 
     /** @return Collection<int, ChurchService> */
     public function selectableServices(?User $user): Collection
     {
-        if (! ChurchService::tableReady()) {
-            return collect();
-        }
-
-        if (! $user) {
+        if (! ChurchService::tableReady() || ! $user) {
             return collect();
         }
 
@@ -68,6 +119,23 @@ class ServiceContextService
             ->get();
     }
 
+    public function autoSelectSingleService(User $user): ?ChurchService
+    {
+        if ($this->currentService($user)) {
+            return $this->currentService($user);
+        }
+
+        $selectable = $this->selectableServices($user);
+        if ($selectable->count() !== 1) {
+            return null;
+        }
+
+        $service = $selectable->first();
+        $this->setCurrentService($user, $service);
+
+        return $service;
+    }
+
     public function resolveAccessibleService(User $user, mixed $serviceId = null): ?ChurchService
     {
         $selectable = $this->selectableServices($user);
@@ -79,11 +147,29 @@ class ServiceContextService
             }
         }
 
-        $current = $this->currentService();
+        $current = $this->currentService($user);
         if ($current && $selectable->contains('service_id', $current->service_id)) {
             return $current;
         }
 
         return $selectable->first();
+    }
+
+    public function syncFromRoute(User $user, mixed $serviceParam): void
+    {
+        if ($serviceParam instanceof ChurchService) {
+            if ($this->userCanSelectService($user, $serviceParam)) {
+                SessionStore::put(self::SESSION_KEY, $serviceParam->service_id);
+            }
+
+            return;
+        }
+
+        if (is_numeric($serviceParam)) {
+            $service = ChurchService::find((int) $serviceParam);
+            if ($service && $this->userCanSelectService($user, $service)) {
+                SessionStore::put(self::SESSION_KEY, $service->service_id);
+            }
+        }
     }
 }

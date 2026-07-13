@@ -43,6 +43,8 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\RequireApprovedApplication::class,
             \App\Http\Middleware\SyncCourseContextFromRoute::class,
             \App\Http\Middleware\EnsureCourseContext::class,
+            \App\Http\Middleware\SyncServiceContextFromRoute::class,
+            \App\Http\Middleware\EnsureServiceContext::class,
         ],
 
         'api' => [
