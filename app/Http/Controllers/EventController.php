@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\EventReservation;
 use App\Services\EventAuditService;
-use App\Services\EventCheckInService;
 use App\Services\EventEligibilityService;
 use App\Services\EventReservationService;
 use Illuminate\Http\Request;
@@ -18,12 +17,53 @@ class EventController extends Controller
         private EventReservationService $reservations,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $events = $this->eligibility->visibleEvents($user);
+        $canBrowse = true;
+        $canReservations = true;
+        $canAdmin = $user->isEventAdmin();
 
-        return view('events.index', compact('events'));
+        $allowed = ['browse', 'reservations'];
+        if ($canAdmin) {
+            $allowed[] = 'admin';
+        }
+
+        $section = $request->query('section', 'browse');
+        if (! in_array($section, $allowed, true)) {
+            $section = 'browse';
+        }
+
+        $events = $section === 'browse'
+            ? $this->eligibility->visibleEvents($user)
+            : collect();
+
+        $reservations = null;
+        if ($section === 'reservations') {
+            $reservations = EventReservation::with('event')
+                ->where('user_id', $user->user_id)
+                ->orderByDesc('reserved_at')
+                ->paginate(20)
+                ->withQueryString();
+        }
+
+        $adminEvents = null;
+        if ($section === 'admin' && $canAdmin) {
+            $adminEvents = Event::with('creator')->orderByDesc('starts_at')->paginate(20)->withQueryString();
+        }
+
+        $showTabs = true;
+
+        return view('events.index', compact(
+            'events',
+            'reservations',
+            'adminEvents',
+            'section',
+            'canBrowse',
+            'canReservations',
+            'canAdmin',
+            'showTabs',
+        ));
     }
 
     public function show(Event $event)
@@ -83,7 +123,8 @@ class EventController extends Controller
         try {
             $this->reservations->cancel($event, $user);
 
-            return redirect()->route('events.my-reservations')->with('success', __('events.cancelled_success'));
+            return redirect()->route('events.index', ['section' => 'reservations'])
+                ->with('success', __('events.cancelled_success'));
         } catch (\Throwable $e) {
             return back()->with('error', __('events.cancel_failed'));
         }

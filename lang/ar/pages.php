@@ -47,6 +47,8 @@ return [
     'sessions'                    => 'الجلسات',
     'create_sessions'             => 'إنشاء جلسات',
     'assignments'                 => 'الواجبات',
+    'assignments_section_list'    => 'القائمة',
+    'assignments_section_manage'  => 'الإدارة',
     'exams'                       => 'الامتحانات',
     'grades'                      => 'الدرجات',
     'grade_report'                => 'تقرير الدرجات',

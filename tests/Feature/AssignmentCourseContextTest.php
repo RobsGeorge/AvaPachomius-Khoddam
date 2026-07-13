@@ -132,6 +132,10 @@ class AssignmentCourseContextTest extends EventModuleTestCase
 
         $this->actingAs($instructor)
             ->get(route('assignments.dashboard'))
+            ->assertRedirect(route('assignments.index', ['section' => 'manage']));
+
+        $this->actingAs($instructor)
+            ->get(route('assignments.index', ['section' => 'manage']))
             ->assertOk()
             ->assertSee('Dash A1', false)
             ->assertSee('Dash A2', false)

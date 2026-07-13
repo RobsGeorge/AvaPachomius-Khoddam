@@ -74,14 +74,14 @@ return [
                 'label_ar' => 'عرض الواجبات',
                 'type' => 'both',
                 'routes' => ['assignments.index', 'assignments.show'],
-                'nav' => ['academic.assignments.view'],
+                'nav' => ['academic.assignments'],
             ],
             'assignment.manage' => [
                 'label_en' => 'Manage assignments',
                 'label_ar' => 'إدارة الواجبات',
                 'type' => 'both',
                 'routes' => ['assignments.dashboard', 'assignments.create', 'assignments.store', 'assignments.edit', 'assignments.update', 'assignments.destroy', 'assignments.status'],
-                'nav' => ['academic.assignments.manage'],
+                'nav' => ['academic.assignments'],
             ],
             'assignment.submit' => [
                 'label_en' => 'Submit assignments',
@@ -379,14 +379,14 @@ return [
                 'label_ar' => 'حجز الفعاليات',
                 'type' => 'both',
                 'routes' => ['events.reserve', 'events.cancel', 'events.my-reservations'],
-                'nav' => ['academic.events.reservations'],
+                'nav' => ['academic.events'],
             ],
             'events.admin' => [
                 'label_en' => 'Administer events',
                 'label_ar' => 'إدارة الفعاليات',
                 'type' => 'both',
                 'routes' => ['events.admin.*'],
-                'nav' => ['academic.events.admin'],
+                'nav' => ['academic.events'],
             ],
             'events.check_in' => [
                 'label_en' => 'Event check-in',

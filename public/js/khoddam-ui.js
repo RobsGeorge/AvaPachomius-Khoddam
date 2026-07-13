@@ -121,6 +121,9 @@
             cancelButtonText: options.cancelText || config.confirmCancel,
             reverseButtons: config.dir === 'rtl',
             focusCancel: destructive,
+            // Keep the page visible; no dimmed/black overlay behind confirms.
+            backdrop: false,
+            allowOutsideClick: false,
         }).then((result) => result.isConfirmed);
     }
 
