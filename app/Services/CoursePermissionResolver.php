@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Models\Course;
+use App\Models\ChurchService;
 use App\Models\EventAdmin;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserServiceRole;
 use App\Models\UserSystemRole;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -97,6 +99,46 @@ class CoursePermissionResolver
         }
 
         return $this->permissionsInSystem($user)->contains($permission);
+    }
+
+    public function permissionsInService(User $user, ChurchService $service): Collection
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return $this->courseRbacReady() ? Permission::pluck('key') : collect();
+        }
+
+        if (! Schema::hasTable('user_service_role') || ! Schema::hasColumn('roles', 'service_id')) {
+            return collect();
+        }
+
+        $version = (int) ($service->permissions_version ?? 0);
+        $cacheKey = "perms:service:{$service->service_id}:{$user->user_id}:{$version}";
+
+        return Cache::remember($cacheKey, 600, function () use ($user, $service) {
+            $roleIds = UserServiceRole::where('user_id', $user->user_id)
+                ->where('service_id', $service->service_id)
+                ->pluck('role_id');
+
+            if ($roleIds->isEmpty()) {
+                return collect();
+            }
+
+            return DB::table('role_permission')
+                ->join('permissions', 'permissions.permission_id', '=', 'role_permission.permission_id')
+                ->whereIn('role_permission.role_id', $roleIds)
+                ->whereNull('permissions.deprecated_at')
+                ->distinct()
+                ->pluck('permissions.key');
+        });
+    }
+
+    public function canInService(User $user, string $permission, ChurchService $service): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return true;
+        }
+
+        return $this->permissionsInService($user, $service)->contains($permission);
     }
 
     public function canAnyInCourse(User $user, array $permissions, Course $course): bool

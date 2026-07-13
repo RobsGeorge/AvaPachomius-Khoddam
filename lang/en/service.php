@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'label' => 'Service',
+    'select_hint' => 'Select a service to manage roles and members.',
+    'no_academic_hint' => 'Services do not include attendance, grades, exams, lectures, or graduation — those belong to courses only.',
+    'create_role' => 'Create service role',
+    'add_member' => 'Add member',
+    'cross_add_member' => 'Add from another service',
+    'cross_add_hint' => 'Only users who already belong to a service can be added here.',
+    'default_member_role' => 'Default member role',
+    'primary' => 'Primary',
+    'member_added' => 'User added to the service.',
+    'member_cross_added' => 'User added to this service from another service.',
+    'member_removed' => 'User removed from the service.',
+    'role_created' => 'Service role created.',
+    'role_updated' => 'Service role updated.',
+    'role_deleted' => 'Service role deleted.',
+    'role_in_use' => 'Cannot delete a role that still has members.',
+    'invalid_role' => 'The selected role is not valid for this service.',
+    'cross_add_required' => 'This user already belongs to a service. Use cross-service add instead.',
+    'cross_add_needs_existing' => 'Cross-service add requires the user to already belong to another service.',
+    'membership_required_for_course' => 'User must belong to the course parent service before course enrollment.',
+    'schema_missing' => 'Service membership schema is not ready. Run migrations.',
+];

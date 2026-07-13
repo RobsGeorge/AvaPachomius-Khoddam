@@ -420,6 +420,58 @@ return [
         ],
     ],
 
+    'service_management' => [
+        'scope' => 'service',
+        'label_en' => 'Service Management',
+        'label_ar' => 'إدارة الخدمة',
+        'sort' => 135,
+        'permissions' => [
+            'service.view' => [
+                'label_en' => 'View service',
+                'label_ar' => 'عرض الخدمة',
+                'type' => 'both',
+                'routes' => ['roles.hub', 'services.show'],
+                'nav' => ['system.services'],
+            ],
+            'service.manage' => [
+                'label_en' => 'Manage service settings',
+                'label_ar' => 'إدارة إعدادات الخدمة',
+                'type' => 'both',
+                'routes' => ['services.*', 'roles.hub'],
+            ],
+            'service.member.add' => [
+                'label_en' => 'Add members to service',
+                'label_ar' => 'إضافة أعضاء للخدمة',
+                'type' => 'endpoint',
+                'routes' => ['services.members.store', 'roles.hub'],
+            ],
+            'service.member.remove' => [
+                'label_en' => 'Remove members from service',
+                'label_ar' => 'إزالة أعضاء من الخدمة',
+                'type' => 'endpoint',
+                'routes' => ['services.members.destroy', 'roles.hub'],
+            ],
+            'service.member.add_cross' => [
+                'label_en' => 'Add existing service users to another service',
+                'label_ar' => 'إضافة مستخدمي خدمة إلى خدمة أخرى',
+                'type' => 'endpoint',
+                'routes' => ['services.members.cross', 'roles.hub'],
+            ],
+            'service.role.manage' => [
+                'label_en' => 'Manage service roles',
+                'label_ar' => 'إدارة أدوار الخدمة',
+                'type' => 'both',
+                'routes' => ['services.roles.*', 'roles.hub'],
+            ],
+            'service.user.assign_role' => [
+                'label_en' => 'Assign service roles',
+                'label_ar' => 'تعيين أدوار الخدمة',
+                'type' => 'both',
+                'routes' => ['services.members.*', 'roles.hub'],
+            ],
+        ],
+    ],
+
     'user_lifecycle' => [
         'scope' => 'system',
         'label_en' => 'User Lifecycle',

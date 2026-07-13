@@ -62,6 +62,10 @@ abstract class EventModuleTestCase extends TestCase
         static $courseCounter = 0;
         $courseCounter++;
 
+        if (! array_key_exists('service_id', $overrides) && \App\Models\ChurchService::tableReady()) {
+            $overrides['service_id'] = \App\Models\ChurchService::ensureDefault()->service_id;
+        }
+
         return Course::create(array_merge([
             'title' => 'Course '.$courseCounter,
             'description' => 'Test course',
@@ -69,8 +73,41 @@ abstract class EventModuleTestCase extends TestCase
         ], $overrides));
     }
 
+    protected function createService(array $overrides = []): \App\Models\ChurchService
+    {
+        static $serviceCounter = 0;
+        $serviceCounter++;
+
+        return \App\Models\ChurchService::create(array_merge([
+            'title' => 'Service '.$serviceCounter,
+            'title_en' => 'Service '.$serviceCounter,
+            'status' => \App\Models\ChurchService::STATUS_ACTIVE,
+            'permissions_version' => 0,
+        ], $overrides));
+    }
+
+    protected function assignServiceRole(
+        User $user,
+        \App\Models\ChurchService $service,
+        ?Role $role = null,
+        bool $asPrimary = false,
+        bool $allowCross = false,
+    ): \App\Models\UserServiceRole {
+        $assigner = app(\App\Services\ServiceRoleAssignmentService::class);
+        $role ??= $assigner->memberRoleFor($service);
+
+        return $assigner->assign($user, $service, $role, $asPrimary, $allowCross);
+    }
+
     protected function assignCourseRole(User $user, Course $course, Role $role): void
     {
+        if ($course->service_id && \App\Services\ServiceRoleAssignmentService::schemaReady()) {
+            $service = \App\Models\ChurchService::find($course->service_id);
+            if ($service && ! app(\App\Services\ServiceRoleAssignmentService::class)->userBelongsToService($user, $service)) {
+                $this->assignServiceRole($user, $service, allowCross: true);
+            }
+        }
+
         UserCourseRole::updateOrCreate(
             ['user_id' => $user->user_id, 'course_id' => $course->course_id],
             ['role_id' => $role->role_id]

@@ -21,6 +21,7 @@ class Role extends Model
         'role_name',
         'role_decription',
         'course_id',
+        'service_id',
         'slug',
         'description',
         'is_system',
@@ -38,6 +39,11 @@ class Role extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class, 'course_id', 'course_id');
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
     }
 
     public function clonedFrom(): BelongsTo
@@ -74,6 +80,11 @@ class Role extends Model
         return $this->hasMany(UserCourseRole::class, 'role_id', 'role_id');
     }
 
+    public function userServiceRoles(): HasMany
+    {
+        return $this->hasMany(UserServiceRole::class, 'role_id', 'role_id');
+    }
+
     public function systemUsers(): HasMany
     {
         return $this->hasMany(UserSystemRole::class, 'role_id', 'role_id');
@@ -84,6 +95,24 @@ class Role extends Model
         return $query
             ->whereNotNull('course_id')
             ->where('is_template', false);
+    }
+
+    public function scopeAssignableToServices(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('service_id')
+            ->whereNull('course_id')
+            ->where('is_template', false);
+    }
+
+    public function scopeForService(Builder $query, int|string $serviceId): Builder
+    {
+        return $query->assignableToServices()->where('service_id', $serviceId);
+    }
+
+    public function isServiceScoped(): bool
+    {
+        return $this->service_id !== null && $this->course_id === null;
     }
 
     public function scopeForCourse(Builder $query, int|string $courseId): Builder

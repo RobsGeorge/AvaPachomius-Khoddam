@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolesHubController;
+use App\Http\Controllers\ServiceMemberController;
+use App\Http\Controllers\ServiceRoleController;
 use App\Http\Controllers\HubController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
@@ -412,6 +414,15 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/roles-hub', [RolesHubController::class, 'index'])->name('roles.hub');
     Route::put('/roles-hub/email-templates', [RolesHubController::class, 'updateEmailTemplates'])->name('roles.hub.email-templates.update');
+
+    Route::prefix('services/{service}')->name('services.')->group(function () {
+        Route::post('/roles', [ServiceRoleController::class, 'store'])->name('roles.store');
+        Route::put('/roles/{role}', [ServiceRoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{role}', [ServiceRoleController::class, 'destroy'])->name('roles.destroy');
+        Route::post('/members', [ServiceMemberController::class, 'store'])->name('members.store');
+        Route::post('/members/cross', [ServiceMemberController::class, 'cross'])->name('members.cross');
+        Route::delete('/members/{user}', [ServiceMemberController::class, 'destroy'])->name('members.destroy');
+    });
 });
 
 Route::middleware(['auth'])->prefix('courses/{course}')->name('courses.roles.')->group(function () {

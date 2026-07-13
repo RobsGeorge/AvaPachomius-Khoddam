@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\User;
 use App\Policies\RolePermissionPolicy;
@@ -12,6 +13,7 @@ class RolesHubService
     public function __construct(
         private CoursePermissionResolver $resolver,
         private RolePermissionPolicy $policy,
+        private ServiceContextService $serviceContext,
     ) {}
 
     public function canAccess(User $user): bool
@@ -32,7 +34,8 @@ class RolesHubService
             return true;
         }
 
-        return $this->manageableCourses($user)->isNotEmpty();
+        return $this->manageableCourses($user)->isNotEmpty()
+            || $this->manageableServices($user)->isNotEmpty();
     }
 
     public function canManageEmailTemplates(User $user): bool
@@ -72,6 +75,39 @@ class RolesHubService
     public function canAssignInCourse(User $user, Course $course): bool
     {
         return $this->policy->assignUsers($user, $course);
+    }
+
+    public function canManageService(User $user, ChurchService $service): bool
+    {
+        return $this->policy->manageServiceRoles($user, $service);
+    }
+
+    public function canAssignInService(User $user, ChurchService $service): bool
+    {
+        return $this->policy->assignServiceUsers($user, $service)
+            || $this->policy->addCrossServiceMember($user, $service);
+    }
+
+    /** @return Collection<int, ChurchService> */
+    public function manageableServices(User $user): Collection
+    {
+        if (! ChurchService::tableReady()) {
+            return collect();
+        }
+
+        if ($user->is_superadmin ?? false) {
+            return ChurchService::query()->orderBy('title')->get();
+        }
+
+        return $this->serviceContext->selectableServices($user)
+            ->filter(fn (ChurchService $service) => $this->canManageService($user, $service)
+                || $this->canAssignInService($user, $service))
+            ->values();
+    }
+
+    public function resolveService(User $user, mixed $serviceId): ?ChurchService
+    {
+        return $this->serviceContext->resolveAccessibleService($user, $serviceId);
     }
 
     /** @return Collection<int, Course> */
@@ -128,6 +164,10 @@ class RolesHubService
     {
         $sections = [];
 
+        if ($this->manageableServices($user)->isNotEmpty()) {
+            $sections[] = 'service';
+        }
+
         if ($this->manageableCourses($user)->isNotEmpty()) {
             $sections[] = 'course';
         }
@@ -155,10 +195,11 @@ class RolesHubService
         return $sections;
     }
 
-    public function hubUrl(?Course $course = null, ?string $section = null): string
+    public function hubUrl(?Course $course = null, ?string $section = null, ?ChurchService $service = null): string
     {
         $params = array_filter([
             'course' => $course?->course_id,
+            'service' => $service?->service_id,
             'section' => $section,
         ]);
 

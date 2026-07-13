@@ -34,11 +34,61 @@ class RolesHubController extends Controller
 
         $course = $this->hub->resolveCourse($user, $request->query('course'));
         $manageableCourses = $this->hub->manageableCourses($user);
+        $service = $this->hub->resolveService($user, $request->query('service'));
+        $manageableServices = $this->hub->manageableServices($user);
 
         $roles = collect();
         $assignments = collect();
         $canManageCourse = false;
         $canAssignCourse = false;
+
+        $serviceRoles = collect();
+        $serviceMembers = collect();
+        $servicePermissionGroups = collect();
+        $canManageService = false;
+        $canAssignService = false;
+        $canCrossAddService = false;
+        $serviceAssignUsers = collect();
+        $crossCandidateUsers = collect();
+
+        if ($service) {
+            $canManageService = $this->hub->canManageService($user, $service);
+            $canAssignService = $this->hub->canAssignInService($user, $service);
+            $canCrossAddService = app(\App\Policies\RolePermissionPolicy::class)
+                ->addCrossServiceMember($user, $service);
+
+            if ($canManageService) {
+                $serviceRoles = Role::forService($service->service_id)
+                    ->withCount('userServiceRoles')
+                    ->with('permissions')
+                    ->orderBy('role_name')
+                    ->get();
+                $servicePermissionGroups = PermissionGroup::query()
+                    ->whereIn('scope', ['service', 'both', 'system'])
+                    ->with('permissions')
+                    ->orderBy('sort_order')
+                    ->get();
+            }
+
+            if ($canManageService || $canAssignService) {
+                $serviceMembers = \App\Models\UserServiceRole::where('service_id', $service->service_id)
+                    ->with(['user', 'role'])
+                    ->orderByDesc('is_primary')
+                    ->orderBy('user_id')
+                    ->get();
+                $serviceAssignUsers = User::orderBy('first_name')->orderBy('second_name')->get();
+            }
+
+            if ($canCrossAddService) {
+                $already = $serviceMembers->pluck('user_id');
+                $crossCandidateUsers = User::query()
+                    ->whereHas('userServiceRoles')
+                    ->when($already->isNotEmpty(), fn ($q) => $q->whereNotIn('user_id', $already))
+                    ->orderBy('first_name')
+                    ->orderBy('second_name')
+                    ->get();
+            }
+        }
 
         if ($course) {
             $canManageCourse = $this->hub->canManageCourse($user, $course);
@@ -150,6 +200,16 @@ class RolesHubController extends Controller
             'visibleSections',
             'course',
             'manageableCourses',
+            'service',
+            'manageableServices',
+            'serviceRoles',
+            'serviceMembers',
+            'servicePermissionGroups',
+            'canManageService',
+            'canAssignService',
+            'canCrossAddService',
+            'serviceAssignUsers',
+            'crossCandidateUsers',
             'roles',
             'assignments',
             'canManageCourse',

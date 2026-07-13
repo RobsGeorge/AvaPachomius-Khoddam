@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class CourseRoleAssignmentService
@@ -16,6 +17,8 @@ class CourseRoleAssignmentService
 
     public function assign(User $user, int $courseId, int $roleId, bool $notify = true): UserCourseRole
     {
+        $this->assertServiceMembership($user, $courseId);
+
         $exists = UserCourseRole::where('user_id', $user->user_id)
             ->where('course_id', $courseId)
             ->where('role_id', $roleId)
@@ -42,6 +45,8 @@ class CourseRoleAssignmentService
 
     public function assignOrUpdate(User $user, int $courseId, int $roleId, bool $notify = true): UserCourseRole
     {
+        $this->assertServiceMembership($user, $courseId);
+
         $existing = UserCourseRole::query()
             ->where('user_id', $user->user_id)
             ->where('course_id', $courseId)
@@ -100,5 +105,26 @@ class CourseRoleAssignmentService
         }
 
         $this->notifications->notifyCourseRole($user, $role, $course, $assignment);
+    }
+
+    private function assertServiceMembership(User $user, int $courseId): void
+    {
+        if (! Schema::hasColumn('course', 'service_id') || ! ServiceRoleAssignmentService::schemaReady()) {
+            return;
+        }
+
+        $course = Course::find($courseId);
+        if (! $course || ! $course->service_id) {
+            return;
+        }
+
+        $serviceAssigner = app(ServiceRoleAssignmentService::class);
+        if ($serviceAssigner->userBelongsToService($user, (int) $course->service_id)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'service' => __('service.membership_required_for_course'),
+        ]);
     }
 }

@@ -22,6 +22,7 @@ final class LegacySchemaSync
         self::syncExamsTable();
         self::syncPortalSettingsTable();
         self::syncCourseContextTables();
+        self::syncServiceLayer();
         self::ensureOtpCodeTable();
     }
 
@@ -324,6 +325,67 @@ final class LegacySchemaSync
         MigrationSupport::addBooleanColumn('user', 'is_superadmin', false, 'is_verified');
         MigrationSupport::addStringColumn('user', 'remember_token', 100);
         MigrationSupport::addStringColumn('user', 'otp_code', 255);
+    }
+
+    private static function syncServiceLayer(): void
+    {
+        SchemaGuards::createTableIfMissing('service', function (Blueprint $table) {
+            $table->id('service_id');
+            $table->string('title', 191);
+            $table->string('title_ar', 191)->nullable();
+            $table->string('title_en', 191)->nullable();
+            $table->text('description')->nullable();
+            $table->text('description_ar')->nullable();
+            $table->text('description_en')->nullable();
+            $table->json('branding_theme')->nullable();
+            $table->string('status', 32)->default('active');
+            $table->unsignedInteger('permissions_version')->default(0);
+            $table->timestamps();
+        });
+
+        if (Schema::hasTable('course')) {
+            MigrationSupport::addColumn('course', 'service_id', function (Blueprint $table) {
+                $table->unsignedBigInteger('service_id')->nullable()->after('course_id');
+            });
+        }
+
+        if (Schema::hasTable('roles')) {
+            MigrationSupport::addColumn('roles', 'service_id', function (Blueprint $table) {
+                $table->unsignedBigInteger('service_id')->nullable()->after('course_id');
+            });
+        }
+
+        SchemaGuards::createTableIfMissing('user_service_role', function (Blueprint $table) {
+            $table->id('user_service_role_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('service_id');
+            $table->unsignedBigInteger('role_id');
+            $table->boolean('is_primary')->default(false);
+            $table->timestamps();
+
+            $table->unique(['user_id', 'service_id']);
+        });
+
+        if (! Schema::hasTable('service')) {
+            return;
+        }
+
+        $defaultId = DB::table('service')->orderBy('service_id')->value('service_id');
+        if (! $defaultId) {
+            $defaultId = DB::table('service')->insertGetId([
+                'title' => 'Default Service',
+                'title_ar' => 'الخدمة الافتراضية',
+                'title_en' => 'Default Service',
+                'status' => 'active',
+                'permissions_version' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ], 'service_id');
+        }
+
+        if (Schema::hasTable('course') && Schema::hasColumn('course', 'service_id')) {
+            DB::table('course')->whereNull('service_id')->update(['service_id' => $defaultId]);
+        }
     }
 
     private static function addMysqlColumnIfMissing(string $table, string $column, string $definition): void

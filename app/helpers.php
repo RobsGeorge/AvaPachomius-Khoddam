@@ -39,3 +39,25 @@ if (! function_exists('current_course')) {
         return app(\App\Services\CourseContextService::class)->currentCourse();
     }
 }
+
+if (! function_exists('current_service')) {
+    function current_service(): ?\App\Models\ChurchService
+    {
+        $route = request()->route();
+        if ($route) {
+            $service = $route->parameter('service');
+            if ($service instanceof \App\Models\ChurchService) {
+                return $service;
+            }
+
+            if (is_string($service) && $service !== '') {
+                $fromRoute = \App\Models\ChurchService::find($service);
+                if ($fromRoute) {
+                    return $fromRoute;
+                }
+            }
+        }
+
+        return app(\App\Services\ServiceContextService::class)->currentService();
+    }
+}

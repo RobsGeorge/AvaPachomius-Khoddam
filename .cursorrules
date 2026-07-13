@@ -1,0 +1,12 @@
+You are working on a LIVE Laravel app (avapakhomios.com, real users) being migrated
+to multi-tenant via expand-contract. Read docs/khedma-master-plan.md for full context.
+
+- Additive migrations only. Never drop/rename columns outside Phase 5 PRs.
+- All tenant models use the BelongsToChurch trait; never bypass the tenant scope silently.
+- Authorization = Policies + permission keys. No role-name string comparisons.
+- No hardcoded structure level names; bind to template anchors (master-plan §15).
+- Localize everything (ar primary, RTL-first UI; en secondary).
+- Money = integer minor units. Every destructive action → audit_log.
+- PHP 8.2. No frontend build step exists (no package.json) — do not add npm steps.
+- Write/update tests with every change; the tenant isolation suite is mandatory.
+- Out-of-phase ideas go to PARKING-LOT.md, not into code.
