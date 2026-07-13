@@ -741,6 +741,13 @@ body.theme-dark .app-dropdown-link:hover {
     border-color: var(--color-primary) !important;
     box-shadow: 0 0 0 1px var(--color-primary);
 }
+.hub-tile-superadmin {
+    border-color: rgba(var(--bs-danger-rgb), 0.28);
+}
+.superadmin-entry-tag {
+    font-size: 0.95em;
+    vertical-align: -0.1em;
+}
 
 .qr-attendance-trigger {
     cursor: pointer;

@@ -407,7 +407,8 @@ class CourseContextTest extends EventModuleTestCase
         $this->actingAs($super)
             ->get(route('superadmin.index'))
             ->assertOk()
-            ->assertSee(__('pages.superadmin_title'), false)
+            ->assertSee(__('pages.superadmin_section_exclusive'), false)
+            ->assertSee(__('pages.superadmin_section_shared'), false)
             ->assertSee(__('rbac.system_roles'), false)
             ->assertSee(__('pages.superadmin_security_title'), false);
     }

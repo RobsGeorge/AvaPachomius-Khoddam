@@ -5,7 +5,10 @@
 @section('content')
 <div class="container py-4 animate-in">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
-        <h1 class="page-title mb-0">{{ __('events.tests_dashboard') }}</h1>
+        <h1 class="page-title mb-0">
+            @include('partials.superadmin-entry-tag', ['class' => 'me-2'])
+            {{ __('events.tests_dashboard') }}
+        </h1>
         <a href="{{ route('superadmin.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back_to_superadmin') }}</a>
     </div>
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif

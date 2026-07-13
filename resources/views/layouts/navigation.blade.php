@@ -3,7 +3,7 @@
     $navUser = auth()->user();
     $academicLinks = NavigationHub::academicLinks($navUser);
     $systemLinks = NavigationHub::systemLinks($navUser);
-    $superadminLinks = NavigationHub::superadminLinks($navUser);
+    $superadminSections = NavigationHub::superadminSections($navUser);
     $hasSystem = NavigationHub::hasSystem($navUser);
     $hasSuperadmin = NavigationHub::hasSuperadmin($navUser);
     $academicActive = NavigationHub::isAcademicActive($navUser);
@@ -175,23 +175,20 @@
                             <div class="dropdown">
                                 <button class="app-nav-link dropdown-toggle border-0 bg-transparent {{ $superadminActive ? 'active' : '' }}"
                                         type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @include('partials.superadmin-entry-tag', ['class' => 'me-1'])
                                     {{ __('nav.superadmin') }}
                                 </button>
                                 <ul class="dropdown-menu app-dropdown-panel">
-                                    <li>
-                                        <a class="dropdown-item app-dropdown-link fw-semibold {{ request()->routeIs('superadmin.index') ? 'active' : '' }}"
-                                           href="{{ route('superadmin.index') }}">
-                                            <i class="bi bi-shield-lock-fill me-2"></i>{{ __('nav.superadmin') }}
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    @foreach($superadminLinks as $link)
-                                        <li>
-                                            <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
-                                               href="{{ $link['url'] }}">
-                                                <i class="bi {{ $link['icon'] }} me-2"></i>{{ $link['label'] }}
-                                            </a>
-                                        </li>
+                                    @foreach($superadminSections as $section)
+                                        <li><h6 class="dropdown-header">{{ $section['title'] }}</h6></li>
+                                        @foreach($section['links'] as $link)
+                                            <li>
+                                                @include('partials.nav-hub-link', ['link' => $link])
+                                            </li>
+                                        @endforeach
+                                        @if(! $loop->last)
+                                            <li><hr class="dropdown-divider"></li>
+                                        @endif
                                     @endforeach
                                 </ul>
                             </div>
@@ -301,17 +298,22 @@
                     @if($hasSuperadmin)
                         <details class="mobile-nav-group" @if($superadminActive) open @endif>
                             <summary class="mobile-nav-summary {{ $superadminActive ? 'active' : '' }}">
-                                <span>{{ __('nav.superadmin') }}</span>
+                                <span>
+                                    @include('partials.superadmin-entry-tag', ['class' => 'me-1'])
+                                    {{ __('nav.superadmin') }}
+                                </span>
                                 <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
                             </summary>
                             <div class="mobile-nav-submenu d-flex flex-column gap-1">
-                                <a href="{{ route('superadmin.index') }}" class="app-nav-link small {{ request()->routeIs('superadmin.index') ? 'active' : '' }}" @click="navOpen = false">
-                                    <i class="bi bi-shield-lock-fill me-1"></i>{{ __('nav.superadmin') }}
-                                </a>
-                                @foreach($superadminLinks as $link)
-                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
-                                        <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
-                                    </a>
+                                @foreach($superadminSections as $section)
+                                    <div class="small text-muted-theme text-uppercase px-2 pt-2">{{ $section['title'] }}</div>
+                                    @foreach($section['links'] as $link)
+                                        @include('partials.nav-hub-link', [
+                                            'link' => $link,
+                                            'linkClass' => 'app-nav-link small',
+                                            'clickClose' => true,
+                                        ])
+                                    @endforeach
                                 @endforeach
                             </div>
                         </details>

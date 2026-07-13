@@ -123,8 +123,11 @@
 
         @if($hasSuperadmin)
             <div class="col-md-6">
-                <a href="{{ route('superadmin.index') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none border border-danger border-opacity-25">
-                    <h3><i class="bi bi-shield-lock-fill text-danger"></i> {{ __('dashboard.superadmin_hub') }}</h3>
+                <a href="{{ route('superadmin.index') }}" class="app-tile hub-tile hub-tile-superadmin d-flex flex-column h-100 text-decoration-none border border-danger border-opacity-25">
+                    <h3>
+                        @include('partials.superadmin-entry-tag', ['class' => 'me-1'])
+                        {{ __('dashboard.superadmin_hub') }}
+                    </h3>
                     <p class="text-muted-theme mb-0">{{ __('dashboard.superadmin_hub_desc') }}</p>
                 </a>
             </div>

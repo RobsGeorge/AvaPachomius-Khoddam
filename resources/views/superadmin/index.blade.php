@@ -55,17 +55,7 @@
         <h2 class="h6 text-muted-theme text-uppercase mb-3 mt-4">{{ $section['title'] }}</h2>
         <div class="row g-3 mb-2">
             @foreach($section['links'] as $link)
-                <div class="col-sm-6">
-                    <a href="{{ $link['url'] }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none {{ $link['active'] ? 'hub-tile-active' : '' }}">
-                        <h3 class="h5 mb-1">
-                            <i class="bi {{ $link['icon'] }}"></i>
-                            {{ $link['label'] }}
-                        </h3>
-                        @if(!empty($link['description']))
-                            <p class="text-muted-theme small mb-0">{{ $link['description'] }}</p>
-                        @endif
-                    </a>
-                </div>
+                @include('partials.hub-link-tile', ['link' => $link])
             @endforeach
         </div>
     @endforeach

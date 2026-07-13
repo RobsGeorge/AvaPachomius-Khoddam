@@ -6,9 +6,7 @@
 <div class="container py-4 animate-in">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
         <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-danger fs-6 px-3 py-2">
-                <i class="bi bi-shield-lock-fill"></i> {{ __('pages.superadmin_role') }}
-            </span>
+            @include('partials.superadmin-entry-tag', ['class' => 'fs-5'])
             <h1 class="page-title mb-0">{{ __('pages.audit_report_title') }}</h1>
         </div>
         <a href="{{ route('superadmin.index') }}" class="btn btn-outline-secondary btn-sm">
