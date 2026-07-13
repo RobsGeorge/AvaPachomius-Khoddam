@@ -378,17 +378,11 @@
     function initReveal() {
         const nodes = document.querySelectorAll('.app-card, .app-tile, .hub-tile, .hub-link-tile, .animate-in');
         nodes.forEach((el, index) => {
-            el.classList.add('animate__animated', 'animate__fadeInUp');
-            el.style.setProperty('--animate-duration', '0.55s');
-            el.style.animationDelay = `${Math.min(index * 0.05, 0.35)}s`;
-            el.style.animationFillMode = 'both';
+            el.style.animationDelay = `${Math.min(index * 0.06, 0.36)}s`;
         });
 
         document.querySelectorAll('.accordion-item, .roles-hub-panel').forEach((el, index) => {
-            el.classList.add('animate__animated', 'animate__fadeIn');
-            el.style.setProperty('--animate-duration', '0.4s');
-            el.style.animationDelay = `${Math.min(index * 0.04, 0.28)}s`;
-            el.style.animationFillMode = 'both';
+            el.style.animationDelay = `${Math.min(index * 0.06, 0.36)}s`;
         });
     }
 

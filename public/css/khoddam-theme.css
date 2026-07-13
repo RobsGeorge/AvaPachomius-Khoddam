@@ -299,8 +299,8 @@ body.theme-dark .app-nav-link.active {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(10px);
-    transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
     animation: fadeInUp 0.55s ease both;
+    transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
 }
 
 .app-card:hover {
@@ -686,6 +686,12 @@ body.theme-dark .app-dropdown-link:hover {
     border: 1px solid var(--color-surface-border);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
+    animation: fadeInUp 0.55s ease both;
+}
+
+.hub-tile,
+.hub-link-tile {
+    animation: fadeInUp 0.55s ease both;
 }
 
 .app-tile:hover {
@@ -704,17 +710,15 @@ body.theme-dark .app-dropdown-link:hover {
     margin-bottom: 0.5rem;
 }
 
-/* Animations — animate.css + local stagger */
-.animate-in,
-.app-card.animate__animated,
-.app-tile.animate__animated,
-.hub-link-tile.animate__animated {
-    --animate-duration: 0.55s;
-}
-
+/* Animations — gentle local fade-in (subtle 14px rise, not animate.css full slide) */
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes khoddamFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 @keyframes shimmer {
@@ -722,8 +726,17 @@ body.theme-dark .app-dropdown-link:hover {
     100% { background-position: 200% 0; }
 }
 
-.animate-in {
+.animate-in,
+.app-card,
+.app-tile,
+.hub-tile,
+.hub-link-tile {
     animation: fadeInUp 0.55s ease both;
+}
+
+.accordion-item,
+.roles-hub-panel {
+    animation: khoddamFadeIn 0.55s ease both;
 }
 
 .animate-delay-1 { animation-delay: 0.08s; }
