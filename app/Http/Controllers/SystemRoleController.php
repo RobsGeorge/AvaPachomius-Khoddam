@@ -9,6 +9,8 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Models\UserSystemRole;
+use App\Services\CourseRoleAssignmentService;
+use App\Services\RoleAssignmentNotificationService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use Illuminate\Http\Request;
@@ -20,6 +22,7 @@ class SystemRoleController extends Controller
     public function __construct(
         private RoleTemplateService $templates,
         private RolesHubService $hub,
+        private RoleAssignmentNotificationService $roleNotifications,
     ) {}
 
     public function templates()
@@ -123,7 +126,13 @@ class SystemRoleController extends Controller
             ],
         ]);
 
-        UserSystemRole::firstOrCreate($data);
+        $assignment = UserSystemRole::firstOrCreate($data);
+
+        if ($assignment->wasRecentlyCreated) {
+            $user = User::findOrFail($data['user_id']);
+            $role = Role::findOrFail($data['role_id']);
+            $this->roleNotifications->notifySystemRole($user, $role, $assignment);
+        }
 
         return redirect($this->hub->hubUrl(null, 'system'))
             ->with('success', __('rbac.system_role_assigned'));

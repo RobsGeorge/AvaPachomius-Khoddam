@@ -35,6 +35,12 @@ class RolesHubService
         return $this->manageableCourses($user)->isNotEmpty();
     }
 
+    public function canManageEmailTemplates(User $user): bool
+    {
+        return ($user->is_superadmin ?? false)
+            || $user->canInSystem('system.role.manage');
+    }
+
     public function canManageTemplates(User $user): bool
     {
         return (bool) ($user->is_superadmin ?? false);
@@ -128,6 +134,10 @@ class RolesHubService
 
         if ($this->canViewAllAssignments($user)) {
             $sections[] = 'assignments';
+        }
+
+        if ($this->canManageEmailTemplates($user)) {
+            $sections[] = 'email-templates';
         }
 
         if ($this->canManageTemplates($user)) {

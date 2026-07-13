@@ -58,6 +58,7 @@ return [
         'custom_reminder' => 'تذكيرات مخصصة',
         'course_application_submitted' => 'طلب التحاق جديد بالدورة',
         'course_graduation_announced' => 'إعلان درجات الدورة',
+        'role_assigned' => 'تعيين الأدوار',
     ],
 
     'generated' => [
@@ -87,5 +88,9 @@ return [
         'event_cancel_body' => 'ألغى :name حجزه.',
         'below_passing_title' => 'دون درجة النجاح: :course',
         'below_passing_body' => ':student عند :grade%.',
+        'role_assigned_course_title' => 'دور جديد: :role',
+        'role_assigned_course_body' => 'تم تعيينك في دور :role في :course.',
+        'role_assigned_system_title' => 'دور نظام جديد: :role',
+        'role_assigned_system_body' => 'تم تعيينك في دور النظام :role.',
     ],
 ];

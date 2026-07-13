@@ -58,6 +58,7 @@ return [
         'custom_reminder' => 'Custom reminders',
         'course_application_submitted' => 'New course application',
         'course_graduation_announced' => 'Course grades announced',
+        'role_assigned' => 'Role assignments',
     ],
 
     'generated' => [
@@ -87,5 +88,9 @@ return [
         'event_cancel_body' => ':name cancelled their reservation.',
         'below_passing_title' => 'Below passing grade: :course',
         'below_passing_body' => ':student is at :grade%.',
+        'role_assigned_course_title' => 'New role: :role',
+        'role_assigned_course_body' => 'You were assigned :role in :course.',
+        'role_assigned_system_title' => 'New system role: :role',
+        'role_assigned_system_body' => 'You were assigned the system role :role.',
     ],
 ];

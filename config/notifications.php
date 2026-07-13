@@ -20,6 +20,7 @@ return [
             'attendance_absent_streak',
             'session_unclosed',
             'course_graduation_announced',
+            'role_assigned',
         ],
         'events' => [
             'event_nearby',
@@ -216,6 +217,17 @@ return [
                 'portal_enabled' => true,
                 'email_enabled' => false,
                 'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'role_assigned' => [
+            'label' => 'notifications.types.role_assigned',
+            'category' => 'academic',
+            'audience' => ['student', 'instructor', 'admin'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => true,
                 'config' => [],
             ],
         ],

@@ -96,7 +96,7 @@ class RegistrationReviewService
         return DB::transaction(function () use ($application, $admin, $roleAssignments) {
             $user = $application->user;
 
-            $this->roleAssignment->assignMany($user, $roleAssignments);
+            $this->roleAssignment->assignMany($user, $roleAssignments, false);
 
             $application->update([
                 'status' => RegistrationApplication::STATUS_APPROVED,

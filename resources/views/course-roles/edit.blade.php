@@ -6,7 +6,7 @@
 @php
     $hub = app(\App\Services\RolesHubService::class);
 @endphp
-<div class="container py-3 animate-in">
+<div class="container py-3 animate-in roles-hub">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
             <h1 class="page-title mb-0 h5">{{ __('rbac.edit_role') }}: {{ $role->role_name }}</h1>
@@ -59,12 +59,4 @@
         <button type="submit" class="btn btn-primary btn-sm">{{ __('rbac.save') }}</button>
     </form>
 </div>
-
-@push('styles')
-<style>
-.roles-hub-panel { border: 1px solid var(--border-subtle, #dee2e6); border-radius: 0.375rem; padding: 0.35rem 0.65rem; background: var(--card-bg, #fff); }
-.roles-hub-summary { cursor: pointer; font-weight: 600; font-size: 0.875rem; list-style: none; }
-.roles-hub-summary::-webkit-details-marker { display: none; }
-</style>
-@endpush
 @endsection

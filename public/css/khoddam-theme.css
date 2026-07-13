@@ -4,11 +4,23 @@
  * Light: soft purple gradient, indigo titles
  */
 
-:root,
-body.theme-light {
+:root {
     --font-sans: 'Cairo', 'Segoe UI', system-ui, sans-serif;
     --font-display: 'Cairo', Georgia, serif;
 
+    --radius-sm: 0.5rem;
+    --radius-md: 0.875rem;
+    --radius-lg: 1.25rem;
+
+    --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    --reveal-duration: 1.5s;
+    --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --reveal-distance: 8px;
+}
+
+body.theme-light {
     --color-bg-1: #f5f0ff;
     --color-bg-2: #ede4ff;
     --color-bg-3: #e8efff;
@@ -42,17 +54,6 @@ body.theme-light {
     --shadow-md: 0 8px 24px rgba(91, 33, 182, 0.12);
     --shadow-lg: 0 16px 40px rgba(91, 33, 182, 0.16);
     --shadow-glow: 0 0 0 1px rgba(124, 58, 237, 0.08), 0 12px 32px rgba(124, 58, 237, 0.15);
-
-    --radius-sm: 0.5rem;
-    --radius-md: 0.875rem;
-    --radius-lg: 1.25rem;
-
-    --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
-
-    --reveal-duration: 0.8s;
-    --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --reveal-distance: 8px;
 
     --color-table-head-bg: rgba(124, 58, 237, 0.08);
     --color-table-row-bg: transparent;
@@ -134,6 +135,13 @@ body.theme-dark {
     --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35);
     --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.45);
     --shadow-glow: 0 0 0 1px rgba(212, 175, 55, 0.12), 0 12px 36px rgba(0, 0, 0, 0.4);
+
+    --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    --reveal-duration: 1.5s;
+    --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --reveal-distance: 8px;
 
     --swal-surface: rgba(15, 39, 68, 0.96);
     --swal-text: var(--color-text);
@@ -303,7 +311,7 @@ body.theme-dark .app-nav-link.active {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(10px);
-    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
+    animation: fadeInUp var(--reveal-duration, 1.5s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
     transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
 }
 
@@ -690,12 +698,12 @@ body.theme-dark .app-dropdown-link:hover {
     border: 1px solid var(--color-surface-border);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
-    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
+    animation: fadeInUp var(--reveal-duration, 1.5s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 .hub-tile,
 .hub-link-tile {
-    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
+    animation: fadeInUp var(--reveal-duration, 1.5s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 .app-tile:hover {
@@ -735,17 +743,68 @@ body.theme-dark .app-dropdown-link:hover {
 .app-tile,
 .hub-tile,
 .hub-link-tile {
-    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
+    animation: fadeInUp var(--reveal-duration, 1.5s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 .accordion-item,
 .roles-hub-panel {
-    animation: khoddamFadeIn calc(var(--reveal-duration) * 0.9) var(--reveal-ease) both;
+    animation: khoddamFadeIn calc(var(--reveal-duration, 1.5s) * 0.9) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
-.animate-delay-1 { animation-delay: 0.1s; }
-.animate-delay-2 { animation-delay: 0.2s; }
-.animate-delay-3 { animation-delay: 0.3s; }
+.animate-delay-1 { animation-delay: 0.15s; }
+.animate-delay-2 { animation-delay: 0.3s; }
+.animate-delay-3 { animation-delay: 0.45s; }
+
+/* Roles hub — theme-aware panels and accordion */
+.roles-hub .accordion-button {
+    font-size: 0.95rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+.roles-hub .accordion-button:not(.collapsed) {
+    background: var(--color-surface-hover);
+    color: var(--color-title);
+    box-shadow: none;
+}
+
+.roles-hub .accordion-button:focus {
+    box-shadow: none;
+    border-color: var(--color-surface-border);
+}
+
+.roles-hub-panel,
+.roles-hub-subpanel {
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-sm, 0.375rem);
+    padding: 0.35rem 0.65rem;
+    background: var(--color-surface);
+}
+
+.roles-hub-summary,
+.roles-hub-subsummary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    list-style: none;
+    color: var(--color-title);
+}
+
+.roles-hub-summary::-webkit-details-marker,
+.roles-hub-subsummary::-webkit-details-marker {
+    display: none;
+}
+
+.roles-hub-subpanel {
+    margin-inline-start: 0.5rem;
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--color-bg-2) 12%);
+}
+
+.roles-hub .table thead th {
+    background: var(--color-table-head-bg);
+    color: var(--color-title);
+    border-color: var(--color-surface-border);
+}
 
 /* Subtle hover lift (works with animate.css timing) */
 .khoddam-hover-lift {

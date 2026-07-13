@@ -10,7 +10,11 @@ use Illuminate\Validation\ValidationException;
 
 class CourseRoleAssignmentService
 {
-    public function assign(User $user, int $courseId, int $roleId): UserCourseRole
+    public function __construct(
+        private RoleAssignmentNotificationService $notifications,
+    ) {}
+
+    public function assign(User $user, int $courseId, int $roleId, bool $notify = true): UserCourseRole
     {
         $exists = UserCourseRole::where('user_id', $user->user_id)
             ->where('course_id', $courseId)
@@ -23,18 +27,47 @@ class CourseRoleAssignmentService
             ]);
         }
 
-        return UserCourseRole::create([
+        $assignment = UserCourseRole::create([
             'user_id' => $user->user_id,
             'course_id' => $courseId,
             'role_id' => $roleId,
         ]);
+
+        if ($notify) {
+            $this->notifyAssignment($user, $courseId, $roleId, $assignment);
+        }
+
+        return $assignment;
+    }
+
+    public function assignOrUpdate(User $user, int $courseId, int $roleId, bool $notify = true): UserCourseRole
+    {
+        $existing = UserCourseRole::query()
+            ->where('user_id', $user->user_id)
+            ->where('course_id', $courseId)
+            ->first();
+
+        if ($existing && (int) $existing->role_id === $roleId) {
+            return $existing;
+        }
+
+        $assignment = UserCourseRole::updateOrCreate(
+            ['user_id' => $user->user_id, 'course_id' => $courseId],
+            ['role_id' => $roleId]
+        );
+
+        if ($notify) {
+            $this->notifyAssignment($user, $courseId, $roleId, $assignment);
+        }
+
+        return $assignment;
     }
 
     /** @param list<array{course_id: int, role_id: int}> $assignments */
-    public function assignMany(User $user, array $assignments): void
+    public function assignMany(User $user, array $assignments, bool $notify = true): void
     {
         foreach ($assignments as $assignment) {
-            $this->assign($user, (int) $assignment['course_id'], (int) $assignment['role_id']);
+            $this->assign($user, (int) $assignment['course_id'], (int) $assignment['role_id'], $notify);
         }
     }
 
@@ -46,5 +79,17 @@ class CourseRoleAssignmentService
     public function rolesForPicker()
     {
         return Role::orderBy('role_name')->get();
+    }
+
+    private function notifyAssignment(User $user, int $courseId, int $roleId, UserCourseRole $assignment): void
+    {
+        $role = Role::find($roleId);
+        $course = Course::find($courseId);
+
+        if (! $role || ! $course) {
+            return;
+        }
+
+        $this->notifications->notifyCourseRole($user, $role, $course, $assignment);
     }
 }

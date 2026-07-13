@@ -50,4 +50,18 @@ return [
     'templates_hint' => 'Default templates copied into new courses. Expand a template to edit its permissions.',
     'visibility_hint' => 'Control which permission groups course admins can see when editing roles.',
     'select_course_hint' => 'Select a course above to manage its roles.',
+    'section_email_templates' => 'Role assignment emails',
+    'email_templates_intro' => 'Customize emails sent when a user is assigned a course or system role.',
+    'email_templates_saved' => 'Email templates saved.',
+    'email_subject_label' => 'Subject',
+    'email_header' => 'Role assignment',
+    'email_placeholders_help' => 'Placeholders: {{name}}, {{role_name}}, {{course_title}}, {{portal_url}}',
+    'email_subjects' => [
+        'course_role_assigned' => 'Course role assigned',
+        'system_role_assigned' => 'System role assigned',
+    ],
+    'email_bodies' => [
+        'course_role_assigned' => '<p>Hello {{name}},</p><p>You have been assigned the role <strong>{{role_name}}</strong> in <strong>{{course_title}}</strong>.</p><p><a href="{{portal_url}}">Open the portal</a></p>',
+        'system_role_assigned' => '<p>Hello {{name}},</p><p>You have been assigned the system role <strong>{{role_name}}</strong>.</p><p><a href="{{portal_url}}">Open the portal</a></p>',
+    ],
 ];

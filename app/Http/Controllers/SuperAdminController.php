@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Services\CourseRoleAssignmentService;
 use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
@@ -74,13 +75,15 @@ class SuperAdminController extends Controller
 
         if ($exists) {
             return back()
-                ->withErrors(['duplicate' => __('pages.duplicate_role_assignment')])
+                ->with('error', __('pages.duplicate_role_assignment'))
                 ->withInput();
         }
 
-        UserCourseRole::updateOrCreate(
-            ['user_id' => $request->user_id, 'course_id' => $request->course_id],
-            ['role_id' => $request->role_id]
+        $user = User::findOrFail($request->user_id);
+        app(CourseRoleAssignmentService::class)->assignOrUpdate(
+            $user,
+            (int) $request->course_id,
+            (int) $request->role_id
         );
 
         $course = Course::find($request->course_id);

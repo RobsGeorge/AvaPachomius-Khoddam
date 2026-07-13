@@ -66,20 +66,35 @@
         return map[type] || map.info;
     }
 
+    function baseToastOptions() {
+        return {
+            buttonsStyling: false,
+            customClass: {
+                popup: 'khoddam-swal-popup khoddam-swal-toast',
+                title: 'khoddam-swal-title',
+                closeButton: 'khoddam-swal-toast-close',
+            },
+            showClass: { popup: 'swal2-show' },
+            hideClass: { popup: 'swal2-hide' },
+        };
+    }
+
     function showToast(message, type = 'success') {
         if (!message || typeof Swal === 'undefined') {
             return;
         }
 
         const Toast = Swal.mixin({
-            ...baseSwalOptions(),
+            ...baseToastOptions(),
             toast: true,
             position: config.dir === 'rtl' ? 'top-start' : 'top-end',
             showConfirmButton: false,
-            timer: type === 'error' ? 6500 : 4200,
+            showCloseButton: true,
+            timer: type === 'error' ? 6000 : 4500,
             timerProgressBar: true,
             didOpen: (toast) => {
-                toast.classList.add('animate__animated', 'animate__fadeInDown', 'animate__faster');
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
             },
         });
 
@@ -141,6 +156,11 @@
             return;
         }
 
+        if (errors.length === 1) {
+            showToast(errors[0], 'error');
+            return;
+        }
+
         if (typeof Swal === 'undefined') {
             window.alert(errors.join('\n'));
             return;
@@ -153,7 +173,10 @@
             icon: 'error',
             title: config.validationTitle || 'Validation',
             html,
-            confirmButtonText: config.confirmCancel || 'OK',
+            confirmButtonText: config.confirmYes || 'OK',
+            allowOutsideClick: true,
+            allowEscapeKey: true,
+            showCloseButton: true,
         });
     }
 
@@ -378,11 +401,11 @@
     function initReveal() {
         const nodes = document.querySelectorAll('.app-card, .app-tile, .hub-tile, .hub-link-tile, .animate-in');
         nodes.forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.08, 0.52)}s`;
+            el.style.animationDelay = `${Math.min(index * 0.12, 0.84)}s`;
         });
 
         document.querySelectorAll('.accordion-item, .roles-hub-panel').forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.07, 0.45)}s`;
+            el.style.animationDelay = `${Math.min(index * 0.1, 0.7)}s`;
         });
     }
 

@@ -106,7 +106,7 @@ class CourseApplicationReviewService
                 ->exists();
 
             if (! $exists) {
-                $this->roleAssignment->assign($user, $application->course_id, $roleId);
+                $this->roleAssignment->assign($user, $application->course_id, $roleId, false);
             }
 
             $application->update([

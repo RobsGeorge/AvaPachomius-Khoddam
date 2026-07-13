@@ -40,20 +40,12 @@
         @if(in_array('visibility', $visibleSections, true))
             @include('roles-hub.partials.section-visibility')
         @endif
+        @if(in_array('email-templates', $visibleSections, true))
+            @include('roles-hub.partials.section-email-templates')
+        @endif
     </div>
 </div>
 @endsection
-
-@push('styles')
-<style>
-.roles-hub-accordion .accordion-button { font-size: 0.95rem; }
-.roles-hub-accordion .accordion-button:not(.collapsed) { background: var(--bs-light, #f8f9fa); }
-.roles-hub-panel, .roles-hub-subpanel { border: 1px solid var(--border-subtle, #dee2e6); border-radius: 0.375rem; padding: 0.35rem 0.65rem; background: var(--card-bg, #fff); }
-.roles-hub-summary, .roles-hub-subsummary { cursor: pointer; font-weight: 600; font-size: 0.875rem; list-style: none; }
-.roles-hub-summary::-webkit-details-marker, .roles-hub-subsummary::-webkit-details-marker { display: none; }
-.roles-hub-subpanel { margin-inline-start: 0.5rem; background: transparent; }
-</style>
-@endpush
 
 @push('scripts')
 <script>

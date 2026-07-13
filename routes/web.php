@@ -410,6 +410,7 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
 // Unified roles hub + course-scoped dynamic role management
 Route::middleware(['auth'])->group(function () {
     Route::get('/roles-hub', [RolesHubController::class, 'index'])->name('roles.hub');
+    Route::put('/roles-hub/email-templates', [RolesHubController::class, 'updateEmailTemplates'])->name('roles.hub.email-templates.update');
 });
 
 Route::middleware(['auth'])->prefix('courses/{course}')->name('courses.roles.')->group(function () {

@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\CoursePermissionResolver;
+use App\Services\CourseRoleAssignmentService;
 use App\Services\PendingRegistrationService;
 use App\Services\RolesHubService;
 use Illuminate\Http\Request;
@@ -47,13 +48,15 @@ class UserCourseRoleController extends Controller
 
         if ($exists) {
             return back()
-                ->withErrors(['duplicate' => 'هذا المستخدم لديه هذا الدور في هذه الدورة بالفعل.'])
+                ->with('error', __('pages.duplicate_role_assignment'))
                 ->withInput();
         }
 
-        UserCourseRole::updateOrCreate(
-            ['user_id' => $request->user_id, 'course_id' => $request->course_id],
-            ['role_id' => $request->role_id]
+        $user = User::findOrFail($request->user_id);
+        app(CourseRoleAssignmentService::class)->assignOrUpdate(
+            $user,
+            (int) $request->course_id,
+            (int) $request->role_id
         );
 
         $course = Course::find($request->course_id);
@@ -62,7 +65,7 @@ class UserCourseRoleController extends Controller
         }
 
         return redirect(app(RolesHubService::class)->hubUrl($course, 'assignments'))
-            ->with('success', 'تم تعيين الدور بنجاح');
+            ->with('success', __('pages.role_assigned'));
     }
 
     public function destroy(string $id)

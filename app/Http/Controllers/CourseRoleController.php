@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Policies\RolePermissionPolicy;
 use App\Services\CoursePermissionResolver;
+use App\Services\CourseRoleAssignmentService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use App\Services\StudentRosterService;
@@ -24,6 +25,7 @@ class CourseRoleController extends Controller
         private RoleTemplateService $templates,
         private StudentRosterService $roster,
         private RolesHubService $hub,
+        private CourseRoleAssignmentService $assignments,
     ) {}
 
     public function index(Course $course)
@@ -128,10 +130,19 @@ class CourseRoleController extends Controller
             ],
         ]);
 
-        UserCourseRole::updateOrCreate(
-            ['user_id' => $data['user_id'], 'course_id' => $course->course_id],
-            ['role_id' => $data['role_id']]
-        );
+        $user = User::findOrFail($data['user_id']);
+
+        $existing = UserCourseRole::query()
+            ->where('user_id', $user->user_id)
+            ->where('course_id', $course->course_id)
+            ->first();
+
+        if ($existing && (int) $existing->role_id === (int) $data['role_id']) {
+            return redirect($this->hub->hubUrl($course, 'course'))
+                ->with('error', __('pages.duplicate_role_assignment'));
+        }
+
+        $this->assignments->assignOrUpdate($user, $course->course_id, (int) $data['role_id']);
 
         $this->resolver->bumpCoursePermissionsVersion($course);
 

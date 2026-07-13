@@ -50,4 +50,18 @@ return [
     'templates_hint' => 'القوالب الافتراضية تُنسخ إلى الدورات الجديدة. وسّع القالب لتعديل صلاحياته.',
     'visibility_hint' => 'تحكم في مجموعات الصلاحيات التي يراها مديرو الدورات عند تعديل الأدوار.',
     'select_course_hint' => 'اختر دورة أعلاه لإدارة أدوارها.',
+    'section_email_templates' => 'رسائل تعيين الأدوار',
+    'email_templates_intro' => 'خصّص رسائل البريد المرسلة عند تعيين دور في دورة أو دور نظام.',
+    'email_templates_saved' => 'تم حفظ قوالب البريد.',
+    'email_subject_label' => 'الموضوع',
+    'email_header' => 'تعيين دور',
+    'email_placeholders_help' => 'المتغيرات: {{name}}، {{role_name}}، {{course_title}}، {{portal_url}}',
+    'email_subjects' => [
+        'course_role_assigned' => 'تم تعيين دور في الدورة',
+        'system_role_assigned' => 'تم تعيين دور نظام',
+    ],
+    'email_bodies' => [
+        'course_role_assigned' => '<p>مرحباً {{name}}،</p><p>تم تعيينك في دور <strong>{{role_name}}</strong> في <strong>{{course_title}}</strong>.</p><p><a href="{{portal_url}}">فتح البوابة</a></p>',
+        'system_role_assigned' => '<p>مرحباً {{name}}،</p><p>تم تعيينك في دور النظام <strong>{{role_name}}</strong>.</p><p><a href="{{portal_url}}">فتح البوابة</a></p>',
+    ],
 ];

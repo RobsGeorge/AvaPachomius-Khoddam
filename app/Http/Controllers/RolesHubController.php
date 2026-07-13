@@ -8,7 +8,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Models\UserSystemRole;
+use App\Models\RoleAssignmentEmailTemplate;
 use App\Services\PendingRegistrationService;
+use App\Services\RoleAssignmentMailService;
 use App\Services\RolesHubService;
 use Illuminate\Http\Request;
 
@@ -16,6 +18,7 @@ class RolesHubController extends Controller
 {
     public function __construct(
         private RolesHubService $hub,
+        private RoleAssignmentMailService $roleMail,
     ) {}
 
     public function index(Request $request)
@@ -131,6 +134,16 @@ class RolesHubController extends Controller
             ? User::orderBy('first_name')->orderBy('second_name')->get()
             : collect();
 
+        $emailTemplates = collect();
+        if ($this->hub->canManageEmailTemplates($user)) {
+            $this->roleMail->ensureDefaults();
+            $emailTemplates = RoleAssignmentEmailTemplate::query()
+                ->orderBy('template_key')
+                ->orderBy('locale')
+                ->get()
+                ->groupBy('template_key');
+        }
+
         return view('roles-hub.index', compact(
             'user',
             'section',
@@ -154,6 +167,31 @@ class RolesHubController extends Controller
             'systemAssignments',
             'visibilityGroups',
             'assignUsers',
+            'emailTemplates',
         ));
+    }
+
+    public function updateEmailTemplates(Request $request)
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->hub->canManageEmailTemplates($user), 403);
+
+        $validated = $request->validate([
+            'templates' => ['required', 'array'],
+            'templates.*.subject' => ['required', 'string', 'max:255'],
+            'templates.*.body_html' => ['required', 'string'],
+        ]);
+
+        foreach ($validated['templates'] as $id => $payload) {
+            RoleAssignmentEmailTemplate::query()
+                ->whereKey($id)
+                ->update([
+                    'subject' => $payload['subject'],
+                    'body_html' => $payload['body_html'],
+                ]);
+        }
+
+        return redirect($this->hub->hubUrl(null, 'email-templates'))
+            ->with('success', __('rbac.email_templates_saved'));
     }
 }
