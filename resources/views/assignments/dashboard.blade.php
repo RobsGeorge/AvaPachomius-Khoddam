@@ -13,11 +13,7 @@
                 </div>
 
                 <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success">{{ session('success') }}</div>
-                    @endif
-
-                    <div class="row mb-4 g-3">
+<div class="row mb-4 g-3">
                         <div class="col-md-4">
                             <div class="app-tile h-100">
                                 <h5 class="text-muted-theme">{{ __('pages.total_assignments') }}</h5>

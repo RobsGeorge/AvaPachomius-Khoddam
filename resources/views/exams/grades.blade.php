@@ -20,11 +20,7 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @foreach($exam->schedules as $schedule)
+@foreach($exam->schedules as $schedule)
         <div class="app-card card shadow-sm mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>{{ $schedule->scheduled_date->format('Y-m-d H:i') }}</span>

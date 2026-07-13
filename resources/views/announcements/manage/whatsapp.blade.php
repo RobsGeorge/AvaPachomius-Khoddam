@@ -10,11 +10,7 @@
         <p class="text-muted-theme">{{ __('announcements.whatsapp_help') }}</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="app-card card shadow-sm mb-4">
+<div class="app-card card shadow-sm mb-4">
         <div class="card-header fw-semibold">{{ __('announcements.copy_message') }}</div>
         <div class="card-body">
             <p class="fw-semibold mb-2">{{ $announcement->title }}</p>

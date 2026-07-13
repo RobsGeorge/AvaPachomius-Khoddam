@@ -9,10 +9,7 @@
         <a href="{{ route('events.my-reservations') }}" class="btn btn-outline-theme btn-sm">{{ __('events.my_reservations') }}</a>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
-
-    @forelse($events as $event)
+@forelse($events as $event)
         <div class="app-card card shadow-sm mb-3">
             <div class="card-body d-flex justify-content-between align-items-start flex-wrap gap-2">
                 <div>

@@ -9,9 +9,7 @@
     <h1 class="page-title mb-1">{{ $survey->title }}</h1>
     <p class="text-muted-theme mb-3">{{ $survey->course?->title }} — {{ $survey->module?->title }}</p>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-
-    <div class="alert alert-secondary">
+<div class="alert alert-secondary">
         <i class="bi bi-check-circle"></i> {{ __('pages.feedback_submitted_readonly') }}
     </div>
 

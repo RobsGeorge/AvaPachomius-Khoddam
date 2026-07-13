@@ -13,11 +13,7 @@
         <p class="text-muted-theme mb-0">{{ __('profile_photos.report_intro') }}</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="app-card card shadow-sm mb-4">
+<div class="app-card card shadow-sm mb-4">
         <div class="card-header fw-semibold">{{ __('profile_photos.save_settings') }}</div>
         <div class="card-body">
             <form method="POST" action="{{ route('admin.profile-photos.settings') }}" class="row g-3 align-items-end">

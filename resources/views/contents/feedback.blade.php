@@ -193,23 +193,7 @@
         <p><strong>{{ __('pages.date') }}:</strong> {{ $content->session_date ? $content->session_date->format('Y-m-d') : __('pages.unspecified') }}</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <div class="feedback-form">
+<div class="feedback-form">
         <form action="{{ route('contents.store-feedback', $content->content_id) }}" method="POST">
             @csrf
 

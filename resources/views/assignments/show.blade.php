@@ -22,19 +22,7 @@
                 </div>
 
                 <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    @if(session('error'))
-                        <div class="alert alert-danger">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-
-                    <div class="mb-4">
+<div class="mb-4">
                         <h4>{{ __('pages.description') }}</h4>
                         <p>{{ $assignment->assignment_description }}</p>
                     </div>

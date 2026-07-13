@@ -31,11 +31,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @include('announcements.manage.partials.form', [
+@include('announcements.manage.partials.form', [
         'announcement' => $announcement,
         'action' => route('announcements.manage.update', $announcement),
         'method' => 'PUT',

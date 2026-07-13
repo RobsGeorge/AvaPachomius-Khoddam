@@ -18,11 +18,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="d-flex flex-wrap gap-2 mb-3">
+<div class="d-flex flex-wrap gap-2 mb-3">
         @foreach($filters as $filterKey)
             <a href="{{ route('notifications.index', ['filter' => $filterKey]) }}"
                class="btn btn-sm {{ $filter === $filterKey ? 'btn-primary' : 'btn-outline-secondary' }}">

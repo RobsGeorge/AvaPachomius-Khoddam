@@ -11,14 +11,7 @@
         </a>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show">
-            @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="app-card card shadow-sm">
+<div class="app-card card shadow-sm">
         <div class="card-body">
             <form method="POST" action="{{ route('modules.store') }}">
                 @csrf

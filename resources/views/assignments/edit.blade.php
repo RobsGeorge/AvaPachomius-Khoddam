@@ -12,13 +12,7 @@
                 </div>
 
                 <div class="card-body">
-                    @if(session('error'))
-                        <div class="alert alert-danger">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-
-                    <form action="{{ route('assignments.update', $assignment) }}" method="POST">
+<form action="{{ route('assignments.update', $assignment) }}" method="POST">
                         @csrf
                         @method('PUT')
 

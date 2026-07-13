@@ -9,17 +9,7 @@
         <p class="text-muted small mb-0">{{ __('pages.attendance_settings_hint') }}</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
-        </div>
-    @endif
-
-    <div class="app-card card shadow-sm">
+<div class="app-card card shadow-sm">
         <div class="card-body">
             <form method="POST" action="{{ route('admin.attendance-settings.update') }}">
                 @csrf

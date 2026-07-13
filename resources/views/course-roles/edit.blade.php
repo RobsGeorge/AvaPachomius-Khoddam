@@ -15,10 +15,7 @@
         <a href="{{ $hub->hubUrl($course, 'course') }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back') }}</a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success py-2 small">{{ session('success') }}</div>
-    @endif
-    @if($errors->any())
+@if($errors->any())
         <div class="alert alert-danger py-2 small">@foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach</div>
     @endif
 

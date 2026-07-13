@@ -22,11 +22,7 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="app-card card shadow-sm mb-4">
+<div class="app-card card shadow-sm mb-4">
         <div class="card-body">
             <p class="mb-3">
                 <span class="text-muted-theme">{{ __('registration_review.waiting_status_label') }}:</span>

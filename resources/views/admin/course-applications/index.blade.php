@@ -14,11 +14,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <form method="GET" class="row g-2 mb-3 align-items-end">
+<form method="GET" class="row g-2 mb-3 align-items-end">
         <div class="col-md-4">
             <label class="form-label small">{{ __('course_applications.filter_course') }}</label>
             <select name="course_id" class="form-select form-select-sm" onchange="this.form.submit()">

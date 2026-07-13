@@ -11,20 +11,7 @@
         </button>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show">
-            @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="row g-3">
+<div class="row g-3">
         @forelse($exams as $exam)
             <div class="col-12">
                 <div class="app-card card shadow-sm exam-admin-card">

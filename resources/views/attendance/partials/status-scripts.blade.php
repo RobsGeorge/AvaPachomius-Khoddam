@@ -7,6 +7,11 @@ const attendanceStatusMessages = JSON.parse(
 );
 
 function showAlert(message, type = 'success') {
+    if (window.KhoddamUI?.toast) {
+        window.KhoddamUI.toast(message, type === 'success' ? 'success' : 'error');
+        return;
+    }
+
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} app-toast-alert alert-dismissible fade show`;
     alertDiv.setAttribute('role', 'alert');
@@ -108,14 +113,28 @@ function setRosterStatus(select) {
 
     let permissionReason = '';
     if (status === 'Permission') {
-        permissionReason = window.prompt(attendanceStatusMessages.enterPermissionReason);
-        if (!permissionReason) {
-            select.selectedIndex = 0;
-            return;
-        }
+        const askPermission = () => {
+            if (window.KhoddamUI?.prompt) {
+                return window.KhoddamUI.prompt(attendanceStatusMessages.enterPermissionReason);
+            }
+            return Promise.resolve(window.prompt(attendanceStatusMessages.enterPermissionReason));
+        };
+
+        askPermission().then((reason) => {
+            if (!reason) {
+                select.selectedIndex = 0;
+                return;
+            }
+            permissionReason = reason;
+            submitRosterStatus();
+        });
+        return;
     }
 
-    fetch(`/sessions/${sessionId}/attendance`, {
+    submitRosterStatus();
+
+    function submitRosterStatus() {
+        fetch(`/sessions/${sessionId}/attendance`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -143,6 +162,7 @@ function setRosterStatus(select) {
         showAlert(attendanceStatusMessages.statusUpdateError, 'error');
         select.selectedIndex = 0;
     });
+    }
 }
 </script>
 @endpush

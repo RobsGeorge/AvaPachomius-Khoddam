@@ -22,17 +22,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show">
-            @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="app-card card shadow-sm mb-4">
+<div class="app-card card shadow-sm mb-4">
         <div class="card-body py-2">
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="small fw-semibold">{{ __('pages.total_grading_weights') }}</span>

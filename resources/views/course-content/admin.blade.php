@@ -172,20 +172,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show">
-            @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @forelse($course->modules as $module)
+@forelse($course->modules as $module)
         <div class="card shadow-sm mb-5">
             {{-- Module header --}}
             <div class="card-header d-flex justify-content-between align-items-center py-3"

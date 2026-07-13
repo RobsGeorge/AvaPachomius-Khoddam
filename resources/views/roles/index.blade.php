@@ -6,23 +6,7 @@
 <div class="container py-4 animate-in">
     <h1 class="page-title mb-4">{{ __('pages.roles_management') }}</h1>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="app-card card shadow-sm mb-5">
+<div class="app-card card shadow-sm mb-5">
         <div class="card-header fw-semibold">{{ __('pages.roles_list') }}</div>
         <div class="card-body p-0">
             <div class="table-responsive d-none d-lg-block admin-table-desktop">

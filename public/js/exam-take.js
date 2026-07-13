@@ -213,9 +213,25 @@
             e.preventDefault();
             return;
         }
-        if (!confirm(root.dataset.confirmSubmit || 'Submit exam?')) {
-            e.preventDefault();
+
+        if (form.dataset.khoddamExamConfirmed === '1') {
+            delete form.dataset.khoddamExamConfirmed;
+            return;
         }
+
+        e.preventDefault();
+        const message = root.dataset.confirmSubmit || 'Submit exam?';
+        const ask = window.KhoddamUI?.confirm
+            ? window.KhoddamUI.confirm(message)
+            : Promise.resolve(window.confirm(message));
+
+        ask.then((ok) => {
+            if (!ok) {
+                return;
+            }
+            form.dataset.khoddamExamConfirmed = '1';
+            form.requestSubmit();
+        });
     });
 
     document.querySelectorAll('[data-goto-question]').forEach((btn) => {

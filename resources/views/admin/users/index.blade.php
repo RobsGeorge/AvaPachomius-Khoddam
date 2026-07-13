@@ -6,11 +6,7 @@
 <div class="container py-4 animate-in">
     <h2 class="page-title mb-4">{{ __('admin.unverified_users') }}</h2>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($unverifiedUsers->isEmpty())
+@if($unverifiedUsers->isEmpty())
         <p class="text-muted-theme">{{ __('admin.no_unverified_users') }}</p>
     @else
         <div class="app-card card">

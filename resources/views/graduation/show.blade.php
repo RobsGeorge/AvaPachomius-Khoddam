@@ -28,11 +28,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($usingSnapshot ?? false)
+@if($usingSnapshot ?? false)
         <div class="alert alert-info d-flex gap-3 align-items-start mb-4">
             <i class="bi bi-lock-fill fs-4 flex-shrink-0"></i>
             <div>{{ __('course_graduation.snapshot_report') }}</div>

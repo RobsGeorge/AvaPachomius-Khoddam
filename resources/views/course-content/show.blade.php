@@ -15,20 +15,7 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show">
-            {{ session('warning') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @forelse($course->modules as $module)
+@forelse($course->modules as $module)
         <div class="card shadow-sm mb-4">
             {{-- Module header --}}
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"

@@ -12,15 +12,7 @@
         <p class="text-muted-theme mb-0">{{ $courseModel->title }} — {{ $form->description ?: __('course_applications.apply_intro') }}</p>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    <div class="mb-3">
+<div class="mb-3">
         <div class="progress" style="height: 8px;">
             <div class="progress-bar" @style(['width' => $progressPercent.'%'])></div>
         </div>

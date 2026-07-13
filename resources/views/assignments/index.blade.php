@@ -15,19 +15,7 @@
                 </div>
 
                 <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
-                    @endif
-
-                    @if(session('error'))
-                        <div class="alert alert-danger">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-
-                    @if(Auth::user()->isStudent())
+@if(Auth::user()->isStudent())
                         <div class="student-data-hub">
                             @forelse($assignments as $assignment)
                                 @php

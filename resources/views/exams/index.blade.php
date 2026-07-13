@@ -11,11 +11,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="row g-3">
+<div class="row g-3">
         @forelse($exams as $exam)
             @forelse($exam->schedules as $schedule)
                 @php

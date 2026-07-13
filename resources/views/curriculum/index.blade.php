@@ -14,14 +14,7 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if($courses->isEmpty())
+@if($courses->isEmpty())
         <div class="alert alert-info">{{ __('pages.no_courses_for_curriculum') }}</div>
     @else
         @if(! auth()->user()->hasAnyRole(['admin', 'instructor']))

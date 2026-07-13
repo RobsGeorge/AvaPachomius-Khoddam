@@ -17,11 +17,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="d-flex flex-wrap gap-2 mb-3 admin-filter-bar">
+<div class="d-flex flex-wrap gap-2 mb-3 admin-filter-bar">
         <a href="{{ route('admin.registration-applications.index') }}"
            class="btn btn-sm {{ $filter ? 'btn-outline-secondary' : 'btn-primary' }}">
             {{ __('registration_review.filter_all') }} ({{ array_sum($counts) }})

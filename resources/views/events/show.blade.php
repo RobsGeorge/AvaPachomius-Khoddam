@@ -18,10 +18,7 @@
         <dd class="col-sm-8">{{ $event->seatsRemaining() }} / {{ $event->capacity }}</dd>
     </dl>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
-
-    @if($reservation)
+@if($reservation)
         <div class="alert alert-info">
             {{ __('events.your_status') }}: <strong>{{ __('events.status_'.$reservation->status) }}</strong>
         </div>

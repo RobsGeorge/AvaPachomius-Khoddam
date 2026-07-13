@@ -21,7 +21,9 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260715b">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260713b">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     @if(!empty($courseBrandingCss))
@@ -52,6 +54,7 @@
         @include('layouts.impersonation-banner')
 
         <main class="app-main flex-grow-1">
+            @include('layouts.partials.flash-toast')
             @yield('content')
         </main>
     </div>
@@ -62,8 +65,9 @@
     @include('students.partials.student-photo-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260715b"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260713c"></script>
     @stack('scripts')
 </body>
 </html>

@@ -6,19 +6,7 @@
 <div class="animate-in">
     <h1 class="page-title">{{ __('admin.translations') }}</h1>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    @if($translationsTableMissing ?? false)
+@if($translationsTableMissing ?? false)
         <div class="alert alert-warning">
             {{ __('admin.translations_table_missing') }}
         </div>

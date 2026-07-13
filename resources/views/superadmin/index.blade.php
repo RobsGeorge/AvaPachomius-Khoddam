@@ -12,14 +12,7 @@
     </div>
     <p class="text-muted-theme mb-4">{{ __('pages.superadmin_hub_desc') }}</p>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if(!empty($isSystemWideMode))
+@if(!empty($isSystemWideMode))
         <div class="app-card card shadow-sm mb-4 border-danger border-opacity-25">
             <div class="card-body">
                 <h2 class="h6 mb-2">

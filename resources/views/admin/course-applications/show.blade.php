@@ -26,19 +26,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    <div class="mb-3">
+<div class="mb-3">
         <span class="badge bg-secondary">{{ __('course_applications.status_'.$application->status) }}</span>
         <span class="text-muted-theme small ms-2">
             {{ __('course_applications.submitted_at') }}: {{ $application->submitted_at?->format('d/m/Y H:i') }}

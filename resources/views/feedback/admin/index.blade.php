@@ -9,9 +9,7 @@
         <a href="{{ route('feedback.surveys.create') }}" class="btn btn-primary">{{ __('pages.feedback_create_survey') }}</a>
     </div>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-
-    @forelse($surveys as $survey)
+@forelse($surveys as $survey)
         <div class="app-card card mb-3">
             <div class="card-body d-flex flex-wrap justify-content-between gap-2">
                 <div>

@@ -14,11 +14,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @forelse($items as $item)
+@forelse($items as $item)
         <article class="data-card mb-3">
             <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
                 <div>

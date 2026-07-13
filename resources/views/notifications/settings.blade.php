@@ -12,19 +12,7 @@
         <a href="{{ route('notifications.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back') }}</a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    @if(! $whatsappConfigured)
+@if(! $whatsappConfigured)
         <div class="alert alert-warning">{{ __('notifications.whatsapp_not_configured') }}</div>
     @endif
 

@@ -12,17 +12,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
-        </div>
-    @endif
-
-    <div class="app-card card shadow-sm">
+<div class="app-card card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive d-none d-lg-block admin-table-desktop">
                 <table class="table table-hover align-middle mb-0">

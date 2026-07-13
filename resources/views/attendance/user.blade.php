@@ -6,11 +6,7 @@
         <div class="card-body">
             <h1 class="page-title mb-4">{{ __('pages.attendance_record_for') }} — {{ $user->first_name . ' ' . $user->second_name . ' ' . $user->third_name }}</h1>
 
-            @if(session('success'))
-                <div class="alert alert-success mb-3">{{ session('success') }}</div>
-            @endif
-
-            @if($attendanceRecords->count() === 0)
+@if($attendanceRecords->count() === 0)
                 <p>{{ __('pages.no_attendance_records') }}.</p>
             @else
                 <div class="table-responsive d-none d-lg-block admin-table-desktop mb-4">

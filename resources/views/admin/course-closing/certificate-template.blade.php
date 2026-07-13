@@ -13,11 +13,7 @@
         <a href="{{ route('courses.closing.show', $course->course_id) }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back') }}</a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <p class="small text-muted-theme">{{ __('course_graduation.placeholders') }}</p>
+<p class="small text-muted-theme">{{ __('course_graduation.placeholders') }}</p>
 
     <form method="POST" action="{{ route('courses.certificate-template.update', $course->course_id) }}">
         @csrf

@@ -10,9 +10,7 @@
             <a href="{{ route('events.admin.create') }}" class="btn btn-primary btn-sm">{{ __('events.admin_create') }}</a>
         </div>
     </div>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-
-    <div class="table-responsive d-none d-lg-block admin-table-desktop app-card card shadow-sm">
+<div class="table-responsive d-none d-lg-block admin-table-desktop app-card card shadow-sm">
         <table class="table table-hover mb-0">
             <thead><tr><th>{{ __('events.event') }}</th><th>{{ __('events.status') }}</th><th>{{ __('events.starts') }}</th><th>{{ __('events.capacity') }}</th><th></th></tr></thead>
             <tbody>

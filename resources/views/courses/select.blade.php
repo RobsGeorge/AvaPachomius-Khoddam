@@ -10,11 +10,7 @@
         <p class="text-muted-theme mb-0 mx-auto" style="max-width: 36rem;">{{ __('course_context.select_intro') }}</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($courses->isEmpty())
+@if($courses->isEmpty())
         <div class="app-card card shadow-sm">
             <div class="card-body text-center py-5">
                 <i class="bi bi-journal-x fs-1 text-muted-theme d-block mb-3"></i>

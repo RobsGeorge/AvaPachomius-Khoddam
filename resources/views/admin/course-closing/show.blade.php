@@ -20,19 +20,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    @php
+@php
         $statusLabel = match($course->status) {
             'grading_locked' => __('course_graduation.status_grading_locked'),
             'announced' => __('course_graduation.status_announced'),

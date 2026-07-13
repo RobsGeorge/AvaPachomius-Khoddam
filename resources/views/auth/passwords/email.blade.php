@@ -9,15 +9,7 @@
         <p class="text-muted-theme small">{{ __('auth.reset_form_intro') }}</p>
     </div>
 
-    @if(session('status'))
-        <div class="alert alert-success">
-            <i class="bi bi-envelope-check me-1"></i>
-            {{ session('status') }}
-            <div class="mt-2 small">{{ __('auth.check_spam') }}</div>
-        </div>
-    @endif
-
-    @if ($errors->any())
+@if ($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
                 @foreach ($errors->all() as $error)

@@ -12,14 +12,7 @@
         <p class="text-muted-theme mb-0">{{ __('course_applications.available_courses_intro') }}</p>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning">{{ session('warning') }}</div>
-    @endif
-
-    <div class="mb-5">
+<div class="mb-5">
         <h2 class="h5 mb-3">{{ __('course_applications.my_enrolled_courses') }}</h2>
         @if($enrolledCourses->isEmpty())
             <div class="alert alert-info mb-0">{{ __('course_applications.no_enrolled_courses') }}</div>

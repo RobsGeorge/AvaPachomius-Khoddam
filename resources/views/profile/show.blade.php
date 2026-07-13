@@ -6,14 +6,7 @@
 <div class="container py-4 animate-in" style="max-width:720px;">
     <h2 class="page-title mb-4">{{ __('pages.profile_title') }}</h2>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning">{{ session('warning') }}</div>
-    @endif
-
-    @if ($errors->any())
+@if ($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
                 @foreach ($errors->all() as $error)

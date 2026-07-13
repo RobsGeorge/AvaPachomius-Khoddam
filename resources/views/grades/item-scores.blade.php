@@ -44,11 +44,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    @endif
-
-    <form method="POST" action="{{ route('grade-items.scores.save', $item->item_id) }}" id="grade-item-scores-form">
+<form method="POST" action="{{ route('grade-items.scores.save', $item->item_id) }}" id="grade-item-scores-form">
         @csrf
         <div class="app-card card shadow-sm">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">

@@ -143,12 +143,20 @@ function updateAttendanceStatus(selectElement) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(attendanceTableMessages.statusUpdated);
+            notify(attendanceTableMessages.statusUpdated, 'success');
         } else {
-            alert(attendanceTableMessages.statusUpdateError);
+            notify(attendanceTableMessages.statusUpdateError, 'error');
         }
     })
-    .catch(() => alert(attendanceTableMessages.statusUpdateError));
+    .catch(() => notify(attendanceTableMessages.statusUpdateError, 'error'));
+}
+
+function notify(message, type = 'success') {
+    if (window.KhoddamUI?.toast) {
+        window.KhoddamUI.toast(message, type);
+        return;
+    }
+    alert(message);
 }
 
 function updatePermissionReason(inputElement) {
@@ -157,7 +165,7 @@ function updatePermissionReason(inputElement) {
     const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
     if (!reason.trim()) {
-        alert(attendanceTableMessages.enterPermissionReason);
+        notify(attendanceTableMessages.enterPermissionReason, 'warning');
         return;
     }
 
@@ -173,12 +181,12 @@ function updatePermissionReason(inputElement) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(attendanceTableMessages.permissionUpdated);
+            notify(attendanceTableMessages.permissionUpdated, 'success');
         } else {
-            alert(attendanceTableMessages.permissionUpdateError);
+            notify(attendanceTableMessages.permissionUpdateError, 'error');
         }
     })
-    .catch(() => alert(attendanceTableMessages.permissionUpdateError));
+    .catch(() => notify(attendanceTableMessages.permissionUpdateError, 'error'));
 }
 </script>
 @endpush

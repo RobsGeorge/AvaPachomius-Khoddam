@@ -25,11 +25,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="app-card card shadow-sm mb-4">
+<div class="app-card card shadow-sm mb-4">
         <div class="card-body">
             <form method="POST" action="{{ route('admin.courses.application-form.update', $courseModel->course_id) }}">
                 @csrf

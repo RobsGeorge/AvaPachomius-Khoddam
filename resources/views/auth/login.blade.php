@@ -17,19 +17,7 @@
         </div>
     @endif
 
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="app-card card">
+<div class="app-card card">
         <div class="card-body p-4">
             <form method="POST" action="{{ route('login') }}">
                 @csrf

@@ -6,9 +6,7 @@
 <div class="container py-4 animate-in">
     <h1 class="page-title mb-1">{{ $event->title }}</h1>
     <p class="text-muted mb-4">{{ __('events.reservations') }}</p>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-
-    <div class="app-card card shadow-sm mb-4">
+<div class="app-card card shadow-sm mb-4">
         <div class="card-header">{{ __('events.add_exception') }}</div>
         <div class="card-body">
             <form method="POST" action="{{ route('events.admin.exceptions.add', $event->event_id) }}" class="row g-2">@csrf

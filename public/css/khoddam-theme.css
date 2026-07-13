@@ -54,6 +54,16 @@ body.theme-light {
     --color-table-row-bg: transparent;
     --color-table-hover-bg: rgba(124, 58, 237, 0.06);
     --color-table-border: rgba(124, 58, 237, 0.12);
+
+    --swal-surface: rgba(255, 255, 255, 0.96);
+    --swal-text: var(--color-text);
+    --swal-title: var(--color-title);
+    --swal-border: var(--color-surface-border);
+    --swal-cancel-bg: rgba(148, 163, 184, 0.2);
+    --swal-cancel-text: var(--color-text-muted);
+    --swal-input-bg: #ffffff;
+    --swal-input-border: var(--color-surface-border);
+    --swal-backdrop: rgba(91, 33, 182, 0.18);
 }
 
 body.theme-dark {
@@ -120,6 +130,16 @@ body.theme-dark {
     --shadow-md: 0 10px 28px rgba(0, 0, 0, 0.35);
     --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.45);
     --shadow-glow: 0 0 0 1px rgba(212, 175, 55, 0.12), 0 12px 36px rgba(0, 0, 0, 0.4);
+
+    --swal-surface: rgba(15, 39, 68, 0.96);
+    --swal-text: var(--color-text);
+    --swal-title: var(--color-title);
+    --swal-border: var(--color-surface-border);
+    --swal-cancel-bg: rgba(71, 85, 105, 0.45);
+    --swal-cancel-text: var(--color-text-muted);
+    --swal-input-bg: rgba(7, 15, 31, 0.65);
+    --swal-input-border: var(--color-surface-border);
+    --swal-backdrop: rgba(0, 0, 0, 0.62);
 }
 
 * {
@@ -287,6 +307,7 @@ body.theme-dark .app-nav-link.active {
     transform: translateY(-4px);
     box-shadow: var(--shadow-glow);
     background: var(--color-surface-hover);
+    border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-surface-border));
 }
 
 .app-card .card-header {
@@ -453,9 +474,15 @@ body.theme-dark .flatpickr-calendar {
     border: 1px solid transparent;
 }
 
-.alert-success { background: rgba(5, 150, 105, 0.12); color: var(--color-success); }
-.alert-danger  { background: rgba(220, 38, 38, 0.12); color: var(--color-danger); }
-.alert-warning { background: rgba(217, 119, 6, 0.12); color: var(--color-warning); }
+.alert-success { background: rgba(5, 150, 105, 0.12); color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 25%, transparent); }
+.alert-danger  { background: rgba(220, 38, 38, 0.12); color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 25%, transparent); }
+.alert-warning { background: rgba(217, 119, 6, 0.12); color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 25%, transparent); }
+.alert-info    { background: color-mix(in srgb, var(--color-primary) 12%, transparent); color: var(--color-title-accent); border-color: color-mix(in srgb, var(--color-primary) 22%, transparent); }
+
+body.theme-dark .alert-success { background: rgba(52, 211, 153, 0.14); }
+body.theme-dark .alert-danger  { background: rgba(248, 113, 113, 0.14); }
+body.theme-dark .alert-warning { background: rgba(251, 191, 36, 0.14); }
+body.theme-dark .alert-info    { background: rgba(212, 175, 55, 0.12); color: var(--color-title); }
 
 /* Tables — Bootstrap 5.3 colors cells via inset box-shadow + --bs-table-accent-bg */
 .table {
@@ -666,13 +693,25 @@ body.theme-dark .app-dropdown-link:hover {
     box-shadow: var(--shadow-glow);
 }
 
+.hub-tile:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-surface-border));
+    background: var(--color-surface-hover);
+}
+
 .app-tile h3 {
     color: var(--color-title);
     font-size: 1.15rem;
     margin-bottom: 0.5rem;
 }
 
-/* Animations */
+/* Animations — animate.css + local stagger */
+.animate-in,
+.app-card.animate__animated,
+.app-tile.animate__animated,
+.hub-link-tile.animate__animated {
+    --animate-duration: 0.55s;
+}
+
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(14px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -690,6 +729,133 @@ body.theme-dark .app-dropdown-link:hover {
 .animate-delay-1 { animation-delay: 0.08s; }
 .animate-delay-2 { animation-delay: 0.16s; }
 .animate-delay-3 { animation-delay: 0.24s; }
+
+/* Subtle hover lift (works with animate.css timing) */
+.khoddam-hover-lift {
+    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.khoddam-hover-lift:hover {
+    transform: translateY(-2px);
+}
+
+.khoddam-hover-lift:active {
+    transform: translateY(0);
+}
+
+/* SweetAlert2 — Khoddam theme (tracks light/dark CSS variables) */
+.swal2-container {
+    font-family: var(--font-sans) !important;
+}
+
+.swal2-container.swal2-backdrop-show {
+    background: var(--swal-backdrop) !important;
+}
+
+.khoddam-swal-popup,
+.swal2-popup.khoddam-swal-popup {
+    background: var(--swal-surface) !important;
+    color: var(--swal-text) !important;
+    border: 1px solid var(--swal-border) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: var(--shadow-lg) !important;
+    font-family: var(--font-sans) !important;
+}
+
+.khoddam-swal-title,
+.swal2-popup.khoddam-swal-popup .swal2-title {
+    color: var(--swal-title) !important;
+    font-weight: 700 !important;
+}
+
+.khoddam-swal-body,
+.swal2-popup.khoddam-swal-popup .swal2-html-container {
+    color: var(--swal-text) !important;
+}
+
+.swal2-toast.khoddam-swal-popup {
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.swal2-toast.khoddam-swal-popup .swal2-title {
+    color: var(--swal-text) !important;
+    font-size: 0.9rem !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-styled.swal2-confirm {
+    background-color: var(--color-primary) !important;
+    color: var(--color-primary-text) !important;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 80%, #000) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-styled.swal2-confirm:hover {
+    background-color: var(--color-primary-hover) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-styled.swal2-cancel {
+    background-color: var(--swal-cancel-bg) !important;
+    color: var(--swal-cancel-text) !important;
+    border: 1px solid var(--swal-border) !important;
+}
+
+.swal2-popup.khoddam-swal-popup.khoddam-swal-destructive .swal2-styled.swal2-confirm {
+    background-color: var(--color-danger) !important;
+    color: #fff !important;
+    border-color: color-mix(in srgb, var(--color-danger) 80%, #000) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-input,
+.swal2-popup.khoddam-swal-popup .swal2-textarea {
+    background: var(--swal-input-bg) !important;
+    color: var(--swal-text) !important;
+    border: 1px solid var(--swal-input-border) !important;
+    border-radius: var(--radius-sm) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-input:focus,
+.swal2-popup.khoddam-swal-popup .swal2-textarea:focus {
+    border-color: var(--color-primary) !important;
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--color-primary) 22%, transparent) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-validation-message {
+    background: color-mix(in srgb, var(--color-danger) 12%, var(--swal-surface)) !important;
+    color: var(--color-danger) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-icon.swal2-success [class^='swal2-success-line'] {
+    background-color: var(--color-success) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-icon.swal2-success .swal2-success-ring {
+    border-color: color-mix(in srgb, var(--color-success) 35%, transparent) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-icon.swal2-error {
+    border-color: var(--color-danger) !important;
+    color: var(--color-danger) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-icon.swal2-warning {
+    border-color: var(--color-warning) !important;
+    color: var(--color-warning) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-icon.swal2-info {
+    border-color: var(--color-primary) !important;
+    color: var(--color-primary) !important;
+}
+
+.swal2-popup.khoddam-swal-popup .swal2-icon.swal2-question {
+    border-color: var(--color-primary) !important;
+    color: var(--color-primary) !important;
+}
+
+.swal2-timer-progress-bar {
+    background: var(--color-primary) !important;
+}
 
 /* Main content */
 .app-main {

@@ -20,14 +20,7 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning">{{ session('warning') }}</div>
-    @endif
-
-    @if($courses->isEmpty())
+@if($courses->isEmpty())
         <div class="app-tile text-center text-muted-theme py-5">{{ __('students.no_courses') }}</div>
     @else
         <div class="app-card card shadow-sm mb-4">

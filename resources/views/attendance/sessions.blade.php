@@ -6,38 +6,7 @@
 <div class="container py-4 animate-in" style="max-width:720px;">
     <h2 class="page-title mb-4">{{ __('pages.attendance_confirm_title') }}</h2>
 
-    @if(session('success'))
-        <div class="alert alert-success d-flex align-items-center gap-2">
-            <i class="bi bi-check-circle-fill"></i>
-            <span>{{ session('success') }}</span>
-        </div>
-    @endif
-
-    @if(session('warning'))
-        <div class="alert alert-warning d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>{{ session('warning') }}</span>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger d-flex align-items-center gap-2">
-            <i class="bi bi-x-circle-fill"></i>
-            <span>{{ session('error') }}</span>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <div class="app-card card mb-4">
+<div class="app-card card mb-4">
         <div class="card-header">
             <i class="bi bi-person-badge"></i> {{ __('pages.scanned_student') }}
         </div>

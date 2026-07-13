@@ -17,11 +17,7 @@
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <p class="small text-muted-theme">{{ __('registration_review.placeholders_help') }}</p>
+<p class="small text-muted-theme">{{ __('registration_review.placeholders_help') }}</p>
 
     <form method="POST" action="{{ route('admin.registration-applications.templates.update') }}">
         @csrf

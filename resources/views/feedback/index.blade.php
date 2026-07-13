@@ -6,10 +6,7 @@
 <div class="container py-4 animate-in" style="max-width:920px;">
     <h1 class="page-title mb-4">{{ __('pages.feedback_hub_title') }}</h1>
 
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-    @if(session('warning'))<div class="alert alert-warning">{{ session('warning') }}</div>@endif
-
-    <p class="text-muted-theme mb-4">{{ __('pages.feedback_hub_intro') }}</p>
+<p class="text-muted-theme mb-4">{{ __('pages.feedback_hub_intro') }}</p>
 
     @forelse($surveys as $survey)
         @php

@@ -15,15 +15,7 @@
         <p class="text-muted-theme mb-0">{{ __('registration_review.correction_intro') }}</p>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-
-    <div class="app-card card shadow-sm">
+<div class="app-card card shadow-sm">
         <div class="card-body">
             <form method="POST" action="{{ route('application.update') }}" enctype="multipart/form-data">
                 @csrf

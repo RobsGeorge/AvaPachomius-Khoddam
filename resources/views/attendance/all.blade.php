@@ -8,17 +8,7 @@
                 <h1 class="page-title mb-0">{{ __('pages.all_records') }}</h1>
             </div>
 
-            @if(session('success'))
-                <div class="alert alert-success mb-3">{{ session('success') }}</div>
-            @endif
-            @if(session('warning'))
-                <div class="alert alert-warning mb-3">{{ session('warning') }}</div>
-            @endif
-            @if(session('error'))
-                <div class="alert alert-danger mb-3">{{ session('error') }}</div>
-            @endif
-
-            <form method="GET" action="{{ route('attendance.all') }}" id="attendance-filter-form" class="app-card card mb-4">
+<form method="GET" action="{{ route('attendance.all') }}" id="attendance-filter-form" class="app-card card mb-4">
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
                         <div class="col-lg-3">

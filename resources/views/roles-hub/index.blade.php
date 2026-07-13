@@ -24,28 +24,7 @@
         @endif
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success py-2 small">{{ session('success') }}</div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning py-2 small">{{ session('warning') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger py-2 small">{{ session('error') }}</div>
-    @endif
-    @if(session('warning'))
-        <div class="alert alert-warning py-2 small">{{ session('warning') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger py-2 small">{{ session('error') }}</div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger py-2 small">
-            @foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach
-        </div>
-    @endif
-
-    <div class="accordion accordion-flush roles-hub-accordion" id="rolesHubAccordion">
+<div class="accordion accordion-flush roles-hub-accordion" id="rolesHubAccordion">
         @if(in_array('course', $visibleSections, true))
             @include('roles-hub.partials.section-course')
         @endif
