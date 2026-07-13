@@ -4,12 +4,39 @@
          bootstrap="vendor/autoload.php"
          colors="true"
 >
+    <!--
+      Categorized, independently runnable pipelines. Each testsuite can be run in
+      isolation with:  php artisan test [[testsuite]]=Name
+      The System test dashboard (SuperAdmin) and CI run them in the sequence below.
+      The broad "Feature" suite excludes the categorized subfolders so tests are
+      never counted or executed twice.
+    -->
     <testsuites>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
+            <exclude>tests/Feature/Smoke</exclude>
+            <exclude>tests/Feature/Api</exclude>
+            <exclude>tests/Feature/Notifications</exclude>
+            <exclude>tests/Feature/Mail</exclude>
+            <exclude>tests/Feature/Tenancy</exclude>
+        </testsuite>
+        <testsuite name="Smoke">
+            <directory>tests/Feature/Smoke</directory>
+        </testsuite>
+        <testsuite name="Api">
+            <directory>tests/Feature/Api</directory>
+        </testsuite>
+        <testsuite name="Notifications">
+            <directory>tests/Feature/Notifications</directory>
+        </testsuite>
+        <testsuite name="Mail">
+            <directory>tests/Feature/Mail</directory>
+        </testsuite>
+        <testsuite name="Tenancy">
+            <directory>tests/Feature/Tenancy</directory>
         </testsuite>
         <testsuite name="Load">
             <directory>tests/Load</directory>

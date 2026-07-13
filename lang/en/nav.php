@@ -18,6 +18,7 @@ return [
     'events'            => 'Events',
     'events_admin'      => 'Event admin',
     'events_tests'      => 'Events tests',
+    'system_tests'      => 'System testing report',
     'academic'          => 'Academic',
     'academic_desc'     => 'Curriculum, sessions, assignments, exams, feedback, and more.',
     'system_settings'   => 'System settings',

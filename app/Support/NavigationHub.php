@@ -210,6 +210,7 @@ class NavigationHub
             self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate'], true),
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
+            self::hubLink('superadmin.system-tests.index', 'nav.system_tests', 'pages.superadmin_system_tests_desc', 'bi-clipboard2-check', ['superadmin.system-tests.*'], true),
         ];
 
         $sharedLinks = [];

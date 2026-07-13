@@ -50,6 +50,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\EventAdminController;
 use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\SuperAdminEventTestController;
+use App\Http\Controllers\SuperAdminSystemTestController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
@@ -453,6 +454,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/event-admins/{userId}',  [SuperAdminController::class, 'destroyEventAdmin'])->name('event-admins.destroy');
     Route::get('/events/tests',             [SuperAdminEventTestController::class, 'index'])->name('events.tests.index');
     Route::post('/events/tests/run',        [SuperAdminEventTestController::class, 'run'])->name('events.tests.run');
+
+    // System-wide automated testing report (categorized pipelines).
+    Route::get('/system-tests',             [SuperAdminSystemTestController::class, 'index'])->name('system-tests.index');
+    Route::post('/system-tests/run',        [SuperAdminSystemTestController::class, 'run'])->name('system-tests.run');
+    Route::get('/system-tests/{systemTestRun}', [SuperAdminSystemTestController::class, 'show'])->name('system-tests.show');
 
     Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');
     Route::put('/templates/{role}',         [SystemRoleController::class, 'updateTemplate'])->name('templates.update');
