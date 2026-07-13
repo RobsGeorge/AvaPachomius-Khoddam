@@ -44,6 +44,37 @@ class StudentBirthdayAnnouncementTest extends EventModuleTestCase
         Mail::assertSent(MonthlyBirthdayAnnouncementMail::class, 2);
     }
 
+    public function test_instructor_can_open_birthdays_page_and_sees_dashboard_tile(): void
+    {
+        $instructorRole = $this->courseRoleWithPermissions(
+            $this->createCourse(['title' => 'Birthdays Staff Course']),
+            'instructor',
+            ['roster.view', 'roster.announce', 'course.access']
+        );
+        $course = $instructorRole->course;
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', ['roster.view', 'course.access']);
+
+        $instructor = $this->createUser(['email' => 'bday-instructor-page@example.com']);
+        $student = $this->createUser([
+            'email' => 'bday-peer@example.com',
+            'date_of_birth' => now(config('attendance.timezone', config('app.timezone')))->format('Y-m-d'),
+        ]);
+
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($instructor)
+            ->get(route('students.birthdays'))
+            ->assertOk()
+            ->assertSee(__('students.birthdays_title'), false);
+
+        $this->actingAs($instructor)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(route('students.birthdays'), false)
+            ->assertSee(__('dashboard.birthdays'), false);
+    }
+
     public function test_announcement_warns_when_no_birthdays_this_month(): void
     {
         Mail::fake();

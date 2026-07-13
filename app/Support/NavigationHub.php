@@ -82,7 +82,7 @@ class NavigationHub
             $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own');
         }
 
-        if (self::canAnyCourse($user, $resolver, ['roster.view']) && ! self::canAnyCourse($user, $resolver, ['roster.announce'])) {
+        if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
             $links[] = self::link('students.birthdays', 'students.birthdays_title', 'bi-cake2', ['students.birthdays'], 'roster.view');
         }
 

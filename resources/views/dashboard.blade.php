@@ -103,7 +103,7 @@
             </a>
         </div>
 
-        @if(Auth::user()->isStudent() && ! Auth::user()->isInstructorOrAdmin())
+        @if(Auth::user()->isStudent() || Auth::user()->isInstructorOrAdmin() || (Auth::user()->is_superadmin ?? false))
             <div class="col-md-6">
                 <a href="{{ route('students.birthdays') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
                     <h3><i class="bi bi-cake2"></i> {{ __('dashboard.birthdays') }}</h3>

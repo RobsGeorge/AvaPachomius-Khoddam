@@ -17,11 +17,10 @@ class StudentBirthdaysController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isInstructorOrAdmin()) {
-            return redirect()->route('students.roster');
-        }
+        $courses = $user->isInstructorOrAdmin() || ($user->is_superadmin ?? false)
+            ? $this->rosterService->accessibleCourses($user)
+            : $this->rosterService->studentEnrolledCourses($user);
 
-        $courses = $this->rosterService->studentEnrolledCourses($user);
         $timezone = config('attendance.timezone', config('app.timezone'));
         $now = now($timezone);
 
