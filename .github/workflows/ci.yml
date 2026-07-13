@@ -114,3 +114,65 @@ jobs:
       - name: Feature suite (full)
         run: php artisan test --testsuite=Feature --compact
         continue-on-error: true
+
+  mysql-migrations:
+    name: MySQL migration check (blocks deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The test suites run on SQLite, which does NOT enforce varchar lengths, charset,
+    # or strict-mode constraints. This job runs the real migrations (including their
+    # data-seeding backfills) against MySQL 8 in strict mode, catching column-length
+    # truncation and similar MySQL-only issues before they break the production deploy.
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: khedma_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, curl, json, bcmath, gd, pdo_mysql
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare application (MySQL)
+        run: |
+          cp .env.example .env
+          {
+            echo "DB_CONNECTION=mysql"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=3306"
+            echo "DB_DATABASE=khedma_ci"
+            echo "DB_USERNAME=root"
+            echo "DB_PASSWORD=root"
+            echo "PULSE_ENABLED=false"
+            echo "TELESCOPE_ENABLED=false"
+          } >> .env
+          php artisan key:generate
+
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then echo "MySQL ready"; break; fi
+            echo "waiting for mysql ($i)"; sleep 2
+          done
+
+      - name: Run migrations on MySQL (strict mode)
+        run: php artisan migrate --force --no-interaction

@@ -14,7 +14,8 @@ class RegistrationReviewService
     public function __construct(
         private RegistrationApplicationService $applications,
         private CourseRoleAssignmentService $roleAssignment,
-        private RegistrationReviewMailService $mail
+        private RegistrationReviewMailService $mail,
+        private ServiceRoleAssignmentService $serviceMembership,
     ) {}
 
     /** @param array<string, array{status?: string, comment?: string|null}> $fieldInput */
@@ -95,6 +96,11 @@ class RegistrationReviewService
 
         return DB::transaction(function () use ($application, $admin, $roleAssignments) {
             $user = $application->user;
+
+            // Admission to each course implies membership in its parent service.
+            foreach ($roleAssignments as $assignment) {
+                $this->serviceMembership->ensureMembershipForCourse($user, (int) $assignment['course_id']);
+            }
 
             $this->roleAssignment->assignMany($user, $roleAssignments, false);
 

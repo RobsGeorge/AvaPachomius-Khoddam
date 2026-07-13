@@ -16,6 +16,7 @@ class CourseApplicationReviewService
         private CourseApplicationService $applications,
         private CourseRoleAssignmentService $roleAssignment,
         private CourseApplicationMailService $mail,
+        private ServiceRoleAssignmentService $serviceMembership,
     ) {}
 
     /** @param array<string, array{status?: string, comment?: string|null}> $fieldInput */
@@ -106,6 +107,8 @@ class CourseApplicationReviewService
                 ->exists();
 
             if (! $exists) {
+                // Admission to a course implies membership in its parent service.
+                $this->serviceMembership->ensureMembershipForCourse($user, $application->course_id);
                 $this->roleAssignment->assign($user, $application->course_id, $roleId, false);
             }
 
