@@ -97,6 +97,112 @@ class RoleTemplateService
         return $candidate;
     }
 
+    /** @return array<string, Role> */
+    public function cloneTemplatesIntoService(\App\Models\ChurchService $service, ?int $sourceServiceId = null): array
+    {
+        $sourceRoles = $sourceServiceId
+            ? Role::forService($sourceServiceId)->get()
+            : Role::query()
+                ->whereNull('course_id')
+                ->whereNull('service_id')
+                ->where('is_template', true)
+                ->whereIn('slug', ['service-admin', 'service-member'])
+                ->get();
+
+        if ($sourceRoles->isEmpty() && ! $sourceServiceId) {
+            $this->ensureServiceTemplates();
+            $sourceRoles = Role::query()
+                ->whereNull('course_id')
+                ->whereNull('service_id')
+                ->where('is_template', true)
+                ->whereIn('slug', ['service-admin', 'service-member'])
+                ->get();
+        }
+
+        $created = [];
+
+        foreach ($sourceRoles as $template) {
+            $role = Role::create([
+                'role_name' => $template->role_name,
+                'role_decription' => $template->role_decription,
+                'slug' => $this->uniqueSlugForService($service->service_id, $template->effectiveSlug()),
+                'description' => $template->description,
+                'course_id' => null,
+                'service_id' => $service->service_id,
+                'is_system' => false,
+                'is_template' => false,
+                'cloned_from_role_id' => $template->role_id,
+            ]);
+
+            $permissionIds = $template->permissions()
+                ->whereHas('group', fn ($q) => $q->whereIn('scope', ['service', 'both', 'system']))
+                ->pluck('permissions.permission_id');
+            $role->permissions()->sync($permissionIds);
+            $created[$role->effectiveSlug()] = $role;
+        }
+
+        $service->bumpPermissionsVersion();
+
+        return $created;
+    }
+
+    public function ensureServiceTemplates(): Collection
+    {
+        $templates = [
+            'service-admin' => [
+                'service.view', 'service.manage',
+                'service.member.add', 'service.member.remove', 'service.member.add_cross',
+                'service.role.manage', 'service.user.assign_role',
+                'service_application.review', 'service_application.form_builder',
+                'announcement.view', 'announcement.manage', 'announcement.publish',
+                'roster.view',
+            ],
+            'service-member' => [
+                'service.view',
+                'announcement.view',
+            ],
+        ];
+
+        $roles = collect();
+
+        foreach ($templates as $slug => $permissionKeys) {
+            $role = Role::firstOrCreate(
+                [
+                    'slug' => $slug,
+                    'course_id' => null,
+                    'service_id' => null,
+                    'is_template' => true,
+                ],
+                [
+                    'role_name' => $slug === 'service-admin' ? 'Service Admin' : 'Service Member',
+                    'role_decription' => $slug,
+                    'description' => "Default {$slug} template",
+                    'is_system' => true,
+                ]
+            );
+
+            $ids = Permission::whereIn('key', $permissionKeys)->pluck('permission_id');
+            $role->permissions()->sync($ids);
+            $roles->push($role);
+        }
+
+        return $roles;
+    }
+
+    public function uniqueSlugForService(int|string $serviceId, string $slug): string
+    {
+        $base = Str::slug($slug) ?: 'role';
+        $candidate = $base;
+        $i = 1;
+
+        while (Role::where('service_id', $serviceId)->whereNull('course_id')->where('slug', $candidate)->exists()) {
+            $candidate = $base.'-'.$i;
+            $i++;
+        }
+
+        return $candidate;
+    }
+
     private function adminPermissions(): array
     {
         return Permission::where('is_system_only', false)

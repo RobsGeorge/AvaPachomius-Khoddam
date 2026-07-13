@@ -31,6 +31,7 @@ class Course extends Model
     protected $primaryKey = 'course_id';
 
     protected $fillable = [
+        'service_id',
         'title',
         'title_ar',
         'title_en',
@@ -197,6 +198,11 @@ class Course extends Model
             'course_id',
             'user_id'
         )->withPivot('role_id', 'user_course_role_id');
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
     }
 
     public function userCourseRoles()

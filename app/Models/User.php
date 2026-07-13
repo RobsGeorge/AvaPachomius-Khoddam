@@ -131,6 +131,11 @@ class User extends Authenticatable
         return $this->hasMany(UserCourseRole::class, 'user_id', 'user_id');
     }
 
+    public function userServiceRoles()
+    {
+        return $this->hasMany(UserServiceRole::class, 'user_id', 'user_id');
+    }
+
     public function systemRoles()
     {
         return $this->belongsToMany(
@@ -161,6 +166,11 @@ class User extends Authenticatable
     public function canInSystem(string $permission): bool
     {
         return app(CoursePermissionResolver::class)->canInSystem($this, $permission);
+    }
+
+    public function canInService(string $permission, ChurchService $service): bool
+    {
+        return app(CoursePermissionResolver::class)->canInService($this, $permission, $service);
     }
 
     public function canAnyInCourse(array $permissions, Course $course): bool

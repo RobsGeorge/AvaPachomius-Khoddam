@@ -23,6 +23,7 @@ class AdminMiddleware
         $systemPerms = [
             'system.role.manage', 'user.assign_role', 'registration.review',
             'course_application.review', 'course_application.form_builder',
+            'service_application.review', 'service_application.form_builder',
             'translation.manage', 'attendance.configure', 'graduation.settings',
             'profile_photo.review', 'user.approve',
         ];

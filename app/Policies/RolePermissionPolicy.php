@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Course;
+use App\Models\ChurchService;
 use App\Models\Permission;
 use App\Models\PermissionGroup;
 use App\Models\Role;
@@ -27,6 +28,32 @@ class RolePermissionPolicy
     {
         return ($user->is_superadmin ?? false)
             || $this->resolver->canInCourse($user, 'user.assign_role', $course);
+    }
+
+    public function manageServiceRoles(User $user, ChurchService $service): bool
+    {
+        return ($user->is_superadmin ?? false)
+            || $this->resolver->canInService($user, 'service.role.manage', $service)
+            || $this->resolver->canInService($user, 'service.manage', $service);
+    }
+
+    public function assignServiceUsers(User $user, ChurchService $service): bool
+    {
+        return ($user->is_superadmin ?? false)
+            || $this->resolver->canInService($user, 'service.user.assign_role', $service)
+            || $this->resolver->canInService($user, 'service.member.add', $service);
+    }
+
+    public function addCrossServiceMember(User $user, ChurchService $service): bool
+    {
+        return ($user->is_superadmin ?? false)
+            || $this->resolver->canInService($user, 'service.member.add_cross', $service);
+    }
+
+    public function removeServiceMember(User $user, ChurchService $service): bool
+    {
+        return ($user->is_superadmin ?? false)
+            || $this->resolver->canInService($user, 'service.member.remove', $service);
     }
 
     public function updateRolePermissions(User $user, Role $role, array $permissionIds): bool

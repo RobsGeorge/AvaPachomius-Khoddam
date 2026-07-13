@@ -20,6 +20,7 @@ class RoleAssignmentNotificationTest extends EventModuleTestCase
         $assignee = $this->createUser(['email' => 'role-assignee@example.com']);
         $course = $this->createCourse(['title' => 'Notify Course']);
         $managerRole = $this->courseRoleWithPermissions($course, 'manager', ['role.manage']);
+        $this->ensureServiceMembership($assignee, $course);
 
         $this->actingAs($admin)
             ->post(route('courses.roles.assignments.store', $course), [
@@ -70,6 +71,7 @@ class RoleAssignmentNotificationTest extends EventModuleTestCase
         $course = $this->createCourse();
         $roleA = $this->courseRoleWithPermissions($course, 'role-a', ['exam.view']);
         $roleB = $this->courseRoleWithPermissions($course, 'role-b', ['role.manage']);
+        $this->ensureServiceMembership($assignee, $course);
 
         UserCourseRole::create([
             'user_id' => $assignee->user_id,

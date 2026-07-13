@@ -15,6 +15,8 @@ class Announcement extends Model
 
     public const TARGET_COURSE = 'course';
 
+    public const TARGET_SERVICE = 'service';
+
     public const TARGET_USERS = 'users';
 
     public const CHANNEL_HOMEPAGE = 'homepage';
@@ -32,6 +34,7 @@ class Announcement extends Model
     protected $fillable = [
         'created_by_user_id',
         'course_id',
+        'service_id',
         'title',
         'body',
         'target_mode',
@@ -63,6 +66,11 @@ class Announcement extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class, 'course_id', 'course_id');
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
     }
 
     public function targetUsers(): BelongsToMany

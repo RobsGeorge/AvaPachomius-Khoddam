@@ -6,6 +6,7 @@ use App\Mail\AnnouncementMail;
 use App\Models\Announcement;
 use App\Models\AnnouncementDelivery;
 use App\Models\AnnouncementRevision;
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -30,6 +31,7 @@ class AnnouncementService
         $announcement = Announcement::create([
             'created_by_user_id' => $author->user_id,
             'course_id' => $data['course_id'] ?? null,
+            'service_id' => $data['service_id'] ?? null,
             'title' => $data['title'],
             'body' => $data['body'],
             'target_mode' => $data['target_mode'],
@@ -42,7 +44,7 @@ class AnnouncementService
         $this->syncTargetUsers($announcement, $data['target_user_ids'] ?? []);
         $this->recordRevision($announcement, $author, AnnouncementRevision::ACTION_CREATED);
 
-        return $announcement->fresh(['targetUsers', 'course']);
+        return $announcement->fresh(['targetUsers', 'course', 'service']);
     }
 
     /** @param array<string, mixed> $data */
@@ -50,6 +52,7 @@ class AnnouncementService
     {
         $announcement->fill([
             'course_id' => $data['course_id'] ?? null,
+            'service_id' => $data['service_id'] ?? null,
             'title' => $data['title'],
             'body' => $data['body'],
             'target_mode' => $data['target_mode'],
@@ -61,7 +64,7 @@ class AnnouncementService
         $this->syncTargetUsers($announcement, $data['target_user_ids'] ?? []);
         $this->recordRevision($announcement, $editor, AnnouncementRevision::ACTION_UPDATED);
 
-        return $announcement->fresh(['targetUsers', 'course']);
+        return $announcement->fresh(['targetUsers', 'course', 'service']);
     }
 
     public function publish(Announcement $announcement, User $publisher, bool $republish = false): Announcement
@@ -239,6 +242,18 @@ class AnnouncementService
     {
         if ($announcement->target_mode === Announcement::TARGET_USERS) {
             return $announcement->targetUsers()->orderBy('first_name')->get();
+        }
+
+        if ($announcement->target_mode === Announcement::TARGET_SERVICE || $announcement->service_id) {
+            $service = $announcement->service_id
+                ? ChurchService::find($announcement->service_id)
+                : null;
+
+            if (! $service) {
+                return collect();
+            }
+
+            return $this->rosterService->serviceMembers($service);
         }
 
         if (! $announcement->course_id) {

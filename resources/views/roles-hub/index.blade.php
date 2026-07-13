@@ -25,6 +25,9 @@
     </div>
 
 <div class="accordion accordion-flush roles-hub-accordion" id="rolesHubAccordion">
+        @if(in_array('service', $visibleSections, true))
+            @include('roles-hub.partials.section-service')
+        @endif
         @if(in_array('course', $visibleSections, true))
             @include('roles-hub.partials.section-course')
         @endif

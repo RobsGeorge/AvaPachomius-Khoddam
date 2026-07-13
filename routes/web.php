@@ -22,6 +22,11 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RolesHubController;
+use App\Http\Controllers\ServiceApplicationController;
+use App\Http\Controllers\ServiceContextController;
+use App\Http\Controllers\ServiceMemberController;
+use App\Http\Controllers\ServiceRoleController;
+use App\Http\Controllers\ServiceRosterController;
 use App\Http\Controllers\HubController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
@@ -63,6 +68,7 @@ use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\Admin\RegistrationApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationFormController;
+use App\Http\Controllers\Admin\ServiceApplicationController as AdminServiceApplicationController;
 use App\Http\Controllers\Admin\CourseCertificateTemplateController;
 use App\Http\Controllers\Admin\CourseClosingController;
 use App\Http\Controllers\ApplicationStatusController;
@@ -88,6 +94,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/courses/select', [CourseContextController::class, 'show'])->name('courses.select');
     Route::post('/courses/select', [CourseContextController::class, 'store'])->name('courses.select.store');
     Route::post('/courses/select/clear', [CourseContextController::class, 'clear'])->name('courses.select.clear');
+
+    Route::get('/services/select', [ServiceContextController::class, 'show'])->name('services.select');
+    Route::post('/services/select', [ServiceContextController::class, 'store'])->name('services.select.store');
+    Route::post('/services/select/clear', [ServiceContextController::class, 'clear'])->name('services.select.clear');
+    Route::get('/services/roster', [ServiceRosterController::class, 'index'])->name('services.roster');
+    Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
+    Route::post('/services/{service}/apply', [ServiceApplicationController::class, 'store'])->name('services.apply.store');
+    Route::get('/services/{service}/application/status', [ServiceApplicationController::class, 'status'])->name('services.application.status');
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
@@ -216,6 +230,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/course-applications/{application}/approve', [CourseApplicationController::class, 'approve'])->name('course-applications.approve');
     Route::post('/course-applications/{application}/reject', [CourseApplicationController::class, 'reject'])->name('course-applications.reject');
     Route::post('/course-applications/{application}/restore', [CourseApplicationController::class, 'restore'])->name('course-applications.restore');
+
+    Route::get('/service-applications', [AdminServiceApplicationController::class, 'index'])->name('service-applications.index');
+    Route::get('/service-applications/{serviceApplication}', [AdminServiceApplicationController::class, 'show'])->name('service-applications.show');
+    Route::post('/service-applications/{serviceApplication}/approve', [AdminServiceApplicationController::class, 'approve'])->name('service-applications.approve');
+    Route::post('/service-applications/{serviceApplication}/reject', [AdminServiceApplicationController::class, 'reject'])->name('service-applications.reject');
 
     Route::get('/courses/application-forms', [CourseApplicationFormController::class, 'index'])->name('courses.application-forms.index');
     Route::get('/courses/{course}/application-form', [CourseApplicationFormController::class, 'edit'])->name('courses.application-form.edit');
@@ -412,6 +431,16 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/roles-hub', [RolesHubController::class, 'index'])->name('roles.hub');
     Route::put('/roles-hub/email-templates', [RolesHubController::class, 'updateEmailTemplates'])->name('roles.hub.email-templates.update');
+
+    Route::prefix('services/{service}')->name('services.')->group(function () {
+        Route::post('/roles', [ServiceRoleController::class, 'store'])->name('roles.store');
+        Route::post('/roles/clone-templates', [ServiceRoleController::class, 'cloneTemplates'])->name('roles.clone-templates');
+        Route::put('/roles/{role}', [ServiceRoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{role}', [ServiceRoleController::class, 'destroy'])->name('roles.destroy');
+        Route::post('/members', [ServiceMemberController::class, 'store'])->name('members.store');
+        Route::post('/members/cross', [ServiceMemberController::class, 'cross'])->name('members.cross');
+        Route::delete('/members/{user}', [ServiceMemberController::class, 'destroy'])->name('members.destroy');
+    });
 });
 
 Route::middleware(['auth'])->prefix('courses/{course}')->name('courses.roles.')->group(function () {

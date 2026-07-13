@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserServiceRole;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -82,6 +84,58 @@ class StudentRosterService
 
         return User::query()
             ->whereIn('user_id', $studentIds)
+            ->orderBy('first_name')
+            ->orderBy('second_name')
+            ->get();
+    }
+
+    public function accessibleServices(User $user): Collection
+    {
+        if (! ChurchService::tableReady()) {
+            return collect();
+        }
+
+        if ($user->is_superadmin ?? false) {
+            return ChurchService::query()->orderBy('title')->get();
+        }
+
+        $ids = UserServiceRole::query()
+            ->where('user_id', $user->user_id)
+            ->pluck('service_id');
+
+        return ChurchService::query()
+            ->whereIn('service_id', $ids)
+            ->orderBy('title')
+            ->get();
+    }
+
+    public function authorizeService(User $user, ChurchService|int $service): void
+    {
+        if ($user->is_superadmin ?? false) {
+            return;
+        }
+
+        $serviceId = $service instanceof ChurchService ? $service->service_id : $service;
+        abort_unless(
+            UserServiceRole::query()
+                ->where('user_id', $user->user_id)
+                ->where('service_id', $serviceId)
+                ->exists(),
+            403
+        );
+    }
+
+    public function serviceMembers(ChurchService|int $service): Collection
+    {
+        $serviceId = $service instanceof ChurchService ? $service->service_id : $service;
+
+        $userIds = UserServiceRole::query()
+            ->where('service_id', $serviceId)
+            ->pluck('user_id')
+            ->unique();
+
+        return User::query()
+            ->whereIn('user_id', $userIds)
             ->orderBy('first_name')
             ->orderBy('second_name')
             ->get();
