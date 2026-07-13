@@ -12,6 +12,7 @@ return [
         'academic' => [
             'assignment_deadline',
             'exam_upcoming',
+            'session_upcoming',
             'grade_posted',
             'new_lecture_content',
             'assignment_needs_grading',
