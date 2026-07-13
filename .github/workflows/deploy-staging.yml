@@ -2,12 +2,22 @@ name: Deploy to Staging
 
 on:
   push:
-    branches: [staging]
+    branches:
+      - staging
+
+# Avoid overlapping deploys (second push while first runs often hits SSH limits).
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
 
 jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - name: Deploy to VPS (staging)
         uses: appleboy/ssh-action@v1.0.3
@@ -16,7 +26,93 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
+          timeout: 120s
+          command_timeout: 30m
           script: |
             set -e
-            /var/www/deploy.sh staging
-            echo "Staging deployed: $(date)"
+            cd /var/www/khedma-staging
+            PHP_BIN=php8.2
+            DEPLOY_USER="$(whoami)"
+            DEPLOY_START=$(date +%s)
+            step() { echo "==> $1 ($(date -Iseconds))"; }
+
+            # Guard: never let a staging deploy touch the production directory or DB.
+            step "safety check"
+            if [ "$(pwd)" != "/var/www/khedma-staging" ]; then
+              echo "ERROR: not in staging directory. Aborting."
+              exit 1
+            fi
+            if ! grep -q "^DB_DATABASE=avapakhomios_staging" .env; then
+              echo "ERROR: staging .env is not pointing at avapakhomios_staging. Aborting."
+              exit 1
+            fi
+            if ! grep -q "^APP_ENV=staging" .env; then
+              echo "ERROR: APP_ENV is not 'staging'. Aborting."
+              exit 1
+            fi
+
+            if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
+              echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
+              echo "  sudo apt install -y php8.2-mysql php8.2-sqlite3 php8.2-cli php8.2-fpm php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-gd"
+              exit 1
+            fi
+            if ! $PHP_BIN -m 2>/dev/null | grep -qi sqlite; then
+              echo "WARN: PHP SQLite extension missing; some test dashboards require pdo_sqlite."
+            fi
+
+            step "git sync"
+            git fetch origin staging
+            git reset --hard origin/staging
+
+            step "composer install"
+            # NOTE: dev dependencies KEPT on staging (PHPUnit etc. for running tests on the box).
+            COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer install \
+              --no-interaction \
+              --prefer-dist \
+              --optimize-autoloader \
+              --no-progress \
+              --no-scripts
+            COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer dump-autoload \
+              --optimize \
+              --no-interaction
+
+            step "maintenance mode"
+            $PHP_BIN artisan down --retry=60 --refresh=15 || true
+
+            step "migrations"
+            $PHP_BIN artisan migrate:deploy --force
+
+            step "optimize"
+            # Staging does NOT cache config/routes/views — you want .env edits to take
+            # effect immediately while developing.
+            $PHP_BIN artisan optimize:clear
+
+            step "storage link"
+            if [ ! -L public/storage ]; then
+              $PHP_BIN artisan storage:link
+            else
+              echo "public/storage link already exists, skipping"
+            fi
+
+            step "permissions"
+            chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
+            if sudo -n true 2>/dev/null; then
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n chmod -R ug+rwx storage bootstrap/cache
+            else
+              echo "WARN: passwordless sudo not configured — skipped chown (chmod only as ${DEPLOY_USER})"
+            fi
+
+            step "reload php-fpm"
+            # Reloading the FPM service reloads BOTH pools (prod + staging) gracefully.
+            if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then
+              echo "php8.2-fpm reloaded"
+            else
+              echo "WARN: could not reload php-fpm without password — configure NOPASSWD"
+            fi
+
+            step "live"
+            $PHP_BIN artisan up || true
+
+            DEPLOY_END=$(date +%s)
+            echo "Staging deployment complete in $((DEPLOY_END - DEPLOY_START))s: $(date)"
