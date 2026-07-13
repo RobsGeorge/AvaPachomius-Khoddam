@@ -1,7 +1,7 @@
 <?php
-// app/Http/Controllers/admin/UserApprovalController.php
+// app/Http/Controllers/Admin/UserApprovalController.php
 
-namespace App\Http\Controllers\admin;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
