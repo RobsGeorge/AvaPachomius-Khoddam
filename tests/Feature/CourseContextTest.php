@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Course;
 use App\Models\Session;
 use App\Services\CourseContextService;
+use Illuminate\Support\Facades\Schema;
 use Tests\Support\EventModuleTestCase;
 
 class CourseContextTest extends EventModuleTestCase
@@ -61,6 +62,23 @@ class CourseContextTest extends EventModuleTestCase
             ->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Instructor Course', false);
+    }
+
+    public function test_instructor_dashboard_works_without_system_rbac_tables(): void
+    {
+        $course = $this->createCourse(['title' => 'Legacy Instructor Course', 'status' => Course::STATUS_ACTIVE]);
+        $instructorRole = $this->createRole('Instructor');
+        $instructor = $this->createUser(['email' => 'ctx-legacy-instructor@example.com']);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+
+        app(CourseContextService::class)->setCurrentCourse($instructor, $course->course_id);
+
+        Schema::dropIfExists('user_system_role');
+
+        $this->actingAs($instructor)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Legacy Instructor Course', false);
     }
 
     public function test_closed_course_is_excluded_from_picker(): void

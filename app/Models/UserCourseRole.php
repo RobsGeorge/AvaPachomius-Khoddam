@@ -47,7 +47,7 @@ class UserCourseRole extends Model
 
     public function scopeActiveStaff(Builder $query): Builder
     {
-        if (Schema::hasColumn($this->getTable(), 'staff_archived_at')) {
+        if (self::hasStaffArchivedColumn()) {
             return $query->whereNull('staff_archived_at');
         }
 
@@ -56,10 +56,21 @@ class UserCourseRole extends Model
 
     public function scopeStaffArchivedOnly(Builder $query): Builder
     {
-        if (Schema::hasColumn($this->getTable(), 'staff_archived_at')) {
+        if (self::hasStaffArchivedColumn()) {
             return $query->whereNotNull('staff_archived_at');
         }
 
         return $query->whereRaw('1 = 0');
+    }
+
+    private static function hasStaffArchivedColumn(): bool
+    {
+        static $hasColumn = null;
+
+        if ($hasColumn === null) {
+            $hasColumn = Schema::hasColumn((new static)->getTable(), 'staff_archived_at');
+        }
+
+        return $hasColumn;
     }
 }

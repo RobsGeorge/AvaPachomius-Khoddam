@@ -12,6 +12,7 @@ use App\Models\UserSystemRole;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CoursePermissionResolver
@@ -29,7 +30,7 @@ class CoursePermissionResolver
     public function permissionsInCourse(User $user, Course $course): Collection
     {
         if ($user->is_superadmin ?? false) {
-            return Permission::pluck('key');
+            return $this->courseRbacReady() ? Permission::pluck('key') : collect();
         }
 
         $version = (int) ($course->permissions_version ?? 0);
@@ -43,7 +44,11 @@ class CoursePermissionResolver
     public function permissionsInSystem(User $user): Collection
     {
         if ($user->is_superadmin ?? false) {
-            return Permission::pluck('key');
+            return $this->systemRbacReady() ? Permission::pluck('key') : collect();
+        }
+
+        if (! $this->systemRbacReady()) {
+            return collect();
         }
 
         $cacheKey = "perms:system:{$user->user_id}";
@@ -193,6 +198,10 @@ class CoursePermissionResolver
 
     private function resolveCoursePermissions(User $user, Course $course): Collection
     {
+        if (! $this->courseRbacReady()) {
+            return collect();
+        }
+
         $assignment = UserCourseRole::where('user_id', $user->user_id)
             ->where('course_id', $course->course_id)
             ->with('role')
@@ -250,5 +259,18 @@ class CoursePermissionResolver
         $name = strtolower($assignment->role?->role_name ?? '');
 
         return $slug === 'student' || $name === 'student';
+    }
+
+    private function systemRbacReady(): bool
+    {
+        return Schema::hasTable('user_system_role')
+            && Schema::hasTable('role_permission')
+            && Schema::hasTable('permissions');
+    }
+
+    private function courseRbacReady(): bool
+    {
+        return Schema::hasTable('role_permission')
+            && Schema::hasTable('permissions');
     }
 }

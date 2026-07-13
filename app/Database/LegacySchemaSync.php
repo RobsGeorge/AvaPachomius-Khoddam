@@ -149,6 +149,8 @@ final class LegacySchemaSync
             self::addMysqlColumnIfMissing('user_course_role', 'eligible_for_grace', 'TINYINT(1) NOT NULL DEFAULT 0');
             self::addMysqlColumnIfMissing('user_course_role', 'pending_grace_marks', 'DECIMAL(5,2) NULL');
 
+            self::syncRbacTables();
+
             return;
         }
 
@@ -158,6 +160,26 @@ final class LegacySchemaSync
         });
         MigrationSupport::addColumn('user_course_role', 'staff_archived_at', function (Blueprint $table) {
             $table->timestamp('staff_archived_at')->nullable();
+        });
+
+        self::syncRbacTables();
+    }
+
+    private static function syncRbacTables(): void
+    {
+        SchemaGuards::createTableIfMissing('user_system_role', function (Blueprint $table) {
+            $table->id('user_system_role_id');
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('role_id');
+            $table->timestamps();
+
+            if (Schema::hasTable('user')) {
+                $table->foreign('user_id')->references('user_id')->on('user')->cascadeOnDelete();
+            }
+            if (Schema::hasTable('roles')) {
+                $table->foreign('role_id')->references('role_id')->on('roles')->cascadeOnDelete();
+            }
+            $table->unique(['user_id', 'role_id']);
         });
     }
 

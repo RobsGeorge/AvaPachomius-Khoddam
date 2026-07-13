@@ -6,11 +6,16 @@ use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationFeedService
 {
     public function unreadCount(User $user): int
     {
+        if (! Schema::hasTable('user_notifications')) {
+            return 0;
+        }
+
         return UserNotification::query()
             ->where('user_id', $user->user_id)
             ->whereNull('read_at')
