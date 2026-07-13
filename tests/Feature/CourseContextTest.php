@@ -116,7 +116,7 @@ class CourseContextTest extends EventModuleTestCase
         $this->actingAs($super)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee(__('app.name'), false);
+            ->assertSee(__('dashboard.title'), false);
     }
 
     public function test_switching_course_updates_session_and_scopes_sessions_index(): void
@@ -395,5 +395,54 @@ class CourseContextTest extends EventModuleTestCase
         $this->actingAs($staff)
             ->get(route('graduation.index'))
             ->assertRedirect(route('graduation.show', $courseA->course_id));
+    }
+
+    public function test_superadmin_hub_lists_exclusive_entry_points(): void
+    {
+        $super = $this->createUser([
+            'email' => 'ctx-super-hub@example.com',
+            'is_superadmin' => true,
+        ]);
+
+        $this->actingAs($super)
+            ->get(route('superadmin.index'))
+            ->assertOk()
+            ->assertSee(__('pages.superadmin_title'), false)
+            ->assertSee(__('rbac.system_roles'), false)
+            ->assertSee(__('pages.superadmin_security_title'), false);
+    }
+
+    public function test_superadmin_can_optionally_select_course_context(): void
+    {
+        $super = $this->createUser([
+            'email' => 'ctx-super-course@example.com',
+            'is_superadmin' => true,
+        ]);
+        $course = $this->createCourse(['title' => 'Super Scope Course', 'status' => Course::STATUS_ACTIVE]);
+
+        $this->actingAs($super)
+            ->post(route('courses.select.store'), ['course_id' => $course->course_id])
+            ->assertRedirect(route('dashboard'));
+
+        $this->assertSame($course->course_id, session(CourseContextService::SESSION_KEY));
+
+        $this->actingAs($super)
+            ->post(route('courses.select.clear'))
+            ->assertRedirect(route('superadmin.index'));
+
+        $this->assertNull(session(CourseContextService::SESSION_KEY));
+    }
+
+    public function test_superadmin_dashboard_shows_dedicated_hub_tile(): void
+    {
+        $super = $this->createUser([
+            'email' => 'ctx-super-dash@example.com',
+            'is_superadmin' => true,
+        ]);
+
+        $this->actingAs($super)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(__('dashboard.superadmin_hub'), false);
     }
 }

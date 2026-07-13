@@ -10,6 +10,7 @@ use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
 use App\Services\RoleTemplateService;
+use App\Support\NavigationHub;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -17,9 +18,24 @@ class SuperAdminController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+        $sections = NavigationHub::superadminSections($user);
+
+        return view('superadmin.index', compact('sections'));
+    }
+
+    public function courses()
+    {
+        $courses = Course::orderBy('year', 'desc')->orderBy('title')->get();
+
+        return view('superadmin.courses', compact('courses'));
+    }
+
+    public function courseRoles()
+    {
         $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
-        $users       = User::with('roles')->orderBy('first_name')->get();
-        $courses     = Course::orderBy('year', 'desc')->orderBy('title')->get();
+        $users = User::with('roles')->orderBy('first_name')->get();
+        $courses = Course::orderBy('year', 'desc')->orderBy('title')->get();
         $rolesByCourse = Role::assignableToCourses()
             ->with('course')
             ->orderBy('role_name')
@@ -27,16 +43,28 @@ class SuperAdminController extends Controller
             ->groupBy('course_id');
         $legacyRoles = Role::legacyGlobals()->orderBy('role_name')->get();
 
-        $eventAdmins = \App\Models\EventAdmin::with('user')->get();
-
-        return view('superadmin.index', compact(
+        return view('superadmin.course-roles', compact(
             'assignments',
             'users',
             'courses',
             'rolesByCourse',
             'legacyRoles',
-            'eventAdmins',
         ));
+    }
+
+    public function security()
+    {
+        $users = User::with('roles')->orderBy('first_name')->get();
+
+        return view('superadmin.security', compact('users'));
+    }
+
+    public function eventAdmins()
+    {
+        $users = User::orderBy('first_name')->get();
+        $eventAdmins = \App\Models\EventAdmin::with('user')->get();
+
+        return view('superadmin.event-admins', compact('users', 'eventAdmins'));
     }
 
     public function store(Request $request)
@@ -75,7 +103,7 @@ class SuperAdminController extends Controller
             app(\App\Services\CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
         }
 
-        return redirect()->route('superadmin.index')->with('success', __('pages.role_assigned'));
+        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_assigned'));
     }
 
     public function destroy(string $id)
@@ -88,7 +116,7 @@ class SuperAdminController extends Controller
             app(\App\Services\CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
         }
 
-        return redirect()->route('superadmin.index')->with('success', __('pages.role_unassigned'));
+        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_unassigned'));
     }
 
     public function storeRole(Request $request)
@@ -100,14 +128,14 @@ class SuperAdminController extends Controller
 
         Role::create($request->only('role_name', 'role_decription'));
 
-        return redirect()->route('superadmin.index')->with('success', __('pages.role_created'));
+        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_created'));
     }
 
     public function destroyRole(string $id)
     {
         Role::findOrFail($id)->delete();
 
-        return redirect()->route('superadmin.index')->with('success', __('pages.role_deleted'));
+        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_deleted'));
     }
 
     public function storeCourse(Request $request)
@@ -138,7 +166,7 @@ class SuperAdminController extends Controller
             }
         }
 
-        return redirect()->route('superadmin.index')->with('success', __('pages.course_created'));
+        return redirect()->route('superadmin.courses')->with('success', __('pages.course_created'));
     }
 
     public function destroyCourse(string $id)
@@ -155,7 +183,7 @@ class SuperAdminController extends Controller
 
         $course->delete();
 
-        return redirect()->route('superadmin.index')->with('success', __('pages.course_deleted'));
+        return redirect()->route('superadmin.courses')->with('success', __('pages.course_deleted'));
     }
 
     public function storeEventAdmin(Request $request)
@@ -177,7 +205,7 @@ class SuperAdminController extends Controller
             'target_user_id' => $data['user_id'],
         ]);
 
-        return redirect()->route('superadmin.index')->with('success', __('events.event_admin_assigned'));
+        return redirect()->route('superadmin.event-admins')->with('success', __('events.event_admin_assigned'));
     }
 
     public function destroyEventAdmin(string $userId)
@@ -194,7 +222,7 @@ class SuperAdminController extends Controller
             'target_user_id' => (int) $userId,
         ]);
 
-        return redirect()->route('superadmin.index')->with('success', __('events.event_admin_removed'));
+        return redirect()->route('superadmin.event-admins')->with('success', __('events.event_admin_removed'));
     }
 
     public function flushAllSessions(Request $request)
@@ -202,7 +230,7 @@ class SuperAdminController extends Controller
         $result = ForceLogoutService::logoutAllUsers($request->session()->getId());
 
         return redirect()
-            ->route('superadmin.index')
+            ->route('superadmin.security')
             ->with('success', __('pages.force_logout_success', [
                 'sessions' => $result['sessions_cleared'],
                 'tokens'   => $result['remember_tokens_cleared'],

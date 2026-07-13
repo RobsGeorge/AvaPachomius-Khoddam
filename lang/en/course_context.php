@@ -13,6 +13,8 @@ return [
     'no_active_courses_hint' => 'When a course becomes available, it will appear here for you to select.',
     'invalid_course' => 'You cannot access this course.',
     'course_selected' => 'Course selected successfully.',
+    'system_wide_mode' => 'System-wide view',
+    'system_wide_mode_active' => 'Switched to system-wide view.',
     'branding_title' => 'Course branding',
     'branding_hint' => 'Optional display names and colors for this course. Leave colors empty to use the institute default theme.',
     'title_ar' => 'Arabic title',

@@ -4,8 +4,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h1 class="page-title mb-4">{{ __('rbac.group_visibility') }}</h1>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @include('superadmin.partials.header', ['title' => __('rbac.group_visibility')])
 
     <form method="POST" action="{{ route('superadmin.group-visibility.update') }}">
         @csrf

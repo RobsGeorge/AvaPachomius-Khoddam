@@ -4,8 +4,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h1 class="page-title mb-4">{{ __('rbac.manage_templates') }}</h1>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @include('superadmin.partials.header', ['title' => __('rbac.manage_templates')])
 
     @foreach($templates as $template)
         <div class="app-card card shadow-sm mb-4">

@@ -23,9 +23,35 @@ class CourseContextService
         return ! ($user->is_superadmin ?? false);
     }
 
-    /** @return Collection<int, array{course: Course, role: Role, enrollment: UserCourseRole}> */
+    public function supportsOptionalCourseContext(?User $user): bool
+    {
+        return $user instanceof User && ($user->is_superadmin ?? false);
+    }
+
+    public function isSystemWideMode(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return $this->supportsOptionalCourseContext($user) && ! $this->currentCourse($user);
+    }
+
+    /** @return Collection<int, array{course: Course, role: Role|null, enrollment: UserCourseRole|null}> */
     public function selectableCourses(User $user): Collection
     {
+        if ($this->supportsOptionalCourseContext($user)) {
+            return Course::query()
+                ->orderByDesc('year')
+                ->orderBy('title')
+                ->get()
+                ->filter(fn (Course $course) => $course->isSelectableForContext())
+                ->map(fn (Course $course) => [
+                    'course' => $course,
+                    'role' => null,
+                    'enrollment' => null,
+                ])
+                ->values();
+        }
+
         $enrollments = UserCourseRole::query()
             ->where('user_id', $user->user_id)
             ->activeStaff()
@@ -55,7 +81,7 @@ class CourseContextService
             return null;
         }
 
-        if (! $this->requiresCourseContext($user)) {
+        if (! $this->requiresCourseContext($user) && ! $this->supportsOptionalCourseContext($user)) {
             return null;
         }
 
@@ -94,7 +120,7 @@ class CourseContextService
 
     public function syncFromRoute(User $user, mixed $courseParam): void
     {
-        if (! $this->requiresCourseContext($user)) {
+        if (! $this->requiresCourseContext($user) && ! $this->supportsOptionalCourseContext($user)) {
             return;
         }
 
@@ -156,6 +182,10 @@ class CourseContextService
     {
         if (! $course->isSelectableForContext()) {
             return false;
+        }
+
+        if ($this->supportsOptionalCourseContext($user)) {
+            return true;
         }
 
         return UserCourseRole::query()

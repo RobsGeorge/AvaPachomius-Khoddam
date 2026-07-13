@@ -4,8 +4,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h1 class="page-title mb-4">{{ __('rbac.system_roles') }}</h1>
-    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @include('superadmin.partials.header', ['title' => __('rbac.system_roles')])
 
     <div class="row g-4">
         <div class="col-lg-5">

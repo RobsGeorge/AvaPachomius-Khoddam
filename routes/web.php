@@ -85,6 +85,7 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth'])->group(function () {
     Route::get('/courses/select', [CourseContextController::class, 'show'])->name('courses.select');
     Route::post('/courses/select', [CourseContextController::class, 'store'])->name('courses.select.store');
+    Route::post('/courses/select/clear', [CourseContextController::class, 'clear'])->name('courses.select.clear');
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
@@ -418,6 +419,10 @@ Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopI
 // Superadmin routes — accessible only by users with is_superadmin = true
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
+    Route::get('/courses',                   [SuperAdminController::class, 'courses'])->name('courses');
+    Route::get('/course-roles',              [SuperAdminController::class, 'courseRoles'])->name('course-roles');
+    Route::get('/security',                  [SuperAdminController::class, 'security'])->name('security');
+    Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');

@@ -73,10 +73,14 @@ class AppLayoutComposer
 
         $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
         $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
+        $supportsCourseSwitcher = $requiresCourseContext
+            || $this->courseContext->supportsOptionalCourseContext($user);
 
         $view->with('currentCourse', $currentCourse);
         $view->with('requiresCourseContext', $requiresCourseContext);
-        $view->with('selectableCourses', $requiresCourseContext
+        $view->with('supportsCourseSwitcher', $supportsCourseSwitcher);
+        $view->with('isSystemWideMode', $this->courseContext->isSystemWideMode($user));
+        $view->with('selectableCourses', $supportsCourseSwitcher
             ? $this->courseContext->selectableCourses($user)
             : collect());
         $view->with('instituteName', __('app.institute_name'));

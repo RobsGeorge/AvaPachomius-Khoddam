@@ -3,56 +3,109 @@
     $navUser = auth()->user();
     $academicLinks = NavigationHub::academicLinks($navUser);
     $systemLinks = NavigationHub::systemLinks($navUser);
+    $superadminLinks = NavigationHub::superadminLinks($navUser);
     $hasSystem = NavigationHub::hasSystem($navUser);
+    $hasSuperadmin = NavigationHub::hasSuperadmin($navUser);
     $academicActive = NavigationHub::isAcademicActive($navUser);
     $systemActive = NavigationHub::isSystemActive($navUser);
+    $superadminActive = NavigationHub::isSuperadminActive($navUser);
 @endphp
 <nav class="app-nav sticky-top">
     <div class="container py-2">
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 @auth
-                    @if(empty($requiresCourseContext))
+                    @if(!empty($supportsCourseSwitcher))
+                        @if(!empty($currentCourse))
+                            <div class="dropdown">
+                                <button type="button"
+                                        class="brand-link dropdown-toggle border-0 bg-transparent p-0"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        aria-label="{{ __('course_context.switch_course') }}">
+                                    <i class="bi bi-mortarboard-fill ms-1"></i>
+                                    {{ $currentCourse->localizedTitle() }}
+                                </button>
+                                <ul class="dropdown-menu app-dropdown-panel">
+                                    @if($navUser->is_superadmin ?? false)
+                                        <li>
+                                            <form method="POST" action="{{ route('courses.select.clear') }}">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item app-dropdown-link">
+                                                    <i class="bi bi-globe2 me-2"></i>{{ __('course_context.system_wide_mode') }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    @endif
+                                    @foreach($selectableCourses ?? [] as $row)
+                                        @php $switchCourse = $row['course']; @endphp
+                                        <li>
+                                            <form method="POST" action="{{ route('courses.select.store') }}">
+                                                @csrf
+                                                <input type="hidden" name="course_id" value="{{ $switchCourse->course_id }}">
+                                                <button type="submit"
+                                                        class="dropdown-item app-dropdown-link {{ ($currentCourse->course_id ?? null) === $switchCourse->course_id ? 'active fw-semibold' : '' }}">
+                                                    {{ $switchCourse->localizedTitle() }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    @endforeach
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link" href="{{ route('courses.select') }}">
+                                            <i class="bi bi-grid me-2"></i>{{ __('course_context.switch_course') }}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        @elseif($navUser->is_superadmin ?? false)
+                            <div class="dropdown">
+                                <button type="button"
+                                        class="brand-link dropdown-toggle border-0 bg-transparent p-0"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        aria-label="{{ __('course_context.switch_course') }}">
+                                    <i class="bi bi-shield-lock-fill ms-1"></i>
+                                    {{ __('nav.superadmin') }}
+                                </button>
+                                <ul class="dropdown-menu app-dropdown-panel">
+                                    <li>
+                                        <span class="dropdown-item app-dropdown-link active fw-semibold">
+                                            <i class="bi bi-globe2 me-2"></i>{{ __('course_context.system_wide_mode') }}
+                                        </span>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    @foreach($selectableCourses ?? [] as $row)
+                                        @php $switchCourse = $row['course']; @endphp
+                                        <li>
+                                            <form method="POST" action="{{ route('courses.select.store') }}">
+                                                @csrf
+                                                <input type="hidden" name="course_id" value="{{ $switchCourse->course_id }}">
+                                                <button type="submit" class="dropdown-item app-dropdown-link">
+                                                    {{ $switchCourse->localizedTitle() }}
+                                                </button>
+                                            </form>
+                                        </li>
+                                    @endforeach
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link" href="{{ route('courses.select') }}">
+                                            <i class="bi bi-grid me-2"></i>{{ __('course_context.switch_course') }}
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        @else
+                            <a href="{{ route('courses.select') }}" class="brand-link">
+                                <i class="bi bi-mortarboard-fill ms-1"></i>
+                                {{ $instituteName ?? __('app.institute_name') }}
+                            </a>
+                        @endif
+                    @else
                         <a href="{{ route('dashboard') }}" class="brand-link">
                             <i class="bi bi-mortarboard-fill ms-1"></i>
                             {{ __('app.name') }}
-                        </a>
-                    @elseif(!empty($currentCourse))
-                        <div class="dropdown">
-                            <button type="button"
-                                    class="brand-link dropdown-toggle border-0 bg-transparent p-0"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
-                                    aria-label="{{ __('course_context.switch_course') }}">
-                                <i class="bi bi-mortarboard-fill ms-1"></i>
-                                {{ $currentCourse->localizedTitle() }}
-                            </button>
-                            <ul class="dropdown-menu app-dropdown-panel">
-                                @foreach($selectableCourses ?? [] as $row)
-                                    @php $switchCourse = $row['course']; @endphp
-                                    <li>
-                                        <form method="POST" action="{{ route('courses.select.store') }}">
-                                            @csrf
-                                            <input type="hidden" name="course_id" value="{{ $switchCourse->course_id }}">
-                                            <button type="submit"
-                                                    class="dropdown-item app-dropdown-link {{ ($currentCourse->course_id ?? null) === $switchCourse->course_id ? 'active fw-semibold' : '' }}">
-                                                {{ $switchCourse->localizedTitle() }}
-                                            </button>
-                                        </form>
-                                    </li>
-                                @endforeach
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item app-dropdown-link" href="{{ route('courses.select') }}">
-                                        <i class="bi bi-grid me-2"></i>{{ __('course_context.switch_course') }}
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    @else
-                        <a href="{{ route('courses.select') }}" class="brand-link">
-                            <i class="bi bi-mortarboard-fill ms-1"></i>
-                            {{ $instituteName ?? __('app.institute_name') }}
                         </a>
                     @endif
                 @else
@@ -107,6 +160,32 @@
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     @foreach($systemLinks as $link)
+                                        <li>
+                                            <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
+                                               href="{{ $link['url'] }}">
+                                                <i class="bi {{ $link['icon'] }} me-2"></i>{{ $link['label'] }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        @if($hasSuperadmin)
+                            <div class="dropdown">
+                                <button class="app-nav-link dropdown-toggle border-0 bg-transparent {{ $superadminActive ? 'active' : '' }}"
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ __('nav.superadmin') }}
+                                </button>
+                                <ul class="dropdown-menu app-dropdown-panel">
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link fw-semibold {{ request()->routeIs('superadmin.index') ? 'active' : '' }}"
+                                           href="{{ route('superadmin.index') }}">
+                                            <i class="bi bi-shield-lock-fill me-2"></i>{{ __('nav.superadmin') }}
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    @foreach($superadminLinks as $link)
                                         <li>
                                             <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
                                                href="{{ $link['url'] }}">
@@ -211,6 +290,25 @@
                                     <i class="bi bi-gear me-1"></i>{{ __('nav.system_settings') }}
                                 </a>
                                 @foreach($systemLinks as $link)
+                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
+                                        <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endif
+
+                    @if($hasSuperadmin)
+                        <details class="mobile-nav-group" @if($superadminActive) open @endif>
+                            <summary class="mobile-nav-summary {{ $superadminActive ? 'active' : '' }}">
+                                <span>{{ __('nav.superadmin') }}</span>
+                                <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="mobile-nav-submenu d-flex flex-column gap-1">
+                                <a href="{{ route('superadmin.index') }}" class="app-nav-link small {{ request()->routeIs('superadmin.index') ? 'active' : '' }}" @click="navOpen = false">
+                                    <i class="bi bi-shield-lock-fill me-1"></i>{{ __('nav.superadmin') }}
+                                </a>
+                                @foreach($superadminLinks as $link)
                                     <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
                                         <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
                                     </a>

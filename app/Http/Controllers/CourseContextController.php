@@ -50,6 +50,23 @@ class CourseContextController extends Controller
             ->with('success', __('course_context.course_selected'));
     }
 
+    public function clear(Request $request)
+    {
+        $user = Auth::user();
+        abort_unless($user && ($user->is_superadmin ?? false), 403);
+
+        $this->courseContext->clearCurrentCourse();
+
+        $intended = $request->input('intended');
+        if (is_string($intended) && $this->isSafeLocalRedirect($intended)) {
+            return redirect($intended)->with('success', __('course_context.system_wide_mode_active'));
+        }
+
+        return redirect()
+            ->route('superadmin.index')
+            ->with('success', __('course_context.system_wide_mode_active'));
+    }
+
     private function isSafeLocalRedirect(string $url): bool
     {
         if (! str_starts_with($url, '/')) {

@@ -220,7 +220,7 @@ class DynamicRoleManagementTest extends EventModuleTestCase
         $this->courseRoleWithPermissions($courseA, 'admin', ['role.manage']);
         $this->courseRoleWithPermissions($courseB, 'admin', ['role.manage']);
 
-        $response = $this->actingAs($super)->get(route('superadmin.index'));
+        $response = $this->actingAs($super)->get(route('superadmin.course-roles'));
 
         $response->assertOk();
         $response->assertSee('data-course-id="'.$courseA->course_id.'"', false);

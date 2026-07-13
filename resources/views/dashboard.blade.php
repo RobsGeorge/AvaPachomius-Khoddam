@@ -6,6 +6,7 @@
 @php
     use App\Support\NavigationHub;
     $hasSystem = NavigationHub::hasSystem(Auth::user());
+    $hasSuperadmin = NavigationHub::hasSuperadmin(Auth::user());
 @endphp
 <div class="animate-in" style="max-width: 920px; margin: 0 auto;">
 
@@ -116,6 +117,15 @@
                 <a href="{{ route('hubs.system') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
                     <h3><i class="bi bi-gear"></i> {{ __('dashboard.system_hub') }}</h3>
                     <p class="text-muted-theme mb-0">{{ __('dashboard.system_hub_desc') }}</p>
+                </a>
+            </div>
+        @endif
+
+        @if($hasSuperadmin)
+            <div class="col-md-6">
+                <a href="{{ route('superadmin.index') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none border border-danger border-opacity-25">
+                    <h3><i class="bi bi-shield-lock-fill text-danger"></i> {{ __('dashboard.superadmin_hub') }}</h3>
+                    <p class="text-muted-theme mb-0">{{ __('dashboard.superadmin_hub_desc') }}</p>
                 </a>
             </div>
         @endif

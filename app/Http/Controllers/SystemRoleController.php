@@ -92,6 +92,7 @@ class SystemRoleController extends Controller
     {
         $roles = Role::whereNull('course_id')
             ->where('is_template', false)
+            ->where('is_system', true)
             ->with('permissions')
             ->orderBy('role_name')
             ->get();
@@ -138,7 +139,10 @@ class SystemRoleController extends Controller
             'user_id' => 'required|exists:user,user_id',
             'role_id' => [
                 'required',
-                Rule::exists('roles', 'role_id')->where(fn ($q) => $q->whereNull('course_id')->where('is_template', false)),
+                Rule::exists('roles', 'role_id')->where(fn ($q) => $q
+                    ->whereNull('course_id')
+                    ->where('is_template', false)
+                    ->where('is_system', true)),
             ],
         ]);
 

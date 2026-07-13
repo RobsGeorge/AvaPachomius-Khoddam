@@ -149,7 +149,7 @@ class NavigationHub
             $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*'], 'course_application.review');
         }
 
-        if ($user->canInSystem('graduation.settings') || ($user->is_superadmin ?? false)) {
+        if ($user->canInSystem('graduation.settings')) {
             $links[] = self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*'], 'graduation.settings');
         }
 
@@ -182,20 +182,122 @@ class NavigationHub
             ];
         }
 
-        if ($user->is_superadmin) {
-            $links[] = self::link('superadmin.index', 'nav.superadmin', 'bi-shield-lock-fill', ['superadmin.index'], 'platform.audit');
-            $links[] = self::link('superadmin.audit.index', 'nav.audit_reports', 'bi-journal-text', ['superadmin.audit.*'], 'platform.audit');
-            $links[] = self::link('superadmin.templates.index', 'rbac.manage_templates', 'bi-diagram-3', ['superadmin.templates.*'], 'platform.role_templates');
-            $links[] = self::link('superadmin.group-visibility.index', 'rbac.group_visibility', 'bi-eye', ['superadmin.group-visibility.*'], 'platform.group_visibility');
-            $links[] = self::link('superadmin.system-roles.index', 'rbac.system_roles', 'bi-person-gear', ['superadmin.system-roles.*'], 'system.role.manage');
-            $links[] = self::link('superadmin.events.tests.index', 'nav.events_tests', 'bi-bug', ['superadmin.events.tests.*'], 'platform.audit');
-        }
-
         if ($user->isAdmin() && empty($links)) {
             return self::legacySystemLinks($user);
         }
 
         return $links;
+    }
+
+    /** @return array<int, array{title: string, links: array<int, array<string, mixed>>}> */
+    public static function superadminSections(?User $user): array
+    {
+        if (! $user?->is_superadmin) {
+            return [];
+        }
+
+        $currentCourse = current_course();
+        $sections = [];
+
+        $contextLinks = [];
+        if ($currentCourse) {
+            $contextLinks[] = [
+                'url' => route('curriculum.show', $currentCourse->course_id),
+                'label' => __('nav.curriculum').' — '.$currentCourse->localizedTitle(),
+                'description' => __('pages.superadmin_course_curriculum_desc'),
+                'icon' => 'bi-journal-bookmark',
+                'active' => request()->routeIs('curriculum.show', 'curriculum.admin'),
+            ];
+            $contextLinks[] = [
+                'url' => route('courses.roles.index', $currentCourse),
+                'label' => __('rbac.title').' — '.$currentCourse->localizedTitle(),
+                'description' => __('pages.superadmin_course_roles_desc'),
+                'icon' => 'bi-shield-check',
+                'active' => request()->routeIs('courses.roles.*'),
+            ];
+            $contextLinks[] = [
+                'url' => route('graduation.show', $currentCourse->course_id),
+                'label' => __('pages.graduation_title').' — '.$currentCourse->localizedTitle(),
+                'description' => __('pages.superadmin_course_graduation_desc'),
+                'icon' => 'bi-mortarboard',
+                'active' => request()->routeIs('graduation.show', 'graduation.export'),
+            ];
+        }
+
+        if ($contextLinks !== []) {
+            $sections[] = [
+                'title' => __('pages.superadmin_section_course_context'),
+                'links' => $contextLinks,
+            ];
+        }
+
+        $sections[] = [
+            'title' => __('pages.superadmin_section_courses'),
+            'links' => [
+                self::hubLink('superadmin.courses', 'pages.manage_courses', 'pages.superadmin_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses']),
+                self::hubLink('superadmin.course-roles', 'pages.all_role_assignments', 'pages.superadmin_course_roles_page_desc', 'bi-people-fill', ['superadmin.course-roles', 'superadmin.store', 'superadmin.destroy']),
+                self::hubLink('superadmin.event-admins', 'events.event_admins_title', 'events.event_admins_hint', 'bi-calendar-event', ['superadmin.event-admins', 'superadmin.event-admins.*']),
+            ],
+        ];
+
+        $sections[] = [
+            'title' => __('pages.superadmin_section_system_roles'),
+            'links' => [
+                self::hubLink('superadmin.system-roles.index', 'rbac.system_roles', 'pages.superadmin_system_roles_desc', 'bi-person-gear', ['superadmin.system-roles.*']),
+                self::hubLink('superadmin.templates.index', 'rbac.manage_templates', 'pages.superadmin_templates_desc', 'bi-diagram-3', ['superadmin.templates.*']),
+                self::hubLink('superadmin.group-visibility.index', 'rbac.group_visibility', 'pages.superadmin_group_visibility_desc', 'bi-eye', ['superadmin.group-visibility.*']),
+            ],
+        ];
+
+        $sections[] = [
+            'title' => __('pages.superadmin_section_platform'),
+            'links' => [
+                self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate']),
+                self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*']),
+                self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*']),
+            ],
+        ];
+
+        $sections[] = [
+            'title' => __('pages.superadmin_section_portal'),
+            'links' => [
+                self::hubLink('hubs.academic', 'nav.academic', 'nav.academic_desc', 'bi-mortarboard', ['hubs.academic']),
+                self::hubLink('hubs.system', 'nav.system_settings', 'nav.system_settings_desc', 'bi-gear', ['hubs.system']),
+                self::hubLink('courses.select', 'course_context.switch_course', 'pages.superadmin_course_picker_desc', 'bi-grid', ['courses.select']),
+            ],
+        ];
+
+        return $sections;
+    }
+
+    public static function superadminLinks(?User $user): array
+    {
+        $links = [];
+        foreach (self::superadminSections($user) as $section) {
+            foreach ($section['links'] as $link) {
+                $links[] = $link;
+            }
+        }
+
+        return $links;
+    }
+
+    public static function hasSuperadmin(?User $user): bool
+    {
+        return $user instanceof User && ($user->is_superadmin ?? false);
+    }
+
+    public static function isSuperadminActive(?User $user): bool
+    {
+        if (! self::hasSuperadmin($user)) {
+            return false;
+        }
+
+        if (request()->routeIs('superadmin.*', 'hubs.superadmin')) {
+            return true;
+        }
+
+        return self::anyActive(self::superadminLinks($user));
     }
 
     public static function hasSystem(?User $user): bool
@@ -231,6 +333,14 @@ class NavigationHub
         }
 
         return self::anyActive(self::systemLinks($user));
+    }
+
+    protected static function hubLink(string $routeName, string $labelKey, string $descKey, string $icon, array $patterns): array
+    {
+        $link = self::link($routeName, $labelKey, $icon, $patterns);
+        $link['description'] = __($descKey);
+
+        return $link;
     }
 
     protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null): array

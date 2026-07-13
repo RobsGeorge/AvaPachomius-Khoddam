@@ -64,7 +64,7 @@ class EventAdminFlowTest extends EventModuleTestCase
 
         $this->actingAs($super)
             ->post(route('superadmin.event-admins.store'), ['user_id' => $target->user_id])
-            ->assertRedirect(route('superadmin.index'));
+            ->assertRedirect(route('superadmin.event-admins'));
 
         $this->assertDatabaseHas('event_admins', ['user_id' => $target->user_id]);
         $this->assertDatabaseHas('activity_logs', [
