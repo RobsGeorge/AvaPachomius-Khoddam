@@ -4,10 +4,16 @@ on:
   pull_request:
   workflow_call:
 
+# Categorized test pipelines. Each is a separate, independently-runnable step and
+# they execute in sequence; the whole "gate" job must pass before deploy.yml deploys.
+# The broad Unit/Feature suites carry pre-existing failures outside these categories,
+# so they run in a separate NON-blocking "full-suite-report" job for visibility.
+
 jobs:
-  test:
+  gate:
+    name: Test gate (blocks deploy)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -37,13 +43,74 @@ jobs:
       - name: Prepare application
         run: |
           cp .env.example .env
+          # Keep the console bootstrap from blocking on Pulse/Telescope during tests.
+          {
+            echo "PULSE_ENABLED=false"
+            echo "TELESCOPE_ENABLED=false"
+          } >> .env
           php artisan key:generate
 
-      - name: Run unit tests
+      # --- Pipelines, in sequence. A failure in any step fails the gate. ---
+
+      - name: 1 · Unit pipeline (events)
         run: php artisan test tests/Unit/Events --compact
 
-      - name: Run integration tests
+      - name: 2 · Feature pipeline (events)
         run: php artisan test tests/Feature/Events --compact
 
-      - name: Run load tests
+      - name: 3 · Smoke pipeline (UI / every endpoint)
+        run: php artisan test --testsuite=Smoke --compact
+
+      - name: 4 · API pipeline
+        run: php artisan test --testsuite=Api --compact
+
+      - name: 5 · Notifications pipeline
+        run: php artisan test --testsuite=Notifications --compact
+
+      - name: 6 · Mail & external communications pipeline
+        run: php artisan test --testsuite=Mail --compact
+
+      - name: 7 · Tenant isolation & invariants pipeline
+        run: php artisan test --testsuite=Tenancy --compact
+
+      - name: 8 · Load pipeline (events)
         run: php artisan test tests/Load/Events --compact
+
+  full-suite-report:
+    name: Full suite (report only, non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Never blocks the merge/deploy — surfaces the broader Unit/Feature status while
+    # the pre-existing failures outside the gated categories are worked through.
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, curl, json, bcmath, gd, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          {
+            echo "PULSE_ENABLED=false"
+            echo "TELESCOPE_ENABLED=false"
+          } >> .env
+          php artisan key:generate
+
+      - name: Unit suite (full)
+        run: php artisan test --testsuite=Unit --compact
+        continue-on-error: true
+
+      - name: Feature suite (full)
+        run: php artisan test --testsuite=Feature --compact
+        continue-on-error: true

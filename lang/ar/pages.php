@@ -421,6 +421,7 @@ return [
     'superadmin_security_desc'    => 'إنهاء جلسات جميع المستخدمين أو معاينة البوابة كحساب آخر.',
     'superadmin_audit_desc'       => 'مراجعة سجلات النشاط ومحاولات تسجيل الدخول.',
     'superadmin_events_tests_desc' => 'تشغيل الاختبارات الآلية لوحدة الفعاليات.',
+    'superadmin_system_tests_desc' => 'تشغيل خطوط اختبار النظام المصنَّفة وعرض التقرير.',
     'superadmin_course_picker_desc' => 'اختر دورة لتقييد الصفحات الأكاديمية والإدارية عليها.',
     'superadmin_course_curriculum_desc' => 'فتح المنهج للدورة المحددة.',
     'superadmin_course_roles_desc' => 'إدارة الأدوار والصلاحيات داخل الدورة المحددة.',
