@@ -86,6 +86,11 @@ class Role extends Model
             ->where('is_template', false);
     }
 
+    public function scopeForCourse(Builder $query, int|string $courseId): Builder
+    {
+        return $query->assignableToCourses()->where('course_id', $courseId);
+    }
+
     public function scopeLegacyGlobals(Builder $query): Builder
     {
         return $query

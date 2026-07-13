@@ -57,14 +57,18 @@
                     </div>
                     <div class="col-md-6">
                         <label for="default_role_id" class="form-label">{{ __('course_applications.default_role') }}</label>
-                        <select name="default_role_id" id="default_role_id" class="form-select">
-                            <option value="">{{ __('pages.select_role') }}</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->role_id }}" @selected(old('default_role_id', $form->default_role_id) == $role->role_id)>
-                                    {{ $role->role_name }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <div data-course-filtered-role-select
+                             data-course-select="course_id"
+                             data-role-select="default_role_id">
+                            @include('partials.course-filtered-role-select', [
+                                'rolesByCourse' => $rolesByCourse,
+                                'selectId' => 'default_role_id',
+                                'selectName' => 'default_role_id',
+                                'courseSelectId' => 'course_id',
+                                'selectedCourseId' => $courseModel->course_id,
+                                'selectedRoleId' => old('default_role_id', $form->default_role_id),
+                            ])
+                        </div>
                     </div>
                     <div class="col-md-12">
                         <label for="description" class="form-label">{{ __('pages.description') }}</label>

@@ -17,15 +17,20 @@ use Tests\Support\EventModuleTestCase;
 
 class CourseApplicationReviewTest extends EventModuleTestCase
 {
-    /** @param array{student: \App\Models\Role, admin: \App\Models\Role} $roles */
-    protected function createEnabledForm(Course $course, array $roles): CourseApplicationForm
+    /** @param array{student?: \App\Models\Role, admin?: \App\Models\Role} $roles */
+    protected function createEnabledForm(Course $course, array $roles = []): CourseApplicationForm
     {
+        $studentRole = $roles['student'] ?? null;
+        if (! $studentRole || (int) $studentRole->course_id !== (int) $course->course_id) {
+            $studentRole = $this->courseRoleWithPermissions($course, 'student', ['exam.view']);
+        }
+
         $formService = app(CourseApplicationFormService::class);
         $form = $formService->getOrCreateForCourse($course);
         $form->update([
             'is_enabled' => true,
             'title' => 'Apply to '.$course->title,
-            'default_role_id' => $roles['student']->role_id,
+            'default_role_id' => $studentRole->role_id,
         ]);
 
         $step = CourseApplicationFormStep::create([
@@ -58,10 +63,11 @@ class CourseApplicationReviewTest extends EventModuleTestCase
 
     public function test_admin_can_build_form_and_enable_it(): void
     {
-        $roles = $this->seedBasicRoles();
         $admin = $this->createUser(['email' => 'course-app-admin@example.com']);
         $course = $this->createCourse(['title' => 'Year Two']);
-        $this->assignCourseRole($admin, $course, $roles['admin']);
+        $adminRole = $this->courseRoleWithPermissions($course, 'admin', ['course_application.form_builder']);
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', ['exam.view']);
+        $this->assignCourseRole($admin, $course, $adminRole);
 
         $this->actingAs($admin)
             ->get(route('admin.courses.application-form.edit', $course->course_id))
@@ -74,7 +80,7 @@ class CourseApplicationReviewTest extends EventModuleTestCase
                 'is_enabled' => '1',
                 'title' => 'Join Year Two',
                 'description' => 'Application required',
-                'default_role_id' => $roles['student']->role_id,
+                'default_role_id' => $studentRole->role_id,
             ])
             ->assertRedirect();
 

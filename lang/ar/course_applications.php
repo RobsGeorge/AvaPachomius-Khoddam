@@ -63,6 +63,7 @@ return [
     'at_least_one_rejected_field' => 'يجب رفض حقل واحد على الأقل قبل طلب التصحيح.',
     'cannot_approve_with_rejected_fields' => 'اقبل كل الحقول أو فعّل التجاوز قبل الموافقة.',
     'default_role_required' => 'حدد دورًا افتراضيًا في نموذج الالتحاق قبل الموافقة.',
+    'default_role_invalid' => 'الدور المحدد لا ينتمي إلى هذه الدورة.',
     'invalid_restore_status' => 'حالة استعادة غير صالحة.',
     'waiting_title' => 'الطلب قيد المراجعة',
     'waiting_intro' => 'طلب الالتحاق بهذه الدورة في قائمة المراجعة.',

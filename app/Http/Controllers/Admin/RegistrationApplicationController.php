@@ -51,13 +51,13 @@ class RegistrationApplicationController extends Controller
 
         $fieldReviews = $application->fieldReviews->keyBy('field_key');
         $courses = $this->roles->coursesForPicker();
-        $roles = $this->roles->rolesForPicker();
+        $rolesByCourse = $this->roles->rolesGroupedByCourse();
 
         return view('admin.registration-applications.show', compact(
             'application',
             'fieldReviews',
             'courses',
-            'roles'
+            'rolesByCourse'
         ));
     }
 

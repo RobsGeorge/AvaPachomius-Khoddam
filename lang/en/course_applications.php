@@ -63,6 +63,7 @@ return [
     'at_least_one_rejected_field' => 'Mark at least one field as rejected before requesting corrections.',
     'cannot_approve_with_rejected_fields' => 'Accept all fields or enable override before approving.',
     'default_role_required' => 'Set a default role on the application form before approving.',
+    'default_role_invalid' => 'The selected role does not belong to this course.',
     'invalid_restore_status' => 'Invalid restore status.',
     'waiting_title' => 'Application under review',
     'waiting_intro' => 'Your application for this course is in the review queue.',

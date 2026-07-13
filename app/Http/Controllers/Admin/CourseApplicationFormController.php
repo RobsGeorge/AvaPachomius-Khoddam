@@ -10,6 +10,7 @@ use App\Models\CourseApplicationFormStep;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CourseApplicationFormService;
+use App\Services\RolePickerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,7 @@ class CourseApplicationFormController extends Controller
 {
     public function __construct(
         private CourseApplicationFormService $forms,
+        private RolePickerService $rolePicker,
     ) {}
 
     public function index()
@@ -46,10 +48,10 @@ class CourseApplicationFormController extends Controller
         $form = $this->forms->getOrCreateForCourse($courseModel, $user);
         $form->load(['steps.fields']);
         $courses = Course::orderBy('title')->get();
-        $roles = Role::orderBy('role_name')->get();
+        $rolesByCourse = $this->rolePicker->groupedByCourse();
         $fieldTypes = CourseApplicationFormField::allTypes();
 
-        return view('admin.course-application-forms.edit', compact('courseModel', 'form', 'courses', 'roles', 'fieldTypes'));
+        return view('admin.course-application-forms.edit', compact('courseModel', 'form', 'courses', 'rolesByCourse', 'fieldTypes'));
     }
 
     public function preview(Request $request, string $course)
@@ -94,6 +96,19 @@ class CourseApplicationFormController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'default_role_id' => ['nullable', 'exists:roles,role_id'],
         ]);
+
+        $targetCourseId = (int) $validated['course_id'];
+        if (! empty($validated['default_role_id'])) {
+            $roleValid = Role::query()
+                ->forCourse($targetCourseId)
+                ->where('role_id', $validated['default_role_id'])
+                ->exists();
+            if (! $roleValid) {
+                return back()
+                    ->withErrors(['default_role_id' => __('course_applications.default_role_invalid')])
+                    ->withInput();
+            }
+        }
 
         if ((int) $validated['course_id'] !== (int) $courseModel->course_id) {
             $targetCourse = Course::findOrFail($validated['course_id']);

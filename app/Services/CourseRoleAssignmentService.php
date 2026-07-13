@@ -76,9 +76,18 @@ class CourseRoleAssignmentService
         return Course::orderBy('title')->get();
     }
 
-    public function rolesForPicker()
+    public function rolesForPicker(?int $courseId = null)
     {
-        return Role::orderBy('role_name')->get();
+        $picker = app(RolePickerService::class);
+
+        return $courseId !== null
+            ? $picker->forCourse($courseId)
+            : $picker->groupedByCourse()->flatten(1);
+    }
+
+    public function rolesGroupedByCourse()
+    {
+        return app(RolePickerService::class)->groupedByCourse();
     }
 
     private function notifyAssignment(User $user, int $courseId, int $roleId, UserCourseRole $assignment): void

@@ -6,10 +6,10 @@ use App\Models\Course;
 use App\Models\Event;
 use App\Models\EventReservation;
 use App\Models\EventReservationException;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\EventAuditService;
 use App\Services\EventReservationService;
+use App\Services\RolePickerService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +19,7 @@ class EventAdminController extends Controller
 {
     public function __construct(
         private EventReservationService $reservations,
+        private RolePickerService $rolePicker,
     ) {}
 
     public function index()
@@ -31,7 +32,7 @@ class EventAdminController extends Controller
     public function create()
     {
         $courses = Course::orderBy('title')->get();
-        $roles = Role::orderBy('role_name')->pluck('role_name');
+        $roles = $this->rolePicker->distinctEligibleRoleNames();
 
         return view('events.admin.form', [
             'event' => new Event(['capacity' => 50, 'visibility' => 'institution']),
@@ -58,7 +59,7 @@ class EventAdminController extends Controller
     public function edit(Event $event)
     {
         $courses = Course::orderBy('title')->get();
-        $roles = Role::orderBy('role_name')->pluck('role_name');
+        $roles = $this->rolePicker->distinctEligibleRoleNames();
 
         return view('events.admin.form', compact('event', 'courses', 'roles'));
     }
