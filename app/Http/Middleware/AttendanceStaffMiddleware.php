@@ -41,7 +41,7 @@ class AttendanceStaffMiddleware
 
     private function hasInAnyCourse($user, string $perm): bool
     {
-        foreach ($user->userCourseRoles()->whereNull('staff_archived_at')->pluck('course_id') as $courseId) {
+        foreach ($user->userCourseRoles()->activeStaff()->pluck('course_id') as $courseId) {
             $course = \App\Models\Course::find($courseId);
             if ($course && $this->resolver->canInCourse($user, $perm, $course)) {
                 return true;

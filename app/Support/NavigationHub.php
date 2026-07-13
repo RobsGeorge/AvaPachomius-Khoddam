@@ -160,7 +160,7 @@ class NavigationHub
             $courseWithRoleManage = $currentCourse->course_id;
         } else {
             $courseWithRoleManage = $user->userCourseRoles()
-                ->whereNull('staff_archived_at')
+                ->activeStaff()
                 ->pluck('course_id')
                 ->first(function ($courseId) use ($user, $resolver) {
                     $course = Course::find($courseId);
@@ -289,7 +289,7 @@ class NavigationHub
             }
         }
 
-        foreach ($user->userCourseRoles()->whereNull('staff_archived_at')->pluck('course_id') as $courseId) {
+        foreach ($user->userCourseRoles()->activeStaff()->pluck('course_id') as $courseId) {
             $course = Course::find($courseId);
             if ($course && $resolver->canAnyInCourse($user, $permissions, $course)) {
                 return true;

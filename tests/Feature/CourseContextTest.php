@@ -45,6 +45,24 @@ class CourseContextTest extends EventModuleTestCase
         );
     }
 
+    public function test_instructor_with_single_course_reaches_dashboard_after_login(): void
+    {
+        $course = $this->createCourse(['title' => 'Instructor Course', 'status' => Course::STATUS_ACTIVE]);
+        $instructorRole = $this->courseRoleWithPermissions($course, 'instructor', ['roster.view']);
+        $instructor = $this->createUser(['email' => 'ctx-instructor-dash@example.com']);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+
+        $this->post(route('login'), [
+            'email' => $instructor->email,
+            'password' => 'password',
+        ])->assertRedirect(route('dashboard'));
+
+        $this->actingAs($instructor)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Instructor Course', false);
+    }
+
     public function test_closed_course_is_excluded_from_picker(): void
     {
         $studentRole = $this->createRole('Student');

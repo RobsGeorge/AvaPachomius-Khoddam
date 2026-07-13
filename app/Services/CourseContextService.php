@@ -28,7 +28,7 @@ class CourseContextService
     {
         $enrollments = UserCourseRole::query()
             ->where('user_id', $user->user_id)
-            ->whereNull('staff_archived_at')
+            ->activeStaff()
             ->with(['course', 'role'])
             ->get();
 
@@ -161,7 +161,7 @@ class CourseContextService
         return UserCourseRole::query()
             ->where('user_id', $user->user_id)
             ->where('course_id', $course->course_id)
-            ->whereNull('staff_archived_at')
+            ->activeStaff()
             ->exists();
     }
 

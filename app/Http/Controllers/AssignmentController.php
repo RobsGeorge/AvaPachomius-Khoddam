@@ -449,7 +449,11 @@ class AssignmentController extends Controller
     private function authorizeAssignmentManage(): void
     {
         $user = Auth::user();
-        if (! $user || ($user->is_superadmin ?? false)) {
+        if (! $user) {
+            abort(403);
+        }
+
+        if ($user->is_superadmin ?? false) {
             return;
         }
 
@@ -472,7 +476,11 @@ class AssignmentController extends Controller
         }
 
         $user = Auth::user();
-        if (! $user || ($user->is_superadmin ?? false)) {
+        if (! $user) {
+            abort(403);
+        }
+
+        if ($user->is_superadmin ?? false) {
             return;
         }
 
@@ -487,7 +495,11 @@ class AssignmentController extends Controller
     private function authorizeViewAssignment(Assignment $assignment): void
     {
         $user = Auth::user();
-        if (! $user || ($user->is_superadmin ?? false)) {
+        if (! $user) {
+            abort(403);
+        }
+
+        if ($user->is_superadmin ?? false) {
             return;
         }
 

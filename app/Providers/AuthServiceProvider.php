@@ -49,7 +49,7 @@ class AuthServiceProvider extends ServiceProvider
 
                 return $resolver->hasCourseAccess($user, $course ?? '')
                     && $user->userCourseRoles()
-                        ->whereNull('staff_archived_at')
+                        ->activeStaff()
                         ->get()
                         ->contains(function ($ucr) use ($resolver, $key, $user) {
                             $c = \App\Models\Course::find($ucr->course_id);

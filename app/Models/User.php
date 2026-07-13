@@ -216,7 +216,7 @@ class User extends Authenticatable
         }
 
         return $this->isAdmin() || $this->isInstructor()
-            || $this->userCourseRoles()->whereNull('staff_archived_at')->whereHas('role', function ($q) {
+            || $this->userCourseRoles()->activeStaff()->whereHas('role', function ($q) {
                 $q->whereIn('slug', ['admin', 'instructor'])
                     ->orWhereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor']);
             })->exists();

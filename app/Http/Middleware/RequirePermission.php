@@ -119,7 +119,7 @@ class RequirePermission
     private function hasPermissionInAnyCourse($user, string $permission): bool
     {
         $courseIds = $user->userCourseRoles()
-            ->whereNull('staff_archived_at')
+            ->activeStaff()
             ->pluck('course_id')
             ->unique();
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Database\CourseModulePivot;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Module;
@@ -61,8 +62,31 @@ class Course extends Model
         'closed_at'                 => 'datetime',
         'grace_marks_enabled'       => 'boolean',
         'max_grace_marks'           => 'float',
-        'branding_theme'            => 'array',
     ];
+
+    protected function brandingTheme(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value) {
+                if ($value === null || $value === '') {
+                    return [];
+                }
+
+                if (is_array($value)) {
+                    return $value;
+                }
+
+                try {
+                    $decoded = json_decode((string) $value, true, 512, JSON_THROW_ON_ERROR);
+
+                    return is_array($decoded) ? $decoded : [];
+                } catch (\JsonException) {
+                    return [];
+                }
+            },
+            set: fn (?array $value) => $value === null || $value === [] ? null : json_encode($value),
+        );
+    }
 
     /** @return list<string> */
     public static function selectableStatuses(): array
@@ -110,6 +134,9 @@ class Course extends Model
     public function brandingColors(): array
     {
         $theme = $this->branding_theme ?? [];
+        if (! is_array($theme)) {
+            $theme = [];
+        }
 
         return [
             'primary' => $theme['primary'] ?? null,

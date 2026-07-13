@@ -21,6 +21,7 @@ final class LegacySchemaSync
         self::syncCourseModuleTable();
         self::syncExamsTable();
         self::syncPortalSettingsTable();
+        self::syncCourseContextTables();
         self::ensureOtpCodeTable();
     }
 
@@ -107,6 +108,57 @@ final class LegacySchemaSync
         ] as $column => $definition) {
             self::addMysqlColumnIfMissing('exams', $column, $definition);
         }
+    }
+
+    private static function syncCourseContextTables(): void
+    {
+        if (Schema::hasTable('course')) {
+            $driver = Schema::getConnection()->getDriverName();
+
+            if ($driver === 'mysql') {
+                foreach ([
+                    'status' => "VARCHAR(20) NOT NULL DEFAULT 'active'",
+                    'title_ar' => 'VARCHAR(120) NULL',
+                    'title_en' => 'VARCHAR(120) NULL',
+                    'description_ar' => 'TEXT NULL',
+                    'description_en' => 'TEXT NULL',
+                    'branding_theme' => 'JSON NULL',
+                ] as $column => $definition) {
+                    self::addMysqlColumnIfMissing('course', $column, $definition);
+                }
+            } else {
+                MigrationSupport::addStringColumn('course', 'status', 20, false);
+                MigrationSupport::addStringColumn('course', 'title_ar', 120, true, 'title');
+                MigrationSupport::addStringColumn('course', 'title_en', 120, true, 'title_ar');
+                MigrationSupport::addTextColumn('course', 'description_ar', true, 'description');
+                MigrationSupport::addTextColumn('course', 'description_en', true, 'description_ar');
+                MigrationSupport::addColumn('course', 'branding_theme', function (Blueprint $table) {
+                    $table->json('branding_theme')->nullable();
+                });
+            }
+        }
+
+        if (! Schema::hasTable('user_course_role')) {
+            return;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'mysql') {
+            self::addMysqlColumnIfMissing('user_course_role', 'staff_archived_at', 'TIMESTAMP NULL');
+            self::addMysqlColumnIfMissing('user_course_role', 'eligible_for_grace', 'TINYINT(1) NOT NULL DEFAULT 0');
+            self::addMysqlColumnIfMissing('user_course_role', 'pending_grace_marks', 'DECIMAL(5,2) NULL');
+
+            return;
+        }
+
+        MigrationSupport::addBooleanColumn('user_course_role', 'eligible_for_grace', false);
+        MigrationSupport::addColumn('user_course_role', 'pending_grace_marks', function (Blueprint $table) {
+            $table->decimal('pending_grace_marks', 5, 2)->nullable();
+        });
+        MigrationSupport::addColumn('user_course_role', 'staff_archived_at', function (Blueprint $table) {
+            $table->timestamp('staff_archived_at')->nullable();
+        });
     }
 
     private static function syncPortalSettingsTable(): void

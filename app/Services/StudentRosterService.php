@@ -22,11 +22,11 @@ class StudentRosterService
         }
 
         $courseIds = $user->userCourseRoles()
-            ->whereNull('staff_archived_at')
+            ->activeStaff()
             ->pluck('course_id')
             ->merge(
                 $user->userCourseRoles()
-                    ->whereNotNull('staff_archived_at')
+                    ->staffArchivedOnly()
                     ->whereHas('role', fn ($q) => $q->whereRaw('LOWER(role_name) = ?', ['student'])
                         ->orWhere('slug', 'student'))
                     ->pluck('course_id')
@@ -100,7 +100,7 @@ class StudentRosterService
             ->whereIn('role_id', $staffRoleIds);
 
         if (! $includeArchived) {
-            $query->whereNull('staff_archived_at');
+            $query->activeStaff();
         }
 
         $userIds = $query->pluck('user_id')->unique();

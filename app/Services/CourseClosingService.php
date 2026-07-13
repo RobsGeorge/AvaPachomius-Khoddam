@@ -216,7 +216,7 @@ class CourseClosingService
                 UserCourseRole::where('course_id', $course->course_id)
                     ->whereIn('role_id', $staffRoleIds)
                     ->where('user_id', '!=', $actor->user_id)
-                    ->whereNull('staff_archived_at')
+                    ->activeStaff()
                     ->update(['staff_archived_at' => now()]);
             }
 

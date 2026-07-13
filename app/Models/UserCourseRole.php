@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class UserCourseRole extends Model
 {
@@ -41,5 +43,23 @@ class UserCourseRole extends Model
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
+    }
+
+    public function scopeActiveStaff(Builder $query): Builder
+    {
+        if (Schema::hasColumn($this->getTable(), 'staff_archived_at')) {
+            return $query->whereNull('staff_archived_at');
+        }
+
+        return $query;
+    }
+
+    public function scopeStaffArchivedOnly(Builder $query): Builder
+    {
+        if (Schema::hasColumn($this->getTable(), 'staff_archived_at')) {
+            return $query->whereNotNull('staff_archived_at');
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 }

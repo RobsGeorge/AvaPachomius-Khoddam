@@ -34,7 +34,7 @@ class CourseEnrollmentService
             ->whereIn('role_id', $staffRoleIds);
 
         if (! $includeArchived) {
-            $query->whereNull('staff_archived_at');
+            $query->activeStaff();
         }
 
         $userIds = $query->pluck('user_id')->unique();
