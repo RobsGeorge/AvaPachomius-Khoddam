@@ -182,6 +182,52 @@ class DynamicRoleManagementTest extends EventModuleTestCase
             ->assertStatus(422);
     }
 
+    public function test_course_role_assignment_can_be_removed_via_course_roles_page(): void
+    {
+        $admin = $this->createUser(['is_superadmin' => true]);
+        $user = $this->createUser();
+        $course = $this->createCourse();
+        $role = $this->courseRoleWithPermissions($course, 'instructor', ['curriculum.manage']);
+
+        $assignment = UserCourseRole::updateOrCreate(
+            ['user_id' => $user->user_id, 'course_id' => $course->course_id],
+            ['role_id' => $role->role_id]
+        );
+
+        $this->actingAs($admin)
+            ->delete(route('courses.roles.assignments.destroy', [$course, $assignment]))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('user_course_role', [
+            'user_course_role_id' => $assignment->user_course_role_id,
+        ]);
+    }
+
+    public function test_superadmin_role_picker_only_lists_course_scoped_roles(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true]);
+        $courseA = $this->createCourse(['title' => 'Alpha']);
+        $courseB = $this->createCourse(['title' => 'Beta']);
+
+        Role::create([
+            'role_name' => 'Legacy Admin',
+            'role_decription' => 'Legacy',
+            'slug' => 'legacy-admin',
+            'course_id' => null,
+            'is_template' => false,
+        ]);
+
+        $this->courseRoleWithPermissions($courseA, 'admin', ['role.manage']);
+        $this->courseRoleWithPermissions($courseB, 'admin', ['role.manage']);
+
+        $response = $this->actingAs($super)->get(route('superadmin.index'));
+
+        $response->assertOk();
+        $response->assertSee('data-course-id="'.$courseA->course_id.'"', false);
+        $response->assertSee('data-course-id="'.$courseB->course_id.'"', false);
+        $response->assertSee('Legacy Admin', false);
+    }
+
     public function test_bump_course_permissions_version_clears_current_and_next_cache_keys(): void
     {
         $user = $this->createUser();

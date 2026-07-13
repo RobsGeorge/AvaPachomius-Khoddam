@@ -149,12 +149,12 @@ class CourseRoleController extends Controller
         return back()->with('success', __('rbac.user_assigned'));
     }
 
-    public function destroyAssignment(Course $course, UserCourseRole $assignment)
+    public function destroyAssignment(Course $course, UserCourseRole $userCourseRole)
     {
-        abort_unless($assignment->course_id === $course->course_id, 404);
+        abort_unless($userCourseRole->course_id === $course->course_id, 404);
         abort_unless($this->policy->assignUsers(request()->user(), $course), 403);
 
-        $assignment->delete();
+        $userCourseRole->delete();
         $this->resolver->bumpCoursePermissionsVersion($course);
 
         return back()->with('success', __('rbac.user_unassigned'));

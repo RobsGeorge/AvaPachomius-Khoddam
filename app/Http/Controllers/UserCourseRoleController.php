@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\UserCourseRole;
-use App\Models\User;
 use App\Models\Course;
 use App\Models\Role;
-use App\Services\PendingRegistrationService;
+use App\Models\User;
+use App\Models\UserCourseRole;
 use App\Services\CoursePermissionResolver;
-use App\Services\RoleTemplateService;
+use App\Services\PendingRegistrationService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 
 class UserCourseRoleController extends Controller
 {
@@ -33,8 +33,12 @@ class UserCourseRoleController extends Controller
     {
         $users   = User::orderBy('first_name')->get();
         $courses = Course::orderBy('title')->get();
-        $roles   = Role::all();
-        return view('user_course_roles.create', compact('users', 'courses', 'roles'));
+        $rolesByCourse = Role::assignableToCourses()
+            ->orderBy('role_name')
+            ->get()
+            ->groupBy('course_id');
+
+        return view('user_course_roles.create', compact('users', 'courses', 'rolesByCourse'));
     }
 
     public function store(Request $request)
@@ -42,7 +46,14 @@ class UserCourseRoleController extends Controller
         $request->validate([
             'user_id'   => 'required|exists:user,user_id',
             'course_id' => 'required|exists:course,course_id',
-            'role_id'   => 'required|exists:roles,role_id',
+            'role_id'   => [
+                'required',
+                Rule::exists('roles', 'role_id')->where(
+                    fn ($query) => $query
+                        ->where('course_id', $request->input('course_id'))
+                        ->where('is_template', false)
+                ),
+            ],
         ]);
 
         $exists = UserCourseRole::where('user_id', $request->user_id)
@@ -71,7 +82,14 @@ class UserCourseRoleController extends Controller
 
     public function destroy(string $id)
     {
-        UserCourseRole::findOrFail($id)->delete();
+        $assignment = UserCourseRole::findOrFail($id);
+        $course = Course::find($assignment->course_id);
+        $assignment->delete();
+
+        if ($course) {
+            app(CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
+        }
+
         return redirect()->route('user-course-roles.index')->with('success', 'تم إلغاء تعيين الدور');
     }
 

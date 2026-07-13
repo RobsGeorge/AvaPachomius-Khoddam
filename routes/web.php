@@ -408,7 +408,7 @@ Route::middleware(['auth'])->prefix('courses/{course}')->name('courses.roles.')-
     Route::delete('/roles/{role}', [CourseRoleController::class, 'destroy'])->name('destroy');
     Route::post('/roles/copy', [CourseRoleController::class, 'copyFrom'])->name('copy');
     Route::post('/roles/assignments', [CourseRoleController::class, 'storeAssignment'])->name('assignments.store');
-    Route::delete('/roles/assignments/{assignment}', [CourseRoleController::class, 'destroyAssignment'])->name('assignments.destroy');
+    Route::delete('/roles/assignments/{userCourseRole}', [CourseRoleController::class, 'destroyAssignment'])->name('assignments.destroy');
 });
 
 Route::post('/superadmin/impersonate/stop', [SuperAdminController::class, 'stopImpersonating'])
@@ -439,7 +439,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/system-roles',             [SystemRoleController::class, 'systemRoles'])->name('system-roles.index');
     Route::post('/system-roles',            [SystemRoleController::class, 'storeSystemRole'])->name('system-roles.store');
     Route::post('/system-roles/assign',     [SystemRoleController::class, 'assignSystemRole'])->name('system-roles.assign');
-    Route::delete('/system-roles/assignments/{assignment}', [SystemRoleController::class, 'destroySystemRoleAssignment'])->name('system-roles.assignments.destroy');
+    Route::delete('/system-roles/assignments/{userSystemRole}', [SystemRoleController::class, 'destroySystemRoleAssignment'])->name('system-roles.assignments.destroy');
 });
 
 // Legacy URL redirects (old content/curriculum routes)

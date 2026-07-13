@@ -147,9 +147,9 @@ class SystemRoleController extends Controller
         return back()->with('success', __('rbac.system_role_assigned'));
     }
 
-    public function destroySystemRoleAssignment(UserSystemRole $assignment)
+    public function destroySystemRoleAssignment(UserSystemRole $userSystemRole)
     {
-        $assignment->delete();
+        $userSystemRole->delete();
 
         return back()->with('success', __('rbac.system_role_unassigned'));
     }

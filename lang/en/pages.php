@@ -407,6 +407,7 @@ return [
     'role_assigned'               => 'Role assigned successfully.',
     'role_unassigned'             => 'Role assignment removed.',
     'duplicate_role_assignment'   => 'This user already has this role in this course.',
+    'course_role_assignment_hint' => 'Roles are listed per course. Pick the course first, then choose that course\'s Admin, Instructor, or Student role.',
     'create_course'               => 'Create course',
     'setup_order_hint'            => 'Suggested order: ① Create course ② Add roles ③ Assign roles to users',
     'exams_schedule_results'      => 'Exam schedules & results',

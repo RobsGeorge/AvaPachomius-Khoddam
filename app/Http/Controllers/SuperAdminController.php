@@ -11,6 +11,7 @@ use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
 use App\Services\RoleTemplateService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SuperAdminController extends Controller
 {
@@ -19,11 +20,23 @@ class SuperAdminController extends Controller
         $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
         $users       = User::with('roles')->orderBy('first_name')->get();
         $courses     = Course::orderBy('year', 'desc')->orderBy('title')->get();
-        $roles       = Role::all();
+        $rolesByCourse = Role::assignableToCourses()
+            ->with('course')
+            ->orderBy('role_name')
+            ->get()
+            ->groupBy('course_id');
+        $legacyRoles = Role::legacyGlobals()->orderBy('role_name')->get();
 
         $eventAdmins = \App\Models\EventAdmin::with('user')->get();
 
-        return view('superadmin.index', compact('assignments', 'users', 'courses', 'roles', 'eventAdmins'));
+        return view('superadmin.index', compact(
+            'assignments',
+            'users',
+            'courses',
+            'rolesByCourse',
+            'legacyRoles',
+            'eventAdmins',
+        ));
     }
 
     public function store(Request $request)
@@ -31,7 +44,14 @@ class SuperAdminController extends Controller
         $request->validate([
             'user_id'   => 'required|exists:user,user_id',
             'course_id' => 'required|exists:course,course_id',
-            'role_id'   => 'required|exists:roles,role_id',
+            'role_id'   => [
+                'required',
+                Rule::exists('roles', 'role_id')->where(
+                    fn ($query) => $query
+                        ->where('course_id', $request->input('course_id'))
+                        ->where('is_template', false)
+                ),
+            ],
         ]);
 
         $exists = UserCourseRole::where('user_id', $request->user_id)
@@ -50,12 +70,23 @@ class SuperAdminController extends Controller
             ['role_id' => $request->role_id]
         );
 
+        $course = Course::find($request->course_id);
+        if ($course) {
+            app(\App\Services\CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
+        }
+
         return redirect()->route('superadmin.index')->with('success', __('pages.role_assigned'));
     }
 
     public function destroy(string $id)
     {
-        UserCourseRole::findOrFail($id)->delete();
+        $assignment = UserCourseRole::findOrFail($id);
+        $course = Course::find($assignment->course_id);
+        $assignment->delete();
+
+        if ($course) {
+            app(\App\Services\CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
+        }
 
         return redirect()->route('superadmin.index')->with('success', __('pages.role_unassigned'));
     }

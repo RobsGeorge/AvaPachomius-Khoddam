@@ -65,11 +65,19 @@
                     <select name="role_id" id="role_id"
                             class="form-select @error('role_id') is-invalid @enderror" required>
                         <option value="">{{ __('pages.select_role') }}</option>
-                        @foreach($roles as $role)
-                            <option value="{{ $role->role_id }}"
-                                {{ old('role_id') == $role->role_id ? 'selected' : '' }}>
-                                {{ $role->role_name }}
-                            </option>
+                        @foreach($courses as $course)
+                            @php $courseRoles = $rolesByCourse->get($course->course_id, collect()); @endphp
+                            @if($courseRoles->isNotEmpty())
+                                <optgroup label="{{ $course->title }} ({{ $course->year }})">
+                                    @foreach($courseRoles as $role)
+                                        <option value="{{ $role->role_id }}"
+                                            data-course-id="{{ $course->course_id }}"
+                                            {{ (string) old('role_id') === (string) $role->role_id ? 'selected' : '' }}>
+                                            {{ $role->role_name }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endif
                         @endforeach
                     </select>
                     @error('role_id')
@@ -87,4 +95,40 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const courseSelect = document.getElementById('course_id');
+    const roleSelect = document.getElementById('role_id');
+    if (!courseSelect || !roleSelect) {
+        return;
+    }
+
+    const filterRoles = () => {
+        const courseId = courseSelect.value;
+        let firstVisible = '';
+
+        Array.from(roleSelect.options).forEach((option) => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const matches = !courseId || option.dataset.courseId === courseId;
+            option.hidden = !matches;
+
+            if (matches && !firstVisible) {
+                firstVisible = option.value;
+            }
+        });
+
+        const selected = roleSelect.selectedOptions[0];
+        if (selected && selected.hidden) {
+            roleSelect.value = firstVisible;
+        }
+    };
+
+    courseSelect.addEventListener('change', filterRoles);
+    filterRoles();
+});
+</script>
 @endsection

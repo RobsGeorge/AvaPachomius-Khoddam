@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -76,6 +77,20 @@ class Role extends Model
     public function systemUsers(): HasMany
     {
         return $this->hasMany(UserSystemRole::class, 'role_id', 'role_id');
+    }
+
+    public function scopeAssignableToCourses(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('course_id')
+            ->where('is_template', false);
+    }
+
+    public function scopeLegacyGlobals(Builder $query): Builder
+    {
+        return $query
+            ->whereNull('course_id')
+            ->where('is_template', false);
     }
 
     public function isCourseScoped(): bool
