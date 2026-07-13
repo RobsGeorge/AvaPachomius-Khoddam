@@ -50,6 +50,10 @@ body.theme-light {
     --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
 
+    --reveal-duration: 0.8s;
+    --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --reveal-distance: 8px;
+
     --color-table-head-bg: rgba(124, 58, 237, 0.08);
     --color-table-row-bg: transparent;
     --color-table-hover-bg: rgba(124, 58, 237, 0.06);
@@ -299,7 +303,7 @@ body.theme-dark .app-nav-link.active {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     backdrop-filter: blur(10px);
-    animation: fadeInUp 0.55s ease both;
+    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
     transition: transform var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
 }
 
@@ -686,12 +690,12 @@ body.theme-dark .app-dropdown-link:hover {
     border: 1px solid var(--color-surface-border);
     box-shadow: var(--shadow-sm);
     transition: all var(--transition-base);
-    animation: fadeInUp 0.55s ease both;
+    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
 }
 
 .hub-tile,
 .hub-link-tile {
-    animation: fadeInUp 0.55s ease both;
+    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
 }
 
 .app-tile:hover {
@@ -710,15 +714,15 @@ body.theme-dark .app-dropdown-link:hover {
     margin-bottom: 0.5rem;
 }
 
-/* Animations — gentle local fade-in (subtle 14px rise, not animate.css full slide) */
+/* Animations — gentle local fade-in (subtle rise, relaxed timing) */
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(14px); }
+    from { opacity: 0; transform: translateY(var(--reveal-distance, 8px)); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes khoddamFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { opacity: 0; transform: translateY(calc(var(--reveal-distance, 8px) * 0.5)); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes shimmer {
@@ -731,17 +735,17 @@ body.theme-dark .app-dropdown-link:hover {
 .app-tile,
 .hub-tile,
 .hub-link-tile {
-    animation: fadeInUp 0.55s ease both;
+    animation: fadeInUp var(--reveal-duration) var(--reveal-ease) both;
 }
 
 .accordion-item,
 .roles-hub-panel {
-    animation: khoddamFadeIn 0.55s ease both;
+    animation: khoddamFadeIn calc(var(--reveal-duration) * 0.9) var(--reveal-ease) both;
 }
 
-.animate-delay-1 { animation-delay: 0.08s; }
-.animate-delay-2 { animation-delay: 0.16s; }
-.animate-delay-3 { animation-delay: 0.24s; }
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.2s; }
+.animate-delay-3 { animation-delay: 0.3s; }
 
 /* Subtle hover lift (works with animate.css timing) */
 .khoddam-hover-lift {

@@ -21,7 +21,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260713d">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260713e">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -67,7 +67,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260713d"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260713e"></script>
     @stack('scripts')
 </body>
 </html>

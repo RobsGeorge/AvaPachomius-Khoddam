@@ -378,11 +378,11 @@
     function initReveal() {
         const nodes = document.querySelectorAll('.app-card, .app-tile, .hub-tile, .hub-link-tile, .animate-in');
         nodes.forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.06, 0.36)}s`;
+            el.style.animationDelay = `${Math.min(index * 0.08, 0.52)}s`;
         });
 
         document.querySelectorAll('.accordion-item, .roles-hub-panel').forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.06, 0.36)}s`;
+            el.style.animationDelay = `${Math.min(index * 0.07, 0.45)}s`;
         });
     }
 
