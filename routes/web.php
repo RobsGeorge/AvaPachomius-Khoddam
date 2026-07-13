@@ -21,6 +21,7 @@ use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\OTPController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\RolesHubController;
 use App\Http\Controllers\HubController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
@@ -406,7 +407,11 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     });
 });
 
-// Course-scoped dynamic role management
+// Unified roles hub + course-scoped dynamic role management
+Route::middleware(['auth'])->group(function () {
+    Route::get('/roles-hub', [RolesHubController::class, 'index'])->name('roles.hub');
+});
+
 Route::middleware(['auth'])->prefix('courses/{course}')->name('courses.roles.')->group(function () {
     Route::get('/roles', [CourseRoleController::class, 'index'])->name('index');
     Route::post('/roles', [CourseRoleController::class, 'store'])->name('store');

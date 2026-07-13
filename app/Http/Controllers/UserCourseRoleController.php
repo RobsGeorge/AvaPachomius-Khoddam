@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\CoursePermissionResolver;
 use App\Services\PendingRegistrationService;
+use App\Services\RolesHubService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
@@ -16,29 +17,12 @@ class UserCourseRoleController extends Controller
 {
     public function index()
     {
-        $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
-
-        $accountStatuses = $assignments->mapWithKeys(function (UserCourseRole $assignment) {
-            $status = $assignment->user
-                ? PendingRegistrationService::accountStatus($assignment->user)
-                : PendingRegistrationService::unknownAccountStatus();
-
-            return [$assignment->user_course_role_id => $status];
-        });
-
-        return view('user_course_roles.index', compact('assignments', 'accountStatuses'));
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'));
     }
 
     public function create()
     {
-        $users   = User::orderBy('first_name')->get();
-        $courses = Course::orderBy('title')->get();
-        $rolesByCourse = Role::assignableToCourses()
-            ->orderBy('role_name')
-            ->get()
-            ->groupBy('course_id');
-
-        return view('user_course_roles.create', compact('users', 'courses', 'rolesByCourse'));
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'));
     }
 
     public function store(Request $request)
@@ -77,7 +61,8 @@ class UserCourseRoleController extends Controller
             app(CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
         }
 
-        return redirect()->route('user-course-roles.index')->with('success', 'تم تعيين الدور بنجاح');
+        return redirect(app(RolesHubService::class)->hubUrl($course, 'assignments'))
+            ->with('success', 'تم تعيين الدور بنجاح');
     }
 
     public function destroy(string $id)
@@ -90,20 +75,21 @@ class UserCourseRoleController extends Controller
             app(CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
         }
 
-        return redirect()->route('user-course-roles.index')->with('success', 'تم إلغاء تعيين الدور');
+        return redirect(app(RolesHubService::class)->hubUrl($course, 'assignments'))
+            ->with('success', 'تم إلغاء تعيين الدور');
     }
 
     public function sendRegistrationLink(User $user)
     {
         if (! PendingRegistrationService::isPending($user)) {
             return redirect()
-                ->route('user-course-roles.index')
+                ->route('roles.hub', ['section' => 'assignments'])
                 ->with('warning', __('pages.account_status_already_active'));
         }
 
         if (! $user->email) {
             return redirect()
-                ->route('user-course-roles.index')
+                ->route('roles.hub', ['section' => 'assignments'])
                 ->with('error', __('pages.account_status_no_email'));
         }
 
@@ -111,12 +97,12 @@ class UserCourseRoleController extends Controller
 
         if ($status !== Password::RESET_LINK_SENT) {
             return redirect()
-                ->route('user-course-roles.index')
+                ->route('roles.hub', ['section' => 'assignments'])
                 ->with('error', __($status));
         }
 
         return redirect()
-            ->route('user-course-roles.index')
+            ->route('roles.hub', ['section' => 'assignments'])
             ->with('success', __('pages.account_setup_email_sent', ['email' => $user->email]));
     }
 }

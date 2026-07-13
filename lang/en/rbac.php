@@ -43,4 +43,11 @@ return [
     'confirm_delete' => 'Delete this role?',
     'inherit_on_create' => 'Clone default role templates',
     'inherit_from' => 'Or copy roles from course',
+    'hub_title' => 'Roles & permissions',
+    'hub_intro' => 'Manage role templates, course roles, user assignments, and system roles from one place.',
+    'section_course' => 'Course roles',
+    'section_assignments' => 'All assignments',
+    'templates_hint' => 'Default templates copied into new courses. Expand a template to edit its permissions.',
+    'visibility_hint' => 'Control which permission groups course admins can see when editing roles.',
+    'select_course_hint' => 'Select a course above to manage its roles.',
 ];

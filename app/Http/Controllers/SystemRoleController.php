@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Models\UserSystemRole;
 use App\Services\RoleTemplateService;
+use App\Services\RolesHubService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -18,21 +19,12 @@ class SystemRoleController extends Controller
 {
     public function __construct(
         private RoleTemplateService $templates,
+        private RolesHubService $hub,
     ) {}
 
     public function templates()
     {
-        $templates = Role::whereNull('course_id')
-            ->where('is_template', true)
-            ->with('permissions.group')
-            ->orderBy('role_name')
-            ->get();
-
-        $groups = PermissionGroup::with('permissions')
-            ->orderBy('sort_order')
-            ->get();
-
-        return view('superadmin.rbac.templates', compact('templates', 'groups'));
+        return redirect($this->hub->hubUrl(null, 'templates'));
     }
 
     public function updateTemplate(Request $request, Role $role)
@@ -54,16 +46,13 @@ class SystemRoleController extends Controller
 
         $role->permissions()->sync($data['permissions'] ?? []);
 
-        return back()->with('success', __('rbac.template_updated'));
+        return redirect($this->hub->hubUrl(null, 'templates'))
+            ->with('success', __('rbac.template_updated'));
     }
 
     public function groupVisibility()
     {
-        $groups = PermissionGroup::with('visibility')
-            ->orderBy('sort_order')
-            ->get();
-
-        return view('superadmin.rbac.group-visibility', compact('groups'));
+        return redirect($this->hub->hubUrl(null, 'visibility'));
     }
 
     public function updateGroupVisibility(Request $request)
@@ -85,26 +74,13 @@ class SystemRoleController extends Controller
             );
         }
 
-        return back()->with('success', __('rbac.visibility_updated'));
+        return redirect($this->hub->hubUrl(null, 'visibility'))
+            ->with('success', __('rbac.visibility_updated'));
     }
 
     public function systemRoles()
     {
-        $roles = Role::whereNull('course_id')
-            ->where('is_template', false)
-            ->where('is_system', true)
-            ->with('permissions')
-            ->orderBy('role_name')
-            ->get();
-
-        $groups = PermissionGroup::whereIn('scope', ['system', 'both'])
-            ->with('permissions')
-            ->orderBy('sort_order')
-            ->get();
-
-        $assignments = UserSystemRole::with(['user', 'role'])->get();
-
-        return view('superadmin.rbac.system-roles', compact('roles', 'groups', 'assignments'));
+        return redirect($this->hub->hubUrl(null, 'system'));
     }
 
     public function storeSystemRole(Request $request)
@@ -130,7 +106,8 @@ class SystemRoleController extends Controller
 
         $role->permissions()->sync($data['permissions'] ?? []);
 
-        return back()->with('success', __('rbac.system_role_created'));
+        return redirect($this->hub->hubUrl(null, 'system'))
+            ->with('success', __('rbac.system_role_created'));
     }
 
     public function assignSystemRole(Request $request)
@@ -148,13 +125,15 @@ class SystemRoleController extends Controller
 
         UserSystemRole::firstOrCreate($data);
 
-        return back()->with('success', __('rbac.system_role_assigned'));
+        return redirect($this->hub->hubUrl(null, 'system'))
+            ->with('success', __('rbac.system_role_assigned'));
     }
 
     public function destroySystemRoleAssignment(UserSystemRole $userSystemRole)
     {
         $userSystemRole->delete();
 
-        return back()->with('success', __('rbac.system_role_unassigned'));
+        return redirect($this->hub->hubUrl(null, 'system'))
+            ->with('success', __('rbac.system_role_unassigned'));
     }
 }

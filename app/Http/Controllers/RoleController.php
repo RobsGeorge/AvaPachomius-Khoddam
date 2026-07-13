@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Role;
+use App\Services\RolesHubService;
+use Illuminate\Http\Request;
 
 class RoleController extends Controller
 {
     public function index()
     {
-        $roles = Role::all();
-        return view('roles.index', compact('roles'));
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'));
     }
 
     public function store(Request $request)
@@ -22,12 +22,14 @@ class RoleController extends Controller
 
         Role::create($request->only('role_name', 'role_decription'));
 
-        return redirect()->route('roles.index')->with('success', 'تم إضافة الدور بنجاح');
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'))
+            ->with('success', 'تم إضافة الدور بنجاح');
     }
 
     public function destroy(string $id)
     {
         Role::findOrFail($id)->delete();
-        return redirect()->route('roles.index')->with('success', 'تم حذف الدور بنجاح');
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'))
+            ->with('success', 'تم حذف الدور بنجاح');
     }
 }

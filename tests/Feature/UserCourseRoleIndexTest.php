@@ -30,8 +30,12 @@ class UserCourseRoleIndexTest extends EventModuleTestCase
 
         $this->actingAs($admin)
             ->get(route('user-course-roles.index'))
+            ->assertRedirect(route('roles.hub', ['section' => 'assignments']));
+
+        $this->actingAs($admin)
+            ->get(route('roles.hub', ['section' => 'assignments']))
             ->assertOk()
-            ->assertSee(__('pages.account_status'))
-            ->assertSee(__('pages.account_status_incomplete'));
+            ->assertSee(__('pages.account_status', [], 'ar'))
+            ->assertSee(__('pages.account_status_incomplete', [], 'ar'));
     }
 }

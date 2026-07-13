@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Course;
 use App\Models\User;
 use App\Services\CoursePermissionResolver;
+use App\Services\RolesHubService;
 
 class NavigationHub
 {
@@ -119,10 +120,32 @@ class NavigationHub
         }
 
         $links = [];
-        $resolver = app(CoursePermissionResolver::class);
+        $hub = app(RolesHubService::class);
 
-        if ($user->canInSystem('user.assign_role') || $user->canInSystem('system.role.manage')) {
-            $links[] = self::link('user-course-roles.index', 'nav.roles', 'bi-people', ['user-course-roles.*', 'roles.*'], 'system.role.manage');
+        if ($hub->canAccess($user)) {
+            $course = current_course();
+            $links[] = [
+                'url' => $hub->hubUrl(
+                    $course && $hub->manageableCourses($user)->contains('course_id', $course->course_id)
+                        ? $course
+                        : null
+                ),
+                'label' => __('rbac.hub_title'),
+                'icon' => 'bi-shield-check',
+                'active' => request()->routeIs(
+                    'roles.hub',
+                    'courses.roles.*',
+                    'user-course-roles.*',
+                    'roles.index',
+                    'roles.store',
+                    'roles.destroy',
+                    'superadmin.course-roles',
+                    'superadmin.templates.*',
+                    'superadmin.system-roles.*',
+                    'superadmin.group-visibility.*',
+                ),
+                'permission' => 'system.role.manage',
+            ];
         }
 
         if ($user->canInSystem('translation.manage')) {
@@ -153,35 +176,6 @@ class NavigationHub
             $links[] = self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*'], 'graduation.settings');
         }
 
-        $courseWithRoleManage = null;
-        $currentCourse = current_course();
-
-        if ($currentCourse && $resolver->canInCourse($user, 'role.manage', $currentCourse)) {
-            $courseWithRoleManage = $currentCourse->course_id;
-        } else {
-            $courseWithRoleManage = $user->userCourseRoles()
-                ->activeStaff()
-                ->pluck('course_id')
-                ->first(function ($courseId) use ($user, $resolver) {
-                    $course = Course::find($courseId);
-
-                    return $course && $resolver->canInCourse($user, 'role.manage', $course);
-                });
-        }
-
-        if ($courseWithRoleManage) {
-            $course = $currentCourse && (int) $currentCourse->course_id === (int) $courseWithRoleManage
-                ? $currentCourse
-                : Course::find($courseWithRoleManage);
-            $links[] = [
-                'url' => route('courses.roles.index', $course),
-                'label' => __('rbac.title'),
-                'icon' => 'bi-shield-check',
-                'active' => request()->routeIs('courses.roles.*'),
-                'permission' => 'role.manage',
-            ];
-        }
-
         if ($user->isAdmin() && empty($links)) {
             return self::legacySystemLinks($user);
         }
@@ -197,15 +191,21 @@ class NavigationHub
         }
 
         $currentCourse = current_course();
+        $hub = app(RolesHubService::class);
 
         $exclusiveLinks = [
             self::hubLink('superadmin.index', 'nav.superadmin', 'pages.superadmin_hub_desc', 'bi-shield-lock-fill', ['superadmin.index'], true),
             self::hubLink('superadmin.courses', 'pages.manage_courses', 'pages.superadmin_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
-            self::hubLink('superadmin.course-roles', 'pages.all_role_assignments', 'pages.superadmin_course_roles_page_desc', 'bi-people-fill', ['superadmin.course-roles', 'superadmin.store', 'superadmin.destroy'], true),
+            self::hubLink('roles.hub', 'rbac.hub_title', 'rbac.hub_intro', 'bi-shield-check', [
+                'roles.hub',
+                'courses.roles.*',
+                'user-course-roles.*',
+                'superadmin.course-roles',
+                'superadmin.templates.*',
+                'superadmin.system-roles.*',
+                'superadmin.group-visibility.*',
+            ], true),
             self::hubLink('superadmin.event-admins', 'events.event_admins_title', 'events.event_admins_hint', 'bi-calendar-event', ['superadmin.event-admins', 'superadmin.event-admins.*'], true),
-            self::hubLink('superadmin.system-roles.index', 'rbac.system_roles', 'pages.superadmin_system_roles_desc', 'bi-person-gear', ['superadmin.system-roles.*'], true),
-            self::hubLink('superadmin.templates.index', 'rbac.manage_templates', 'pages.superadmin_templates_desc', 'bi-diagram-3', ['superadmin.templates.*'], true),
-            self::hubLink('superadmin.group-visibility.index', 'rbac.group_visibility', 'pages.superadmin_group_visibility_desc', 'bi-eye', ['superadmin.group-visibility.*'], true),
             self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate'], true),
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
@@ -222,11 +222,11 @@ class NavigationHub
                 'superadmin_only' => false,
             ];
             $sharedLinks[] = [
-                'url' => route('courses.roles.index', $currentCourse),
-                'label' => __('rbac.title').' — '.$currentCourse->localizedTitle(),
+                'url' => $hub->hubUrl($currentCourse, 'course'),
+                'label' => __('rbac.hub_title').' — '.$currentCourse->localizedTitle(),
                 'description' => __('pages.superadmin_course_roles_desc'),
                 'icon' => 'bi-shield-check',
-                'active' => request()->routeIs('courses.roles.*'),
+                'active' => request()->routeIs('roles.hub', 'courses.roles.*'),
                 'superadmin_only' => false,
             ];
             $sharedLinks[] = [
@@ -404,7 +404,13 @@ class NavigationHub
     {
         $links = [];
         if ($user->isAdmin()) {
-            $links[] = self::link('user-course-roles.index', 'nav.roles', 'bi-people', ['user-course-roles.*', 'roles.*']);
+            $hub = app(RolesHubService::class);
+            $links[] = [
+                'url' => $hub->hubUrl(),
+                'label' => __('rbac.hub_title'),
+                'icon' => 'bi-shield-check',
+                'active' => request()->routeIs('roles.hub', 'user-course-roles.*', 'roles.*', 'courses.roles.*'),
+            ];
             $links[] = self::link('admin.translations.index', 'nav.translations', 'bi-translate', ['admin.translations.*']);
             $links[] = self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']);
             $links[] = self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']);

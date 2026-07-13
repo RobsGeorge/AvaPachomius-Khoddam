@@ -82,7 +82,7 @@ class DynamicRoleManagementTest extends EventModuleTestCase
                 'role_name' => 'Custom',
                 'permissions' => $permIds,
             ])
-            ->assertRedirect(route('courses.roles.index', $course));
+            ->assertRedirect(route('roles.hub', ['course' => $course->course_id, 'section' => 'course']));
 
         $this->assertEquals(2, $role->fresh()->permissions()->count());
     }
@@ -221,6 +221,10 @@ class DynamicRoleManagementTest extends EventModuleTestCase
         $this->courseRoleWithPermissions($courseB, 'admin', ['role.manage']);
 
         $response = $this->actingAs($super)->get(route('superadmin.course-roles'));
+
+        $response->assertRedirect(route('roles.hub', ['section' => 'assignments']));
+
+        $response = $this->actingAs($super)->get(route('roles.hub', ['section' => 'assignments']));
 
         $response->assertOk();
         $response->assertSee('data-course-id="'.$courseA->course_id.'"', false);

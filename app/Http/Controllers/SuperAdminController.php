@@ -10,6 +10,7 @@ use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
 use App\Services\RoleTemplateService;
+use App\Services\RolesHubService;
 use App\Support\NavigationHub;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,23 +34,7 @@ class SuperAdminController extends Controller
 
     public function courseRoles()
     {
-        $assignments = UserCourseRole::with(['user', 'course', 'role'])->get();
-        $users = User::with('roles')->orderBy('first_name')->get();
-        $courses = Course::orderBy('year', 'desc')->orderBy('title')->get();
-        $rolesByCourse = Role::assignableToCourses()
-            ->with('course')
-            ->orderBy('role_name')
-            ->get()
-            ->groupBy('course_id');
-        $legacyRoles = Role::legacyGlobals()->orderBy('role_name')->get();
-
-        return view('superadmin.course-roles', compact(
-            'assignments',
-            'users',
-            'courses',
-            'rolesByCourse',
-            'legacyRoles',
-        ));
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'));
     }
 
     public function security()
@@ -103,7 +88,8 @@ class SuperAdminController extends Controller
             app(\App\Services\CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
         }
 
-        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_assigned'));
+        return redirect(app(RolesHubService::class)->hubUrl($course, 'assignments'))
+            ->with('success', __('pages.role_assigned'));
     }
 
     public function destroy(string $id)
@@ -116,7 +102,8 @@ class SuperAdminController extends Controller
             app(\App\Services\CoursePermissionResolver::class)->bumpCoursePermissionsVersion($course);
         }
 
-        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_unassigned'));
+        return redirect(app(RolesHubService::class)->hubUrl($course, 'assignments'))
+            ->with('success', __('pages.role_unassigned'));
     }
 
     public function storeRole(Request $request)
@@ -128,14 +115,16 @@ class SuperAdminController extends Controller
 
         Role::create($request->only('role_name', 'role_decription'));
 
-        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_created'));
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'))
+            ->with('success', __('pages.role_created'));
     }
 
     public function destroyRole(string $id)
     {
         Role::findOrFail($id)->delete();
 
-        return redirect()->route('superadmin.course-roles')->with('success', __('pages.role_deleted'));
+        return redirect(app(RolesHubService::class)->hubUrl(null, 'assignments'))
+            ->with('success', __('pages.role_deleted'));
     }
 
     public function storeCourse(Request $request)

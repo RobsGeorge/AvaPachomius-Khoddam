@@ -10,6 +10,7 @@ use App\Models\UserCourseRole;
 use App\Policies\RolePermissionPolicy;
 use App\Services\CoursePermissionResolver;
 use App\Services\RoleTemplateService;
+use App\Services\RolesHubService;
 use App\Services\StudentRosterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -22,22 +23,12 @@ class CourseRoleController extends Controller
         private CoursePermissionResolver $resolver,
         private RoleTemplateService $templates,
         private StudentRosterService $roster,
+        private RolesHubService $hub,
     ) {}
 
     public function index(Course $course)
     {
-        $this->authorizeManage($course);
-
-        $roles = Role::where('course_id', $course->course_id)
-            ->withCount('userCourseRoles')
-            ->orderBy('role_name')
-            ->get();
-
-        $assignments = UserCourseRole::where('course_id', $course->course_id)
-            ->with(['user', 'role'])
-            ->get();
-
-        return view('course-roles.index', compact('course', 'roles', 'assignments'));
+        return redirect($this->hub->hubUrl($course, 'course'));
     }
 
     public function store(Request $request, Course $course)
@@ -107,8 +98,7 @@ class CourseRoleController extends Controller
         $role->permissions()->sync($data['permissions'] ?? []);
         $this->resolver->bumpCoursePermissionsVersion($course);
 
-        return redirect()
-            ->route('courses.roles.index', $course)
+        return redirect($this->hub->hubUrl($course, 'course'))
             ->with('success', __('rbac.role_updated'));
     }
 
@@ -122,8 +112,7 @@ class CourseRoleController extends Controller
         $role->delete();
         $this->resolver->bumpCoursePermissionsVersion($course);
 
-        return redirect()
-            ->route('courses.roles.index', $course)
+        return redirect($this->hub->hubUrl($course, 'course'))
             ->with('success', __('rbac.role_deleted'));
     }
 
@@ -146,7 +135,8 @@ class CourseRoleController extends Controller
 
         $this->resolver->bumpCoursePermissionsVersion($course);
 
-        return back()->with('success', __('rbac.user_assigned'));
+        return redirect($this->hub->hubUrl($course, 'course'))
+            ->with('success', __('rbac.user_assigned'));
     }
 
     public function destroyAssignment(Course $course, UserCourseRole $userCourseRole)
@@ -157,7 +147,8 @@ class CourseRoleController extends Controller
         $userCourseRole->delete();
         $this->resolver->bumpCoursePermissionsVersion($course);
 
-        return back()->with('success', __('rbac.user_unassigned'));
+        return redirect($this->hub->hubUrl($course, 'course'))
+            ->with('success', __('rbac.user_unassigned'));
     }
 
     public function copyFrom(Request $request, Course $course)
@@ -176,8 +167,7 @@ class CourseRoleController extends Controller
             $this->templates->copyRolesFromCourse($course, $source);
         }
 
-        return redirect()
-            ->route('courses.roles.index', $course)
+        return redirect($this->hub->hubUrl($course, 'course'))
             ->with('success', __('rbac.roles_copied'));
     }
 
