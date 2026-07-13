@@ -24,8 +24,17 @@ class AssignmentController extends Controller
         private CoursePermissionResolver $permissions,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
+        $canManage = $this->userCanManageAssignments();
+        $section = $request->query('section', $canManage && ! $this->userCanViewAssignmentsList() ? 'manage' : 'list');
+        if (! in_array($section, ['list', 'manage'], true)) {
+            $section = 'list';
+        }
+        if ($section === 'manage' && ! $canManage) {
+            $section = 'list';
+        }
+
         $assignments = $this->assignmentsQuery()->get();
         $studentSubmissions = collect();
         $submissionCounts = collect();
@@ -38,7 +47,7 @@ class AssignmentController extends Controller
                     ->keyBy('assignment_id');
             }
 
-            if (Auth::user()->isInstructorOrAdmin()) {
+            if (Auth::user()->isInstructorOrAdmin() || $canManage) {
                 $submissionCounts = AssignmentSubmission::query()
                     ->selectRaw('assignment_id, COUNT(*) as count')
                     ->whereIn('assignment_id', $assignments->pluck('assignment_id'))
@@ -47,7 +56,13 @@ class AssignmentController extends Controller
             }
         }
 
-        return view('assignments.index', compact('assignments', 'studentSubmissions', 'submissionCounts'));
+        $data = compact('assignments', 'studentSubmissions', 'submissionCounts', 'canManage', 'section');
+
+        if ($canManage && $section === 'manage') {
+            $data = array_merge($data, $this->managementSummary());
+        }
+
+        return view('assignments.index', $data);
     }
 
     public function create()
@@ -311,51 +326,7 @@ class AssignmentController extends Controller
     {
         $this->authorizeAssignmentManage();
 
-        $assignmentsQuery = $this->assignmentsQuery();
-        $assignmentIds = $assignmentsQuery->pluck('assignment_id');
-
-        $totalAssignments = $assignmentsQuery->count();
-        $upcomingAssignments = (clone $assignmentsQuery)->where('due_date', '>', now())->count();
-        $completedAssignments = (clone $assignmentsQuery)->where('due_date', '<', now())->count();
-
-        $upcomingAssignmentsList = (clone $assignmentsQuery)
-            ->where('due_date', '>', now())
-            ->orderBy('due_date')
-            ->take(5)
-            ->get();
-
-        $recentSubmissions = AssignmentSubmission::with(['user', 'assignment'])
-            ->whereIn('assignment_id', $assignmentIds)
-            ->orderBy('submitted_at', 'desc')
-            ->take(5)
-            ->get();
-
-        $course = current_course();
-        $totalStudents = $course
-            ? $this->roster->enrolledStudents($course)->count()
-            : $this->enrolledStudents()->count();
-
-        $assignmentSummaries = $assignmentsQuery->get()->map(function (Assignment $assignment) use ($totalStudents) {
-            $submittedCount = $assignment->submissions()->count();
-            $gradedCount = $assignment->submissions()->whereNotNull('points_earned')->count();
-
-            return [
-                'assignment' => $assignment,
-                'submitted' => $submittedCount,
-                'not_submitted' => max($totalStudents - $submittedCount, 0),
-                'graded' => $gradedCount,
-            ];
-        });
-
-        return view('assignments.dashboard', compact(
-            'totalAssignments',
-            'upcomingAssignments',
-            'completedAssignments',
-            'upcomingAssignmentsList',
-            'recentSubmissions',
-            'assignmentSummaries',
-            'totalStudents'
-        ));
+        return redirect()->route('assignments.index', ['section' => 'manage']);
     }
 
     public function updateSubmission(Request $request, AssignmentSubmission $submission)
@@ -404,6 +375,94 @@ class AssignmentController extends Controller
 
             return back()->with('error', __('pages.submission_update_failed'));
         }
+    }
+
+    /** @return array<string, mixed> */
+    private function managementSummary(): array
+    {
+        $assignmentsQuery = $this->assignmentsQuery();
+        $assignmentIds = (clone $assignmentsQuery)->pluck('assignment_id');
+
+        $totalAssignments = (clone $assignmentsQuery)->count();
+        $upcomingAssignments = (clone $assignmentsQuery)->where('due_date', '>', now())->count();
+        $completedAssignments = (clone $assignmentsQuery)->where('due_date', '<', now())->count();
+
+        $upcomingAssignmentsList = (clone $assignmentsQuery)
+            ->where('due_date', '>', now())
+            ->orderBy('due_date')
+            ->take(5)
+            ->get();
+
+        $recentSubmissions = AssignmentSubmission::with(['user', 'assignment'])
+            ->whereIn('assignment_id', $assignmentIds)
+            ->orderBy('submitted_at', 'desc')
+            ->take(5)
+            ->get();
+
+        $course = current_course();
+        $totalStudents = $course
+            ? $this->roster->enrolledStudents($course)->count()
+            : $this->enrolledStudents()->count();
+
+        $assignmentSummaries = (clone $assignmentsQuery)->get()->map(function (Assignment $assignment) use ($totalStudents) {
+            $submittedCount = $assignment->submissions()->count();
+            $gradedCount = $assignment->submissions()->whereNotNull('points_earned')->count();
+
+            return [
+                'assignment' => $assignment,
+                'submitted' => $submittedCount,
+                'not_submitted' => max($totalStudents - $submittedCount, 0),
+                'graded' => $gradedCount,
+            ];
+        });
+
+        return compact(
+            'totalAssignments',
+            'upcomingAssignments',
+            'completedAssignments',
+            'upcomingAssignmentsList',
+            'recentSubmissions',
+            'assignmentSummaries',
+            'totalStudents'
+        );
+    }
+
+    private function userCanManageAssignments(): bool
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->is_superadmin ?? false) {
+            return true;
+        }
+
+        $course = current_course();
+        if ($course && $this->permissions->canInCourse($user, 'assignment.manage', $course)) {
+            return true;
+        }
+
+        return $user->isInstructorOrAdmin();
+    }
+
+    private function userCanViewAssignmentsList(): bool
+    {
+        $user = Auth::user();
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->is_superadmin ?? false) {
+            return true;
+        }
+
+        $course = current_course();
+        if ($course && $this->permissions->canInCourse($user, 'assignment.view', $course)) {
+            return true;
+        }
+
+        return $user->isStudent() || $user->isInstructorOrAdmin();
     }
 
     private function assignmentsQuery(): Builder

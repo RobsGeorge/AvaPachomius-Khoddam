@@ -3,34 +3,12 @@
 @section('title', __('events.my_reservations'))
 
 @section('content')
-<div class="container py-4 animate-in student-data-hub">
-    <h1 class="page-title mb-4">{{ __('events.my_reservations') }}</h1>
+<div class="container py-4 animate-in">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1 class="page-title mb-0">{{ __('events.my_reservations') }}</h1>
+        <a href="{{ route('events.index') }}" class="btn btn-outline-theme btn-sm">{{ __('events.back') }}</a>
+    </div>
 
-    @forelse($reservations as $r)
-        <article class="data-card app-card card shadow-sm mb-3">
-            <div class="card-body">
-                <div class="data-card-title">{{ $r->event?->title }}</div>
-                <dl class="data-meta-list mb-0">
-                    <div class="data-meta-row">
-                        <dt>{{ __('events.status') }}</dt>
-                        <dd>{{ __('events.status_'.$r->status) }}</dd>
-                    </div>
-                    <div class="data-meta-row">
-                        <dt>{{ __('events.reserved_at') }}</dt>
-                        <dd>{{ $r->reserved_at?->timezone(config('attendance.timezone'))->format('Y-m-d H:i') }}</dd>
-                    </div>
-                </dl>
-                @if($r->isActive() && $r->event)
-                    <div class="data-card-actions">
-                        <a href="{{ route('events.show', $r->event_id) }}" class="btn btn-sm btn-outline-theme">{{ __('events.view') }}</a>
-                    </div>
-                @endif
-            </div>
-        </article>
-    @empty
-        <p class="text-muted-theme">{{ __('events.none_visible') }}</p>
-    @endforelse
-
-    {{ $reservations->links() }}
+    @include('events.partials.my-reservations')
 </div>
 @endsection

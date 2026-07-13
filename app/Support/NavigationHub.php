@@ -28,15 +28,9 @@ class NavigationHub
             $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage');
         }
 
-        if (self::canAnyCourse($user, $resolver, ['assignment.manage'])) {
-            $links[] = self::link('assignments.dashboard', 'dashboard.manage_assignments', 'bi-journal-text', [
-                'assignments.dashboard', 'assignments.create', 'assignments.edit', 'assignments.status',
-            ], 'assignment.manage');
-        }
-
         if (self::canAnyCourse($user, $resolver, ['assignment.view', 'assignment.manage'])) {
-            $links[] = self::link('assignments.index', 'dashboard.view_assignments', 'bi-journal-check', [
-                'assignments.index', 'assignments.show',
+            $links[] = self::link('assignments.index', 'dashboard.assignments', 'bi-journal-text', [
+                'assignments.*',
             ], 'assignment.view');
         }
 
@@ -100,15 +94,15 @@ class NavigationHub
             $links[] = self::link('live-quiz.index', 'dashboard.live_quiz', 'bi-lightning-charge', ['live-quiz.*'], 'live_quiz.play');
         }
 
-        if ($user->canInSystem('events.view') || self::canAnyCourse($user, $resolver, ['events.view'])) {
-            $links[] = self::link('events.index', 'nav.events', 'bi-calendar-event', ['events.index', 'events.show'], 'events.view');
-            $links[] = self::link('events.my-reservations', 'events.my_reservations', 'bi-ticket-perforated', ['events.my-reservations'], 'events.reserve');
-        }
-
-        if ($user->isEventAdmin()) {
-            $links[] = self::link('events.admin.index', 'nav.events_admin', 'bi-gear', [
-                'events.admin.*', 'events.check-in.verify',
-            ], 'events.admin');
+        if (
+            $user->canInSystem('events.view')
+            || $user->canInSystem('events.reserve')
+            || self::canAnyCourse($user, $resolver, ['events.view', 'events.reserve'])
+            || $user->isEventAdmin()
+        ) {
+            $links[] = self::link('events.index', 'dashboard.events', 'bi-calendar-event', [
+                'events.index', 'events.show', 'events.my-reservations', 'events.admin.*', 'events.check-in.verify',
+            ], 'events.view');
         }
 
         return $links;

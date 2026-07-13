@@ -48,7 +48,7 @@ class EventReservationFlowTest extends EventModuleTestCase
 
         $this->actingAs($user)
             ->post(route('events.cancel', $event->event_id))
-            ->assertRedirect(route('events.my-reservations'));
+            ->assertRedirect(route('events.index', ['section' => 'reservations']));
 
         $this->assertDatabaseHas('activity_logs', [
             'route_name' => 'events.action.reservation.cancel',

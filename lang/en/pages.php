@@ -47,6 +47,8 @@ return [
     'sessions'                    => 'Sessions',
     'create_sessions'             => 'Create sessions',
     'assignments'                 => 'Assignments',
+    'assignments_section_list'    => 'List',
+    'assignments_section_manage'  => 'Management',
     'exams'                       => 'Exams',
     'grades'                      => 'Grades',
     'grade_report'                => 'Grade report',
