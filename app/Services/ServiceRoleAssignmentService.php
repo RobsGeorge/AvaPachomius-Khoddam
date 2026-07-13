@@ -34,7 +34,7 @@ class ServiceRoleAssignmentService
 
         return Role::create([
             'role_name' => 'Service Member',
-            'role_decription' => 'Default service membership',
+            'role_decription' => 'Service membership',
             'slug' => 'service-member',
             'course_id' => null,
             'service_id' => $service->service_id,
