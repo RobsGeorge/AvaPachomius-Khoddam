@@ -99,7 +99,12 @@ abstract class EventModuleTestCase extends TestCase
         return $assigner->assign($user, $service, $role, $asPrimary, $allowCross);
     }
 
-    protected function assignCourseRole(User $user, Course $course, Role $role): void
+    /**
+     * Ensure the user is a member of the course's service, so the service-membership
+     * guard on course-role assignment (ServiceRoleAssignmentService) does not reject
+     * them. No-op when the service layer is not active or the course has no service.
+     */
+    protected function ensureServiceMembership(User $user, Course $course): void
     {
         if ($course->service_id && \App\Services\ServiceRoleAssignmentService::schemaReady()) {
             $service = \App\Models\ChurchService::find($course->service_id);
@@ -107,6 +112,11 @@ abstract class EventModuleTestCase extends TestCase
                 $this->assignServiceRole($user, $service, allowCross: true);
             }
         }
+    }
+
+    protected function assignCourseRole(User $user, Course $course, Role $role): void
+    {
+        $this->ensureServiceMembership($user, $course);
 
         UserCourseRole::updateOrCreate(
             ['user_id' => $user->user_id, 'course_id' => $course->course_id],

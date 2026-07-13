@@ -21,6 +21,8 @@ class NotificationDeliveryTest extends EventModuleTestCase
         $assignee = $this->createUser(['email' => 'notif-target@example.com']);
         $course = $this->createCourse(['title' => 'Notify Course']);
         $role = $this->courseRoleWithPermissions($course, 'manager', ['role.manage']);
+        // Service-membership guard: the assignee must belong to the course's service.
+        $this->ensureServiceMembership($assignee, $course);
 
         $this->actingAs($admin)
             ->post(route('courses.roles.assignments.store', $course), [
