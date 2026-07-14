@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use App\Database\CourseModulePivot;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +16,8 @@ use App\Models\GradeCategory;
 
 class Course extends Model
 {
+    use BelongsToChurch;
+
     public const STATUS_ACTIVE = 'active';
 
     public const STATUS_GRADING_LOCKED = 'grading_locked';

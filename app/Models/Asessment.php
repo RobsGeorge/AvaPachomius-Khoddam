@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\CourseAssessment;
 
 class Assessment extends Model
 {
+    use BelongsToChurch;
+
 
     protected $table = 'assessment';
 

@@ -14,6 +14,12 @@ return [
     |
     */
 
+    // Master switch. While false (production until the T7 cutover), ResolveTenant does
+    // not bind a church, so the BelongsToChurch global scope no-ops and the app behaves
+    // exactly as a single-institution system. Isolation is still fully exercised in tests
+    // by binding a church context explicitly (TenantContext::set()).
+    'enabled' => (bool) env('MULTI_TENANT', false),
+
     // Slug of the default church all pre-existing data belongs to (Tenant Zero).
     'main_slug' => env('TENANCY_MAIN_SLUG', 'main'),
 

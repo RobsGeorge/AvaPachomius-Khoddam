@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'not_a_church_member' => 'You are not a member of this church.',
     'login_title'       => 'Log in',
     'email'             => 'Email address',
     'password'          => 'Password',
