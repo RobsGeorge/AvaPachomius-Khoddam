@@ -16,11 +16,13 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 
 ## P1 — high value
 
-| # | Feature | Personas | Why |
+> **Delivered on `staging`:** **F-04** (M2), **F-06** (M3) — see the Why/status column.
+
+| # | Feature | Personas | Why / status |
 |---|---|---|---|
-| F-04 | **Applicant status timeline + inline correction guidance + help/FAQ** | Applicant | Applicants are left guessing between submit and approval; clearer status and guidance reduce drop-off and support load. |
+| F-04 | **Applicant status timeline + inline correction guidance + help/FAQ** | Applicant | ✅ **M2** — status-timeline partial, inline rejected-field guidance on `application.status`, and a localized `/help` FAQ. Tests `ApplicantExperienceTest`. |
 | F-05 | **Global search** (users, courses, services, content) | Admins, staff | Navigating by menus does not scale; admins need to jump to a person/course/service fast. |
-| F-06 | **Calendar + iCal/Google export** for sessions, exams, events | Student, Instructor | Attendance and exam windows are date-critical; export/subscribe prevents missed sessions. |
+| F-06 | **Calendar + iCal/Google export** for sessions, exams, events | Student, Instructor | ✅ **M3** — `CalendarService` renders an RFC 5545 `.ics` feed (`/calendar.ics`) of upcoming sessions/exams/events; linked from My learning. Tests `CalendarExportTest`. |
 | F-07 | **Print / offline** for certificates, grade reports, attendance reports | Student, Instructor | Church context often needs printable artifacts; PDF/print views. |
 | F-08 | **Admin bulk tooling**: user & enrollment import/export, gradebook export | Course/Service Admin | Onboarding a cohort by hand is slow and error-prone. |
 | F-09 | **Audit-log visibility & filters for admins** | SuperAdmin/Admin | Audit is written (rule 8) but hard to explore; add filters/search/export. |

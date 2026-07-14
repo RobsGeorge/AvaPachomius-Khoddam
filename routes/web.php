@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\MyLearningController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AssessmentController;
@@ -177,6 +179,12 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+
+    // F-04 — applicant help & FAQ
+    Route::get('/help', [HelpController::class, 'faq'])->name('help.faq');
+
+    // F-06 — personal iCalendar feed (sessions, exams, events)
+    Route::get('/calendar.ics', [CalendarController::class, 'download'])->name('calendar.ics');
 
     // F-02 — unified student "my learning"
     Route::get('/my-learning', [MyLearningController::class, 'index'])->name('my-learning.index');

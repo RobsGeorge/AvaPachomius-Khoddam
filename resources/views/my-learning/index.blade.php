@@ -4,8 +4,15 @@
 
 @section('content')
 <div class="container py-4 animate-in" style="max-width:920px;">
-    <h1 class="page-title mb-1">{{ __('my_learning.title') }}</h1>
-    <p class="text-muted-theme mb-4">{{ __('my_learning.subtitle') }}</p>
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-4">
+        <div>
+            <h1 class="page-title mb-1">{{ __('my_learning.title') }}</h1>
+            <p class="text-muted-theme mb-0">{{ __('my_learning.subtitle') }}</p>
+        </div>
+        <a href="{{ route('calendar.ics') }}" class="btn btn-outline-secondary btn-sm" title="{{ __('calendar.download_hint') }}">
+            <i class="bi bi-calendar-plus" aria-hidden="true"></i> {{ __('calendar.download') }}
+        </a>
+    </div>
 
     @if(empty($courseCards))
         <div class="app-card card shadow-sm">

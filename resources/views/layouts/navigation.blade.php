@@ -336,6 +336,7 @@
                         <ul class="dropdown-menu app-dropdown-panel dropdown-menu-end">
                             <li><a class="dropdown-item app-dropdown-link" href="{{ route('profile') }}">{{ __('nav.profile') }}</a></li>
                             <li><a class="dropdown-item app-dropdown-link {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.index') }}">{{ __('nav.account') }}</a></li>
+                            <li><a class="dropdown-item app-dropdown-link {{ request()->routeIs('help.*') ? 'active' : '' }}" href="{{ route('help.faq') }}">{{ __('nav.help') }}</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item app-dropdown-link" href="{{ route('logout') }}">{{ __('nav.logout') }}</a></li>
                         </ul>
@@ -447,6 +448,7 @@
                     <hr class="my-1 border-secondary-subtle">
                     <a href="{{ route('profile') }}" class="app-nav-link {{ request()->routeIs('profile') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.profile') }}</a>
                     <a href="{{ route('account.index') }}" class="app-nav-link {{ request()->routeIs('account.*') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.account') }}</a>
+                    <a href="{{ route('help.faq') }}" class="app-nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.help') }}</a>
                     <a href="{{ route('logout') }}" class="app-nav-link" @click="navOpen = false">{{ __('nav.logout') }}</a>
                 </div>
             </div>

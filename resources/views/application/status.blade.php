@@ -22,6 +22,8 @@
         @endif
     </div>
 
+    @include('application.partials.status-timeline', ['status' => $status])
+
 <div class="app-card card shadow-sm mb-4">
         <div class="card-body">
             <p class="mb-3">
@@ -36,11 +38,38 @@
                 </div>
             @endif
 
+            @if($status === RegistrationApplication::STATUS_NEEDS_CORRECTION && !empty($rejectedFields) && $rejectedFields->isNotEmpty())
+                <div class="alert alert-warning">
+                    <div class="fw-semibold mb-1">{{ __('registration_review.correction_guidance_heading') }}</div>
+                    <p class="small mb-2">{{ __('registration_review.correction_guidance_intro') }}</p>
+                    <ul class="mb-0 ps-3">
+                        @foreach($rejectedFields as $rejected)
+                            <li>
+                                <span class="fw-semibold">{{ __('registration_review.fields.'.$rejected['field_key']) }}</span>
+                                @if(filled($rejected['comment']))
+                                    — <span class="text-muted-theme">{{ $rejected['comment'] }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             @if($status === RegistrationApplication::STATUS_NEEDS_CORRECTION)
                 <a href="{{ route('application.edit') }}" class="btn btn-primary">
                     {{ __('registration_review.fix_application') }}
                 </a>
             @endif
+        </div>
+    </div>
+
+    <div class="app-card card shadow-sm mb-4">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <div class="fw-semibold"><i class="bi bi-question-circle" aria-hidden="true"></i> {{ __('registration_review.need_help_heading') }}</div>
+                <div class="text-muted-theme small">{{ __('registration_review.need_help_body') }}</div>
+            </div>
+            <a href="{{ route('help.faq') }}" class="btn btn-outline-secondary btn-sm">{{ __('registration_review.need_help_link') }}</a>
         </div>
     </div>
 

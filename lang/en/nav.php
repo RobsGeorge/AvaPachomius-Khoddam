@@ -12,6 +12,7 @@ return [
     'audit_reports'     => 'Audit reports',
     'profile'           => 'Profile',
     'account'           => 'Account center',
+    'help'              => 'Help & FAQ',
     'my_learning'       => 'My learning',
     'logout'            => 'Log out',
     'login'             => 'Log in',
