@@ -334,6 +334,9 @@
                             {{ auth()->user()->first_name }}
                         </button>
                         <ul class="dropdown-menu app-dropdown-panel dropdown-menu-end">
+                            @if(auth()->user()->isStudent())
+                                <li><a class="dropdown-item app-dropdown-link {{ request()->routeIs('my-learning.*') ? 'active' : '' }}" href="{{ route('my-learning.index') }}">{{ __('nav.my_learning') }}</a></li>
+                            @endif
                             <li><a class="dropdown-item app-dropdown-link" href="{{ route('profile') }}">{{ __('nav.profile') }}</a></li>
                             <li><a class="dropdown-item app-dropdown-link {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.index') }}">{{ __('nav.account') }}</a></li>
                             <li><a class="dropdown-item app-dropdown-link {{ request()->routeIs('help.*') ? 'active' : '' }}" href="{{ route('help.faq') }}">{{ __('nav.help') }}</a></li>
@@ -446,6 +449,9 @@
                     </a>
 
                     <hr class="my-1 border-secondary-subtle">
+                    @if(auth()->user()->isStudent())
+                        <a href="{{ route('my-learning.index') }}" class="app-nav-link {{ request()->routeIs('my-learning.*') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.my_learning') }}</a>
+                    @endif
                     <a href="{{ route('profile') }}" class="app-nav-link {{ request()->routeIs('profile') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.profile') }}</a>
                     <a href="{{ route('account.index') }}" class="app-nav-link {{ request()->routeIs('account.*') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.account') }}</a>
                     <a href="{{ route('help.faq') }}" class="app-nav-link {{ request()->routeIs('help.*') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.help') }}</a>
