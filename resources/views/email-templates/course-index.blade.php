@@ -32,7 +32,7 @@
                 <span><i class="bi bi-envelope-paper me-1"></i>{{ $family['label'] }}</span>
                 <span class="small text-muted-theme">{{ __('email_templates.placeholders') }}:
                     @foreach($family['placeholders'] as $ph)
-                        <code class="small">{{ '{'.'{'.$ph.'}'.'}' }}</code>@if(! $loop->last), @endif
+                        <code class="small">@php echo e('{{'.$ph.'}}'); @endphp</code>@if(! $loop->last), @endif
                     @endforeach
                 </span>
             </div>
@@ -48,11 +48,13 @@
                             $byLocale = $family['templates']->get($templateKey, collect());
                             $template = $byLocale->get($editLocale) ?? $byLocale->first();
                             $defaultLocale = $family['defaults'][$templateKey] ?? 'ar';
-                            $label = match($family['family']) {
-                                \App\Services\EmailTemplateCatalog::FAMILY_COURSE_APPLICATION => __('course_applications.email_subjects.'.$templateKey),
-                                \App\Services\EmailTemplateCatalog::FAMILY_COURSE_GRADUATION => __('course_graduation.email_subjects.'.$templateKey),
-                                default => $templateKey,
-                            };
+                            if ($family['family'] === \App\Services\EmailTemplateCatalog::FAMILY_COURSE_APPLICATION) {
+                                $label = __('course_applications.email_subjects.'.$templateKey);
+                            } elseif ($family['family'] === \App\Services\EmailTemplateCatalog::FAMILY_COURSE_GRADUATION) {
+                                $label = __('course_graduation.email_subjects.'.$templateKey);
+                            } else {
+                                $label = $templateKey;
+                            }
                         @endphp
                         @continue(! $template)
 
