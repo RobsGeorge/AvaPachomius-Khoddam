@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\User;
 use App\Services\AnnouncementService;
 use App\Services\CourseContextService;
+use App\Services\DashboardService;
 use App\Services\NotificationFeedService;
 use App\Services\StudentRosterService;
 use Illuminate\Support\Collection;
@@ -17,6 +18,7 @@ class DashboardController extends Controller
         AnnouncementService $announcementService,
         NotificationFeedService $notificationFeed,
         CourseContextService $courseContext,
+        DashboardService $dashboard,
     ) {
         $todayBirthdays = $this->todaysBirthdays($rosterService);
         $homepageAnnouncements = collect();
@@ -45,12 +47,15 @@ class DashboardController extends Controller
             && $courseContext->requiresCourseContext($user)
             && $courseContext->selectableCourses($user)->isEmpty();
 
+        $focusCards = $user instanceof User ? $dashboard->focusCards($user) : [];
+
         return view('dashboard', compact(
             'todayBirthdays',
             'homepageAnnouncements',
             'unreadNotificationCount',
             'completedCourses',
             'showNoCoursesCta',
+            'focusCards',
         ));
     }
 

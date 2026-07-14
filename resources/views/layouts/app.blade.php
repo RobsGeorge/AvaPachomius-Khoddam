@@ -22,6 +22,7 @@
     @endif
 
     <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260714b">
+    <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -44,6 +45,9 @@
           $el.style.top = '';
           if (navScrollY) window.scrollTo(0, navScrollY);
       }">
+    <a class="skip-link visually-hidden-focusable" href="#app-main">{{ __('a11y.skip_to_content') }}</a>
+    {{-- Polite live region: JS mirrors toast/flash messages here so screen readers announce them. --}}
+    <div id="khoddam-live-region" class="visually-hidden" aria-live="polite" role="status"></div>
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
@@ -54,7 +58,7 @@
         @include('layouts.impersonation-banner')
         @include('layouts.role-preview-banner')
 
-        <main class="app-main flex-grow-1">
+        <main id="app-main" tabindex="-1" class="app-main flex-grow-1">
             @include('layouts.partials.flash-toast')
             @yield('content')
         </main>

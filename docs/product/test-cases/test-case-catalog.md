@@ -15,10 +15,15 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-SMOKE-02 | all | Every route resolves to a real controller action; no dupes | smoke | ✅ `Smoke/RouteInventoryTest` | P0 |
 | TC-A11Y-01 | a11y | Every 200 page declares `<html lang>`, `dir`, non-empty `<title>` | a11y | ✅ `UseCases/Accessibility/RenderedPageA11yTest::test_every_page_declares_language_direction_and_title` | P1 |
 | TC-A11Y-02 | a11y | Every `<img>` on every page has an `alt` attribute | a11y | ✅ `RenderedPageA11yTest::test_all_images_declare_alt_text` | P1 |
-| TC-A11Y-03 | a11y | Keyboard-only operability, visible focus, skip-link, ARIA landmarks | a11y | 📋 manual (audit) | P1 |
+| TC-A11Y-03a | a11y (A11Y-01) | Every page exposes a skip-to-content link targeting `#app-main` | a11y | ✅ `RenderedPageA11yTest::test_pages_expose_a_skip_to_content_link` | P1 |
+| TC-A11Y-03b | a11y (A11Y-03) | Layout exposes a polite `aria-live` region (JS mirrors toasts into it) | a11y | ✅ `RenderedPageA11yTest::test_pages_expose_a_polite_live_region` | P1 |
+| TC-A11Y-03c | a11y (A11Y-02) | Theme CSS honors `prefers-reduced-motion` | a11y | ✅ `RenderedPageA11yTest::test_theme_css_honors_reduced_motion` | P1 |
+| TC-A11Y-03 | a11y | Keyboard-only operability, visible focus, full ARIA landmarks (browser) | a11y | 📋 manual (audit) | P1 |
 | TC-A11Y-04 | a11y | Color contrast ≥ AA for theme palettes (light/dark) | a11y | 📋 manual (audit) | P1 |
 | TC-A11Y-05 | a11y | SR announcements for toasts/live-quiz timers; `prefers-reduced-motion` honored | a11y | 📋 manual (audit) | P2 |
 | TC-I18N-01 | UC-AUTH-12 | Every `lang/en/*` file has an `lang/ar/*` counterpart | feature | ✅ `Tenancy/TenantIsolationTest::test_language_files_have_locale_parity` | P1 |
+| TC-I18N-02 | UC-AUTH-12 (F-13) | No *new* untranslated key ships (baseline-gated key-level ar/en parity) | feature | ✅ `Localization/LocaleKeyParityTest` | P1 |
+| TC-SEC-01 | F-16 | CORS scoped to `api/*`; origins env-driven (no hardcoded localhost default) | manual | 📋 config review (`config/cors.php`) | P2 |
 
 ## Positive persona journeys
 
@@ -41,7 +46,8 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-CRS-01..09 | UC-CRS-* | apply/review/approve/build-form/context | ✅ `CourseApplicationReviewTest`, `CourseContextTest`; form-builder edge cases 🔲 | P1 |
 | TC-CUR-01..03 / TC-ATT-01..05 | UC-CUR/ATT-* | curriculum lifecycle, attendance record/edit/close, late policy | partial ✅ `AttendanceRosterTest`; late-policy + close/reopen 🔲 | P1 |
 | TC-ASG-01..06 | UC-ASG-* | submit (PDF/deadline), grade, manage | partial ✅ `AssignmentCourseContextTest`; submit/grade 🔲 | P1 |
-| TC-EXAM-01..08 | UC-EXAM-* | build/schedule/attempt/timer/auto+essay grade/publish/proctor | 🔲 planned (no exam tests yet) | **P1 (highest gap)** |
+| TC-EXAM-04..06 | UC-EXAM-04/05/06 | objective auto-grade, manual essay finalization, idempotent submit | ✅ `UseCases/Exams/ExamGradingTest` | P1 |
+| TC-EXAM-01..03,07,08 | UC-EXAM-* | build/schedule/attempt window/timer auto-submit/proctor/publish-visibility | 🔲 planned (HTTP flow) | P1 |
 | TC-GRD-01..07 | UC-GRD/CERT-* | weighted grades, publish visibility, graduation, certificate download | partial ✅ `CourseGraduationClosingTest`; grade calc + cert download 🔲 | P1 |
 | TC-EVT-01..07 | UC-EVT-* | eligibility/reserve/waitlist/checkin/admin | ✅ `Events/*`, `Unit/Events/*`, `Load/Events/*` | P1 |
 | TC-LQ-01..04 | UC-LQ-* | build/host/join/score/end | partial ✅ `LiveQuizHostEndTest`; join/play 🔲 | P2 |
@@ -50,7 +56,15 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-RBAC-01..08 | UC-RBAC-* | hub sections, assign/revoke+notify, templates, resolver, preview | ✅ `RolesHubTest`, `DynamicRoleManagementTest`, `RoleAssignmentNotificationTest`, `RolePreviewTest` | P0/P1 |
 | TC-SVC-01..07 | UC-SVC-* | context/roster, membership, cross-add, roles, approval auto-enroll | ✅ `ServiceLayerTest`, `CourseApplicationReviewTest` | P1 |
 | TC-SA-01..09 | UC-SA-* | console, audit, impersonate, force-logout, translations, photo review, test report | partial ✅ `SuperAdminEventTestsDashboardTest`, `ProfilePhotoAdminTest`, `ImpersonationTest`; audit-on-destroy 🔲 | P1 |
-| TC-ACC-01..06 | UC-ACC-* | onboarding, profile/photo gate, password, theme/locale/font, preferences | partial ✅ `StudentOnboardingTest`, `ProfilePhotoAdminTest`; password change + account center 🔲 | P1 |
+| TC-ACC-01..02,04..06 | UC-ACC-* | onboarding, profile/photo gate, theme/locale/font, preferences | partial ✅ `StudentOnboardingTest`, `ProfilePhotoAdminTest` | P1 |
+| TC-ACC-03 | UC-ACC-03 (F-03) | Self-service password change: correct current pw → updated; wrong current pw / weak pw → rejected, unchanged | feature | ✅ `UseCases/Account/AccountCenterTest` | P1 |
+| TC-ACC-07 | UC-ACC-* (F-03) | Account center hub renders (profile, security, notifications, appearance, data export); guest blocked; data export returns own JSON | feature | ✅ `UseCases/Account/AccountCenterTest` | P1 |
+| TC-DASH-01..03 | UC-CRS-08 (F-01) | Per-persona dashboard focus panel: student sees upcoming exams, reviewer sees application queue, empty user sees no panel | feature | ✅ `UseCases/Dashboard/DashboardFocusTest` | P1 |
+| TC-ML-01..03 | UC-GRD/CERT-* (F-02) | "My learning" aggregates per-course grades/attendance/certificate; empty state when unenrolled | feature | ✅ `UseCases/Learning/MyLearningTest` | P1 |
+| TC-APP-01..04 | UC-AUTH-08 (F-04) | Applicant status timeline; inline correction guidance lists rejected fields+notes; localized help/FAQ; help requires auth | feature | ✅ `UseCases/Applicant/ApplicantExperienceTest` | P1 |
+| TC-CAL-01..04 | UC-CUR/EXAM/EVT (F-06) | Personal iCalendar feed aggregates upcoming sessions/exams/events + course-scoped birthdays (yearly, students+staff, not self/outsiders); `.ics` attachment; requires auth | feature | ✅ `UseCases/Calendar/CalendarExportTest` | P1 |
+| TC-AUDIT-01..03 | UC-SA-02 (F-09) | Superadmin exports filtered activity log as CSV; date-range scopes the export; non-superadmin forbidden | feature | ✅ `UseCases/Admin/AuditVisibilityTest` | P1 |
+| TC-PRINT-01 | UC-GRD/CERT-* (F-07) | Pages ship a print stylesheet + print affordance (final grades / My learning) | feature | ✅ `UseCases/Admin/AuditVisibilityTest::test_final_grades_page_offers_a_print_button` | P2 |
 
 ## How to extend
 Add a UC to the relevant `use-cases/*.md`, then a TC row here. Automate P0/P1 cases under

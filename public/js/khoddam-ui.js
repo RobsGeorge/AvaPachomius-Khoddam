@@ -79,10 +79,26 @@
         };
     }
 
+    function announce(message) {
+        // Mirror transient messages into the polite live region (A11Y-03) so screen
+        // readers announce them even though the visible toast is a SweetAlert popup.
+        const region = document.getElementById('khoddam-live-region');
+        if (!region || !message) {
+            return;
+        }
+        region.textContent = '';
+        // Re-set on the next frame so identical consecutive messages still announce.
+        window.requestAnimationFrame(() => {
+            region.textContent = String(message);
+        });
+    }
+
     function showToast(message, type = 'success') {
         if (!message || typeof Swal === 'undefined') {
             return;
         }
+
+        announce(message);
 
         const Toast = Swal.mixin({
             ...baseToastOptions(),

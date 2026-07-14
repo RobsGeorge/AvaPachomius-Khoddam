@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RegistrationApplication;
+use App\Models\RegistrationApplicationFieldReview;
 use App\Models\User;
 use App\Services\RegistrationApplicationService;
 use App\Services\RegistrationReviewService;
@@ -25,10 +26,21 @@ class ApplicationStatusController extends Controller
         }
 
         $application = $this->applications->latestForUser($user);
+        $application?->load('fieldReviews');
+
+        $rejectedFields = $application
+            ? $application->fieldReviews
+                ->where('status', RegistrationApplicationFieldReview::STATUS_REJECTED)
+                ->map(fn ($review) => [
+                    'field_key' => $review->field_key,
+                    'comment' => $review->comment,
+                ])->values()
+            : collect();
 
         return view('application.status', [
             'user' => $user,
             'application' => $application,
+            'rejectedFields' => $rejectedFields,
         ]);
     }
 
