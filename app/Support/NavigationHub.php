@@ -69,6 +69,19 @@ class NavigationHub
             $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*'], 'graduation.view');
         }
 
+        if (self::canAnyCourse($user, $resolver, ['email_templates.manage', 'certificate.manage'])) {
+            $course = current_course();
+            if ($course) {
+                $links[] = [
+                    'url' => route('courses.email-templates.index', $course),
+                    'label' => __('email_templates.nav'),
+                    'icon' => 'bi-envelope-paper',
+                    'active' => request()->routeIs('courses.email-templates.*'),
+                    'permission' => 'email_templates.manage',
+                ];
+            }
+        }
+
         if (self::canAnyCourse($user, $resolver, ['course.view']) && ! self::canAnyCourse($user, $resolver, ['curriculum.manage'])) {
             $links[] = self::link('available-courses.index', 'course_applications.available_courses_title', 'bi-mortarboard', [
                 'available-courses.index', 'courses.apply', 'courses.apply.store',

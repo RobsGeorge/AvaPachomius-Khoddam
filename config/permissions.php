@@ -294,6 +294,13 @@ return [
                 'type' => 'endpoint',
                 'routes' => ['courses.certificate-template.*'],
             ],
+            'email_templates.manage' => [
+                'label_en' => 'Manage course email templates',
+                'label_ar' => 'إدارة قوالب بريد الدورة',
+                'type' => 'both',
+                'routes' => ['courses.email-templates.*'],
+                'nav' => ['academic.email_templates'],
+            ],
             'certificate.download' => [
                 'label_en' => 'Download certificates',
                 'label_ar' => 'تحميل الشهادات',

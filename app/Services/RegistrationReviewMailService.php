@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Mail;
 
 class RegistrationReviewMailService
 {
+    public function __construct(
+        private EmailLocaleResolver $localeResolver,
+    ) {}
+
     public function ensureDefaults(): void
     {
         foreach (['en', 'ar'] as $locale) {
@@ -36,7 +40,11 @@ class RegistrationReviewMailService
 
         $this->ensureDefaults();
 
-        $locale = app()->getLocale();
+        $locale = $this->localeResolver->forRecipient(
+            $user,
+            EmailTemplateCatalog::FAMILY_REGISTRATION_REVIEW,
+            $templateKey
+        );
         $template = RegistrationReviewTemplate::query()
             ->where('template_key', $templateKey)
             ->where('locale', $locale)

@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Mail;
 
 class RoleAssignmentMailService
 {
+    public function __construct(
+        private EmailLocaleResolver $localeResolver,
+    ) {}
+
     public function ensureDefaults(): void
     {
         foreach (['en', 'ar'] as $locale) {
@@ -34,7 +38,11 @@ class RoleAssignmentMailService
 
         $this->ensureDefaults();
 
-        $locale = app()->getLocale();
+        $locale = $this->localeResolver->forRecipient(
+            $user,
+            EmailTemplateCatalog::FAMILY_ROLE_ASSIGNMENT,
+            $templateKey
+        );
         $template = RoleAssignmentEmailTemplate::query()
             ->where('template_key', $templateKey)
             ->where('locale', $locale)

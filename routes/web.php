@@ -71,6 +71,7 @@ use App\Http\Controllers\Admin\CourseApplicationFormController;
 use App\Http\Controllers\Admin\ServiceApplicationController as AdminServiceApplicationController;
 use App\Http\Controllers\Admin\ServiceManagementController;
 use App\Http\Controllers\Admin\CourseCertificateTemplateController;
+use App\Http\Controllers\CourseEmailTemplateController;
 use App\Http\Controllers\Admin\CourseClosingController;
 use App\Http\Controllers\ApplicationStatusController;
 use App\Http\Controllers\CourseApplicationController as StudentCourseApplicationController;
@@ -420,6 +421,9 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::post('/courses/{course}/closing/close', [CourseClosingController::class, 'close'])->name('courses.closing.close');
     Route::get('/courses/{course}/certificate-template', [CourseCertificateTemplateController::class, 'edit'])->name('courses.certificate-template.edit');
     Route::put('/courses/{course}/certificate-template', [CourseCertificateTemplateController::class, 'update'])->name('courses.certificate-template.update');
+    Route::get('/courses/{course}/email-templates', [CourseEmailTemplateController::class, 'index'])->name('courses.email-templates.index');
+    Route::put('/courses/{course}/email-templates', [CourseEmailTemplateController::class, 'update'])->name('courses.email-templates.update');
+    Route::post('/courses/{course}/email-templates/preview', [CourseEmailTemplateController::class, 'preview'])->name('courses.email-templates.preview');
 
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');

@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Mail;
 
 class CourseApplicationMailService
 {
+    public function __construct(
+        private EmailLocaleResolver $localeResolver,
+    ) {}
+
     public function ensureDefaults(?int $courseId = null): void
     {
         foreach (['en', 'ar'] as $locale) {
@@ -42,7 +46,12 @@ class CourseApplicationMailService
         $this->ensureDefaults($application->course_id);
         $this->ensureDefaults(null);
 
-        $locale = app()->getLocale();
+        $locale = $this->localeResolver->forRecipient(
+            $user,
+            EmailTemplateCatalog::FAMILY_COURSE_APPLICATION,
+            $templateKey,
+            $application->course_id
+        );
         $template = CourseApplicationReviewTemplate::query()
             ->where('template_key', $templateKey)
             ->where('locale', $locale)
