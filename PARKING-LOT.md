@@ -8,10 +8,16 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - ext-curl and ext-gd were missing from PHP 8.2 despite being required in composer.json
   (simple-qrcode needs gd; reverb/pusher needs curl). Installed. Implies those features
   were never exercised in production — verify.
-- Production sends `Access-Control-Allow-Origin: http://localhost:3000` — dev leftover
-  in config/cors.php. Should be env-driven and locked down in production.
+- CORS is env-driven via `CORS_ALLOWED_ORIGINS` (see config/cors.php). Keep production
+  origins locked down; Expo localhost patterns remain for local mobile dev only.
 - GitHub Actions deploy pipeline is unreliable (SSH i/o timeouts). Manual deploy.sh is
   the current path. Revisit CI/CD deployment after P0.
+
+## Mobile (React Native)
+- Student-first Expo app lives in sibling repo `AvaPachomius-Khoddam-Mobile`.
+- Backend slice: Sanctum token auth + `/api/v1` read APIs — see `docs/mobile/mvp.md`.
+- Design tokens: `resources/design-tokens/khoddam.tokens.json` (sync to mobile theme).
+- Deferred: push device tokens, write APIs, staff app, store release pipeline.
 
 ## Product ideas (see master-plan §12 parking lot for the full list)
 - The `user` table has many NOT NULL columns with no defaults (profile_photo, 
