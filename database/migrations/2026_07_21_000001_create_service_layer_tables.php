@@ -91,7 +91,7 @@ return new class extends Migration
         if (! $defaultId) {
             $defaultId = DB::table('service')->insertGetId([
                 'title' => 'Default Service',
-                'title_ar' => 'الخدمة الافتراضية',
+                'title_ar' => 'الخدمة الاساسية',
                 'title_en' => 'Default Service',
                 'description' => 'Backfilled parent for existing courses.',
                 'status' => 'active',

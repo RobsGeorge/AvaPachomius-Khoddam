@@ -57,6 +57,14 @@ class ChurchService extends Model
     public function localizedTitle(?string $locale = null): string
     {
         $locale = $locale ?: app()->getLocale();
+
+        if ($this->usesTranslatableDefaultName()) {
+            $translated = trans('service.default_name', [], $locale);
+            if (is_string($translated) && $translated !== '' && $translated !== 'service.default_name') {
+                return $translated;
+            }
+        }
+
         if ($locale === 'ar' && filled($this->title_ar)) {
             return $this->title_ar;
         }
@@ -65,6 +73,19 @@ class ChurchService extends Model
         }
 
         return $this->title;
+    }
+
+    /**
+     * Seeded Default Service should resolve its label from lang files so
+     * Translation Management (group: service, key: default_name) controls display.
+     */
+    public function usesTranslatableDefaultName(): bool
+    {
+        if ($this->title === 'Default Service' || $this->title_en === 'Default Service') {
+            return true;
+        }
+
+        return in_array($this->title_ar, ['الخدمة الافتراضية', 'الخدمة الاساسية'], true);
     }
 
     public function bumpPermissionsVersion(): void
@@ -95,10 +116,10 @@ class ChurchService extends Model
         }
 
         return self::create([
-            'title' => 'Default Service',
-            'title_ar' => 'الخدمة الافتراضية',
-            'title_en' => 'Default Service',
-            'description' => 'Default parent service for courses.',
+            'title' => trans('service.default_name', [], 'en'),
+            'title_ar' => trans('service.default_name', [], 'ar'),
+            'title_en' => trans('service.default_name', [], 'en'),
+            'description' => trans('service.default_description', [], 'en'),
             'status' => self::STATUS_ACTIVE,
             'permissions_version' => 0,
         ]);

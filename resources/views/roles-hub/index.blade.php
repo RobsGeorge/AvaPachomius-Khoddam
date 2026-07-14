@@ -26,7 +26,7 @@
                     </form>
                 @elseif($service ?? null)
                     <span class="badge bg-primary-subtle text-primary-emphasis border">
-                        <i class="bi bi-building me-1"></i>{{ $service->localizedTitle() }}
+                        <i class="fas fa-church me-1"></i>{{ $service->localizedTitle() }}
                     </span>
                 @endif
             @endif

@@ -374,7 +374,7 @@ final class LegacySchemaSync
         if (! $defaultId) {
             $defaultId = DB::table('service')->insertGetId([
                 'title' => 'Default Service',
-                'title_ar' => 'الخدمة الافتراضية',
+                'title_ar' => 'الخدمة الاساسية',
                 'title_en' => 'Default Service',
                 'status' => 'active',
                 'permissions_version' => 0,

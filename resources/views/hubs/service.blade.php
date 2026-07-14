@@ -10,7 +10,7 @@
     @if(!empty($currentService))
         <p class="mb-4">
             <span class="badge bg-primary-subtle text-primary-emphasis border">
-                <i class="bi bi-building me-1"></i>{{ $currentService->localizedTitle() }}
+                <i class="fas fa-church me-1"></i>{{ $currentService->localizedTitle() }}
             </span>
             <span class="text-muted-theme small ms-2">{{ __('service.no_academic_hint') }}</span>
         </p>
@@ -39,7 +39,7 @@
                     <div class="col-sm-6">
                         <a href="{{ $link['url'] }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none {{ !empty($link['active']) ? 'hub-tile-active' : '' }}">
                             <h3 class="h5 mb-0">
-                                <i class="bi {{ $link['icon'] }}"></i>
+                                @include('partials.icon', ['icon' => $link['icon']])
                                 {{ $link['label'] }}
                             </h3>
                         </a>

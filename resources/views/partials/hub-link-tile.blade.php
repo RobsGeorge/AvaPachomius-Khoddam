@@ -4,7 +4,7 @@
             @if(!empty($link['superadmin_only']))
                 @include('partials.superadmin-entry-tag', ['class' => 'me-1'])
             @endif
-            <i class="bi {{ $link['icon'] }}"></i>
+            @include('partials.icon', ['icon' => $link['icon']])
             {{ $link['label'] }}
         </h3>
         @if(!empty($link['description']))

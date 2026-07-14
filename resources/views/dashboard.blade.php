@@ -107,7 +107,7 @@
         @if($hasService)
             <div class="col-md-6">
                 <a href="{{ route('hubs.service') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
-                    <h3><i class="bi bi-building"></i> {{ __('dashboard.service_hub') }}</h3>
+                    <h3><i class="fas fa-church"></i> {{ __('dashboard.service_hub') }}</h3>
                     <p class="text-muted-theme mb-0">{{ __('dashboard.service_hub_desc') }}</p>
                 </a>
             </div>
