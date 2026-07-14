@@ -16,6 +16,20 @@ class HubController extends Controller
         return view('hubs.academic', compact('links', 'unreadNotificationCount'));
     }
 
+    public function service()
+    {
+        $user = auth()->user();
+
+        if (! NavigationHub::hasService($user)) {
+            abort(403);
+        }
+
+        $links = NavigationHub::serviceLinks($user);
+        $currentService = current_service();
+
+        return view('hubs.service', compact('links', 'currentService'));
+    }
+
     public function system()
     {
         $user = auth()->user();

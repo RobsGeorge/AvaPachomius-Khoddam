@@ -7,7 +7,9 @@ use App\Services\CourseContextService;
 use App\Services\NotificationFeedService;
 use App\Services\ProfilePhotoGateService;
 use App\Services\RegistrationApplicationService;
+use App\Services\ServiceContextService;
 use App\Services\StudentOnboardingService;
+use App\Models\ChurchService;
 use App\Models\RegistrationApplication;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
@@ -22,6 +24,7 @@ class AppLayoutComposer
         private RegistrationApplicationService $applications,
         private NotificationFeedService $notifications,
         private CourseContextService $courseContext,
+        private ServiceContextService $serviceContext,
     ) {}
 
     public function compose(View $view): void
@@ -85,5 +88,26 @@ class AppLayoutComposer
             : collect());
         $view->with('instituteName', __('app.institute_name'));
         $view->with('courseBrandingCss', $this->courseContext->brandingCss($currentCourse));
+
+        $serviceReady = ChurchService::tableReady();
+        $currentService = $serviceReady ? (current_service() ?? $this->serviceContext->currentService($user)) : null;
+        $requiresServiceContext = $serviceReady && $this->serviceContext->requiresServiceContext($user);
+        $supportsServiceSwitcher = $serviceReady && (
+            $requiresServiceContext
+            || $this->serviceContext->supportsOptionalServiceContext($user)
+        );
+        $selectableServices = $supportsServiceSwitcher
+            ? $this->serviceContext->selectableServices($user)
+            : collect();
+
+        // Superadmins may want the switcher even with zero services; members only when selectable.
+        if ($supportsServiceSwitcher && ! ($user->is_superadmin ?? false) && $selectableServices->isEmpty()) {
+            $supportsServiceSwitcher = false;
+        }
+
+        $view->with('currentService', $currentService);
+        $view->with('requiresServiceContext', $requiresServiceContext);
+        $view->with('supportsServiceSwitcher', $supportsServiceSwitcher);
+        $view->with('selectableServices', $selectableServices);
     }
 }

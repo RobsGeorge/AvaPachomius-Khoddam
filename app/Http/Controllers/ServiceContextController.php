@@ -38,16 +38,19 @@ class ServiceContextController extends Controller
             'intended' => 'nullable|string',
         ]);
 
-        $this->serviceContext->setCurrentService($user, (int) $validated['service_id']);
+        $courseCleared = $this->serviceContext->setCurrentService($user, (int) $validated['service_id']);
+        $message = $courseCleared
+            ? __('service.context_selected_course_cleared')
+            : __('service.context_selected');
 
         $intended = $validated['intended'] ?? null;
         if ($intended && $this->isSafeLocalRedirect($intended)) {
-            return redirect($intended)->with('success', __('service.context_selected'));
+            return redirect($intended)->with('success', $message);
         }
 
         return redirect()
-            ->route('dashboard')
-            ->with('success', __('service.context_selected'));
+            ->route('hubs.service')
+            ->with('success', $message);
     }
 
     public function clear(Request $request)

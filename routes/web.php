@@ -180,6 +180,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show')->whereNumber('announcement');
     Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])->name('announcements.dismiss-banner')->whereNumber('announcement');
     Route::get('/academic', [HubController::class, 'academic'])->name('hubs.academic');
+    Route::get('/service', [HubController::class, 'service'])->name('hubs.service');
     Route::get('/system-settings', [HubController::class, 'system'])->name('hubs.system');
     Route::get('/course-applications', fn () => redirect()->route('available-courses.index'))->name('course-applications.index');
     Route::get('/available-courses', [StudentCourseApplicationController::class, 'index'])->name('available-courses.index');

@@ -430,14 +430,14 @@ return [
                 'label_en' => 'View service',
                 'label_ar' => 'عرض الخدمة',
                 'type' => 'both',
-                'routes' => ['roles.hub', 'services.show'],
-                'nav' => ['system.services'],
+                'routes' => ['hubs.service', 'roles.hub', 'services.select', 'services.roster'],
+                'nav' => ['service.hub'],
             ],
             'service.manage' => [
                 'label_en' => 'Manage service settings',
                 'label_ar' => 'إدارة إعدادات الخدمة',
                 'type' => 'both',
-                'routes' => ['services.*', 'roles.hub'],
+                'routes' => ['services.*', 'roles.hub', 'hubs.service'],
             ],
             'service.member.add' => [
                 'label_en' => 'Add members to service',
@@ -473,8 +473,8 @@ return [
                 'label_en' => 'Review service applications',
                 'label_ar' => 'مراجعة طلبات الانضمام للخدمة',
                 'type' => 'both',
-                'routes' => ['admin.service-applications.*'],
-                'nav' => ['system.service_applications'],
+                'routes' => ['admin.service-applications.*', 'hubs.service'],
+                'nav' => ['service.applications'],
             ],
             'service_application.form_builder' => [
                 'label_en' => 'Manage service application forms',
