@@ -10,10 +10,10 @@ use Tests\TestCase;
  * ensures every en file has an ar counterpart; this extends it to the key level so
  * no *new* string ships untranslated.
  *
- * A codebase-wide sweep would fail on pre-existing debt (currently a feedback/survey
- * section in pages.php), so the known gaps are captured in
- * `locale-parity-baseline.txt`. This test fails only on keys added without a
- * translation — i.e. it blocks NEW drift while the baseline is burned down over time.
+ * The known gaps are captured in `locale-parity-baseline.txt` (now empty — the
+ * original feedback/survey debt in pages.php has been fully translated). This test
+ * fails on any key added without a translation; the companion test flags stale
+ * baseline entries so the file stays at zero.
  */
 class LocaleKeyParityTest extends TestCase
 {
