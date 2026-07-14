@@ -2,11 +2,15 @@
 
 namespace App\Support;
 
+use App\Models\ChurchService;
 use App\Models\Course;
+use App\Models\ServiceApplication;
 use App\Models\User;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
+use App\Services\ServiceContextService;
+use App\Services\StudentRosterService;
 
 class NavigationHub
 {
@@ -103,6 +107,92 @@ class NavigationHub
             $links[] = self::link('events.index', 'dashboard.events', 'bi-calendar-event', [
                 'events.index', 'events.show', 'events.my-reservations', 'events.admin.*', 'events.check-in.verify',
             ], 'events.view');
+        }
+
+        return $links;
+    }
+
+    public static function serviceLinks(?User $user): array
+    {
+        if (! $user instanceof User || ! ChurchService::tableReady()) {
+            return [];
+        }
+
+        $links = [];
+        $serviceContext = app(ServiceContextService::class);
+        $rolesHub = app(RolesHubService::class);
+        $roster = app(StudentRosterService::class);
+        $current = $serviceContext->currentService($user) ?? current_service();
+        $selectable = $serviceContext->selectableServices($user);
+        $accessibleRoster = $roster->accessibleServices($user);
+        $manageable = $rolesHub->manageableServices($user);
+
+        if ($selectable->isNotEmpty() || ($user->is_superadmin ?? false)) {
+            $links[] = self::link('services.select', 'service.select_title', 'bi-building', [
+                'services.select', 'services.select.*',
+            ], 'service.view');
+        }
+
+        if ($accessibleRoster->isNotEmpty()) {
+            $params = $current ? ['service' => $current->service_id] : [];
+            $links[] = [
+                'url' => route('services.roster', $params),
+                'label' => __('service.roster_title'),
+                'icon' => 'bi-people',
+                'active' => request()->routeIs('services.roster'),
+                'permission' => 'service.view',
+            ];
+        }
+
+        if ($manageable->isNotEmpty()) {
+            $serviceForHub = $current && $manageable->contains('service_id', $current->service_id)
+                ? $current
+                : $manageable->first();
+            $links[] = [
+                'url' => $rolesHub->hubUrl(null, 'service', $serviceForHub),
+                'label' => __('rbac.section_service'),
+                'icon' => 'bi-shield-check',
+                'active' => request()->routeIs('roles.hub') && request()->query('section') === 'service',
+                'permission' => 'service.role.manage',
+            ];
+        }
+
+        if ($user->canInSystem('service_application.review')) {
+            $links[] = self::link(
+                'admin.service-applications.index',
+                'service.applications_admin_title',
+                'bi-clipboard-check',
+                ['admin.service-applications.*'],
+                'service_application.review'
+            );
+        }
+
+        if ($current instanceof ChurchService) {
+            $pending = ServiceApplication::query()
+                ->where('user_id', $user->user_id)
+                ->where('service_id', $current->service_id)
+                ->where('status', ServiceApplication::STATUS_PENDING)
+                ->exists();
+
+            $belongs = $selectable->contains('service_id', $current->service_id);
+
+            if ($pending) {
+                $links[] = [
+                    'url' => route('services.application.status', $current),
+                    'label' => __('service.application_status_title'),
+                    'icon' => 'bi-hourglass-split',
+                    'active' => request()->routeIs('services.application.status'),
+                    'permission' => 'service.view',
+                ];
+            } elseif (! $belongs && ! ($user->is_superadmin ?? false)) {
+                $links[] = [
+                    'url' => route('services.apply', $current),
+                    'label' => __('service.apply_title'),
+                    'icon' => 'bi-person-plus',
+                    'active' => request()->routeIs('services.apply', 'services.apply.store'),
+                    'permission' => 'service_application.form_builder',
+                ];
+            }
         }
 
         return $links;
@@ -236,6 +326,7 @@ class NavigationHub
         }
 
         $sharedLinks[] = self::hubLink('hubs.academic', 'nav.academic', 'nav.academic_desc', 'bi-mortarboard', ['hubs.academic'], false);
+        $sharedLinks[] = self::hubLink('hubs.service', 'nav.service', 'nav.service_desc', 'bi-building', ['hubs.service', 'services.select', 'services.roster'], false);
         $sharedLinks[] = self::hubLink('hubs.system', 'nav.system_settings', 'nav.system_settings_desc', 'bi-gear', ['hubs.system'], false);
         $sharedLinks[] = self::hubLink('courses.select', 'course_context.switch_course', 'pages.superadmin_course_picker_desc', 'bi-grid', ['courses.select'], false);
 
@@ -288,6 +379,32 @@ class NavigationHub
         }
 
         return count(self::systemLinks($user)) > 0;
+    }
+
+    public static function hasService(?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return count(self::serviceLinks($user)) > 0;
+    }
+
+    public static function isServiceActive(?User $user): bool
+    {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*')) {
+            return true;
+        }
+
+        if (request()->routeIs('roles.hub') && request()->query('section') === 'service') {
+            return true;
+        }
+
+        return self::anyActive(self::serviceLinks($user));
     }
 
     public static function isAcademicActive(?User $user): bool

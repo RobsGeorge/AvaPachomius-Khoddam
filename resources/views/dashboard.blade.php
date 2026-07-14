@@ -5,6 +5,7 @@
 @section('content')
 @php
     use App\Support\NavigationHub;
+    $hasService = NavigationHub::hasService(Auth::user());
     $hasSystem = NavigationHub::hasSystem(Auth::user());
     $hasSuperadmin = NavigationHub::hasSuperadmin(Auth::user());
 @endphp
@@ -102,6 +103,15 @@
                 <p class="text-muted-theme mb-0">{{ __('dashboard.academic_hub_desc') }}</p>
             </a>
         </div>
+
+        @if($hasService)
+            <div class="col-md-6">
+                <a href="{{ route('hubs.service') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
+                    <h3><i class="bi bi-building"></i> {{ __('dashboard.service_hub') }}</h3>
+                    <p class="text-muted-theme mb-0">{{ __('dashboard.service_hub_desc') }}</p>
+                </a>
+            </div>
+        @endif
 
         @if(Auth::user()->isStudent() || Auth::user()->isInstructorOrAdmin() || (Auth::user()->is_superadmin ?? false))
             <div class="col-md-6">

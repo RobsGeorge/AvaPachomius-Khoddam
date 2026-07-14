@@ -54,7 +54,7 @@ class ServiceContextService
         return $service;
     }
 
-    public function setCurrentService(User $user, ChurchService|int $service): void
+    public function setCurrentService(User $user, ChurchService|int $service): bool
     {
         $model = $service instanceof ChurchService
             ? $service
@@ -67,6 +67,31 @@ class ServiceContextService
         }
 
         SessionStore::put(self::SESSION_KEY, $model->service_id);
+
+        return $this->clearIncompatibleCourse($user, $model);
+    }
+
+    /**
+     * When the active course belongs to a different service, drop course context
+     * so academic tools do not stay scoped to the wrong department.
+     */
+    public function clearIncompatibleCourse(User $user, ?ChurchService $service = null): bool
+    {
+        $service ??= $this->currentService($user);
+        $courseContext = app(CourseContextService::class);
+        $course = $courseContext->currentCourse($user);
+
+        if (! $service || ! $course) {
+            return false;
+        }
+
+        if ((int) ($course->service_id ?? 0) === (int) $service->service_id) {
+            return false;
+        }
+
+        $courseContext->clearCurrentCourse();
+
+        return true;
     }
 
     public function clearCurrentService(): void

@@ -21,6 +21,8 @@ return [
     'system_tests'      => 'System testing report',
     'academic'          => 'Academic',
     'academic_desc'     => 'Curriculum, sessions, assignments, exams, feedback, and more.',
+    'service'           => 'Service',
+    'service_desc'      => 'Service membership, roster, roles, and join applications.',
     'system_settings'   => 'System settings',
     'system_settings_desc' => 'Roles, translations, graduation criteria, and admin tools.',
     'open'              => 'Open',

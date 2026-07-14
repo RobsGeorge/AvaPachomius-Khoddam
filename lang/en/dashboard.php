@@ -38,6 +38,8 @@ return [
     'academic_hub'           => 'Academic hub',
     'academic_hub_desc'      => 'All learning tools: curriculum, sessions, assignments, exams, events, and feedback.',
     'open_academic'          => 'Open academic hub',
+    'service_hub'            => 'Service hub',
+    'service_hub_desc'       => 'Service roster, roles & members, and join applications for your department.',
     'system_hub'             => 'System settings',
     'system_hub_desc'        => 'Administration: roles, translations, policies, and registration review.',
     'superadmin_hub'         => 'Super admin',

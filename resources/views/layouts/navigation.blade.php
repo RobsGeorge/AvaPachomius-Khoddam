@@ -2,11 +2,14 @@
     use App\Support\NavigationHub;
     $navUser = auth()->user();
     $academicLinks = NavigationHub::academicLinks($navUser);
+    $serviceLinks = NavigationHub::serviceLinks($navUser);
     $systemLinks = NavigationHub::systemLinks($navUser);
     $superadminSections = NavigationHub::superadminSections($navUser);
+    $hasService = NavigationHub::hasService($navUser);
     $hasSystem = NavigationHub::hasSystem($navUser);
     $hasSuperadmin = NavigationHub::hasSuperadmin($navUser);
     $academicActive = NavigationHub::isAcademicActive($navUser);
+    $serviceActive = NavigationHub::isServiceActive($navUser);
     $systemActive = NavigationHub::isSystemActive($navUser);
     $superadminActive = NavigationHub::isSuperadminActive($navUser);
 @endphp
@@ -108,6 +111,63 @@
                             {{ __('app.name') }}
                         </a>
                     @endif
+
+                    @if(!empty($supportsServiceSwitcher))
+                        <div class="dropdown">
+                            <button type="button"
+                                    class="brand-link dropdown-toggle border-0 bg-transparent p-0"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="{{ __('service.switch_service') }}">
+                                <i class="bi bi-building ms-1"></i>
+                                @if(!empty($currentService))
+                                    {{ $currentService->localizedTitle() }}
+                                @elseif($navUser->is_superadmin ?? false)
+                                    {{ __('service.system_wide_mode') }}
+                                @else
+                                    {{ __('service.select_title') }}
+                                @endif
+                            </button>
+                            <ul class="dropdown-menu app-dropdown-panel">
+                                @if($navUser->is_superadmin ?? false)
+                                    <li>
+                                        <form method="POST" action="{{ route('services.select.clear') }}">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item app-dropdown-link {{ empty($currentService) ? 'active fw-semibold' : '' }}">
+                                                <i class="bi bi-globe2 me-2"></i>{{ __('service.system_wide_mode') }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                @endif
+                                @foreach($selectableServices ?? [] as $switchService)
+                                    <li>
+                                        <form method="POST" action="{{ route('services.select.store') }}">
+                                            @csrf
+                                            <input type="hidden" name="service_id" value="{{ $switchService->service_id }}">
+                                            <button type="submit"
+                                                    class="dropdown-item app-dropdown-link {{ ($currentService->service_id ?? null) === $switchService->service_id ? 'active fw-semibold' : '' }}">
+                                                {{ $switchService->localizedTitle() }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item app-dropdown-link" href="{{ route('services.select') }}">
+                                        <i class="bi bi-grid me-2"></i>{{ __('service.switch_service') }}
+                                    </a>
+                                </li>
+                                @if($hasService)
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link" href="{{ route('hubs.service') }}">
+                                            <i class="bi bi-building me-2"></i>{{ __('nav.service') }}
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
+                    @endif
                 @else
                     <a href="{{ route('login') }}" class="brand-link">
                         <i class="bi bi-mortarboard-fill ms-1"></i>
@@ -144,6 +204,32 @@
                                 @endforeach
                             </ul>
                         </div>
+
+                        @if($hasService)
+                            <div class="dropdown">
+                                <button class="app-nav-link dropdown-toggle border-0 bg-transparent {{ $serviceActive ? 'active' : '' }}"
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    {{ __('nav.service') }}
+                                </button>
+                                <ul class="dropdown-menu app-dropdown-panel">
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link fw-semibold {{ request()->routeIs('hubs.service') ? 'active' : '' }}"
+                                           href="{{ route('hubs.service') }}">
+                                            <i class="bi bi-building me-2"></i>{{ __('nav.service') }}
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    @foreach($serviceLinks as $link)
+                                        <li>
+                                            <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
+                                               href="{{ $link['url'] }}">
+                                                <i class="bi {{ $link['icon'] }} me-2"></i>{{ $link['label'] }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
 
                         @if($hasSystem)
                             <div class="dropdown">
@@ -275,6 +361,25 @@
                             @endforeach
                         </div>
                     </details>
+
+                    @if($hasService)
+                        <details class="mobile-nav-group" @if($serviceActive) open @endif>
+                            <summary class="mobile-nav-summary {{ $serviceActive ? 'active' : '' }}">
+                                <span>{{ __('nav.service') }}</span>
+                                <i class="bi bi-chevron-down mobile-nav-chevron" aria-hidden="true"></i>
+                            </summary>
+                            <div class="mobile-nav-submenu d-flex flex-column gap-1">
+                                <a href="{{ route('hubs.service') }}" class="app-nav-link small {{ request()->routeIs('hubs.service') ? 'active' : '' }}" @click="navOpen = false">
+                                    <i class="bi bi-building me-1"></i>{{ __('nav.service') }}
+                                </a>
+                                @foreach($serviceLinks as $link)
+                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
+                                        <i class="bi {{ $link['icon'] }} me-1"></i>{{ $link['label'] }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </details>
+                    @endif
 
                     @if($hasSystem)
                         <details class="mobile-nav-group" @if($systemActive) open @endif>
