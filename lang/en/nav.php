@@ -11,6 +11,8 @@ return [
     'superadmin'        => 'Super admin',
     'audit_reports'     => 'Audit reports',
     'profile'           => 'Profile',
+    'account'           => 'Account center',
+    'my_learning'       => 'My learning',
     'logout'            => 'Log out',
     'login'             => 'Log in',
     'register'          => 'Create account',

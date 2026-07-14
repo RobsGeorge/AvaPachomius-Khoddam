@@ -6,11 +6,13 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 
 ## P0 — closes a real gap for a whole persona
 
-| # | Feature | Personas served | Why it matters | Notes |
+> **Delivered in M1** (branch `staging`): **F-01**, **F-02**, **F-03** — see status column.
+
+| # | Feature | Personas served | Why it matters | Status |
 |---|---|---|---|---|
-| F-01 | **Per-persona home dashboard** | all | Everyone lands on a generic hub; there is no "what do I need to do today" view. Students miss due assignments/exams; admins miss pending approvals. | Compose from existing data (sessions, assignments, exams, events, review queues). |
-| F-02 | **Unified "My learning" for students** | Student | Grades, attendance, certificates, and schedule are scattered across modules. A single student view is the core of the product for the largest persona. | Aggregates existing `grade`, `attendance.view_own`, `certificate`, sessions. |
-| F-03 | **Self-service account center** | all | Password change, profile edit, notification channels, language/theme, and data export are not in one discoverable place. Password-change flow in particular should be first-class. | Ties together `ProfileController`, `NotificationSettingsController`, `ThemeController`, `LocaleController`. |
+| F-01 | **Per-persona home dashboard** | all | Everyone lands on a generic hub; there is no "what do I need to do today" view. Students miss due assignments/exams; admins miss pending approvals. | ✅ **M1** — `DashboardService` focus panel (review queue, upcoming exams, upcoming events), persona-gated. Tests `DashboardFocusTest`. |
+| F-02 | **Unified "My learning" for students** | Student | Grades, attendance, certificates, and schedule are scattered across modules. A single student view is the core of the product for the largest persona. | ✅ **M1** — `MyLearningService` + `/my-learning` per-course grades/attendance/certificate. Tests `MyLearningTest`. |
+| F-03 | **Self-service account center** | all | Password change, profile edit, notification channels, language/theme, and data export are not in one discoverable place. Password-change flow in particular should be first-class. | ✅ **M1** — `AccountController` `/account`: first-class password change, profile/notification/appearance links, JSON data export. Tests `AccountCenterTest`. |
 
 ## P1 — high value
 

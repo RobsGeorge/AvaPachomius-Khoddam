@@ -29,6 +29,44 @@
         </p>
     </div>
 
+    @if(!empty($focusCards))
+        <div class="app-card card shadow-sm mb-4 border-primary border-opacity-25">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-lightning-charge" aria-hidden="true"></i> {{ __('dashboard.focus_heading') }}
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+                @foreach($focusCards as $card)
+                    <div class="focus-card">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <span class="fw-semibold">
+                                <i class="bi {{ $card['icon'] }} text-{{ $card['tone'] }}" aria-hidden="true"></i>
+                                {{ __('dashboard.focus_'.$card['key']) }}
+                                <span class="badge bg-{{ $card['tone'] }} ms-1">{{ $card['count'] }}</span>
+                            </span>
+                            @if(!empty($card['url']))
+                                <a href="{{ $card['url'] }}" class="btn btn-outline-{{ $card['tone'] }} btn-sm">
+                                    {{ __('dashboard.focus_view') }} <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                                </a>
+                            @endif
+                        </div>
+                        @if(!empty($card['items']))
+                            <ul class="list-unstyled mt-2 mb-0 ms-4">
+                                @foreach($card['items'] as $item)
+                                    <li class="mb-1">
+                                        <a href="{{ $item['url'] }}" class="text-decoration-none">{{ $item['label'] }}</a>
+                                        @if(!empty($item['meta']))
+                                            <span class="text-muted-theme small">— {{ $item['meta'] }}</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     @if(isset($homepageAnnouncements) && $homepageAnnouncements->isNotEmpty())
         <div class="app-card card shadow-sm mb-4">
             <div class="card-header fw-semibold">
@@ -103,6 +141,15 @@
                 <p class="text-muted-theme mb-0">{{ __('dashboard.academic_hub_desc') }}</p>
             </a>
         </div>
+
+        @if(Auth::user()->isStudent())
+            <div class="col-md-6">
+                <a href="{{ route('my-learning.index') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
+                    <h3><i class="bi bi-journal-bookmark"></i> {{ __('nav.my_learning') }}</h3>
+                    <p class="text-muted-theme mb-0">{{ __('my_learning.subtitle') }}</p>
+                </a>
+            </div>
+        @endif
 
         @if($hasService)
             <div class="col-md-6">

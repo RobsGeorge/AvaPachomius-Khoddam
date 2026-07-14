@@ -24,8 +24,12 @@ class RenderedPageA11yTest extends EventModuleTestCase
         $failures = [];
         foreach ($this->pages() as $route) {
             $response = $this->get('/'.ltrim($route->uri(), '/'));
-            // Only full rendered pages carry a layout; redirects (302) have a bare body.
+            // Only full rendered pages carry a layout; redirects (302) have a bare body,
+            // and file/JSON downloads (e.g. data export) are not HTML pages at all.
             if ($response->getStatusCode() !== 200) {
+                continue;
+            }
+            if (! str_contains(strtolower((string) $response->headers->get('content-type')), 'text/html')) {
                 continue;
             }
             $html = $response->getContent();

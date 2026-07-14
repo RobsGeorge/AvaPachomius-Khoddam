@@ -11,6 +11,8 @@ return [
     'superadmin'        => 'المشرف العام',
     'audit_reports'     => 'تقارير التدقيق',
     'profile'           => 'الملف الشخصي',
+    'account'           => 'مركز الحساب',
+    'my_learning'       => 'تعلُّمي',
     'logout'            => 'تسجيل الخروج',
     'login'             => 'تسجيل الدخول',
     'register'          => 'تسجيل حساب جديد',

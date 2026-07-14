@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\MyLearningController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\RoleController;
@@ -175,6 +177,14 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+
+    // F-02 — unified student "my learning"
+    Route::get('/my-learning', [MyLearningController::class, 'index'])->name('my-learning.index');
+
+    // F-03 — self-service account center
+    Route::get('/account', [AccountController::class, 'index'])->name('account.index');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::get('/account/export', [AccountController::class, 'export'])->name('account.export');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/birthdays', [StudentBirthdaysController::class, 'index'])->name('students.birthdays');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
