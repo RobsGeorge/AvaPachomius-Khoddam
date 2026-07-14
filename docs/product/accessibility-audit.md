@@ -12,6 +12,11 @@ are guarded by `tests/Feature/UseCases/Accessibility/RenderedPageA11yTest`; ever
 
 ## Findings
 
+> **Resolved in M0** (with automated coverage in `RenderedPageA11yTest`): **A11Y-01** skip-to-content
+> link, **A11Y-02** `prefers-reduced-motion`, **A11Y-03** polite ARIA live region (JS mirrors toasts).
+> The remaining findings below are open.
+
+
 | ID | Severity | WCAG | Finding | Affected personas | Recommended fix |
 |---|---|---|---|---|---|
 | A11Y-01 | High | 2.4.1 Bypass Blocks | **No skip-to-content link.** Keyboard/SR users must tab through the whole nav on every page. | keyboard, SR | Add a visually-hidden-until-focus `<a href="#app-main">` as the first focusable element; give `<main id="app-main">`. |

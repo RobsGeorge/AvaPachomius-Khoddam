@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\HelpController;
+use App\Http\Controllers\MyLearningController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\RoleController;
@@ -186,6 +190,20 @@ Route::middleware('auth')->group(function () {
 
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+
+    // F-04 — applicant help & FAQ
+    Route::get('/help', [HelpController::class, 'faq'])->name('help.faq');
+
+    // F-06 — personal iCalendar feed (sessions, exams, events)
+    Route::get('/calendar.ics', [CalendarController::class, 'download'])->name('calendar.ics');
+
+    // F-02 — unified student "my learning"
+    Route::get('/my-learning', [MyLearningController::class, 'index'])->name('my-learning.index');
+
+    // F-03 — self-service account center
+    Route::get('/account', [AccountController::class, 'index'])->name('account.index');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::get('/account/export', [AccountController::class, 'export'])->name('account.export');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/birthdays', [StudentBirthdaysController::class, 'index'])->name('students.birthdays');
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
@@ -495,6 +513,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/security',                  [SuperAdminController::class, 'security'])->name('security');
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
+    Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');
     Route::post('/role-preview',            [SuperAdminController::class, 'previewRole'])->name('role-preview');

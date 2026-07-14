@@ -47,4 +47,11 @@ return [
     'open_system'            => 'Open system settings',
     'birthdays'              => 'Birthdays',
     'birthdays_desc'         => 'See who has birthdays this month and next, send them greetings and brighten their day.',
+
+    // F-01 — "what needs my attention" focus panel
+    'focus_heading'          => 'Needs your attention',
+    'focus_view'             => 'View',
+    'focus_review_queue'     => 'Applications awaiting your review',
+    'focus_upcoming_exams'   => 'Upcoming exams',
+    'focus_upcoming_events'  => 'Upcoming events',
 ];

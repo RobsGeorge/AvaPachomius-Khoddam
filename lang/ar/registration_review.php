@@ -59,6 +59,23 @@ return [
     'email_header' => 'مراجعة التسجيل',
     'placeholders_help' => 'المتغيرات المتاحة: {{name}}, {{fields_table}}, {{note}}, {{portal_url}}, {{correction_url}}',
 
+    // F-04 — الجدول الزمني لحالة الطلب وإرشادات التصحيح
+    'timeline_heading' => 'مراحل تقدُّم طلبك',
+    'timeline_submitted' => 'تم الإرسال',
+    'timeline_submitted_desc' => 'استلمنا طلبك.',
+    'timeline_review' => 'قيد المراجعة',
+    'timeline_review_desc' => 'يقوم المشرف بمراجعة بياناتك.',
+    'timeline_decision' => 'القرار',
+    'timeline_decision_approved' => 'تمت الموافقة — أهلًا بك!',
+    'timeline_decision_rejected' => 'لم تتم الموافقة.',
+    'timeline_decision_correction' => 'مطلوب تصحيحات.',
+    'timeline_decision_pending' => 'في انتظار القرار.',
+    'correction_guidance_heading' => 'ما الذي يحتاج انتباهك',
+    'correction_guidance_intro' => 'راجع الملاحظات على هذه الحقول، ثم حدِّث طلبك وأعد إرساله.',
+    'need_help_heading' => 'لديك سؤال؟',
+    'need_help_body' => 'اطّلع على إجابات الأسئلة الشائعة حول التسجيل والموافقة.',
+    'need_help_link' => 'فتح المساعدة والأسئلة الشائعة',
+
     'fields' => [
         'first_name' => 'الاسم الأول',
         'second_name' => 'الاسم الثاني',

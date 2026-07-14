@@ -47,4 +47,11 @@ return [
     'open_system'            => 'فتح إعدادات النظام',
     'birthdays'              => 'أعياد الميلاد',
     'birthdays_desc'         => 'شوف مين عيد ميلاده الشهر ده واللي جاي، وابعت عيّد عليهم وفرّحهم',
+
+    // F-01 — لوحة "يحتاج انتباهك"
+    'focus_heading'          => 'يحتاج انتباهك',
+    'focus_view'             => 'عرض',
+    'focus_review_queue'     => 'طلبات بانتظار مراجعتك',
+    'focus_upcoming_exams'   => 'امتحانات قادمة',
+    'focus_upcoming_events'  => 'فعاليات قادمة',
 ];

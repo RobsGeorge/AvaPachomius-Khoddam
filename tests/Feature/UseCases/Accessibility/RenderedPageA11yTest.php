@@ -24,8 +24,12 @@ class RenderedPageA11yTest extends EventModuleTestCase
         $failures = [];
         foreach ($this->pages() as $route) {
             $response = $this->get('/'.ltrim($route->uri(), '/'));
-            // Only full rendered pages carry a layout; redirects (302) have a bare body.
+            // Only full rendered pages carry a layout; redirects (302) have a bare body,
+            // and file/JSON downloads (e.g. data export) are not HTML pages at all.
             if ($response->getStatusCode() !== 200) {
+                continue;
+            }
+            if (! str_contains(strtolower((string) $response->headers->get('content-type')), 'text/html')) {
                 continue;
             }
             $html = $response->getContent();
@@ -71,6 +75,51 @@ class RenderedPageA11yTest extends EventModuleTestCase
         }
 
         $this->assertSame([], $violations, "Images missing an alt attribute:\n".implode("\n", $violations));
+    }
+
+    public function test_pages_expose_a_skip_to_content_link(): void
+    {
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'a11y-skip@example.com']);
+
+        $html = $this->actingAs($admin)->get(route('superadmin.index'))->getContent();
+
+        // A11Y-01: a skip link that targets the main landmark, and a focusable <main id>.
+        $this->assertMatchesRegularExpression(
+            '/<a[^>]*\bhref=("|\')#app-main\1[^>]*>/',
+            (string) $html,
+            'Skip-to-content link (href="#app-main") is missing'
+        );
+        $this->assertMatchesRegularExpression(
+            '/<main[^>]*\bid=("|\')app-main\1/',
+            (string) $html,
+            '<main id="app-main"> landmark target is missing'
+        );
+    }
+
+    public function test_pages_expose_a_polite_live_region(): void
+    {
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'a11y-live@example.com']);
+
+        $html = (string) $this->actingAs($admin)->get(route('superadmin.index'))->getContent();
+
+        // A11Y-03: a polite ARIA live region for announcing transient messages.
+        $this->assertMatchesRegularExpression(
+            '/\baria-live=("|\')polite\1/',
+            $html,
+            'Polite aria-live region is missing from the layout'
+        );
+    }
+
+    public function test_theme_css_honors_reduced_motion(): void
+    {
+        // A11Y-02: CSS respects prefers-reduced-motion (checked at the source, not per page).
+        $css = (string) file_get_contents(public_path('css/khoddam-theme.css'));
+
+        $this->assertStringContainsString(
+            'prefers-reduced-motion',
+            $css,
+            'Theme CSS does not honor prefers-reduced-motion'
+        );
     }
 
     /** @return list<\DOMElement> */

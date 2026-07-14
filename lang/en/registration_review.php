@@ -59,6 +59,23 @@ return [
     'email_header' => 'Registration review',
     'placeholders_help' => 'Available placeholders: {{name}}, {{fields_table}}, {{note}}, {{portal_url}}, {{correction_url}}',
 
+    // F-04 — applicant status timeline + inline correction guidance
+    'timeline_heading' => 'Your application progress',
+    'timeline_submitted' => 'Submitted',
+    'timeline_submitted_desc' => 'We received your application.',
+    'timeline_review' => 'Under review',
+    'timeline_review_desc' => 'An administrator is reviewing your details.',
+    'timeline_decision' => 'Decision',
+    'timeline_decision_approved' => 'Approved — welcome!',
+    'timeline_decision_rejected' => 'Not approved.',
+    'timeline_decision_correction' => 'Corrections requested.',
+    'timeline_decision_pending' => 'Awaiting decision.',
+    'correction_guidance_heading' => 'What needs your attention',
+    'correction_guidance_intro' => 'Please review the notes on these fields, then update and resubmit your application.',
+    'need_help_heading' => 'Have a question?',
+    'need_help_body' => 'See answers to common questions about registration and approval.',
+    'need_help_link' => 'Open help & FAQ',
+
     'fields' => [
         'first_name' => 'First name',
         'second_name' => 'Second name',
