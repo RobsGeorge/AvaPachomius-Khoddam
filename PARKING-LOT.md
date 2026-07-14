@@ -32,3 +32,38 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - Still deferred: richer form builder, `course.service_id` NOT NULL contraction,
   BelongsToChurch when tenancy lands.
   Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`
+
+## Church layer above Service — multi-church platform (THE multi-tenant core)
+Requested 2026-07-14. This is the "Khedma" multi-tenant migration itself, not a feature.
+Exceeds the current phase (tenancy foundation does not exist: no `church_id`,
+no `MULTI_TENANT`, no `BelongsToChurch`, no `app/Tenancy/`, master-plan file not yet
+authored). Captured here per CLAUDE.md rule 10; must be built via phased expand-contract,
+each phase its own PR, behind `MULTI_TENANT=false` until cutover, with the tenant-isolation
+"sacred suite" green. Full requirement:
+
+- **Hierarchy:** Church → Services → Courses. Church is a new top entity above Service.
+- **Tenant isolation (sacred):** each church is accessible only to its own church admins;
+  no cross-church read/write by anyone from another church. Every tenant-scoped model gets
+  `church_id` + the `BelongsToChurch` global scope (rules 1–3); `TenantIsolationTest` must
+  activate and pass.
+- **Church management module** (per church), extensible. First occupants:
+  - **Priests** with **confession calendars**, each priest self-configuring availability.
+  - **Priests/servants** with **home-visit schedules**.
+  - **Financial module**: payroll + money-in to the church. Money = integer minor units +
+    currency + fx_rate, never floats (rule 7). Explicitly "extended later".
+- **Church registration:** a public church-registration panel submits an application/request
+  to the SuperAdmin, who approves it (same pattern as course applications) to provision the
+  church tenant.
+- **Applications center refactor:** make applications **polymorphic** over Church | Service |
+  Course, with the target type chosen at create/edit time (one review center, three subjects).
+
+Sequencing (proposed, not yet approved):
+  1. Author master-plan §7 for the Church layer (source of truth; currently missing).
+  2. Phase 1 — EXPAND foundation (additive, zero behavior change, `MULTI_TENANT=false`):
+     `churches` table; nullable `church_id` on tenant-scoped tables backfilled to church 1
+     (AvaPachomius = Tenant Zero); `App\Tenancy\BelongsToChurch` + `TenantContext` +
+     `ResolveTenant`; isolation suite goes green.
+  3. Church registration + approval (polymorphic applications center).
+  4. Church management module shell → priest confession calendars → home-visit schedules.
+  5. Financial module (payroll + money-in), money as integer minor units.
+  6. CONTRACT (Phase 5-style, dedicated PRs): NOT NULL `church_id`, cutover `MULTI_TENANT=true`.
