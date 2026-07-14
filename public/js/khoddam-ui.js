@@ -432,12 +432,145 @@
         });
     }
 
+    /**
+     * Theme-colored icon emphasis on mobile when widgets scroll into view
+     * or receive a light touch (hover is unreliable on touch screens).
+     */
+    function initIconAccent() {
+        const iconHostSelector = [
+            'a',
+            'button',
+            '.btn',
+            'label.btn',
+            '.brand-link',
+            '.app-nav-link',
+            '.app-toolbar-btn',
+            '.app-dropdown-link',
+            '.hub-tile',
+            '.hub-link-tile',
+            '.app-tile',
+            '.khoddam-hover-lift',
+            '.accordion-button',
+            'summary',
+            '.nav-link',
+            '.list-group-item-action',
+            '.dropdown-item',
+            '.dropdown-toggle',
+            '[role="button"]',
+        ].join(',');
+
+        const iconChildSelector = 'i.bi, i.fas, i.far, i.fab, i.fa, .app-icon';
+
+        function hostsWithIcons(root) {
+            return Array.from((root || document).querySelectorAll(iconHostSelector)).filter((el) => {
+                if (el.closest('.swal2-container, .modal-backdrop')) {
+                    return false;
+                }
+
+                return el.querySelector(iconChildSelector);
+            });
+        }
+
+        function prefersTouchEmphasis() {
+            return window.matchMedia('(hover: none), (pointer: coarse)').matches
+                || window.matchMedia('(max-width: 767.98px)').matches;
+        }
+
+        let observer = null;
+
+        function syncObserver() {
+            if (observer) {
+                observer.disconnect();
+                observer = null;
+            }
+
+            if (! prefersTouchEmphasis()) {
+                hostsWithIcons().forEach((el) => el.classList.remove('is-icon-accent'));
+                return;
+            }
+
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    const active = entry.isIntersecting && entry.intersectionRatio >= 0.4;
+                    entry.target.classList.toggle('is-icon-accent', active);
+                });
+            }, {
+                threshold: [0.35, 0.45, 0.6, 0.75],
+                rootMargin: '-8% 0px -8% 0px',
+            });
+
+            hostsWithIcons().forEach((el) => observer.observe(el));
+        }
+
+        function bindTouch(el) {
+            if (el.dataset.iconAccentBound === '1') {
+                return;
+            }
+            el.dataset.iconAccentBound = '1';
+
+            let touchTimer = null;
+
+            el.addEventListener('touchstart', () => {
+                if (! prefersTouchEmphasis()) {
+                    return;
+                }
+                el.classList.add('is-icon-accent-touch');
+                if (touchTimer) {
+                    clearTimeout(touchTimer);
+                    touchTimer = null;
+                }
+            }, { passive: true });
+
+            const clearTouch = () => {
+                if (touchTimer) {
+                    clearTimeout(touchTimer);
+                }
+                // Brief linger so a light tap (without full click) still shows the fill.
+                touchTimer = setTimeout(() => {
+                    el.classList.remove('is-icon-accent-touch');
+                    touchTimer = null;
+                }, 550);
+            };
+
+            el.addEventListener('touchend', clearTouch, { passive: true });
+            el.addEventListener('touchcancel', clearTouch, { passive: true });
+        }
+
+        function refresh() {
+            hostsWithIcons().forEach(bindTouch);
+            syncObserver();
+        }
+
+        refresh();
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            if (resizeTimer) {
+                clearTimeout(resizeTimer);
+            }
+            resizeTimer = setTimeout(refresh, 200);
+        }, { passive: true });
+
+        // Re-bind when hubs/modals inject content after first paint.
+        if (typeof MutationObserver !== 'undefined') {
+            let moTimer = null;
+            const mo = new MutationObserver(() => {
+                if (moTimer) {
+                    clearTimeout(moTimer);
+                }
+                moTimer = setTimeout(refresh, 250);
+            });
+            mo.observe(document.body, { childList: true, subtree: true });
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initTheme();
         initFlashMessages();
         initConfirmInterceptors();
         initReveal();
         initHoverMotion();
+        initIconAccent();
     });
 
     window.KhoddamUI = {

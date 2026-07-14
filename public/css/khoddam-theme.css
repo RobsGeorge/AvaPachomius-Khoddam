@@ -819,6 +819,75 @@ body.theme-dark .app-dropdown-link:hover {
     transform: translateY(0);
 }
 
+/* -------------------------------------------------------------------------
+   Icon accent — fill icons with theme primary when their host is engaged
+   (hover / focus / active) or marked for mobile scroll/touch emphasis.
+   ------------------------------------------------------------------------- */
+:root {
+    --icon-accent-color: var(--color-primary);
+}
+
+.app-icon,
+i.bi,
+i.fas,
+i.far,
+i.fab,
+i.fa,
+[class^="bi-"]::before,
+[class*=" bi-"]::before {
+    transition: color var(--transition-fast), opacity var(--transition-fast),
+        text-shadow var(--transition-fast), filter var(--transition-fast);
+}
+
+:is(
+    a,
+    button,
+    .btn,
+    label.btn,
+    .brand-link,
+    .app-nav-link,
+    .app-toolbar-btn,
+    .app-dropdown-link,
+    .hub-tile,
+    .hub-link-tile,
+    .app-tile,
+    .khoddam-hover-lift,
+    .accordion-button,
+    summary,
+    .nav-link,
+    .list-group-item-action,
+    .dropdown-item,
+    .dropdown-toggle,
+    [role="button"]
+):is(:hover, :focus-visible, :active, .is-icon-accent, .is-icon-accent-touch)
+:is(.app-icon, i.bi, i.fas, i.far, i.fab, i.fa) {
+    color: var(--icon-accent-color) !important;
+    filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--icon-accent-color) 35%, transparent));
+}
+
+/* Primary filled buttons already use the theme surface text — keep contrast */
+:is(.btn-primary, .btn.app-btn-primary, .btn-danger, .bg-primary, .card-header.bg-primary):is(:hover, :focus-visible, :active, .is-icon-accent, .is-icon-accent-touch)
+:is(.app-icon, i.bi, i.fas, i.far, i.fab, i.fa) {
+    color: var(--color-primary-text) !important;
+    filter: none;
+}
+
+/* Nav hardcodes older hover washes — keep icon accent tied to theme tokens */
+.app-nav-link:hover,
+.app-nav-link:focus-visible,
+.app-nav-link.is-icon-accent,
+.app-nav-link.is-icon-accent-touch {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    color: var(--color-nav-active);
+}
+
+.app-dropdown-link:hover,
+.app-dropdown-link:focus-visible,
+.app-dropdown-link.is-icon-accent,
+.app-dropdown-link.is-icon-accent-touch {
+    background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
 /* SweetAlert2 — Khoddam theme (tracks light/dark CSS variables) */
 .swal2-container {
     font-family: var(--font-sans) !important;

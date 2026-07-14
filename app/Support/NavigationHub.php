@@ -128,7 +128,7 @@ class NavigationHub
         $manageable = $rolesHub->manageableServices($user);
 
         if ($selectable->isNotEmpty() || ($user->is_superadmin ?? false)) {
-            $links[] = array_merge(self::link('services.select', 'service.select_title', 'bi-building', [
+            $links[] = array_merge(self::link('services.select', 'service.select_title', 'fas fa-church', [
                 'services.select', 'services.select.*',
             ], 'service.view'), ['category' => 'ops']);
         }
@@ -159,7 +159,7 @@ class NavigationHub
             $links[] = array_merge(self::link(
                 'admin.services.index',
                 'service.manage_title',
-                'bi-building-gear',
+                'fas fa-church',
                 ['admin.services.*'],
                 'platform.service_crud'
             ), ['category' => 'admin']);
@@ -294,7 +294,7 @@ class NavigationHub
 
         $exclusiveLinks = [
             self::hubLink('superadmin.index', 'nav.superadmin', 'pages.superadmin_hub_desc', 'bi-shield-lock-fill', ['superadmin.index'], true),
-            self::hubLink('admin.services.index', 'service.manage_title', 'pages.superadmin_services_desc', 'bi-building-gear', ['admin.services.*'], true),
+            self::hubLink('admin.services.index', 'service.manage_title', 'pages.superadmin_services_desc', 'fas fa-church', ['admin.services.*'], true),
             self::hubLink('superadmin.courses', 'pages.manage_courses', 'pages.superadmin_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
             self::hubLink('roles.hub', 'rbac.hub_title', 'rbac.hub_intro', 'bi-shield-check', [
                 'roles.hub',
@@ -341,7 +341,7 @@ class NavigationHub
         }
 
         $sharedLinks[] = self::hubLink('hubs.academic', 'nav.academic', 'nav.academic_desc', 'bi-mortarboard', ['hubs.academic'], false);
-        $sharedLinks[] = self::hubLink('hubs.service', 'nav.service', 'nav.service_desc', 'bi-building', ['hubs.service', 'services.select', 'services.roster', 'admin.services.*'], false);
+        $sharedLinks[] = self::hubLink('hubs.service', 'nav.service', 'nav.service_desc', 'fas fa-church', ['hubs.service', 'services.select', 'services.roster', 'admin.services.*'], false);
         $sharedLinks[] = self::hubLink('hubs.system', 'nav.system_settings', 'nav.system_settings_desc', 'bi-gear', ['hubs.system'], false);
         $sharedLinks[] = self::hubLink('courses.select', 'course_context.switch_course', 'pages.superadmin_course_picker_desc', 'bi-grid', ['courses.select'], false);
 

@@ -2,6 +2,8 @@
 
 return [
     'label' => 'Service',
+    'default_name' => 'Default Service',
+    'default_description' => 'Primary parent service for courses.',
     'select_hint' => 'Select a service to manage roles and members.',
     'select_title' => 'Choose your service',
     'select_intro' => 'Select the service (department) you want to work in. Courses under that service stay year-based.',

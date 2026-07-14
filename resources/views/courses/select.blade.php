@@ -10,7 +10,7 @@
         @if(!empty($currentService))
             <p class="mb-2">
                 <span class="badge bg-primary-subtle text-primary-emphasis border">
-                    <i class="bi bi-building me-1"></i>{{ $currentService->localizedTitle() }}
+                    <i class="fas fa-church me-1"></i>{{ $currentService->localizedTitle() }}
                 </span>
             </p>
         @endif

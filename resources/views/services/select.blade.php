@@ -13,7 +13,7 @@
     @if($services->isEmpty())
         <div class="app-card card shadow-sm">
             <div class="card-body text-center py-5">
-                <i class="bi bi-building fs-1 text-muted-theme d-block mb-3"></i>
+                <i class="fas fa-church fs-1 text-muted-theme d-block mb-3"></i>
                 <h2 class="h5">{{ __('service.no_services') }}</h2>
                 <p class="text-muted-theme mb-0">{{ __('service.no_services_hint') }}</p>
             </div>

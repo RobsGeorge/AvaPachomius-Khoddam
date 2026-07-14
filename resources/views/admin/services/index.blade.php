@@ -15,7 +15,7 @@
             </a>
         @endif
         <h1 class="page-title mb-0">
-            <i class="bi bi-building me-2"></i>{{ __('service.manage_title') }}
+            <i class="fas fa-church me-2"></i>{{ __('service.manage_title') }}
         </h1>
     </div>
 
@@ -25,7 +25,7 @@
         <div class="col-lg-7">
             <div class="app-card card shadow-sm">
                 <div class="card-header fw-semibold">
-                    <i class="bi bi-building"></i> {{ __('service.manage_list') }}
+                    <i class="fas fa-church"></i> {{ __('service.manage_list') }}
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive table-responsive-compact">
