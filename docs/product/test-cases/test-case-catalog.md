@@ -22,6 +22,8 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-A11Y-04 | a11y | Color contrast ≥ AA for theme palettes (light/dark) | a11y | 📋 manual (audit) | P1 |
 | TC-A11Y-05 | a11y | SR announcements for toasts/live-quiz timers; `prefers-reduced-motion` honored | a11y | 📋 manual (audit) | P2 |
 | TC-I18N-01 | UC-AUTH-12 | Every `lang/en/*` file has an `lang/ar/*` counterpart | feature | ✅ `Tenancy/TenantIsolationTest::test_language_files_have_locale_parity` | P1 |
+| TC-I18N-02 | UC-AUTH-12 (F-13) | No *new* untranslated key ships (baseline-gated key-level ar/en parity) | feature | ✅ `Localization/LocaleKeyParityTest` | P1 |
+| TC-SEC-01 | F-16 | CORS scoped to `api/*`; origins env-driven (no hardcoded localhost default) | manual | 📋 config review (`config/cors.php`) | P2 |
 
 ## Positive persona journeys
 

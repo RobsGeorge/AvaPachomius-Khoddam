@@ -34,10 +34,10 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 
 | # | Feature | Personas | Why |
 |---|---|---|---|
-| F-13 | **Localization completeness enforcement** in CI (key-level ar/en parity) | Arabic users | File-level parity is guarded; extend to key-level so no string ships untranslated. |
+| F-13 | **Localization completeness enforcement** in CI (key-level ar/en parity) | Arabic users | ✅ **M5** — baseline-gated key-level parity guard (`LocaleKeyParityTest`) blocks any *new* untranslated key; 53 pre-existing gaps in `pages.php` captured in a burn-down baseline. |
 | F-14 | **Mobile-first refinements** (nav, tables → cards, tap targets) | Mobile users | App is responsive but data-dense tables need better small-screen treatment. |
 | F-15 | **Service application richer form builder** | Service Admin | Currently single-message; parity with course application forms. (PARKING-LOT) |
-| F-16 | **Config/security debt** | ops | CORS `Access-Control-Allow-Origin: localhost:3000` leak in prod; make env-driven and lock down. (PARKING-LOT) |
+| F-16 | **Config/security debt** | ops | ✅ **M5** — CORS scoped to `api/*`, origins env-driven (`CORS_ALLOWED_ORIGINS`, empty/locked by default), removing the hardcoded `localhost:3000` prod leak. |
 | F-17 | **Nullable profile columns** | ops/tests | `user` NOT NULL profile columns force placeholder data and complicate admin/self-service creation. (PARKING-LOT; migrates to `people` in tenancy phase.) |
 | F-18 | **Fresh-environment bootstrap** | ops/tenancy | Migrations cannot bootstrap an empty DB (legacy columns e.g. `roles.course_id`); needed to stand up new staging/tenant churches. |
 
