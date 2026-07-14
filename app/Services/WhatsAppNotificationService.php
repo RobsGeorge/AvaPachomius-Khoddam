@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CommunicationLog;
 use App\Models\NotificationWhatsappDelivery;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -10,6 +11,10 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppNotificationService
 {
+    public function __construct(
+        private CommunicationLogService $communicationLogs,
+    ) {}
+
     public function isConfigured(): bool
     {
         return filled(config('notifications.whatsapp.api_url'))
@@ -25,19 +30,42 @@ class WhatsAppNotificationService
             'status' => NotificationWhatsappDelivery::STATUS_PENDING,
         ]);
 
+        $metadata = is_array($notification->metadata) ? $notification->metadata : [];
+        $log = $this->communicationLogs->record([
+            'user' => $user,
+            'channel' => CommunicationLog::CHANNEL_WHATSAPP,
+            'subject' => $notification->title,
+            'body_preview' => $notification->body,
+            'course_id' => isset($metadata['course_id']) ? (int) $metadata['course_id'] : null,
+            'service_id' => isset($metadata['service_id']) ? (int) $metadata['service_id'] : null,
+            'related_type' => UserNotification::class,
+            'related_id' => $notification->id,
+            'metadata' => ['whatsapp_delivery_id' => $delivery->id, 'type' => $notification->type],
+        ]);
+
         if (! $this->isConfigured()) {
-            return $delivery->update([
+            $delivery->update([
                 'status' => NotificationWhatsappDelivery::STATUS_FAILED,
                 'error' => 'WhatsApp API not configured',
-            ]) ? $delivery->fresh() : $delivery;
+            ]);
+            $this->communicationLogs->markFailed($log, 'WhatsApp API not configured');
+
+            return $delivery->fresh();
         }
 
         $phone = $this->normalizePhone($user->mobile_number);
         if ($phone === null) {
-            return $delivery->update([
+            $delivery->update([
                 'status' => NotificationWhatsappDelivery::STATUS_FAILED,
                 'error' => 'Missing mobile number',
-            ]) ? $delivery->fresh() : $delivery;
+            ]);
+            $this->communicationLogs->markFailed($log, __('communications.missing_mobile'));
+
+            return $delivery->fresh();
+        }
+
+        if ($log) {
+            $log->update(['recipient_mobile' => $phone]);
         }
 
         try {
@@ -55,16 +83,19 @@ class WhatsAppNotificationService
                 ]);
 
             if ($response->successful()) {
+                $providerId = $response->json('messages.0.id');
                 $delivery->update([
                     'status' => NotificationWhatsappDelivery::STATUS_SENT,
-                    'provider_message_id' => $response->json('messages.0.id'),
+                    'provider_message_id' => $providerId,
                     'sent_at' => now(),
                 ]);
+                $this->communicationLogs->markSent($log, $providerId);
             } else {
                 $delivery->update([
                     'status' => NotificationWhatsappDelivery::STATUS_FAILED,
                     'error' => $response->body(),
                 ]);
+                $this->communicationLogs->markFailed($log, $response->body());
             }
         } catch (\Throwable $e) {
             Log::warning('WhatsApp notification failed', ['error' => $e->getMessage()]);
@@ -72,6 +103,7 @@ class WhatsAppNotificationService
                 'status' => NotificationWhatsappDelivery::STATUS_FAILED,
                 'error' => $e->getMessage(),
             ]);
+            $this->communicationLogs->markFailed($log, $e->getMessage());
         }
 
         return $delivery->fresh();

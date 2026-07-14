@@ -240,6 +240,22 @@ return [
         ],
     ],
 
+    'communications' => [
+        'scope' => 'course',
+        'label_en' => 'Communications Reports',
+        'label_ar' => 'تقارير الاتصالات',
+        'sort' => 75,
+        'permissions' => [
+            'communications.report' => [
+                'label_en' => 'View communications report',
+                'label_ar' => 'عرض تقرير الاتصالات',
+                'type' => 'both',
+                'routes' => ['communications.report', 'communications.report.export'],
+                'nav' => ['academic.communications_report'],
+            ],
+        ],
+    ],
+
     'roster' => [
         'scope' => 'course',
         'label_en' => 'Student Roster',

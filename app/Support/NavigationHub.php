@@ -65,6 +65,12 @@ class NavigationHub
             $links[] = self::link('announcements.manage.index', 'announcements.manage_title', 'bi-megaphone', ['announcements.manage.*'], 'announcement.manage');
         }
 
+        if (self::canAnyCourse($user, $resolver, ['communications.report'])) {
+            $links[] = self::link('communications.report', 'communications.nav', 'bi-envelope-paper-heart', [
+                'communications.report', 'communications.report.export',
+            ], 'communications.report');
+        }
+
         if (self::canAnyCourse($user, $resolver, ['graduation.view', 'course.close'])) {
             $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*'], 'graduation.view');
         }

@@ -61,6 +61,7 @@ use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AnnouncementManageController;
+use App\Http\Controllers\CommunicationReportController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
@@ -139,6 +140,15 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
+
+Route::get('/communications/t/{token}.gif', [CommunicationReportController::class, 'trackOpen'])
+    ->name('communications.track-open')
+    ->where('token', '[A-Za-z0-9]+');
+
+Route::middleware(['auth', 'permission:communications.report'])->group(function () {
+    Route::get('/communications/report', [CommunicationReportController::class, 'index'])->name('communications.report');
+    Route::get('/communications/report/export', [CommunicationReportController::class, 'export'])->name('communications.report.export');
+});
 
 Route::middleware(['auth', 'attendance.staff'])->group(function () {
     Route::get('/attendance/sessions', [AttendanceController::class, 'showTodaySessions'])->name('attendance.sessions');

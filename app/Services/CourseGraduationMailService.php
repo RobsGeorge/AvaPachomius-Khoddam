@@ -15,6 +15,7 @@ class CourseGraduationMailService
 {
     public function __construct(
         private EmailLocaleResolver $localeResolver,
+        private CommunicationLogService $communicationLogs,
     ) {}
 
     public function ensureDefaults(?int $courseId = null): void
@@ -64,6 +65,20 @@ class CourseGraduationMailService
         ?string $certificateUrl = null,
     ): void {
         if (! filled($user->email)) {
+            $this->communicationLogs->markSkipped(
+                $this->communicationLogs->record([
+                    'user' => $user,
+                    'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+                    'subject' => $templateKey,
+                    'course_id' => $course->course_id,
+                    'service_id' => $course->service_id,
+                    'related_type' => CourseGraduationStudent::class,
+                    'related_id' => $row->id,
+                    'metadata' => ['template' => $templateKey, 'family' => 'course_graduation'],
+                ]),
+                __('communications.missing_email')
+            );
+
             return;
         }
 
@@ -92,13 +107,29 @@ class CourseGraduationMailService
 
         $replacements = $this->buildReplacements($user, $course, $row, $certificateUrl);
 
+        $log = $this->communicationLogs->record([
+            'user' => $user,
+            'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+            'subject' => $template->subject,
+            'body_preview' => $template->body_html,
+            'course_id' => $course->course_id,
+            'service_id' => $course->service_id,
+            'related_type' => CourseGraduationStudent::class,
+            'related_id' => $row->id,
+            'metadata' => ['template' => $templateKey, 'family' => 'course_graduation'],
+        ]);
+
         try {
-            Mail::to($user->email)->send(new CourseGraduationMail(
-                $user,
-                $template,
-                $replacements
-            ));
+            Mail::to($user->email)->send(
+                (new CourseGraduationMail(
+                    $user,
+                    $template,
+                    $replacements
+                ))->with(['trackingToken' => $log?->tracking_token])
+            );
+            $this->communicationLogs->markSent($log);
         } catch (\Throwable $e) {
+            $this->communicationLogs->markFailed($log, $e->getMessage());
             Log::warning('Course graduation email failed', [
                 'user_id' => $user->user_id,
                 'course_id' => $course->course_id,

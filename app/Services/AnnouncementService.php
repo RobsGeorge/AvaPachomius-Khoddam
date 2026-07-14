@@ -7,6 +7,7 @@ use App\Models\Announcement;
 use App\Models\AnnouncementDelivery;
 use App\Models\AnnouncementRevision;
 use App\Models\ChurchService;
+use App\Models\CommunicationLog;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -17,7 +18,8 @@ use Illuminate\Support\Facades\Mail;
 class AnnouncementService
 {
     public function __construct(
-        private StudentRosterService $rosterService
+        private StudentRosterService $rosterService,
+        private CommunicationLogService $communicationLogs,
     ) {}
 
     public function timezone(): string
@@ -87,6 +89,21 @@ class AnnouncementService
                     []
                 );
 
+                $this->communicationLogs->record([
+                    'user' => $recipient,
+                    'channel' => CommunicationLog::CHANNEL_ANNOUNCEMENT,
+                    'status' => CommunicationLog::STATUS_SENT,
+                    'subject' => $announcement->title,
+                    'body_preview' => $announcement->body,
+                    'course_id' => $announcement->course_id,
+                    'service_id' => $announcement->service_id,
+                    'sent_by_user_id' => $publisher->user_id,
+                    'related_type' => Announcement::class,
+                    'related_id' => $announcement->announcement_id,
+                    'sent_at' => now($this->timezone()),
+                    'metadata' => ['target_mode' => $announcement->target_mode],
+                ]);
+
                 app(NotificationScannerService::class)->notifyAnnouncement($recipient, $announcement);
             }
 
@@ -122,6 +139,24 @@ class AnnouncementService
             ->whereIn('user_id', $userIds)
             ->update(['whatsapp_sent_at' => now($this->timezone())]);
 
+        $recipients = User::query()->whereIn('user_id', $userIds)->get();
+        foreach ($recipients as $recipient) {
+            $this->communicationLogs->markSent(
+                $this->communicationLogs->record([
+                    'user' => $recipient,
+                    'channel' => CommunicationLog::CHANNEL_WHATSAPP,
+                    'subject' => $announcement->title,
+                    'body_preview' => $announcement->body,
+                    'course_id' => $announcement->course_id,
+                    'service_id' => $announcement->service_id,
+                    'sent_by_user_id' => $actor->user_id,
+                    'related_type' => Announcement::class,
+                    'related_id' => $announcement->announcement_id,
+                    'metadata' => ['manual_whatsapp' => true],
+                ])
+            );
+        }
+
         $this->recordRevision($announcement, $actor, AnnouncementRevision::ACTION_WHATSAPP_DISPATCHED);
     }
 
@@ -143,6 +178,17 @@ class AnnouncementService
         }
 
         $delivery->update($updates);
+
+        $this->communicationLogs->markOpenedForRelated(
+            Announcement::class,
+            (int) $announcement->announcement_id,
+            (int) $user->user_id
+        );
+        $this->communicationLogs->markReadForRelated(
+            Announcement::class,
+            (int) $announcement->announcement_id,
+            (int) $user->user_id
+        );
     }
 
     public function markRead(AnnouncementDelivery $delivery): void
@@ -152,6 +198,12 @@ class AnnouncementService
         }
 
         $delivery->update(['read_at' => now($this->timezone())]);
+
+        $this->communicationLogs->markReadForRelated(
+            Announcement::class,
+            (int) $delivery->announcement_id,
+            (int) $delivery->user_id
+        );
     }
 
     public function dismissBanner(Announcement $announcement, User $user): void
@@ -288,15 +340,50 @@ class AnnouncementService
 
         foreach ($recipients as $recipient) {
             if (! $recipient->email) {
+                $this->communicationLogs->markSkipped(
+                    $this->communicationLogs->record([
+                        'user' => $recipient,
+                        'channel' => CommunicationLog::CHANNEL_EMAIL,
+                        'subject' => $announcement->title,
+                        'body_preview' => $announcement->body,
+                        'course_id' => $announcement->course_id,
+                        'service_id' => $announcement->service_id,
+                        'related_type' => Announcement::class,
+                        'related_id' => $announcement->announcement_id,
+                        'metadata' => ['announcement_email' => true],
+                    ]),
+                    __('communications.missing_email')
+                );
+
                 continue;
             }
 
-            Mail::to($recipient->email)->send(new AnnouncementMail($announcement, $recipient));
-            AnnouncementDelivery::query()
-                ->where('announcement_id', $announcement->announcement_id)
-                ->where('user_id', $recipient->user_id)
-                ->update(['email_sent_at' => now($this->timezone())]);
-            $sent++;
+            $log = $this->communicationLogs->record([
+                'user' => $recipient,
+                'channel' => CommunicationLog::CHANNEL_EMAIL,
+                'subject' => $announcement->title,
+                'body_preview' => $announcement->body,
+                'course_id' => $announcement->course_id,
+                'service_id' => $announcement->service_id,
+                'related_type' => Announcement::class,
+                'related_id' => $announcement->announcement_id,
+                'metadata' => ['announcement_email' => true],
+            ]);
+
+            try {
+                Mail::to($recipient->email)->send(
+                    (new AnnouncementMail($announcement, $recipient))
+                        ->with(['trackingToken' => $log?->tracking_token])
+                );
+                AnnouncementDelivery::query()
+                    ->where('announcement_id', $announcement->announcement_id)
+                    ->where('user_id', $recipient->user_id)
+                    ->update(['email_sent_at' => now($this->timezone())]);
+                $this->communicationLogs->markSent($log);
+                $sent++;
+            } catch (\Throwable $e) {
+                $this->communicationLogs->markFailed($log, $e->getMessage());
+            }
         }
 
         return $sent;

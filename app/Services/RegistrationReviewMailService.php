@@ -14,6 +14,7 @@ class RegistrationReviewMailService
 {
     public function __construct(
         private EmailLocaleResolver $localeResolver,
+        private CommunicationLogService $communicationLogs,
     ) {}
 
     public function ensureDefaults(): void
@@ -35,6 +36,16 @@ class RegistrationReviewMailService
     public function send(User $user, string $templateKey, array $extra = []): void
     {
         if (! filled($user->email)) {
+            $this->communicationLogs->markSkipped(
+                $this->communicationLogs->record([
+                    'user' => $user,
+                    'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+                    'subject' => $templateKey,
+                    'metadata' => ['template' => $templateKey, 'family' => 'registration_review'],
+                ]),
+                __('communications.missing_email')
+            );
+
             return;
         }
 
@@ -58,13 +69,25 @@ class RegistrationReviewMailService
             return;
         }
 
+        $log = $this->communicationLogs->record([
+            'user' => $user,
+            'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+            'subject' => $template->subject,
+            'body_preview' => $template->body_html,
+            'metadata' => ['template' => $templateKey, 'family' => 'registration_review'],
+        ]);
+
         try {
-            Mail::to($user->email)->send(new RegistrationReviewMail(
-                $user,
-                $template,
-                $this->buildReplacements($user, $extra)
-            ));
+            Mail::to($user->email)->send(
+                (new RegistrationReviewMail(
+                    $user,
+                    $template,
+                    $this->buildReplacements($user, $extra)
+                ))->with(['trackingToken' => $log?->tracking_token])
+            );
+            $this->communicationLogs->markSent($log);
         } catch (\Throwable $e) {
+            $this->communicationLogs->markFailed($log, $e->getMessage());
             Log::warning('Registration review email failed', [
                 'user_id' => $user->user_id,
                 'template' => $templateKey,

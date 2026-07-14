@@ -12,6 +12,7 @@ class RoleAssignmentMailService
 {
     public function __construct(
         private EmailLocaleResolver $localeResolver,
+        private CommunicationLogService $communicationLogs,
     ) {}
 
     public function ensureDefaults(): void
@@ -29,10 +30,28 @@ class RoleAssignmentMailService
         }
     }
 
-    /** @param array<string, string> $extra */
+    /**
+     * @param  array<string, mixed>  $extra
+     */
     public function send(User $user, string $templateKey, array $extra = []): void
     {
+        $courseId = isset($extra['course_id']) ? (int) $extra['course_id'] : null;
+        $serviceId = isset($extra['service_id']) ? (int) $extra['service_id'] : null;
+        unset($extra['course_id'], $extra['service_id']);
+
         if (! filled($user->email)) {
+            $this->communicationLogs->markSkipped(
+                $this->communicationLogs->record([
+                    'user' => $user,
+                    'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+                    'subject' => $templateKey,
+                    'course_id' => $courseId,
+                    'service_id' => $serviceId,
+                    'metadata' => ['template' => $templateKey, 'family' => 'role_assignment'],
+                ]),
+                __('communications.missing_email')
+            );
+
             return;
         }
 
@@ -56,13 +75,27 @@ class RoleAssignmentMailService
             return;
         }
 
+        $log = $this->communicationLogs->record([
+            'user' => $user,
+            'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+            'subject' => $template->subject,
+            'body_preview' => $template->body_html,
+            'course_id' => $courseId,
+            'service_id' => $serviceId,
+            'metadata' => ['template' => $templateKey, 'family' => 'role_assignment'],
+        ]);
+
         try {
-            Mail::to($user->email)->send(new RoleAssignmentMail(
-                $user,
-                $template,
-                $this->buildReplacements($user, $extra)
-            ));
+            Mail::to($user->email)->send(
+                (new RoleAssignmentMail(
+                    $user,
+                    $template,
+                    $this->buildReplacements($user, $extra)
+                ))->with(['trackingToken' => $log?->tracking_token])
+            );
+            $this->communicationLogs->markSent($log);
         } catch (\Throwable $e) {
+            $this->communicationLogs->markFailed($log, $e->getMessage());
             Log::warning('Role assignment email failed', [
                 'user_id' => $user->user_id,
                 'template' => $templateKey,

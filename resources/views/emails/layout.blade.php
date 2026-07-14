@@ -54,6 +54,11 @@
                         </td>
                     </tr>
                 </table>
+                @if(! empty($trackingToken))
+                    <img src="{{ route('communications.track-open', ['token' => $trackingToken]) }}"
+                         width="1" height="1" alt=""
+                         style="display:block;width:1px;height:1px;border:0;">
+                @endif
             </td>
         </tr>
     </table>
