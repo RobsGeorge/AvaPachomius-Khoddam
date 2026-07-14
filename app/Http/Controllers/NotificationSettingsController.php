@@ -26,6 +26,7 @@ class NotificationSettingsController extends Controller
             ->get();
 
         return view('notifications.settings', [
+            'user' => $user,
             'types' => $types,
             'preferences' => $preferences,
             'reminders' => $reminders,
@@ -36,6 +37,21 @@ class NotificationSettingsController extends Controller
     public function update(Request $request)
     {
         $user = Auth::user();
+
+        $request->merge([
+            'communication_locale' => $request->input('communication_locale') ?: null,
+        ]);
+
+        $validated = $request->validate([
+            'communication_locale' => ['nullable', 'in:ar,en'],
+            'preferences' => ['nullable', 'array'],
+        ]);
+
+        if (\App\Services\EmailTemplateCatalog::userCommunicationLocaleColumnReady()) {
+            $user->communication_locale = $validated['communication_locale'] ?? null;
+            $user->save();
+        }
+
         $this->preferences->save($user, $request->input('preferences', []));
 
         return back()->with('success', __('notifications.settings_saved'));

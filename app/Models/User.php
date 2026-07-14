@@ -58,7 +58,7 @@ class User extends Authenticatable
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
-        'registration_completed', 'application_status',
+        'registration_completed', 'application_status', 'communication_locale',
         'created_at', 'updated_at',
     ];
 

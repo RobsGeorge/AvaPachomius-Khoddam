@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Schema;
 
 class NotificationFeedService
 {
+    public function __construct(
+        private CommunicationLogService $communicationLogs,
+    ) {}
+
     public function unreadCount(User $user): int
     {
         if (! Schema::hasTable('user_notifications')) {
@@ -45,14 +49,24 @@ class NotificationFeedService
         if ($notification->read_at === null) {
             $notification->update(['read_at' => now()]);
         }
+
+        $this->communicationLogs->markReadForRelated(
+            UserNotification::class,
+            (int) $notification->id,
+            (int) $notification->user_id
+        );
     }
 
     public function markAllRead(User $user): int
     {
-        return UserNotification::query()
+        $count = UserNotification::query()
             ->where('user_id', $user->user_id)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        $this->communicationLogs->markAllReadForUser((int) $user->user_id);
+
+        return $count;
     }
 
     public function dismiss(UserNotification $notification): void

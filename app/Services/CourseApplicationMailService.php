@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Mail;
 
 class CourseApplicationMailService
 {
+    public function __construct(
+        private EmailLocaleResolver $localeResolver,
+        private CommunicationLogService $communicationLogs,
+    ) {}
+
     public function ensureDefaults(?int $courseId = null): void
     {
         foreach (['en', 'ar'] as $locale) {
@@ -36,13 +41,31 @@ class CourseApplicationMailService
     public function send(User $user, string $templateKey, CourseApplication $application, array $extra = []): void
     {
         if (! filled($user->email)) {
+            $this->communicationLogs->markSkipped(
+                $this->communicationLogs->record([
+                    'user' => $user,
+                    'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+                    'subject' => $templateKey,
+                    'course_id' => $application->course_id,
+                    'related_type' => CourseApplication::class,
+                    'related_id' => $application->id,
+                    'metadata' => ['template' => $templateKey, 'family' => 'course_application'],
+                ]),
+                __('communications.missing_email')
+            );
+
             return;
         }
 
         $this->ensureDefaults($application->course_id);
         $this->ensureDefaults(null);
 
-        $locale = app()->getLocale();
+        $locale = $this->localeResolver->forRecipient(
+            $user,
+            EmailTemplateCatalog::FAMILY_COURSE_APPLICATION,
+            $templateKey,
+            $application->course_id
+        );
         $template = CourseApplicationReviewTemplate::query()
             ->where('template_key', $templateKey)
             ->where('locale', $locale)
@@ -57,13 +80,28 @@ class CourseApplicationMailService
             return;
         }
 
+        $log = $this->communicationLogs->record([
+            'user' => $user,
+            'channel' => \App\Models\CommunicationLog::CHANNEL_EMAIL,
+            'subject' => $template->subject,
+            'body_preview' => $template->body_html,
+            'course_id' => $application->course_id,
+            'related_type' => CourseApplication::class,
+            'related_id' => $application->id,
+            'metadata' => ['template' => $templateKey, 'family' => 'course_application'],
+        ]);
+
         try {
-            Mail::to($user->email)->send(new CourseApplicationReviewMail(
-                $user,
-                $template,
-                $this->buildReplacements($user, $application, $extra)
-            ));
+            Mail::to($user->email)->send(
+                (new CourseApplicationReviewMail(
+                    $user,
+                    $template,
+                    $this->buildReplacements($user, $application, $extra)
+                ))->with(['trackingToken' => $log?->tracking_token])
+            );
+            $this->communicationLogs->markSent($log);
         } catch (\Throwable $e) {
+            $this->communicationLogs->markFailed($log, $e->getMessage());
             Log::warning('Course application review email failed', [
                 'user_id' => $user->user_id,
                 'application_id' => $application->id,

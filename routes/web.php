@@ -61,6 +61,7 @@ use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AnnouncementManageController;
+use App\Http\Controllers\CommunicationReportController;
 use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
@@ -71,6 +72,7 @@ use App\Http\Controllers\Admin\CourseApplicationFormController;
 use App\Http\Controllers\Admin\ServiceApplicationController as AdminServiceApplicationController;
 use App\Http\Controllers\Admin\ServiceManagementController;
 use App\Http\Controllers\Admin\CourseCertificateTemplateController;
+use App\Http\Controllers\CourseEmailTemplateController;
 use App\Http\Controllers\Admin\CourseClosingController;
 use App\Http\Controllers\ApplicationStatusController;
 use App\Http\Controllers\CourseApplicationController as StudentCourseApplicationController;
@@ -138,6 +140,15 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
+
+Route::get('/communications/t/{token}.gif', [CommunicationReportController::class, 'trackOpen'])
+    ->name('communications.track-open')
+    ->where('token', '[A-Za-z0-9]+');
+
+Route::middleware(['auth', 'permission:communications.report'])->group(function () {
+    Route::get('/communications/report', [CommunicationReportController::class, 'index'])->name('communications.report');
+    Route::get('/communications/report/export', [CommunicationReportController::class, 'export'])->name('communications.report.export');
+});
 
 Route::middleware(['auth', 'attendance.staff'])->group(function () {
     Route::get('/attendance/sessions', [AttendanceController::class, 'showTodaySessions'])->name('attendance.sessions');
@@ -420,6 +431,9 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::post('/courses/{course}/closing/close', [CourseClosingController::class, 'close'])->name('courses.closing.close');
     Route::get('/courses/{course}/certificate-template', [CourseCertificateTemplateController::class, 'edit'])->name('courses.certificate-template.edit');
     Route::put('/courses/{course}/certificate-template', [CourseCertificateTemplateController::class, 'update'])->name('courses.certificate-template.update');
+    Route::get('/courses/{course}/email-templates', [CourseEmailTemplateController::class, 'index'])->name('courses.email-templates.index');
+    Route::put('/courses/{course}/email-templates', [CourseEmailTemplateController::class, 'update'])->name('courses.email-templates.update');
+    Route::post('/courses/{course}/email-templates/preview', [CourseEmailTemplateController::class, 'preview'])->name('courses.email-templates.preview');
 
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');

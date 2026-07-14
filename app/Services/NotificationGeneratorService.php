@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CommunicationLog;
 use App\Models\User;
 use App\Models\UserNotification;
 use Illuminate\Support\Facades\Log;
@@ -10,7 +11,8 @@ class NotificationGeneratorService
 {
     public function __construct(
         private NotificationDispatchService $dispatch,
-        private NotificationPreferenceService $preferences
+        private NotificationPreferenceService $preferences,
+        private CommunicationLogService $communicationLogs,
     ) {}
 
     /**
@@ -53,6 +55,22 @@ class NotificationGeneratorService
                     'dismissed_at' => null,
                 ]
             );
+
+            if ($notification->wasRecentlyCreated) {
+                $this->communicationLogs->record([
+                    'user' => $user,
+                    'channel' => CommunicationLog::CHANNEL_PORTAL,
+                    'status' => CommunicationLog::STATUS_SENT,
+                    'subject' => $title,
+                    'body_preview' => $body,
+                    'course_id' => isset($metadata['course_id']) ? (int) $metadata['course_id'] : null,
+                    'service_id' => isset($metadata['service_id']) ? (int) $metadata['service_id'] : null,
+                    'related_type' => UserNotification::class,
+                    'related_id' => $notification->id,
+                    'sent_at' => now(),
+                    'metadata' => ['type' => $type, 'source_type' => $sourceType, 'source_id' => $sourceId],
+                ]);
+            }
         }
 
         if ($dispatch) {
