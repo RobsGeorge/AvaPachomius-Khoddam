@@ -18,23 +18,35 @@
         <p class="text-muted-theme mb-4">{{ __('service.select_hint') }}</p>
     @endif
 
-    <div class="row g-3">
-        @forelse($links as $link)
-            <div class="col-sm-6">
-                <a href="{{ $link['url'] }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none {{ !empty($link['active']) ? 'hub-tile-active' : '' }}">
-                    <h3 class="h5 mb-0">
-                        <i class="bi {{ $link['icon'] }}"></i>
-                        {{ $link['label'] }}
-                    </h3>
-                </a>
+    @if(empty($links))
+        <div class="app-tile text-center text-muted-theme py-5">
+            {{ __('service.no_services_hint') }}
+        </div>
+    @else
+        @php
+            $grouped = collect($links)->groupBy(fn ($link) => $link['category'] ?? 'ops');
+            $sections = [
+                'ops' => __('service.hub_section_ops'),
+                'admin' => __('service.hub_section_admin'),
+            ];
+        @endphp
+
+        @foreach($sections as $key => $title)
+            @continue(($grouped[$key] ?? collect())->isEmpty())
+            <h2 class="h6 text-muted-theme text-uppercase mb-2 {{ $loop->first ? 'mt-0' : 'mt-3' }}">{{ $title }}</h2>
+            <div class="row g-3 mb-3">
+                @foreach($grouped[$key] as $link)
+                    <div class="col-sm-6">
+                        <a href="{{ $link['url'] }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none {{ !empty($link['active']) ? 'hub-tile-active' : '' }}">
+                            <h3 class="h5 mb-0">
+                                <i class="bi {{ $link['icon'] }}"></i>
+                                {{ $link['label'] }}
+                            </h3>
+                        </a>
+                    </div>
+                @endforeach
             </div>
-        @empty
-            <div class="col-12">
-                <div class="app-tile text-center text-muted-theme py-5">
-                    {{ __('service.no_services_hint') }}
-                </div>
-            </div>
-        @endforelse
-    </div>
+        @endforeach
+    @endif
 </div>
 @endsection

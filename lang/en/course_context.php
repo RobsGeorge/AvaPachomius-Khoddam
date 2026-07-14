@@ -2,7 +2,7 @@
 
 return [
     'select_title' => 'Choose your course',
-    'select_intro' => 'Select the course you want to work in. You can switch courses anytime from the navigation bar.',
+    'select_intro' => 'Select the course year within your current service. Switch service first if you belong to more than one.',
     'your_role' => 'Your role: :role',
     'status_active' => 'Active',
     'status_grading_locked' => 'Grading locked',

@@ -7,6 +7,13 @@
     <div class="text-center mb-5">
         <p class="text-muted-theme small mb-1">{{ __('app.institute_name') }}</p>
         <h1 class="page-title mb-2">{{ __('course_context.select_title') }}</h1>
+        @if(!empty($currentService))
+            <p class="mb-2">
+                <span class="badge bg-primary-subtle text-primary-emphasis border">
+                    <i class="bi bi-building me-1"></i>{{ $currentService->localizedTitle() }}
+                </span>
+            </p>
+        @endif
         <p class="text-muted-theme mb-0 mx-auto" style="max-width: 36rem;">{{ __('course_context.select_intro') }}</p>
     </div>
 

@@ -32,10 +32,10 @@ class RolesHubController extends Controller
             $section = $visibleSections[0] ?? 'course';
         }
 
-        $course = $this->hub->resolveCourse($user, $request->query('course'));
-        $manageableCourses = $this->hub->manageableCourses($user);
         $service = $this->hub->resolveService($user, $request->query('service'));
         $manageableServices = $this->hub->manageableServices($user);
+        $manageableCourses = $this->hub->manageableCourses($user, $service);
+        $course = $this->hub->resolveCourse($user, $request->query('course'), $service);
 
         $roles = collect();
         $assignments = collect();

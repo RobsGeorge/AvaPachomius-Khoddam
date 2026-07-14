@@ -415,6 +415,7 @@ return [
     'superadmin_section_platform' => 'المنصة والأمان',
     'superadmin_section_portal'   => 'الوصول للبوابة',
     'superadmin_courses_desc'     => 'إنشاء وحذف الدورات على مستوى المعهد.',
+    'superadmin_services_desc'    => 'إنشاء الخدمات وربط الدورات وإدارة طبقة الخدمة.',
     'superadmin_course_roles_page_desc' => 'تعيين أدوار المشرف أو المُدرّس أو الطالب المرتبطة بدورة لكل مستخدم.',
     'superadmin_system_roles_desc' => 'إنشاء أدوار نظام وتعيين مساعدين لإدارة المعهد دون ربطهم بدورة.',
     'superadmin_templates_desc'   => 'تعديل قوالب الأدوار الافتراضية المنسوخة للدورات الجديدة.',

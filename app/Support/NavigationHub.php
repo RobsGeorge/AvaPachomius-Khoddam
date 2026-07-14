@@ -128,9 +128,9 @@ class NavigationHub
         $manageable = $rolesHub->manageableServices($user);
 
         if ($selectable->isNotEmpty() || ($user->is_superadmin ?? false)) {
-            $links[] = self::link('services.select', 'service.select_title', 'bi-building', [
+            $links[] = array_merge(self::link('services.select', 'service.select_title', 'bi-building', [
                 'services.select', 'services.select.*',
-            ], 'service.view');
+            ], 'service.view'), ['category' => 'ops']);
         }
 
         if ($accessibleRoster->isNotEmpty()) {
@@ -141,7 +141,28 @@ class NavigationHub
                 'icon' => 'bi-people',
                 'active' => request()->routeIs('services.roster'),
                 'permission' => 'service.view',
+                'category' => 'ops',
             ];
+        }
+
+        if ($user->canInSystem('service_application.review')) {
+            $links[] = array_merge(self::link(
+                'admin.service-applications.index',
+                'service.applications_admin_title',
+                'bi-clipboard-check',
+                ['admin.service-applications.*'],
+                'service_application.review'
+            ), ['category' => 'ops']);
+        }
+
+        if ($user->canInSystem('platform.service_crud')) {
+            $links[] = array_merge(self::link(
+                'admin.services.index',
+                'service.manage_title',
+                'bi-building-gear',
+                ['admin.services.*'],
+                'platform.service_crud'
+            ), ['category' => 'admin']);
         }
 
         if ($manageable->isNotEmpty()) {
@@ -154,17 +175,8 @@ class NavigationHub
                 'icon' => 'bi-shield-check',
                 'active' => request()->routeIs('roles.hub') && request()->query('section') === 'service',
                 'permission' => 'service.role.manage',
+                'category' => 'admin',
             ];
-        }
-
-        if ($user->canInSystem('service_application.review')) {
-            $links[] = self::link(
-                'admin.service-applications.index',
-                'service.applications_admin_title',
-                'bi-clipboard-check',
-                ['admin.service-applications.*'],
-                'service_application.review'
-            );
         }
 
         if ($current instanceof ChurchService) {
@@ -183,6 +195,7 @@ class NavigationHub
                     'icon' => 'bi-hourglass-split',
                     'active' => request()->routeIs('services.application.status'),
                     'permission' => 'service.view',
+                    'category' => 'ops',
                 ];
             } elseif (! $belongs && ! ($user->is_superadmin ?? false)) {
                 $links[] = [
@@ -191,6 +204,7 @@ class NavigationHub
                     'icon' => 'bi-person-plus',
                     'active' => request()->routeIs('services.apply', 'services.apply.store'),
                     'permission' => 'service_application.form_builder',
+                    'category' => 'ops',
                 ];
             }
         }
@@ -280,6 +294,7 @@ class NavigationHub
 
         $exclusiveLinks = [
             self::hubLink('superadmin.index', 'nav.superadmin', 'pages.superadmin_hub_desc', 'bi-shield-lock-fill', ['superadmin.index'], true),
+            self::hubLink('admin.services.index', 'service.manage_title', 'pages.superadmin_services_desc', 'bi-building-gear', ['admin.services.*'], true),
             self::hubLink('superadmin.courses', 'pages.manage_courses', 'pages.superadmin_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
             self::hubLink('roles.hub', 'rbac.hub_title', 'rbac.hub_intro', 'bi-shield-check', [
                 'roles.hub',
@@ -326,7 +341,7 @@ class NavigationHub
         }
 
         $sharedLinks[] = self::hubLink('hubs.academic', 'nav.academic', 'nav.academic_desc', 'bi-mortarboard', ['hubs.academic'], false);
-        $sharedLinks[] = self::hubLink('hubs.service', 'nav.service', 'nav.service_desc', 'bi-building', ['hubs.service', 'services.select', 'services.roster'], false);
+        $sharedLinks[] = self::hubLink('hubs.service', 'nav.service', 'nav.service_desc', 'bi-building', ['hubs.service', 'services.select', 'services.roster', 'admin.services.*'], false);
         $sharedLinks[] = self::hubLink('hubs.system', 'nav.system_settings', 'nav.system_settings_desc', 'bi-gear', ['hubs.system'], false);
         $sharedLinks[] = self::hubLink('courses.select', 'course_context.switch_course', 'pages.superadmin_course_picker_desc', 'bi-grid', ['courses.select'], false);
 
@@ -396,7 +411,7 @@ class NavigationHub
             return false;
         }
 
-        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*')) {
+        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*')) {
             return true;
         }
 

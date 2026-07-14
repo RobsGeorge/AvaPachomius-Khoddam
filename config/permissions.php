@@ -628,7 +628,15 @@ return [
                 'label_en' => 'Create/delete courses',
                 'label_ar' => 'إنشاء/حذف الدورات',
                 'type' => 'endpoint',
-                'routes' => ['superadmin.courses.store', 'superadmin.courses.destroy'],
+                'routes' => ['superadmin.courses.store', 'superadmin.courses.destroy', 'superadmin.courses'],
+                'system_only' => true,
+            ],
+            'platform.service_crud' => [
+                'label_en' => 'Create/manage services',
+                'label_ar' => 'إنشاء/إدارة الخدمات',
+                'type' => 'both',
+                'routes' => ['admin.services.*'],
+                'nav' => ['service.manage_panel'],
                 'system_only' => true,
             ],
             'platform.group_visibility' => [
