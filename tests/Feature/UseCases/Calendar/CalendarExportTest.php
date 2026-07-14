@@ -59,4 +59,36 @@ class CalendarExportTest extends EventModuleTestCase
     {
         $this->get(route('calendar.ics'))->assertRedirect(route('login'));
     }
+
+    public function test_feed_includes_course_peers_and_staff_birthdays_but_not_self_or_outsiders(): void
+    {
+        $course = $this->createCourse();
+        $otherCourse = $this->createCourse();
+        $studentRole = $this->createRole('student');
+        $instructorRole = $this->createRole('instructor');
+
+        $viewer = $this->createUser(['email' => 'bd-viewer@example.com', 'date_of_birth' => '2001-05-05']);
+        $this->assignCourseRole($viewer, $course, $studentRole);
+
+        $peer = $this->createUser(['email' => 'bd-peer@example.com', 'date_of_birth' => '2002-03-14']);
+        $this->assignCourseRole($peer, $course, $studentRole);
+
+        $instructor = $this->createUser(['email' => 'bd-instructor@example.com', 'date_of_birth' => '1990-07-20']);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+
+        $outsider = $this->createUser(['email' => 'bd-outsider@example.com', 'date_of_birth' => '2000-01-01']);
+        $this->assignCourseRole($outsider, $otherCourse, $studentRole);
+
+        $ics = app(CalendarService::class)->icsForUser($viewer->fresh());
+
+        // Peer (student) and instructor (staff) of the shared course appear, as yearly events.
+        $this->assertStringContainsString('birthday-'.$peer->user_id.'@khedma', $ics);
+        $this->assertStringContainsString('birthday-'.$instructor->user_id.'@khedma', $ics);
+        $this->assertStringContainsString('RRULE:FREQ=YEARLY', $ics);
+        $this->assertStringContainsString('DTSTART;VALUE=DATE:', $ics);
+
+        // Not the viewer's own birthday, and not someone from another course.
+        $this->assertStringNotContainsString('birthday-'.$viewer->user_id.'@khedma', $ics);
+        $this->assertStringNotContainsString('birthday-'.$outsider->user_id.'@khedma', $ics);
+    }
 }

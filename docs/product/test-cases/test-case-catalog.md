@@ -62,7 +62,7 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-DASH-01..03 | UC-CRS-08 (F-01) | Per-persona dashboard focus panel: student sees upcoming exams, reviewer sees application queue, empty user sees no panel | feature | ✅ `UseCases/Dashboard/DashboardFocusTest` | P1 |
 | TC-ML-01..03 | UC-GRD/CERT-* (F-02) | "My learning" aggregates per-course grades/attendance/certificate; empty state when unenrolled | feature | ✅ `UseCases/Learning/MyLearningTest` | P1 |
 | TC-APP-01..04 | UC-AUTH-08 (F-04) | Applicant status timeline; inline correction guidance lists rejected fields+notes; localized help/FAQ; help requires auth | feature | ✅ `UseCases/Applicant/ApplicantExperienceTest` | P1 |
-| TC-CAL-01..03 | UC-CUR/EXAM/EVT (F-06) | Personal iCalendar feed aggregates upcoming sessions/exams/events; `.ics` attachment; requires auth | feature | ✅ `UseCases/Calendar/CalendarExportTest` | P1 |
+| TC-CAL-01..04 | UC-CUR/EXAM/EVT (F-06) | Personal iCalendar feed aggregates upcoming sessions/exams/events + course-scoped birthdays (yearly, students+staff, not self/outsiders); `.ics` attachment; requires auth | feature | ✅ `UseCases/Calendar/CalendarExportTest` | P1 |
 | TC-AUDIT-01..03 | UC-SA-02 (F-09) | Superadmin exports filtered activity log as CSV; date-range scopes the export; non-superadmin forbidden | feature | ✅ `UseCases/Admin/AuditVisibilityTest` | P1 |
 | TC-PRINT-01 | UC-GRD/CERT-* (F-07) | Pages ship a print stylesheet + print affordance (final grades / My learning) | feature | ✅ `UseCases/Admin/AuditVisibilityTest::test_final_grades_page_offers_a_print_button` | P2 |
 

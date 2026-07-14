@@ -30,6 +30,7 @@ class CalendarService
             ->merge($this->examItems($user))
             ->merge($this->sessionItems($user))
             ->merge($this->eventItems($user))
+            ->merge($this->birthdayItems($user))
             ->sortBy(fn ($item) => $item['start']->getTimestamp())
             ->values()
             ->all();
@@ -53,6 +54,9 @@ class CalendarService
 
             if ($item['all_day']) {
                 $lines[] = 'DTSTART;VALUE=DATE:'.$item['start']->format('Ymd');
+                if (! empty($item['rrule'] ?? null)) {
+                    $lines[] = 'RRULE:'.$item['rrule'];
+                }
             } else {
                 $lines[] = 'DTSTART:'.$item['start']->clone()->utc()->format('Ymd\THis\Z');
                 if ($item['end']) {
@@ -162,6 +166,51 @@ class CalendarService
             'location' => $event->location,
             'description' => $event->description,
         ])->filter(fn ($item) => $item['start'] !== null);
+    }
+
+    /**
+     * Birthdays of the people the user shares a course with (students + staff of
+     * their enrolled/accessible courses) — the same course-scoped visibility the
+     * dashboard birthday widget already uses. Rendered as yearly all-day events.
+     */
+    private function birthdayItems(User $user): Collection
+    {
+        $courseIds = $this->relevantCourseIds($user);
+        if ($courseIds->isEmpty()) {
+            return collect();
+        }
+
+        $people = collect();
+        foreach ($courseIds as $courseId) {
+            $people = $people
+                ->merge($this->roster->enrolledStudents((string) $courseId))
+                ->merge($this->roster->courseStaff((string) $courseId));
+        }
+
+        $year = (int) now()->year;
+
+        return $people
+            ->unique('user_id')
+            ->filter(fn (User $p) => $p->user_id !== $user->user_id && $p->date_of_birth !== null)
+            ->map(function (User $p) use ($year) {
+                $dob = $p->date_of_birth;
+                // Anchor to this year's occurrence (no birth year → no age disclosed);
+                // clamp the day so Feb 29 in a non-leap year does not overflow.
+                $start = Carbon::create($year, (int) $dob->month, 1)->startOfDay();
+                $start->day(min((int) $dob->day, $start->daysInMonth));
+
+                return [
+                    'uid' => 'birthday-'.$p->user_id.'@khedma',
+                    'summary' => __('calendar.birthday_of', ['name' => $p->displayName()]),
+                    'start' => $start,
+                    'end' => null,
+                    'all_day' => true,
+                    'rrule' => 'FREQ=YEARLY',
+                    'location' => null,
+                    'description' => null,
+                ];
+            })
+            ->values();
     }
 
     private function escape(?string $value): string
