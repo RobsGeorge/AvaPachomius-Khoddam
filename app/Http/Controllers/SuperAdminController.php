@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
@@ -29,9 +30,12 @@ class SuperAdminController extends Controller
 
     public function courses()
     {
-        $courses = Course::orderBy('year', 'desc')->orderBy('title')->get();
+        $courses = Course::with('service')->orderBy('year', 'desc')->orderBy('title')->get();
+        $services = ChurchService::tableReady()
+            ? ChurchService::query()->where('status', ChurchService::STATUS_ACTIVE)->orderBy('title')->get()
+            : collect();
 
-        return view('superadmin.courses', compact('courses'));
+        return view('superadmin.courses', compact('courses', 'services'));
     }
 
     public function courseRoles()
@@ -145,21 +149,33 @@ class SuperAdminController extends Controller
 
     public function storeCourse(Request $request)
     {
-        $request->validate([
+        $rules = [
             'title'       => 'required|string|max:30',
             'description' => 'required|string|max:255',
             'year'        => 'required|integer|min:2000|max:2100',
             'default_session_start_time' => 'required|date_format:H:i',
             'clone_templates' => 'boolean',
             'inherit_from_course_id' => 'nullable|exists:course,course_id',
-        ]);
+        ];
 
-        $course = Course::create([
+        if (ChurchService::tableReady()) {
+            $rules['service_id'] = 'required|exists:service,service_id';
+        }
+
+        $request->validate($rules);
+
+        $payload = [
             'title' => $request->input('title'),
             'description' => $request->input('description'),
             'year' => $request->input('year'),
             'default_session_start_time' => $request->input('default_session_start_time').':00',
-        ]);
+        ];
+
+        if (ChurchService::tableReady()) {
+            $payload['service_id'] = (int) $request->input('service_id');
+        }
+
+        $course = Course::create($payload);
 
         $templates = app(RoleTemplateService::class);
         if ($request->boolean('clone_templates', true)) {

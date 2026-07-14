@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Services\CourseContextService;
+use App\Services\ServiceContextService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -11,6 +13,7 @@ class CourseContextController extends Controller
 {
     public function __construct(
         private CourseContextService $courseContext,
+        private ServiceContextService $serviceContext,
     ) {}
 
     public function show(Request $request)
@@ -18,12 +21,25 @@ class CourseContextController extends Controller
         $user = Auth::user();
         abort_unless($user, 403);
 
+        if (ChurchService::tableReady() && $this->serviceContext->requiresServiceContext($user)) {
+            $this->serviceContext->autoSelectSingleService($user);
+            if (! $this->serviceContext->currentService($user)) {
+                return redirect()->route('services.select', [
+                    'intended' => $request->fullUrl(),
+                ]);
+            }
+        }
+
+        $currentService = ChurchService::tableReady()
+            ? $this->serviceContext->currentService($user)
+            : null;
         $courses = $this->courseContext->selectableCourses($user);
         $current = $this->courseContext->currentCourse($user);
 
         return view('courses.select', [
             'courses' => $courses,
             'currentCourse' => $current,
+            'currentService' => $currentService,
             'intended' => $request->query('intended'),
         ]);
     }

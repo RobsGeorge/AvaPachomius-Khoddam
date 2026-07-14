@@ -29,6 +29,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>{{ __('pages.course_title') }}</th>
+                            <th>{{ __('service.label') }}</th>
                             <th>{{ __('pages.year') }}</th>
                             <th></th>
                         </tr>
@@ -42,6 +43,7 @@
                                         {{ $course->description }}
                                     </div>
                                 </td>
+                                <td>{{ $course->service?->localizedTitle() ?? '—' }}</td>
                                 <td>{{ $course->year }}</td>
                                 <td>
                                     <form method="POST"
@@ -57,7 +59,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="text-center text-muted-theme py-3">
+                                <td colspan="4" class="text-center text-muted-theme py-3">
                                     {{ __('pages.no_courses_yet') }}
                                 </td>
                             </tr>
@@ -67,6 +69,12 @@
             </div>
         </div>
         <div class="card-footer">
+            @if(($services ?? collect())->isEmpty())
+                <div class="alert alert-warning mb-3">
+                    {{ __('service.course_parent_hint') }}
+                    <a href="{{ route('admin.services.index') }}" class="alert-link">{{ __('service.create') }}</a>
+                </div>
+            @endif
             <form method="POST" action="{{ route('superadmin.courses.store') }}">
                 @csrf
                 <div class="row g-2">
@@ -90,6 +98,19 @@
                         @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">{{ __('service.label') }}</label>
+                        <select name="service_id" class="form-select form-select-sm @error('service_id') is-invalid @enderror" required>
+                            <option value="">{{ __('service.choose_service') }}</option>
+                            @foreach($services ?? [] as $service)
+                                <option value="{{ $service->service_id }}" @selected((string) old('service_id') === (string) $service->service_id)>
+                                    {{ $service->localizedTitle() }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('service_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">{{ __('service.course_parent_hint') }}</div>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label small fw-semibold mb-1">{{ __('pages.default_session_start_time') }}</label>
                         <input type="time" name="default_session_start_time"
                                class="form-control form-control-sm @error('default_session_start_time') is-invalid @enderror"
@@ -97,7 +118,7 @@
                         <div class="form-text">{{ __('pages.course_default_session_start_time_hint') }}</div>
                         @error('default_session_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-md-6 d-flex align-items-end">
+                    <div class="col-12 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100 btn-sm">
                             <i class="bi bi-plus-circle"></i> {{ __('pages.create_course') }}
                         </button>

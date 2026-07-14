@@ -111,10 +111,15 @@ class RolesHubService
     }
 
     /** @return Collection<int, Course> */
-    public function manageableCourses(User $user): Collection
+    public function manageableCourses(User $user, ?ChurchService $withinService = null): Collection
     {
         if ($user->is_superadmin ?? false) {
-            return Course::query()->orderByDesc('year')->orderBy('title')->get();
+            $query = Course::query()->orderByDesc('year')->orderBy('title');
+            if ($withinService) {
+                $query->where('service_id', $withinService->service_id);
+            }
+
+            return $query->get();
         }
 
         $courseIds = $user->userCourseRoles()
@@ -124,6 +129,7 @@ class RolesHubService
 
         return Course::query()
             ->whereIn('course_id', $courseIds)
+            ->when($withinService, fn ($q) => $q->where('service_id', $withinService->service_id))
             ->orderByDesc('year')
             ->orderBy('title')
             ->get()
@@ -132,19 +138,25 @@ class RolesHubService
             ->values();
     }
 
-    public function resolveCourse(User $user, mixed $courseId): ?Course
+    public function resolveCourse(User $user, mixed $courseId, ?ChurchService $withinService = null): ?Course
     {
+        $manageable = $this->manageableCourses($user, $withinService);
+
         if (! $courseId) {
             $current = current_course();
-            if ($current && $this->manageableCourses($user)->contains('course_id', $current->course_id)) {
+            if ($current && $manageable->contains('course_id', $current->course_id)) {
                 return $current;
             }
 
-            return $this->manageableCourses($user)->first();
+            return $manageable->first();
         }
 
         $course = Course::find($courseId);
         if (! $course) {
+            return null;
+        }
+
+        if ($withinService && (int) ($course->service_id ?? 0) !== (int) $withinService->service_id) {
             return null;
         }
 

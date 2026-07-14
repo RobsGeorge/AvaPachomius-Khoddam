@@ -74,40 +74,53 @@ class AppLayoutComposer
             $view->with('showStudentOnboarding', false);
         }
 
-        $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
-        $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
-        $supportsCourseSwitcher = $requiresCourseContext
-            || $this->courseContext->supportsOptionalCourseContext($user);
-
-        $view->with('currentCourse', $currentCourse);
-        $view->with('requiresCourseContext', $requiresCourseContext);
-        $view->with('supportsCourseSwitcher', $supportsCourseSwitcher);
-        $view->with('isSystemWideMode', $this->courseContext->isSystemWideMode($user));
-        $view->with('selectableCourses', $supportsCourseSwitcher
-            ? $this->courseContext->selectableCourses($user)
-            : collect());
-        $view->with('instituteName', __('app.institute_name'));
-        $view->with('courseBrandingCss', $this->courseContext->brandingCss($currentCourse));
-
         $serviceReady = ChurchService::tableReady();
         $currentService = $serviceReady ? (current_service() ?? $this->serviceContext->currentService($user)) : null;
         $requiresServiceContext = $serviceReady && $this->serviceContext->requiresServiceContext($user);
-        $supportsServiceSwitcher = $serviceReady && (
+        $serviceCapability = $serviceReady && (
             $requiresServiceContext
             || $this->serviceContext->supportsOptionalServiceContext($user)
         );
-        $selectableServices = $supportsServiceSwitcher
+        $selectableServices = $serviceCapability
             ? $this->serviceContext->selectableServices($user)
             : collect();
 
-        // Superadmins may want the switcher even with zero services; members only when selectable.
-        if ($supportsServiceSwitcher && ! ($user->is_superadmin ?? false) && $selectableServices->isEmpty()) {
-            $supportsServiceSwitcher = false;
-        }
+        // Members: switcher only when multiple. Superadmin in system-wide mode keeps
+        // a picker when at least one option exists so they can enter that context.
+        $isSuper = (bool) ($user->is_superadmin ?? false);
+        $supportsServiceSwitcher = $serviceCapability && (
+            $selectableServices->count() > 1
+            || ($isSuper && $selectableServices->isNotEmpty() && ! $currentService)
+        );
+        $showServiceContextLabel = (bool) $currentService && ! $supportsServiceSwitcher;
+
+        $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
+        $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
+        $courseCapability = $requiresCourseContext
+            || $this->courseContext->supportsOptionalCourseContext($user);
+        $selectableCourses = $courseCapability
+            ? $this->courseContext->selectableCourses($user)
+            : collect();
+
+        $supportsCourseSwitcher = $courseCapability && (
+            $selectableCourses->count() > 1
+            || ($isSuper && $selectableCourses->isNotEmpty() && ! $currentCourse)
+        );
+        $showCourseContextLabel = (bool) $currentCourse && ! $supportsCourseSwitcher;
 
         $view->with('currentService', $currentService);
         $view->with('requiresServiceContext', $requiresServiceContext);
         $view->with('supportsServiceSwitcher', $supportsServiceSwitcher);
+        $view->with('showServiceContextLabel', $showServiceContextLabel);
         $view->with('selectableServices', $selectableServices);
+
+        $view->with('currentCourse', $currentCourse);
+        $view->with('requiresCourseContext', $requiresCourseContext);
+        $view->with('supportsCourseSwitcher', $supportsCourseSwitcher);
+        $view->with('showCourseContextLabel', $showCourseContextLabel);
+        $view->with('isSystemWideMode', $this->courseContext->isSystemWideMode($user));
+        $view->with('selectableCourses', $selectableCourses);
+        $view->with('instituteName', __('app.institute_name'));
+        $view->with('courseBrandingCss', $this->courseContext->brandingCss($currentCourse));
     }
 }

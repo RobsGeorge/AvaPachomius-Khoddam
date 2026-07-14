@@ -18,6 +18,69 @@
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 @auth
+                    {{-- Service first, then course (service owns courses). --}}
+                    @if(!empty($supportsServiceSwitcher))
+                        <div class="dropdown">
+                            <button type="button"
+                                    class="brand-link dropdown-toggle border-0 bg-transparent p-0"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="{{ __('service.switch_service') }}">
+                                <i class="bi bi-building ms-1"></i>
+                                @if(!empty($currentService))
+                                    {{ $currentService->localizedTitle() }}
+                                @elseif($navUser->is_superadmin ?? false)
+                                    {{ __('service.system_wide_mode') }}
+                                @else
+                                    {{ __('service.select_title') }}
+                                @endif
+                            </button>
+                            <ul class="dropdown-menu app-dropdown-panel">
+                                @if($navUser->is_superadmin ?? false)
+                                    <li>
+                                        <form method="POST" action="{{ route('services.select.clear') }}">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item app-dropdown-link {{ empty($currentService) ? 'active fw-semibold' : '' }}">
+                                                <i class="bi bi-globe2 me-2"></i>{{ __('service.system_wide_mode') }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                @endif
+                                @foreach($selectableServices ?? [] as $switchService)
+                                    <li>
+                                        <form method="POST" action="{{ route('services.select.store') }}">
+                                            @csrf
+                                            <input type="hidden" name="service_id" value="{{ $switchService->service_id }}">
+                                            <button type="submit"
+                                                    class="dropdown-item app-dropdown-link {{ ($currentService->service_id ?? null) === $switchService->service_id ? 'active fw-semibold' : '' }}">
+                                                {{ $switchService->localizedTitle() }}
+                                            </button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item app-dropdown-link" href="{{ route('services.select') }}">
+                                        <i class="bi bi-grid me-2"></i>{{ __('service.switch_service') }}
+                                    </a>
+                                </li>
+                                @if($hasService)
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link" href="{{ route('hubs.service') }}">
+                                            <i class="bi bi-building me-2"></i>{{ __('nav.service') }}
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
+                    @elseif(!empty($showServiceContextLabel) && !empty($currentService))
+                        <span class="brand-link" title="{{ __('service.current_service') }}">
+                            <i class="bi bi-building ms-1"></i>
+                            {{ $currentService->localizedTitle() }}
+                        </span>
+                    @endif
+
                     @if(!empty($supportsCourseSwitcher))
                         @if(!empty($currentCourse))
                             <div class="dropdown">
@@ -105,68 +168,16 @@
                                 {{ $instituteName ?? __('app.institute_name') }}
                             </a>
                         @endif
+                    @elseif(!empty($showCourseContextLabel) && !empty($currentCourse))
+                        <span class="brand-link" title="{{ __('course_context.current_course') }}">
+                            <i class="bi bi-mortarboard-fill ms-1"></i>
+                            {{ $currentCourse->localizedTitle() }}
+                        </span>
                     @else
                         <a href="{{ route('dashboard') }}" class="brand-link">
                             <i class="bi bi-mortarboard-fill ms-1"></i>
                             {{ __('app.name') }}
                         </a>
-                    @endif
-
-                    @if(!empty($supportsServiceSwitcher))
-                        <div class="dropdown">
-                            <button type="button"
-                                    class="brand-link dropdown-toggle border-0 bg-transparent p-0"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
-                                    aria-label="{{ __('service.switch_service') }}">
-                                <i class="bi bi-building ms-1"></i>
-                                @if(!empty($currentService))
-                                    {{ $currentService->localizedTitle() }}
-                                @elseif($navUser->is_superadmin ?? false)
-                                    {{ __('service.system_wide_mode') }}
-                                @else
-                                    {{ __('service.select_title') }}
-                                @endif
-                            </button>
-                            <ul class="dropdown-menu app-dropdown-panel">
-                                @if($navUser->is_superadmin ?? false)
-                                    <li>
-                                        <form method="POST" action="{{ route('services.select.clear') }}">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item app-dropdown-link {{ empty($currentService) ? 'active fw-semibold' : '' }}">
-                                                <i class="bi bi-globe2 me-2"></i>{{ __('service.system_wide_mode') }}
-                                            </button>
-                                        </form>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                @endif
-                                @foreach($selectableServices ?? [] as $switchService)
-                                    <li>
-                                        <form method="POST" action="{{ route('services.select.store') }}">
-                                            @csrf
-                                            <input type="hidden" name="service_id" value="{{ $switchService->service_id }}">
-                                            <button type="submit"
-                                                    class="dropdown-item app-dropdown-link {{ ($currentService->service_id ?? null) === $switchService->service_id ? 'active fw-semibold' : '' }}">
-                                                {{ $switchService->localizedTitle() }}
-                                            </button>
-                                        </form>
-                                    </li>
-                                @endforeach
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item app-dropdown-link" href="{{ route('services.select') }}">
-                                        <i class="bi bi-grid me-2"></i>{{ __('service.switch_service') }}
-                                    </a>
-                                </li>
-                                @if($hasService)
-                                    <li>
-                                        <a class="dropdown-item app-dropdown-link" href="{{ route('hubs.service') }}">
-                                            <i class="bi bi-building me-2"></i>{{ __('nav.service') }}
-                                        </a>
-                                    </li>
-                                @endif
-                            </ul>
-                        </div>
                     @endif
                 @else
                     <a href="{{ route('login') }}" class="brand-link">

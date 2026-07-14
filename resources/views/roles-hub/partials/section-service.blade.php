@@ -14,7 +14,7 @@
     </h2>
     <div id="section-service" class="accordion-collapse collapse {{ $open ? 'show' : '' }}" data-bs-parent="#rolesHubAccordion">
         <div class="accordion-body py-2 px-3">
-            @if(($manageableServices ?? collect())->isNotEmpty())
+            @if(($manageableServices ?? collect())->count() > 1)
                 <form method="GET" action="{{ route('roles.hub') }}" class="d-flex flex-wrap gap-2 align-items-center mb-3">
                     <input type="hidden" name="section" value="service">
                     <label for="hub-service" class="small text-muted-theme mb-0">{{ __('service.label') }}</label>
@@ -26,6 +26,12 @@
                         @endforeach
                     </select>
                 </form>
+            @elseif($service ?? null)
+                <p class="small mb-3">
+                    <span class="badge bg-primary-subtle text-primary-emphasis border">
+                        <i class="bi bi-building me-1"></i>{{ $service->localizedTitle() }}
+                    </span>
+                </p>
             @endif
 
             @if(! ($service ?? null))

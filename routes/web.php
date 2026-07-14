@@ -69,6 +69,7 @@ use App\Http\Controllers\Admin\RegistrationApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationFormController;
 use App\Http\Controllers\Admin\ServiceApplicationController as AdminServiceApplicationController;
+use App\Http\Controllers\Admin\ServiceManagementController;
 use App\Http\Controllers\Admin\CourseCertificateTemplateController;
 use App\Http\Controllers\Admin\CourseClosingController;
 use App\Http\Controllers\ApplicationStatusController;
@@ -198,6 +199,15 @@ Route::middleware('auth')->group(function () {
     
     // Regular user attendance view
     Route::get('/attendance/my', [AttendanceController::class, 'viewMyAttendance'])->name('attendance.my');
+});
+
+Route::middleware(['auth', 'permission:platform.service_crud'])->prefix('admin/services')->name('admin.services.')->group(function () {
+    Route::get('/', [ServiceManagementController::class, 'index'])->name('index');
+    Route::post('/', [ServiceManagementController::class, 'store'])->name('store');
+    Route::get('/{service}/edit', [ServiceManagementController::class, 'edit'])->name('edit');
+    Route::put('/{service}', [ServiceManagementController::class, 'update'])->name('update');
+    Route::post('/{service}/link-course', [ServiceManagementController::class, 'linkCourse'])->name('link-course');
+    Route::post('/{service}/archive', [ServiceManagementController::class, 'archive'])->name('archive');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

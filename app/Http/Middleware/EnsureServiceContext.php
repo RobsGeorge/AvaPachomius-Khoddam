@@ -19,9 +19,7 @@ class EnsureServiceContext
         'locale.switch',
         'theme.update',
         'profile',
-        'courses.select',
-        'courses.select.store',
-        'courses.select.clear',
+        // courses.select* intentionally NOT excepted: service must be chosen before course.
     ];
 
     /** @var list<string> */

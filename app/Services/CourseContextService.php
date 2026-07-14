@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
@@ -35,14 +36,31 @@ class CourseContextService
         return $this->supportsOptionalCourseContext($user) && ! $this->currentCourse($user);
     }
 
-    /** @return Collection<int, array{course: Course, role: Role|null, enrollment: UserCourseRole|null}> */
-    public function selectableCourses(User $user): Collection
+    /**
+     * Courses the user may activate. When the service layer is ready, results are
+     * scoped to the given service (current service if omitted). Members with no
+     * service context get an empty list so service must be chosen first.
+     *
+     * @return Collection<int, array{course: Course, role: Role|null, enrollment: UserCourseRole|null}>
+     */
+    public function selectableCourses(User $user, ?ChurchService $withinService = null): Collection
     {
+        $serviceReady = ChurchService::tableReady();
+        $withinService ??= $serviceReady
+            ? app(ServiceContextService::class)->currentService($user)
+            : null;
+
+        if ($serviceReady && ! $withinService && ! ($user->is_superadmin ?? false)) {
+            return collect();
+        }
+
         if ($this->supportsOptionalCourseContext($user)) {
-            return Course::query()
-                ->orderByDesc('year')
-                ->orderBy('title')
-                ->get()
+            $query = Course::query()->orderByDesc('year')->orderBy('title');
+            if ($withinService) {
+                $query->where('service_id', $withinService->service_id);
+            }
+
+            return $query->get()
                 ->filter(fn (Course $course) => $course->isSelectableForContext())
                 ->map(fn (Course $course) => [
                     'course' => $course,
@@ -59,10 +77,17 @@ class CourseContextService
             ->get();
 
         return $enrollments
-            ->filter(function (UserCourseRole $enrollment) {
+            ->filter(function (UserCourseRole $enrollment) use ($withinService) {
                 $course = $enrollment->course;
+                if (! $course instanceof Course || ! $course->isSelectableForContext()) {
+                    return false;
+                }
 
-                return $course instanceof Course && $course->isSelectableForContext();
+                if ($withinService) {
+                    return (int) ($course->service_id ?? 0) === (int) $withinService->service_id;
+                }
+
+                return true;
             })
             ->map(fn (UserCourseRole $enrollment) => [
                 'course' => $enrollment->course,
@@ -108,6 +133,15 @@ class CourseContextService
             ]);
         }
 
+        // Service owns courses — selecting a course activates its parent service first.
+        if (ChurchService::tableReady() && $course->service_id) {
+            $service = ChurchService::find($course->service_id);
+            $serviceContext = app(ServiceContextService::class);
+            if ($service && $serviceContext->userCanSelectService($user, $service)) {
+                SessionStore::put(ServiceContextService::SESSION_KEY, $service->service_id);
+            }
+        }
+
         SessionStore::put(self::SESSION_KEY, $course->course_id);
 
         return $course;
@@ -130,6 +164,15 @@ class CourseContextService
         }
 
         SessionStore::put(self::SESSION_KEY, $course->course_id);
+
+        // Keep service aligned when course is activated from a deep link.
+        if (ChurchService::tableReady() && $course->service_id) {
+            $service = ChurchService::find($course->service_id);
+            $serviceContext = app(ServiceContextService::class);
+            if ($service && $serviceContext->userCanSelectService($user, $service)) {
+                SessionStore::put(ServiceContextService::SESSION_KEY, $service->service_id);
+            }
+        }
     }
 
     /**
@@ -199,6 +242,21 @@ class CourseContextService
     {
         if (! $this->requiresCourseContext($user)) {
             return 'dashboard';
+        }
+
+        // Service → course. Resolve department context before academic year.
+        if (ChurchService::tableReady()) {
+            $serviceContext = app(ServiceContextService::class);
+            if ($serviceContext->requiresServiceContext($user)) {
+                $serviceContext->autoSelectSingleService($user);
+
+                if (! $serviceContext->currentService($user)
+                    && $serviceContext->selectableServices($user)->count() > 1) {
+                    return 'services.select';
+                }
+
+                $serviceContext->clearIncompatibleCourse($user);
+            }
         }
 
         $selectable = $this->selectableCourses($user);

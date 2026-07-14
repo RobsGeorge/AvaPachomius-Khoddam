@@ -41,10 +41,10 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\RequireMandatoryFeedback::class,
             \App\Http\Middleware\RequireProfilePhoto::class,
             \App\Http\Middleware\RequireApprovedApplication::class,
-            \App\Http\Middleware\SyncCourseContextFromRoute::class,
-            \App\Http\Middleware\EnsureCourseContext::class,
             \App\Http\Middleware\SyncServiceContextFromRoute::class,
             \App\Http\Middleware\EnsureServiceContext::class,
+            \App\Http\Middleware\SyncCourseContextFromRoute::class,
+            \App\Http\Middleware\EnsureCourseContext::class,
         ],
 
         'api' => [

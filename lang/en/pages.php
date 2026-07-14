@@ -415,6 +415,7 @@ return [
     'superadmin_section_platform' => 'Platform & security',
     'superadmin_section_portal'   => 'Portal access',
     'superadmin_courses_desc'     => 'Create and remove courses across the institute.',
+    'superadmin_services_desc'    => 'Create services, link courses, and manage the service layer.',
     'superadmin_course_roles_page_desc' => 'Assign course-scoped Admin, Instructor, or Student roles to users.',
     'superadmin_system_roles_desc' => 'Create system roles and assign helpers who manage the institute without a course.',
     'superadmin_templates_desc'   => 'Edit default role templates cloned into new courses.',
