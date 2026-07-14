@@ -22,6 +22,7 @@
     @endif
 
     <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260714b">
+    <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">

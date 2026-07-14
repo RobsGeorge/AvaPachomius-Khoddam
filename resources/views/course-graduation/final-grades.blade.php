@@ -9,9 +9,14 @@
     $details = $record->grades_detail_json ?? [];
 @endphp
 <div class="container py-4 animate-in">
-    <div class="mb-4">
-        <h1 class="page-title mb-1">{{ __('course_graduation.final_grades_title') }}</h1>
-        <p class="text-muted small mb-0">{{ __('course_graduation.final_grades_subtitle', ['course' => $course->title.' — '.$course->year]) }}</p>
+    <div class="mb-4 d-flex align-items-start justify-content-between flex-wrap gap-2">
+        <div>
+            <h1 class="page-title mb-1">{{ __('course_graduation.final_grades_title') }}</h1>
+            <p class="text-muted small mb-0">{{ __('course_graduation.final_grades_subtitle', ['course' => $course->title.' — '.$course->year]) }}</p>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm no-print" onclick="window.print()">
+            <i class="bi bi-printer" aria-hidden="true"></i> {{ __('pages.print') }}
+        </button>
     </div>
 
     <div class="row g-3 mb-4">

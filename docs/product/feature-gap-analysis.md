@@ -23,9 +23,9 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 | F-04 | **Applicant status timeline + inline correction guidance + help/FAQ** | Applicant | ✅ **M2** — status-timeline partial, inline rejected-field guidance on `application.status`, and a localized `/help` FAQ. Tests `ApplicantExperienceTest`. |
 | F-05 | **Global search** (users, courses, services, content) | Admins, staff | Navigating by menus does not scale; admins need to jump to a person/course/service fast. |
 | F-06 | **Calendar + iCal/Google export** for sessions, exams, events | Student, Instructor | ✅ **M3** — `CalendarService` renders an RFC 5545 `.ics` feed (`/calendar.ics`) of upcoming sessions/exams/events; linked from My learning. Tests `CalendarExportTest`. |
-| F-07 | **Print / offline** for certificates, grade reports, attendance reports | Student, Instructor | Church context often needs printable artifacts; PDF/print views. |
+| F-07 | **Print / offline** for certificates, grade reports, attendance reports | Student, Instructor | ✅ **M4** — global `print.css` (media="print") + print buttons on final-grades & My learning. Tests `AuditVisibilityTest`. |
 | F-08 | **Admin bulk tooling**: user & enrollment import/export, gradebook export | Course/Service Admin | Onboarding a cohort by hand is slow and error-prone. |
-| F-09 | **Audit-log visibility & filters for admins** | SuperAdmin/Admin | Audit is written (rule 8) but hard to explore; add filters/search/export. |
+| F-09 | **Audit-log visibility & filters for admins** | SuperAdmin/Admin | ✅ **M4** — added date-range filter + CSV export (filter-aware, streamed) to the activity log. Tests `AuditVisibilityTest`. |
 | F-10 | **Notification preference completeness** (per-category, per-channel, digest) | all | Reduce noise; let users pick email vs WhatsApp vs portal per category, with a daily digest option. |
 | F-11 | **Empty states & guided onboarding/tooltips** | new users, all | Blank lists give no next action; first-run guidance improves activation. |
 | F-12 | **Exam experience hardening**: autosave, connection-loss recovery, accommodations (extra time) | Student | Timed exams with no autosave risk lost work; also the biggest test-coverage gap. |

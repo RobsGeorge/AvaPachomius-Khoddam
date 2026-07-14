@@ -1,0 +1,55 @@
+/*
+ * F-07 — print / offline styles. Loaded with media="print", so these rules only
+ * apply when printing or saving to PDF (certificates, grade reports, etc.).
+ * Hides interactive chrome and flattens the theme for clean paper output.
+ */
+
+/* Hide navigation, toolbars, banners, and anything explicitly marked. */
+.app-nav,
+.skip-link,
+.no-print,
+#khoddam-live-region,
+.app-toolbar,
+[data-theme-toggle],
+.impersonation-banner,
+.role-preview-banner {
+    display: none !important;
+}
+
+/* Flatten the app shell to a plain document flow. */
+html, body {
+    background: #fff !important;
+    color: #000 !important;
+}
+
+.app-shell,
+.app-main,
+.container {
+    display: block !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Cards print as bordered blocks, not floating shadows. */
+.app-card,
+.card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+}
+
+/* Suppress entrance animations when printing. */
+.animate-in,
+[class*="animate__"] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+/* Ensure links are legible on paper. */
+a {
+    color: #000 !important;
+    text-decoration: none !important;
+}

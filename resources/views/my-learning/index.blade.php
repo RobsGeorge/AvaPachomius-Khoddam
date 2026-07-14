@@ -9,9 +9,14 @@
             <h1 class="page-title mb-1">{{ __('my_learning.title') }}</h1>
             <p class="text-muted-theme mb-0">{{ __('my_learning.subtitle') }}</p>
         </div>
-        <a href="{{ route('calendar.ics') }}" class="btn btn-outline-secondary btn-sm" title="{{ __('calendar.download_hint') }}">
-            <i class="bi bi-calendar-plus" aria-hidden="true"></i> {{ __('calendar.download') }}
-        </a>
+        <div class="d-flex gap-2 no-print">
+            <a href="{{ route('calendar.ics') }}" class="btn btn-outline-secondary btn-sm" title="{{ __('calendar.download_hint') }}">
+                <i class="bi bi-calendar-plus" aria-hidden="true"></i> {{ __('calendar.download') }}
+            </a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer" aria-hidden="true"></i> {{ __('pages.print') }}
+            </button>
+        </div>
     </div>
 
     @if(empty($courseCards))

@@ -220,7 +220,21 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label">{{ __('pages.audit_from') }}</label>
+                        <input type="date" name="from" class="form-control" value="{{ request('from') }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">{{ __('pages.audit_to') }}</label>
+                        <input type="date" name="to" class="form-control" value="{{ request('to') }}">
+                    </div>
+                    <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100">{{ __('pages.filter') }}</button>
+                    </div>
+                    <div class="col-md-2">
+                        <a href="{{ route('superadmin.audit.export', request()->except(['activity_page', 'login_page', 'tab'])) }}"
+                           class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-download" aria-hidden="true"></i> {{ __('pages.audit_export_csv') }}
+                        </a>
                     </div>
                 </form>
             </div>
