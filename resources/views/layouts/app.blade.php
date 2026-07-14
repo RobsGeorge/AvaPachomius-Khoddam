@@ -44,6 +44,9 @@
           $el.style.top = '';
           if (navScrollY) window.scrollTo(0, navScrollY);
       }">
+    <a class="skip-link visually-hidden-focusable" href="#app-main">{{ __('a11y.skip_to_content') }}</a>
+    {{-- Polite live region: JS mirrors toast/flash messages here so screen readers announce them. --}}
+    <div id="khoddam-live-region" class="visually-hidden" aria-live="polite" role="status"></div>
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
@@ -54,7 +57,7 @@
         @include('layouts.impersonation-banner')
         @include('layouts.role-preview-banner')
 
-        <main class="app-main flex-grow-1">
+        <main id="app-main" tabindex="-1" class="app-main flex-grow-1">
             @include('layouts.partials.flash-toast')
             @yield('content')
         </main>
