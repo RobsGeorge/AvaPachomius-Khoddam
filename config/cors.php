@@ -7,11 +7,8 @@ return [
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
     |
-    | This is a server-rendered (Blade) application, so CORS only needs to
-    | apply to the API surface — not every path. Allowed origins are driven
-    | entirely by the CORS_ALLOWED_ORIGINS env var (comma-separated) and
-    | default to *none*, so no origin is ever silently allowed in production.
-    | (F-16 — previously leaked a hardcoded http://localhost:3000 default.)
+    | Mobile (Expo) and optional web clients. Prefer CORS_ALLOWED_ORIGINS
+    | (comma-separated). Falls back to FRONTEND_URL for legacy local SPA work.
     |
     */
 
@@ -21,10 +18,18 @@ return [
 
     'allowed_origins' => array_values(array_filter(array_map(
         'trim',
-        explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))
+        explode(',', (string) env(
+            'CORS_ALLOWED_ORIGINS',
+            env('FRONTEND_URL', 'http://localhost:3000').',http://localhost:8081,http://127.0.0.1:8081'
+        ))
     ))),
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://localhost(:\d+)?$#',
+        '#^https?://127\.0\.0\.1(:\d+)?$#',
+        '#^https?://.*\.exp\.direct$#',
+        '#^https?://.*\.exp\.host$#',
+    ],
 
     'allowed_headers' => ['*'],
 
