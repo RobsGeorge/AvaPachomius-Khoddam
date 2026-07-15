@@ -30,3 +30,8 @@ Staff and admin flows remain web-only.
 
 Canonical JSON: [`resources/design-tokens/khoddam.tokens.json`](../resources/design-tokens/khoddam.tokens.json)  
 Mirrored into the mobile app at `src/theme/tokens.ts`. After changing CSS/`khoddam.tokens.json`, sync the mobile copy (documented in both READMEs).
+
+## Feature parity tracker
+
+Full student Web → API → Mobile matrix (waves A–E):  
+[`docs/mobile/student-feature-matrix.md`](student-feature-matrix.md)

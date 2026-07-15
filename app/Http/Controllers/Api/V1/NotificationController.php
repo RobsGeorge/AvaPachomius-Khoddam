@@ -35,6 +35,31 @@ class NotificationController extends Controller
         ]);
     }
 
+    public function show(Request $request, UserNotification $notification): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless((int) $notification->user_id === (int) $user->user_id, 403);
+
+        $this->feed->markRead($notification);
+
+        return response()->json(['data' => $this->serialize($notification->fresh())]);
+    }
+
+    public function markRead(Request $request, UserNotification $notification): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        abort_unless((int) $notification->user_id === (int) $user->user_id, 403);
+
+        $this->feed->markRead($notification);
+
+        return response()->json([
+            'data' => $this->serialize($notification->fresh()),
+            'unread_count' => $this->feed->unreadCount($user),
+        ]);
+    }
+
     public function markAllRead(Request $request): JsonResponse
     {
         /** @var User $user */

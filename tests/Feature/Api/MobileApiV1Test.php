@@ -160,4 +160,61 @@ class MobileApiV1Test extends EventModuleTestCase
             'communication_locale' => 'en',
         ])->assertOk()->assertJsonPath('data.communication_locale', 'en');
     }
+
+    public function test_notification_show_marks_read(): void
+    {
+        $user = $this->createUser(['email' => 'mobile-notif-show@example.com']);
+        Sanctum::actingAs($user);
+
+        $notification = UserNotification::create([
+            'user_id' => $user->user_id,
+            'type' => 'assignment_deadline',
+            'title' => 'Open me',
+            'body' => 'Body',
+            'dedupe_key' => 'mobile:api:show:1',
+        ]);
+
+        $this->getJson('/api/v1/notifications/'.$notification->id)
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Open me')
+            ->assertJsonPath('data.is_unread', false);
+    }
+
+    public function test_courses_and_current_context(): void
+    {
+        $course = $this->createCourse(['title' => 'API Course']);
+        $studentRole = $this->createRole('student');
+        $student = $this->createUser(['email' => 'mobile-course@example.com']);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        Sanctum::actingAs($student);
+
+        $this->getJson('/api/v1/courses')
+            ->assertOk()
+            ->assertJsonFragment(['course_id' => $course->course_id]);
+
+        $this->postJson('/api/v1/courses/current', ['course_id' => $course->course_id])
+            ->assertOk()
+            ->assertJsonPath('data.course_id', $course->course_id);
+
+        $this->getJson('/api/v1/courses/current')
+            ->assertOk()
+            ->assertJsonPath('data.course_id', $course->course_id);
+
+        $this->getJson('/api/v1/dashboard')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['unread_notifications', 'courses']]);
+    }
+
+    public function test_events_index_requires_auth_and_returns_payload(): void
+    {
+        $this->getJson('/api/v1/events')->assertUnauthorized();
+
+        $user = $this->createUser(['email' => 'mobile-events@example.com']);
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/events')
+            ->assertOk()
+            ->assertJsonStructure(['data']);
+    }
 }
