@@ -216,17 +216,24 @@ class RoleTemplateService
         $templates = [
             'church-admin' => [
                 'church.configure', 'church.members.manage', 'church.role.manage',
+                'priest.manage', 'priest.view',
+                'confession.manage', 'confession.view', 'confession.book',
+                'home_visit.manage', 'home_visit.view',
                 'role.manage', 'user.assign_role',
                 'announcement.view', 'announcement.manage', 'announcement.publish',
                 'communications.report', 'roster.view', 'roster.announce',
                 'service.view', 'service.manage',
             ],
             'priest' => [
-                'church.configure',
+                'priest.view',
+                'confession.manage', 'confession.view',
+                'home_visit.manage', 'home_visit.view',
                 'announcement.view',
                 'roster.view',
             ],
             'servant' => [
+                'confession.view', 'confession.book',
+                'home_visit.manage', 'home_visit.view',
                 'announcement.view',
                 'roster.view',
             ],

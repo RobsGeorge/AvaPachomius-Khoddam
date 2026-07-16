@@ -59,6 +59,41 @@ class TenantIsolationTest extends EventModuleTestCase
         $this->assertSame(2, Course::whereIn('course_id', [$courseA->course_id, $courseB->course_id])->count());
     }
 
+    public function test_church_management_models_are_isolated_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = Church::create(['slug' => 'stmina-t5', 'name' => 'St Mina', 'status' => 'active']);
+
+        $userA = $this->createUser(['email' => 'priest-a@example.com']);
+        $userB = $this->createUser(['email' => 'priest-b@example.com']);
+
+        TenantContext::set($churchA);
+        $priestA = \App\Models\Priest::create([
+            'user_id' => $userA->user_id,
+            'title' => 'Abouna A',
+            'status' => \App\Models\Priest::STATUS_ACTIVE,
+        ]);
+        $this->assertEquals($churchA->church_id, $priestA->church_id);
+
+        TenantContext::set($churchB);
+        $priestB = \App\Models\Priest::create([
+            'user_id' => $userB->user_id,
+            'title' => 'Abouna B',
+            'status' => \App\Models\Priest::STATUS_ACTIVE,
+        ]);
+        $this->assertEquals($churchB->church_id, $priestB->church_id);
+
+        $this->assertNull(\App\Models\Priest::find($priestA->priest_id));
+        $this->assertNotNull(\App\Models\Priest::find($priestB->priest_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(\App\Models\Priest::find($priestA->priest_id));
+        $this->assertNull(\App\Models\Priest::find($priestB->priest_id));
+
+        TenantContext::clear();
+        $this->assertSame(2, \App\Models\Priest::whereIn('priest_id', [$priestA->priest_id, $priestB->priest_id])->count());
+    }
+
     public function test_a_foreign_church_id_cannot_be_mass_assigned(): void
     {
         $churchA = Church::main();
