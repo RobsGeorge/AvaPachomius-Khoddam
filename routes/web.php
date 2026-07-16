@@ -351,7 +351,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Events & conferences — register /events/admin before /events/{event} wildcard
-Route::middleware(['auth', 'permission:events.admin'])->prefix('events/admin')->name('events.admin.')->group(function () {
+Route::middleware(['auth', 'permission:events.admin', 'capability:events'])->prefix('events/admin')->name('events.admin.')->group(function () {
     Route::get('/', [EventAdminController::class, 'index'])->name('index');
     Route::get('/create', [EventAdminController::class, 'create'])->name('create');
     Route::post('/', [EventAdminController::class, 'store'])->name('store');
@@ -366,7 +366,7 @@ Route::middleware(['auth', 'permission:events.admin'])->prefix('events/admin')->
     Route::post('/{event}/check-in', [EventCheckInController::class, 'record'])->name('check-in.record');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'capability:events'])->group(function () {
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     Route::get('/events/my-reservations', [EventController::class, 'myReservations'])->name('events.my-reservations');
     Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show')->whereNumber('event');
@@ -374,7 +374,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name('events.cancel')->whereNumber('event');
 });
 
-Route::middleware(['auth', 'permission:events.admin'])->group(function () {
+Route::middleware(['auth', 'permission:events.admin', 'capability:events'])->group(function () {
     Route::get('/events/{event}/check-in/verify/{user}', [EventCheckInController::class, 'verify'])
         ->name('events.check-in.verify')
         ->whereNumber('event')
@@ -552,7 +552,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Live interactive quiz (separate from async exams)
-Route::middleware('auth')->prefix('live-quiz')->name('live-quiz.')->group(function () {
+Route::middleware(['auth', 'capability:live_quiz'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
     Route::get('/join', [LiveQuizPlayController::class, 'joinForm'])->name('play.join');
     Route::post('/join', [LiveQuizPlayController::class, 'join'])->name('play.join.submit');
     Route::get('/sessions/{session}/lobby', [LiveQuizPlayController::class, 'lobby'])->name('play.lobby');
@@ -561,7 +561,7 @@ Route::middleware('auth')->prefix('live-quiz')->name('live-quiz.')->group(functi
     Route::get('/', [LiveQuizController::class, 'index'])->name('index');
 });
 
-Route::middleware(['auth', 'permission:staff'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
+Route::middleware(['auth', 'permission:staff', 'capability:live_quiz'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
     Route::get('/create', [LiveQuizController::class, 'create'])->name('create');
     Route::post('/', [LiveQuizController::class, 'store'])->name('store');
     Route::get('/{liveQuiz}', [LiveQuizController::class, 'show'])->name('show');
@@ -579,7 +579,7 @@ Route::middleware(['auth', 'permission:staff'])->prefix('live-quiz')->name('live
 });
 
 // Module feedback surveys
-Route::middleware('auth')->prefix('feedback')->name('feedback.')->group(function () {
+Route::middleware(['auth', 'capability:feedback'])->prefix('feedback')->name('feedback.')->group(function () {
     Route::get('/', [FeedbackHubController::class, 'index'])->name('index');
 
     Route::middleware('permission:staff')->group(function () {
