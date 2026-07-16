@@ -8,11 +8,17 @@ use Tests\Support\EventModuleTestCase;
 
 /**
  * Coverage of the JSON API surface (routes/api.php, the `api` middleware group).
- * Guarantees every API endpoint is authentication-guarded and that the canonical
- * `/api/user` endpoint returns the authenticated user.
+ * Guarantees protected endpoints stay auth-guarded. Public auth/token bootstrap
+ * routes (login, design-tokens) are allowlisted.
  */
 class ApiSurfaceTest extends EventModuleTestCase
 {
+    /** @var list<string> */
+    private const PUBLIC_API_URIS = [
+        'api/v1/login',
+        'api/v1/design-tokens',
+    ];
+
     public function test_api_user_requires_authentication(): void
     {
         $this->getJson('/api/user')->assertUnauthorized();
@@ -28,11 +34,15 @@ class ApiSurfaceTest extends EventModuleTestCase
             ->assertJsonFragment(['email' => 'api-user@example.com']);
     }
 
-    public function test_every_api_route_is_authentication_guarded(): void
+    public function test_every_api_route_is_authentication_guarded_except_public_bootstrap(): void
     {
         $unguarded = [];
 
         foreach ($this->apiRoutes() as $route) {
+            if (in_array($route->uri(), self::PUBLIC_API_URIS, true)) {
+                continue;
+            }
+
             $guarded = collect($route->gatherMiddleware())
                 ->contains(fn ($m) => is_string($m) && str_starts_with($m, 'auth'));
 

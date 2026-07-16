@@ -118,6 +118,8 @@ It is a **production Laravel application** (public site: [avapakhomios.com](http
 | 🌙 **Dark** | Navy gradient · gold accents · high-contrast text |
 
 Motion and surfaces are defined in `public/css/khoddam-theme.css` and `public/js/khoddam-ui.js`.
+Shared design tokens for web + the Expo mobile app live in `resources/design-tokens/khoddam.tokens.json`
+(see `docs/mobile/mvp.md`).
 
 ### Local development
 

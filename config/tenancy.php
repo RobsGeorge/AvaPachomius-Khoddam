@@ -7,41 +7,75 @@ return [
     | Church tenancy (multi-church platform — see docs/khedma-master-plan.md)
     |--------------------------------------------------------------------------
     |
-    | Church == the tenant (isolation boundary). This is T0 (foundation): the
-    | structures exist and existing data is backfilled into Church #1, but NOTHING
-    | reads church_id yet — zero behavior change while MULTI_TENANT is off. The
+    | Church == the tenant (isolation boundary). This is T0/P1.1 (foundation):
+    | the structures exist and existing data is backfilled into Organization #1 /
+    | Church #1, but NOTHING enforces isolation while MULTI_TENANT is off. The
     | global scope + request resolution arrive in T1.
+    |
+    | `organizations` is the organizations-shaped registry (§4); `church` is the
+    | church-native compatibility table. Tenant rows carry `church_id` FK →
+    | `organizations.organization_id` (numerically aligned with Church #1).
     |
     */
 
-    // Master switch. While false (production until the T7 cutover), ResolveTenant does
-    // not bind a church, so the BelongsToChurch global scope no-ops and the app behaves
-    // exactly as a single-institution system. Isolation is still fully exercised in tests
-    // by binding a church context explicitly (TenantContext::set()).
     'enabled' => (bool) env('MULTI_TENANT', false),
 
-    // Slug of the default church all pre-existing data belongs to (Tenant Zero).
-    'main_slug' => env('TENANCY_MAIN_SLUG', 'main'),
+    // Subdomain of Tenant Zero (AvaPachomius).
+    'main_slug' => env('TENANCY_MAIN_SLUG', 'avapakhomios'),
 
-    // Human name for that church. Never leave as the literal "Main" in production.
-    'main_name' => env('TENANCY_MAIN_NAME', 'AvaPachomius'),
+    'main_name' => env('TENANCY_MAIN_NAME', 'كنيسة الأنبا باخوميوس'),
 
-    // Host that serves the cross-church superadmin console (no church binding). Used from T4.
     'console_host' => env('TENANCY_CONSOLE_HOST', 'admin.localhost'),
 
-    // Apex / cookie parent domain (without leading dot). Used to build {slug}.{base} URLs.
-    // Falls back to parse_url(APP_URL).host when unset.
+    // Apex / cookie parent domain (without leading dot). Used to build {slug}.{base} URLs
+    // (T4 ChurchHost). Falls back to parse_url(APP_URL).host when unset.
     'base_domain' => env('TENANCY_BASE_DOMAIN'),
 
-    // Data-root tables that carry church_id and (from T1) the BelongsToChurch global scope.
-    // Auth tables (roles, user_course_role, user_service_role, permissions) are intentionally
-    // excluded until T3. This list is the single source of truth for the tenant boundary and
-    // will grow as later phases bring more data roots under isolation.
+    /*
+    | Data-root tables that carry church_id (FK → organizations.organization_id).
+    | Auth/platform tables (permissions, user) are excluded. Child rows reached
+    | only through a scoped parent may omit church_id — audit direct queries.
+    */
     'tenant_tables' => [
-        'course', 'modules', 'content', 'assignments',
-        'session', 'exams', 'assessment', 'course_assessment',
-        'attendance', 'grade_categories', 'activity_logs',
+        // Academic core
+        'course',
+        'modules',
+        'content',
+        'assignments',
+        'assignment_submission',
+        'session',
+        'exams',
+        'assessment',
+        'course_assessment',
+        'user_assessment',
+        'attendance',
+        'attendance_policy',
+        'grade_categories',
+        'grade_items',
+        'student_grades',
+        'lectures',
+        'lecture_materials',
+        // Ops / audit
+        'activity_logs',
+        // Service layer
         'service',
+        'user_service_role',
+        'service_application_forms',
+        'service_applications',
+        // Comms / community
+        'announcements',
+        'events',
+        'feedback_surveys',
+        'live_quizzes',
+        'communication_logs',
+        // Applications / graduation
+        'course_application_forms',
+        'course_applications',
+        'course_graduations',
+        'course_certificates',
+        // RBAC anchors (nullable for platform templates until T3-enforce)
+        'roles',
+        'user_course_role',
     ],
 
 ];

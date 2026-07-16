@@ -8,10 +8,35 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - ext-curl and ext-gd were missing from PHP 8.2 despite being required in composer.json
   (simple-qrcode needs gd; reverb/pusher needs curl). Installed. Implies those features
   were never exercised in production — verify.
-- Production sends `Access-Control-Allow-Origin: http://localhost:3000` — dev leftover
-  in config/cors.php. Should be env-driven and locked down in production.
+- CORS is env-driven via `CORS_ALLOWED_ORIGINS` (see config/cors.php). Keep production
+  origins locked down; Expo localhost patterns remain for local mobile dev only.
 - GitHub Actions deploy pipeline is unreliable (SSH i/o timeouts). Manual deploy.sh is
   the current path. Revisit CI/CD deployment after P0.
+
+## P0.1 sweep leftovers (2026-07-16)
+- Duplicate migration timestamps remain by design (already applied in prod; reorder unsafe):
+  `2026_07_18_000001_*` (branding + dynamic RBAC) and `2026_07_19_000001_*`
+  (assignments course_id + user created_at backfill). Alphabetical order is fine today.
+- Broad Unit/Feature suites still have pre-existing failures; CI `full-suite-report` is
+  non-blocking. Closing those gaps is separate from the gated pipelines.
+- `DatabaseSeeder` is intentionally empty; `RbacSeeder` / `permissions:sync` are not
+  wired into `migrate:fresh --seed` (apps rely on artisan commands / staging data).
+- Dormant `App\Http\Controllers\Auth\PasswordResetLinkController` kept (namespace fixed
+  for PSR-4); live forgot-password flow uses `ForgotPasswordController`.
+
+## P1.1 organizations registry (2026-07-16)
+- `organizations` table (§4 shape) is the canonical tenant registry; product code still
+  uses church-native names (`church`, `church_id`, `BelongsToChurch`) during expand.
+- Tenant Zero = `organization_id` 1 / `subdomain=avapakhomios`, numerically aligned with
+  `church.church_id` 1. FK: tenant `church_id` → `organizations.organization_id`.
+- T1+ scopes/middleware already exist on staging but stay dormant while `MULTI_TENANT=false`.
+  Do not enable enforcement in production until T7 cutover PR.
+
+## Mobile (React Native)
+- Student-first Expo app lives in sibling repo `AvaPachomius-Khoddam-Mobile`.
+- Backend slice: Sanctum token auth + `/api/v1` read APIs — see `docs/mobile/mvp.md`.
+- Design tokens: `resources/design-tokens/khoddam.tokens.json` (sync to mobile theme).
+- Deferred: push device tokens, write APIs, staff app, store release pipeline.
 
 ## Product ideas (see master-plan §12 parking lot for the full list)
 - The `user` table has many NOT NULL columns with no defaults (profile_photo, 

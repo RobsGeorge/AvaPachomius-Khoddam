@@ -18,7 +18,7 @@ class Church extends Model
 
     protected $primaryKey = 'church_id';
 
-    protected $fillable = ['slug', 'name', 'domain', 'status', 'settings', 'permissions_version'];
+    protected $fillable = ['slug', 'name', 'domain', 'status', 'settings', 'permissions_version', 'organization_id'];
 
     protected $casts = ['settings' => 'array', 'permissions_version' => 'integer'];
 
