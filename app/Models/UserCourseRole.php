@@ -16,6 +16,7 @@ class UserCourseRole extends Model
     protected $fillable = [
         'user_id',
         'course_id',
+        'church_id',
         'role_id',
         'eligible_for_grace',
         'pending_grace_marks',

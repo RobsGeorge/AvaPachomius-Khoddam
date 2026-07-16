@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Exam extends Model
 {
+    use BelongsToChurch;
+
     public const TYPE_EXAM = 'exam';
 
     public const TYPE_QUIZ = 'quiz';

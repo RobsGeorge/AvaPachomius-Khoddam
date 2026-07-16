@@ -24,37 +24,37 @@ class NavigationHub
         $links = [];
 
         if (self::canAnyCourse($user, $resolver, ['curriculum.view', 'curriculum.manage'])) {
-            $links[] = self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view');
+            $links[] = self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view', 'curriculum');
         }
 
         if (self::canAnyCourse($user, $resolver, ['curriculum.manage'])) {
-            $links[] = self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage');
-            $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage');
+            $links[] = self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage', 'curriculum');
+            $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage', 'curriculum');
         }
 
         if (self::canAnyCourse($user, $resolver, ['assignment.view', 'assignment.manage'])) {
             $links[] = self::link('assignments.index', 'dashboard.assignments', 'bi-journal-text', [
                 'assignments.*',
-            ], 'assignment.view');
+            ], 'assignment.view', 'assignments');
         }
 
         if (self::canAnyCourse($user, $resolver, ['exam.author', 'exam.grade'])) {
             $links[] = self::link('exams.dashboard', 'dashboard.manage_exams', 'bi-patch-check', [
                 'exams.dashboard', 'exams.builder', 'exams.grades', 'exams.admin-dashboard',
-            ], 'exam.author');
+            ], 'exam.author', 'exams');
         }
 
         if (self::canAnyCourse($user, $resolver, ['exam.view', 'exam.take'])) {
             $links[] = self::link('exams.index', 'dashboard.view_exams', 'bi-calendar2-check', [
                 'exams.index', 'exams.attempt.*',
-            ], 'exam.view');
+            ], 'exam.view', 'exams');
         }
 
         if (self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
             $links[] = self::link('attendance.all', 'nav.attendance', 'bi-calendar-check', [
                 'attendance.all', 'attendance.user', 'attendance.by-date', 'attendance.user-report',
-            ], 'attendance.view_all');
-            $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report');
+            ], 'attendance.view_all', 'attendance');
+            $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report', 'attendance');
         }
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
@@ -62,7 +62,7 @@ class NavigationHub
         }
 
         if (self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
-            $links[] = self::link('announcements.manage.index', 'announcements.manage_title', 'bi-megaphone', ['announcements.manage.*'], 'announcement.manage');
+            $links[] = self::link('announcements.manage.index', 'announcements.manage_title', 'bi-megaphone', ['announcements.manage.*'], 'announcement.manage', 'announcements');
         }
 
         if (self::canAnyCourse($user, $resolver, ['communications.report'])) {
@@ -72,7 +72,7 @@ class NavigationHub
         }
 
         if (self::canAnyCourse($user, $resolver, ['graduation.view', 'course.close'])) {
-            $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*'], 'graduation.view');
+            $links[] = self::link('graduation.index', 'pages.graduation_title', 'bi-mortarboard', ['graduation.*'], 'graduation.view', 'grades');
         }
 
         if (self::canAnyCourse($user, $resolver, ['email_templates.manage', 'certificate.manage'])) {
@@ -96,7 +96,7 @@ class NavigationHub
         }
 
         if (self::canAnyCourse($user, $resolver, ['attendance.view_own']) && ! self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
-            $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own');
+            $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own', 'attendance');
         }
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
@@ -106,15 +106,15 @@ class NavigationHub
         if (self::canAnyCourse($user, $resolver, ['announcement.view']) && ! self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
             $links[] = self::link('announcements.index', 'announcements.title', 'bi-megaphone', [
                 'announcements.index', 'announcements.show', 'announcements.dismiss-banner',
-            ], 'announcement.view');
+            ], 'announcement.view', 'announcements');
         }
 
         if (self::canAnyCourse($user, $resolver, ['feedback.view', 'feedback.manage'])) {
-            $links[] = self::link('feedback.index', 'dashboard.feedback', 'bi-chat-square-text', ['feedback.*'], 'feedback.view');
+            $links[] = self::link('feedback.index', 'dashboard.feedback', 'bi-chat-square-text', ['feedback.*'], 'feedback.view', 'feedback');
         }
 
         if (self::canAnyCourse($user, $resolver, ['live_quiz.play', 'live_quiz.manage'])) {
-            $links[] = self::link('live-quiz.index', 'dashboard.live_quiz', 'bi-lightning-charge', ['live-quiz.*'], 'live_quiz.play');
+            $links[] = self::link('live-quiz.index', 'dashboard.live_quiz', 'bi-lightning-charge', ['live-quiz.*'], 'live_quiz.play', 'live_quiz');
         }
 
         if (
@@ -125,10 +125,10 @@ class NavigationHub
         ) {
             $links[] = self::link('events.index', 'dashboard.events', 'bi-calendar-event', [
                 'events.index', 'events.show', 'events.my-reservations', 'events.admin.*', 'events.check-in.verify',
-            ], 'events.view');
+            ], 'events.view', 'events');
         }
 
-        return $links;
+        return self::filterByCapability($links);
     }
 
     public static function serviceLinks(?User $user): array
@@ -476,7 +476,7 @@ class NavigationHub
         return $link;
     }
 
-    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null): array
+    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null, ?string $capability = null): array
     {
         $course = current_course();
         if ($course && $routeName === 'curriculum.index') {
@@ -487,6 +487,7 @@ class NavigationHub
                 'active' => request()->routeIs(...$patterns)
                     || request()->routeIs('curriculum.show', 'curriculum.admin'),
                 'permission' => $permission,
+                'capability' => $capability,
             ];
         }
 
@@ -497,6 +498,7 @@ class NavigationHub
                 'icon' => $icon,
                 'active' => request()->routeIs('graduation.show', 'graduation.export', 'graduation.*'),
                 'permission' => $permission,
+                'capability' => $capability,
             ];
         }
 
@@ -506,7 +508,30 @@ class NavigationHub
             'icon' => $icon,
             'active' => request()->routeIs(...$patterns),
             'permission' => $permission,
+            'capability' => $capability,
         ];
+    }
+
+    /**
+     * T2 — drop links whose capability is disabled for the currently-bound church.
+     * When no church is bound (tenancy dormant), every link is kept, so nav is unchanged
+     * in production until the T7 cutover.
+     *
+     * @param  array<int, array<string, mixed>>  $links
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function filterByCapability(array $links): array
+    {
+        $church = \App\Tenancy\TenantContext::current();
+        if ($church === null) {
+            return $links;
+        }
+
+        return array_values(array_filter($links, function (array $link) use ($church) {
+            $capability = $link['capability'] ?? null;
+
+            return $capability === null || $church->hasCapability($capability);
+        }));
     }
 
     protected static function anyActive(array $links): bool

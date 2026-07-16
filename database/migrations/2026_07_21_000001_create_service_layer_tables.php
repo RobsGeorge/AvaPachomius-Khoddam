@@ -76,24 +76,22 @@ return new class extends Migration
     public function down(): void
     {
         // Expand-only: no destructive down in production. Keep reverse for tests.
+        // Idempotent: only drop the FK when it actually exists — on divergent schemas
+        // the column can pre-exist without the FK (dropping a missing FK errors 1091).
         Schema::dropIfExists('user_service_role');
 
         if (Schema::hasTable('roles') && Schema::hasColumn('roles', 'service_id')) {
-            Schema::table('roles', function (Blueprint $table) {
-                if (MigrationSupport::foreignKeyExists('roles', 'roles_service_id_foreign')) {
-                    $table->dropForeign(['service_id']);
-                }
-                $table->dropColumn('service_id');
-            });
+            if (MigrationSupport::foreignKeyExists('roles', 'roles_service_id_foreign')) {
+                Schema::table('roles', fn (Blueprint $table) => $table->dropForeign(['service_id']));
+            }
+            Schema::table('roles', fn (Blueprint $table) => $table->dropColumn('service_id'));
         }
 
         if (Schema::hasTable('course') && Schema::hasColumn('course', 'service_id')) {
-            Schema::table('course', function (Blueprint $table) {
-                if (MigrationSupport::foreignKeyExists('course', 'course_service_id_foreign')) {
-                    $table->dropForeign(['service_id']);
-                }
-                $table->dropColumn('service_id');
-            });
+            if (MigrationSupport::foreignKeyExists('course', 'course_service_id_foreign')) {
+                Schema::table('course', fn (Blueprint $table) => $table->dropForeign(['service_id']));
+            }
+            Schema::table('course', fn (Blueprint $table) => $table->dropColumn('service_id'));
         }
 
         Schema::dropIfExists('service');

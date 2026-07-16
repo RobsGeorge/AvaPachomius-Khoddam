@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'not_a_church_member' => 'أنت لست عضواً في هذه الكنيسة.',
     'login_title'       => 'تسجيل الدخول',
     'email'             => 'البريد الإلكتروني',
     'password'          => 'كلمة المرور',

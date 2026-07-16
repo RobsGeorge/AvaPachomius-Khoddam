@@ -136,6 +136,26 @@ class User extends Authenticatable
         return $this->hasMany(UserServiceRole::class, 'user_id', 'user_id');
     }
 
+    // Church tenancy (T0). Shared user pool + church_user membership.
+    public function churches()
+    {
+        return $this->belongsToMany(Church::class, 'church_user', 'user_id', 'church_id', 'user_id', 'church_id')
+            ->withPivot('status', 'joined_at');
+    }
+
+    public function churchMemberships()
+    {
+        return $this->hasMany(ChurchUser::class, 'user_id', 'user_id');
+    }
+
+    public function belongsToChurch(int $churchId): bool
+    {
+        return $this->churchMemberships()
+            ->where('church_id', $churchId)
+            ->where('status', 'active')
+            ->exists();
+    }
+
     public function systemRoles()
     {
         return $this->belongsToMany(
@@ -171,6 +191,16 @@ class User extends Authenticatable
     public function canInService(string $permission, ChurchService $service): bool
     {
         return app(CoursePermissionResolver::class)->canInService($this, $permission, $service);
+    }
+
+    public function permissionsInChurch(Church $church): \Illuminate\Support\Collection
+    {
+        return app(CoursePermissionResolver::class)->permissionsInChurch($this, $church);
+    }
+
+    public function canInChurch(string $permission, Church $church): bool
+    {
+        return app(CoursePermissionResolver::class)->canInChurch($this, $permission, $church);
     }
 
     public function canAnyInCourse(array $permissions, Course $course): bool
