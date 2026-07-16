@@ -277,7 +277,9 @@ class RoleTemplateService
     {
         $this->ensureChurchTemplates();
 
-        $sourceRoles = Role::query()
+        // withoutTenancy: templates are null-church; clones target an arbitrary church
+        // that may differ from the currently bound TenantContext (P1.2 / provisioning).
+        $sourceRoles = Role::withoutTenancy()
             ->whereNull('course_id')
             ->whereNull('service_id')
             ->whereNull('church_id')
@@ -289,7 +291,7 @@ class RoleTemplateService
         $created = [];
 
         foreach ($sourceRoles as $template) {
-            $existing = Role::query()
+            $existing = Role::withoutTenancy()
                 ->where('church_id', $church->church_id)
                 ->whereNull('course_id')
                 ->whereNull('service_id')
@@ -339,7 +341,8 @@ class RoleTemplateService
         $i = 1;
 
         while (
-            Role::where('church_id', $churchId)
+            Role::withoutTenancy()
+                ->where('church_id', $churchId)
                 ->whereNull('course_id')
                 ->whereNull('service_id')
                 ->where('slug', $candidate)

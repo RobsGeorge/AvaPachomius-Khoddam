@@ -134,6 +134,7 @@ abstract class EventModuleTestCase extends TestCase
             'role_decription' => $slug,
             'slug' => $slug,
             'course_id' => $course->course_id,
+            'church_id' => $course->church_id,
         ]);
 
         $ids = \App\Models\Permission::whereIn('key', $permissionKeys)->pluck('permission_id');

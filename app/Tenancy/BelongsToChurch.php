@@ -46,6 +46,11 @@ trait BelongsToChurch
                 return;
             }
 
+            // Platform templates (null church_id) and other opt-outs must stay unscoped.
+            if (! static::shouldStampChurchIdOnCreate($model)) {
+                return;
+            }
+
             $churchId = app(TenantContext::class)->churchId() ?? TenantContext::id();
 
             if ($churchId !== null) {
@@ -70,6 +75,15 @@ trait BelongsToChurch
     protected static function churchScopeAllowsNullTemplates(): bool
     {
         return false;
+    }
+
+    /**
+     * Override to false when rows must keep a null church_id (e.g. Role is_template).
+     * Default: stamp from TenantContext / Tenant Zero safety net.
+     */
+    protected static function shouldStampChurchIdOnCreate(Model $model): bool
+    {
+        return true;
     }
 
     public function church()
