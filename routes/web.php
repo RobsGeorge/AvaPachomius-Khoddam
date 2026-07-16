@@ -297,7 +297,7 @@ Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttenda
 Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post')->middleware(['auth', 'permission:attendance.edit']);
 
 // Exam routes
-Route::middleware(['auth', 'course.assessments'])->group(function () {
+Route::middleware(['auth', 'course.assessments', 'capability:exams'])->group(function () {
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
     Route::get('/exams/schedules/{schedule}/lobby', [ExamAttemptController::class, 'lobby'])->name('exams.attempt.lobby');
     Route::post('/exams/schedules/{schedule}/begin', [ExamAttemptController::class, 'begin'])->name('exams.attempt.begin');
@@ -310,7 +310,7 @@ Route::middleware(['auth', 'course.assessments'])->group(function () {
     Route::get('/exams/schedules/{schedule}/confirmation', [ExamAttemptController::class, 'confirmation'])->name('exams.attempt.confirmation');
 });
 
-Route::middleware(['auth', 'permission:staff'])->group(function () {
+Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(function () {
     Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
     Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
     Route::post('/exams', [ExamController::class, 'store'])->name('exams.store');

@@ -79,6 +79,7 @@ class Kernel extends HttpKernel
         'role'       => \App\Http\Middleware\RoleMiddleware::class,
         'permission' => \App\Http\Middleware\RequirePermission::class,
         'church.member' => \App\Tenancy\EnsureChurchMember::class,
+        'capability' => \App\Tenancy\RequireCapability::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'impersonator.stop' => \App\Http\Middleware\AllowImpersonatorStop::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,
