@@ -32,4 +32,6 @@ return [
     'priests'           => 'Priests',
     'confession'        => 'Confession calendar',
     'home_visits'       => 'Home visits',
+    'payroll'           => 'Payroll',
+    'money_in'          => 'Money in',
 ];

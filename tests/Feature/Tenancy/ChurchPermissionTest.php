@@ -183,7 +183,11 @@ class ChurchPermissionTest extends EventModuleTestCase
 
     public function test_church_permission_keys_exist_after_sync(): void
     {
-        foreach (['church.configure', 'church.members.manage', 'church.role.manage'] as $key) {
+        foreach ([
+            'church.configure', 'church.members.manage', 'church.role.manage',
+            'finance.payroll.view', 'finance.payroll.manage',
+            'finance.money_in.view', 'finance.money_in.manage',
+        ] as $key) {
             $this->assertTrue(
                 Permission::where('key', $key)->exists(),
                 "Missing permission key: {$key}"

@@ -45,6 +45,8 @@ use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchControll
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
+use App\Http\Controllers\Church\PayrollController;
+use App\Http\Controllers\Church\MoneyInController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FeedbackHubController;
 use App\Http\Controllers\FeedbackSurveyStudentController;
@@ -148,6 +150,33 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/home-visits', [HomeVisitController::class, 'store'])->name('home-visits.store');
             Route::get('/home-visits/{visit}/edit', [HomeVisitController::class, 'edit'])->name('home-visits.edit');
             Route::put('/home-visits/{visit}', [HomeVisitController::class, 'update'])->name('home-visits.update');
+        });
+
+        // T6 — finance (first cut)
+        Route::prefix('finance')->name('finance.')->group(function () {
+            Route::middleware(['permission:finance.payroll.view,finance.payroll.manage'])->group(function () {
+                Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+                Route::get('/payroll/{run}', [PayrollController::class, 'show'])->name('payroll.show');
+            });
+            Route::middleware(['permission:finance.payroll.manage'])->group(function () {
+                Route::get('/payroll-create', [PayrollController::class, 'create'])->name('payroll.create');
+                Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+                Route::post('/payroll/{run}/lines', [PayrollController::class, 'storeLine'])->name('payroll.lines.store');
+                Route::delete('/payroll/{run}/lines/{line}', [PayrollController::class, 'destroyLine'])->name('payroll.lines.destroy');
+                Route::post('/payroll/{run}/finalize', [PayrollController::class, 'finalize'])->name('payroll.finalize');
+                Route::delete('/payroll/{run}', [PayrollController::class, 'destroy'])->name('payroll.destroy');
+            });
+
+            Route::middleware(['permission:finance.money_in.view,finance.money_in.manage'])->group(function () {
+                Route::get('/money-in', [MoneyInController::class, 'index'])->name('money-in.index');
+            });
+            Route::middleware(['permission:finance.money_in.manage'])->group(function () {
+                Route::get('/money-in/create', [MoneyInController::class, 'create'])->name('money-in.create');
+                Route::post('/money-in', [MoneyInController::class, 'store'])->name('money-in.store');
+                Route::get('/money-in/{entry}/edit', [MoneyInController::class, 'edit'])->name('money-in.edit');
+                Route::put('/money-in/{entry}', [MoneyInController::class, 'update'])->name('money-in.update');
+                Route::delete('/money-in/{entry}', [MoneyInController::class, 'destroy'])->name('money-in.destroy');
+            });
         });
     });
 

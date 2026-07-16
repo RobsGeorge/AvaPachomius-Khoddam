@@ -281,6 +281,36 @@ class NavigationHub
             ), ['category' => 'church']);
         }
 
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'finance.payroll.view', $church)
+            || $resolver->canInChurch($user, 'finance.payroll.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.finance.payroll.index',
+                'nav.payroll',
+                'bi-cash-stack',
+                ['church.finance.payroll.*'],
+                'finance.payroll.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'finance.money_in.view', $church)
+            || $resolver->canInChurch($user, 'finance.money_in.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.finance.money-in.index',
+                'nav.money_in',
+                'bi-wallet2',
+                ['church.finance.money-in.*'],
+                'finance.money_in.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
         return array_merge($links, self::filterByCapability($churchLinks));
     }
 
@@ -484,7 +514,7 @@ class NavigationHub
             return false;
         }
 
-        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.home-visits.*')) {
+        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.home-visits.*', 'church.finance.*')) {
             return true;
         }
 
