@@ -6,6 +6,8 @@ Contract phase for Khedma multi-church (master-plan §7 T7 / P6 pilot).
 
 1. **Schema contract:** backfill remaining `NULL church_id` → Tenant Zero, then
    `NOT NULL` on tenant tables (MySQL). Platform `roles` templates stay nullable.
+   Expand-phase FKs used `ON DELETE SET NULL`; the contract drops them, flips
+   nullability, and recreates with `RESTRICT` (MySQL error 1830 otherwise).
 2. **BelongsToChurch:** while `MULTI_TENANT=false`, inserts still stamp Tenant Zero
    so NOT NULL never breaks production dormancy.
 3. **Pilot church:** `php artisan tenancy:seed-pilot-church` provisions a contrasting
