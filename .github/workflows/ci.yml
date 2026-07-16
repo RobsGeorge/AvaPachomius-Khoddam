@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: ['**']
   pull_request:
   workflow_call:
 
@@ -39,6 +41,15 @@ jobs:
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Assert PSR-4 autoload is clean
+        run: |
+          set -o pipefail
+          OUTPUT=$(composer dump-autoload --no-interaction --no-ansi 2>&1 | tee /dev/stderr)
+          if echo "$OUTPUT" | grep -qi 'does not comply with psr-4'; then
+            echo "::error::composer dump-autoload reported PSR-4 warnings"
+            exit 1
+          fi
 
       - name: Prepare application
         run: |
@@ -115,23 +126,10 @@ jobs:
         run: php artisan test --testsuite=Feature --compact
         continue-on-error: true
 
-  mysql-migrations:
-    name: MySQL migration check
+  mysql-migrate-fresh:
+    name: MySQL migrate:fresh --seed
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # The test suites run on SQLite, which does NOT enforce varchar lengths, charset,
-    # or strict-mode constraints. This job applies the migrations against MySQL 8 in
-    # strict mode to catch column-length truncation and similar MySQL-only issues
-    # before they break the production deploy.
-    #
-    # IMPORTANT: this app's migrations patch an existing production database — some
-    # columns (e.g. roles.course_id) are NOT created by any migration, so a
-    # from-scratch `migrate` cannot bootstrap an empty database. This job therefore
-    # only runs when a committed schema baseline exists at
-    # database/schema/mysql-schema.sql (produced by `php artisan schema:dump` against
-    # staging/production). With that baseline present, Laravel loads it first and then
-    # applies pending migrations on real MySQL — which is what catches the truncation
-    # class of bug. Until the baseline is committed, the migration run is skipped.
 
     services:
       mysql:
@@ -183,14 +181,5 @@ jobs:
             echo "waiting for mysql ($i)"; sleep 2
           done
 
-      - name: Apply migrations on MySQL (requires schema baseline)
-        run: |
-          if [ -f database/schema/mysql-schema.sql ]; then
-            echo "Schema baseline found — loading it and applying pending migrations on MySQL 8..."
-            php artisan migrate --force --no-interaction
-          else
-            echo "::notice title=MySQL migration gate skipped::No database/schema/mysql-schema.sql baseline committed."
-            echo "This app's migrations patch an existing production DB (e.g. roles.course_id is not"
-            echo "created by any migration), so a from-scratch migrate cannot run. To enable this gate,"
-            echo "run 'php artisan schema:dump' against staging and commit database/schema/mysql-schema.sql."
-          fi
+      - name: migrate:fresh --seed on clean MySQL
+        run: php artisan migrate:fresh --seed --force --no-interaction
