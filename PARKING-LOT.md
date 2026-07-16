@@ -58,6 +58,16 @@ Out-of-phase findings. Captured, deliberately NOT built now.
   BelongsToChurch when tenancy lands.
   Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`
 
+## T7 deferred / ops follow-ups
+Landed on `feature/church-tenancy-t7`: `church_id` backfill + MySQL NOT NULL contract,
+BelongsToChurch dormant stamp, `tenancy:seed-pilot-church`, cutover runbook.
+Still parked / ops-owned:
+- Flip production `MULTI_TENANT=true` (staging first; see `docs/tenancy-cutover.md`)
+- Wildcard DNS/TLS + SESSION_DOMAIN for shared SSO cookies
+- Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`)
+- Optional FK hardening on every tenant table → `organizations.organization_id`
+- Public church registration / polymorphic applications (§13)
+
 ## T6 deferred (finance first-cut boundary)
 Landed on `feature/church-tenancy-t6`: payroll runs/lines + money-in with integer
 minor units, currency, fx_rate; church-admin finance permissions; draft→finalize.
