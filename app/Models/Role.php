@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +13,8 @@ use Illuminate\Support\Collection;
 
 class Role extends Model
 {
+    use BelongsToChurch;
+
     protected $table = 'roles';
 
     protected $primaryKey = 'role_id';
@@ -47,9 +51,9 @@ class Role extends Model
         return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
     }
 
-    public function church(): BelongsTo
+    protected static function churchScopeAllowsNullTemplates(): bool
     {
-        return $this->belongsTo(Church::class, 'church_id', 'church_id');
+        return true;
     }
 
     public function clonedFrom(): BelongsTo

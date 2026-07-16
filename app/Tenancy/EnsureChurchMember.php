@@ -14,6 +14,12 @@ class EnsureChurchMember
 {
     public function handle(Request $request, Closure $next)
     {
+        // Membership gate only while multi-tenant is on. Dormant mode binds church 1
+        // for scoping/stamping but must not 403 users missing church_user rows.
+        if (! config('tenancy.enabled')) {
+            return $next($request);
+        }
+
         $user = $request->user();
         $church = TenantContext::current();
 

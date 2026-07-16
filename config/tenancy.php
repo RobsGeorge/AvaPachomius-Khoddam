@@ -7,10 +7,10 @@ return [
     | Church tenancy (multi-church platform — see docs/khedma-master-plan.md)
     |--------------------------------------------------------------------------
     |
-    | Church == the tenant (isolation boundary). This is T0/P1.1 (foundation):
-    | the structures exist and existing data is backfilled into Organization #1 /
-    | Church #1, but NOTHING enforces isolation while MULTI_TENANT is off. The
-    | global scope + request resolution arrive in T1.
+    | Church == the tenant (isolation boundary). P1.2 dormant layer:
+    | ResolveTenant always binds a church (Tenant Zero while MULTI_TENANT=false;
+    | subdomain / API claim while true). BelongsToChurch scopes + stamps via
+    | app(TenantContext::class)->churchId(). Membership gate only when enabled.
     |
     | `organizations` is the organizations-shaped registry (§4); `church` is the
     | church-native compatibility table. Tenant rows carry `church_id` FK →

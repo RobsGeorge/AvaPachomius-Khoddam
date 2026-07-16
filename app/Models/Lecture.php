@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 
 class Lecture extends Model
 {
+    use BelongsToChurch;
+
     protected $primaryKey = 'lecture_id';
 
     protected $fillable = [

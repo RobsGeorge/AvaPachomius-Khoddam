@@ -8,8 +8,9 @@ Contract phase for Khedma multi-church (master-plan §7 T7 / P6 pilot).
    `NOT NULL` on tenant tables (MySQL). Platform `roles` templates stay nullable.
    Expand-phase FKs used `ON DELETE SET NULL`; the contract drops them, flips
    nullability, and recreates with `RESTRICT` (MySQL error 1830 otherwise).
-2. **BelongsToChurch:** while `MULTI_TENANT=false`, inserts still stamp Tenant Zero
-   so NOT NULL never breaks production dormancy.
+2. **BelongsToChurch:** inserts stamp `app(TenantContext::class)->churchId()` (or
+   Tenant Zero when unbound). While `MULTI_TENANT=false`, ResolveTenant still binds
+   church 1 so prod reads stay Tenant-Zero-scoped without changing visible data.
 3. **Pilot church:** `php artisan tenancy:seed-pilot-church` provisions a contrasting
    second tenant (limited capabilities — no exams by default).
 
@@ -36,5 +37,5 @@ dedicated ops change after the P6 checklist in
 ## Rollback
 
 - Suspend the pilot church (`status=suspended`) — ResolveTenant 404s it.
-- Set `MULTI_TENANT=false` to restore dormant Tenant Zero behavior (scopes unbound).
+- Set `MULTI_TENANT=false` to restore dormant Tenant Zero binding (scopes → church 1).
 - Do **not** reverse NOT NULL in production without a dedicated contraction PR.

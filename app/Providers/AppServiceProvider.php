@@ -26,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
         Connection::resolverFor('sqlite', function ($connection, $database, $prefix, $config) {
             return new SafeSQLiteConnection($connection, $database, $prefix, $config);
         });
+
+        $this->app->singleton(\App\Tenancy\TenantContext::class, fn () => new \App\Tenancy\TenantContext());
     }
 
     public function boot(): void

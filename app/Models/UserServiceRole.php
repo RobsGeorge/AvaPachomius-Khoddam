@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserServiceRole extends Model
 {
+    use BelongsToChurch;
+
     protected $table = 'user_service_role';
 
     protected $primaryKey = 'user_service_role_id';

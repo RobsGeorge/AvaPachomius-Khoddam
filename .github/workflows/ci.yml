@@ -81,8 +81,15 @@ jobs:
       - name: 6 · Mail & external communications pipeline
         run: php artisan test --testsuite=Mail --compact
 
-      - name: 7 · Tenant isolation & invariants pipeline
+      - name: 7 · Tenant isolation (MULTI_TENANT=false)
         run: php artisan test --testsuite=Tenancy --compact
+        env:
+          MULTI_TENANT: 'false'
+
+      - name: 7b · Tenant isolation (MULTI_TENANT=true)
+        run: php artisan test --testsuite=Tenancy --compact
+        env:
+          MULTI_TENANT: 'true'
 
       - name: 8 · Load pipeline (events)
         run: php artisan test tests/Load/Events --compact
