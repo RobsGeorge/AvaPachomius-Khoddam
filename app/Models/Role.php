@@ -56,6 +56,15 @@ class Role extends Model
         return true;
     }
 
+    /**
+     * Platform role templates must keep church_id NULL so cloneTemplatesInto*
+     * can find them while TenantContext is bound (P1.2 dormant tenancy).
+     */
+    protected static function shouldStampChurchIdOnCreate(Model $model): bool
+    {
+        return ! (bool) $model->getAttribute('is_template');
+    }
+
     public function clonedFrom(): BelongsTo
     {
         return $this->belongsTo(Role::class, 'cloned_from_role_id', 'role_id');
