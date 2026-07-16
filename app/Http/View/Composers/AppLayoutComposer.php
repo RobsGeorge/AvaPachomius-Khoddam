@@ -98,6 +98,7 @@ class AppLayoutComposer
         $showServiceContextLabel = (bool) $currentService && ! $supportsServiceSwitcher;
 
         // Church switcher (T4): host-based links, only when MULTI_TENANT is on.
+        // Dropdown only when the user can reach 2+ churches — a single church is a label.
         $tenancyOn = (bool) config('tenancy.enabled');
         $currentChurch = TenantContext::current();
         $selectableChurches = collect();
@@ -106,11 +107,10 @@ class AppLayoutComposer
                 ? Church::query()->where('status', 'active')->orderBy('name')->get()
                 : $user->churches()->where('church.status', 'active')->orderBy('church.name')->get();
         }
-        $supportsChurchSwitcher = $tenancyOn && (
-            $selectableChurches->count() > 1
-            || ($isSuper && $selectableChurches->isNotEmpty())
-        );
-        $showChurchContextLabel = $tenancyOn && (bool) $currentChurch && ! $supportsChurchSwitcher;
+        $supportsChurchSwitcher = $tenancyOn && $selectableChurches->count() > 1;
+        $labeledChurch = $currentChurch
+            ?? ($selectableChurches->count() === 1 ? $selectableChurches->first() : null);
+        $showChurchContextLabel = $tenancyOn && ! $supportsChurchSwitcher && (bool) $labeledChurch;
 
         $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
         $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
@@ -133,6 +133,7 @@ class AppLayoutComposer
         $view->with('selectableServices', $selectableServices);
 
         $view->with('currentChurch', $currentChurch);
+        $view->with('labeledChurch', $labeledChurch);
         $view->with('supportsChurchSwitcher', $supportsChurchSwitcher);
         $view->with('showChurchContextLabel', $showChurchContextLabel);
         $view->with('selectableChurches', $selectableChurches);
