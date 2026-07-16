@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Course;
@@ -10,6 +12,8 @@ use App\Models\User;
 
 class Session extends Model
 {
+    use BelongsToChurch;
+
     /** Legacy `session` table may not have timestamps on production. */
     public $timestamps = false;
 

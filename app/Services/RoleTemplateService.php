@@ -155,6 +155,7 @@ class RoleTemplateService
                 'service.role.manage', 'service.user.assign_role',
                 'service_application.review', 'service_application.form_builder',
                 'announcement.view', 'announcement.manage', 'announcement.publish',
+                'communications.report',
                 'roster.view',
             ],
             'service-member' => [
@@ -220,6 +221,7 @@ class RoleTemplateService
             'grade.view', 'grade.manage',
             'attendance.record', 'attendance.view_all', 'attendance.report', 'attendance.edit',
             'announcement.view', 'announcement.manage', 'announcement.publish',
+            'communications.report',
             'roster.view', 'roster.announce', 'session.notify',
             'graduation.view', 'graduation.configure', 'course.close', 'certificate.manage',
             'feedback.view', 'feedback.manage', 'feedback.report',

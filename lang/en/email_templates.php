@@ -1,0 +1,28 @@
+<?php
+
+return [
+    'hub_title' => 'Course email templates',
+    'hub_intro' => 'Edit compact email templates for this course. Choose the language to edit, set a send-default language, and preview the message as recipients will see it.',
+    'edit_language' => 'Edit language',
+    'default_send_language' => 'Default send language',
+    'default_send_hint' => 'Used when the recipient has not chosen a personal communication language.',
+    'system_default' => 'System / template default',
+    'preview' => 'Preview',
+    'preview_title' => 'Email preview',
+    'preview_subject' => 'Subject',
+    'saved' => 'Email templates saved.',
+    'placeholders' => 'Placeholders',
+    'placeholders_hint' => 'Insert tokens like {{name}} — they are replaced when the email is sent.',
+    'subject' => 'Subject',
+    'body' => 'Message body',
+    'family_course_application' => 'Course application emails',
+    'family_course_graduation' => 'Graduation emails',
+    'family_role_assignment' => 'Role assignment emails',
+    'family_registration_review' => 'Registration review emails',
+    'compact_hint' => 'Expand a template to edit. Only the selected language panel is shown.',
+    'nav' => 'Email templates',
+    'communication_language' => 'Communication language',
+    'communication_language_hint' => 'Preferred language for emails and portal communications. Choose system default to follow each template’s admin setting.',
+    'locale_ar' => 'Arabic',
+    'locale_en' => 'English',
+];

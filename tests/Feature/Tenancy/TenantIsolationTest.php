@@ -2,36 +2,79 @@
 
 namespace Tests\Feature\Tenancy;
 
+use App\Models\Church;
+use App\Models\Course;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Schema;
 use Tests\Support\EventModuleTestCase;
 
 /**
  * The tenant-isolation "sacred suite" (CLAUDE.md rules 1–3) plus the cross-cutting
  * platform invariants that guard the hard rules.
  *
- * Multi-tenancy is being introduced by expand-contract. The isolation assertions
- * below activate automatically the moment the `church_id` column exists; until then
- * they skip with a clear reason so the pipeline stays green without building ahead
- * of the current migration phase (rule 10).
+ * T1 activates real isolation: a church bound via TenantContext filters reads and
+ * auto-stamps writes through the BelongsToChurch global scope. In production the scope
+ * is dormant until the T7 cutover (ResolveTenant binds nothing while MULTI_TENANT=false),
+ * so these tests drive isolation by binding a church context directly.
  */
 class TenantIsolationTest extends EventModuleTestCase
 {
+    protected function tearDown(): void
+    {
+        TenantContext::clear();
+        parent::tearDown();
+    }
+
     public function test_tenant_scoped_models_are_isolated_by_church(): void
     {
-        if (! Schema::hasColumn('user', 'church_id')) {
-            $this->markTestSkipped(
-                'Multi-tenancy not yet migrated (no church_id column). '
-                .'This isolation check activates when the expand migration lands.'
-            );
-        }
+        $this->assertTrue(trait_exists(\App\Tenancy\BelongsToChurch::class));
 
-        // Once church_id exists, assert the BelongsToChurch global scope prevents
-        // cross-tenant reads. Filled in with the tenancy migration (master-plan §7).
-        $this->assertTrue(
-            trait_exists(\App\Tenancy\BelongsToChurch::class),
-            'BelongsToChurch trait must exist once church_id is introduced.'
-        );
+        $churchA = Church::main();
+        $churchB = Church::create(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
+
+        // Write: each row is auto-stamped with the church active at creation time.
+        TenantContext::set($churchA);
+        $courseA = Course::create(['title' => 'Course A', 'description' => 'x', 'year' => 2026]);
+        $this->assertEquals($churchA->church_id, $courseA->church_id);
+
+        TenantContext::set($churchB);
+        $courseB = Course::create(['title' => 'Course B', 'description' => 'x', 'year' => 2026]);
+        $this->assertEquals($churchB->church_id, $courseB->church_id);
+
+        // Read isolation: under church B, church A's data is invisible (and vice-versa).
+        $this->assertNull(Course::find($courseA->course_id));
+        $this->assertNotNull(Course::find($courseB->course_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(Course::find($courseA->course_id));
+        $this->assertNull(Course::find($courseB->course_id));
+
+        // Superadmin / cross-church code bypasses the scope explicitly.
+        $this->assertSame(2, Course::withoutGlobalScope('church')
+            ->whereIn('course_id', [$courseA->course_id, $courseB->course_id])->count());
+
+        // No church bound → scope no-ops (the production default while MULTI_TENANT=false).
+        TenantContext::clear();
+        $this->assertFalse(TenantContext::enforced());
+        $this->assertSame(2, Course::whereIn('course_id', [$courseA->course_id, $courseB->course_id])->count());
+    }
+
+    public function test_a_foreign_church_id_cannot_be_mass_assigned(): void
+    {
+        $churchA = Church::main();
+        $churchB = Church::create(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
+
+        // church_id is not mass-assignable; passing another church's id is ignored and the
+        // row is stamped to the active church, so a write can never land in another tenant.
+        TenantContext::set($churchB);
+        $course = Course::create(['title' => 'Sneaky', 'description' => 'x', 'year' => 2026, 'church_id' => $churchA->church_id]);
+        $this->assertEquals($churchB->church_id, $course->church_id);
+
+        // Consequently it is hidden from church A and visible only in church B.
+        TenantContext::set($churchA);
+        $this->assertNull(Course::find($course->course_id));
+        TenantContext::set($churchB);
+        $this->assertNotNull(Course::find($course->course_id));
     }
 
     /**

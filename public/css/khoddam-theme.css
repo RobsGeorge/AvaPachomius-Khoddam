@@ -806,10 +806,29 @@ body.theme-dark .app-dropdown-link:hover {
     border-color: var(--color-surface-border);
 }
 
-/* Subtle hover lift (works with animate.css timing) */
-.khoddam-hover-lift {
-    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-fast), background-color var(--transition-fast);
+/* Compact email template editor panels */
+.email-template-panel {
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-sm, 0.375rem);
+    padding: 0.35rem 0.65rem;
+    background: var(--color-surface);
 }
+
+.email-template-summary {
+    cursor: pointer;
+    list-style: none;
+    color: var(--color-title);
+}
+
+.email-template-summary::-webkit-details-marker {
+    display: none;
+}
+
+.tox-tinymce {
+    border-radius: var(--radius-sm, 0.375rem) !important;
+    border-color: var(--color-surface-border) !important;
+}
+
 
 .khoddam-hover-lift:hover {
     transform: translateY(-2px);

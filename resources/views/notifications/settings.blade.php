@@ -20,6 +20,22 @@
         @csrf
         @method('PUT')
 
+        @if(\App\Services\EmailTemplateCatalog::userCommunicationLocaleColumnReady())
+            <div class="app-card card shadow-sm mb-3">
+                <div class="card-body">
+                    <h2 class="h6 mb-2">{{ __('email_templates.communication_language') }}</h2>
+                    <p class="small text-muted-theme mb-2">{{ __('email_templates.communication_language_hint') }}</p>
+                    <select name="communication_locale" class="form-select form-select-sm" style="max-width:16rem;">
+                        <option value="" @selected(old('communication_locale', $user->communication_locale) === null || old('communication_locale', $user->communication_locale) === '')>
+                            {{ __('email_templates.system_default') }}
+                        </option>
+                        <option value="ar" @selected(old('communication_locale', $user->communication_locale) === 'ar')>{{ __('email_templates.locale_ar') }}</option>
+                        <option value="en" @selected(old('communication_locale', $user->communication_locale) === 'en')>{{ __('email_templates.locale_en') }}</option>
+                    </select>
+                </div>
+            </div>
+        @endif
+
         @foreach($types as $type => $definition)
             @php($pref = $preferences[$type] ?? null)
             <div class="app-card card shadow-sm mb-3">
