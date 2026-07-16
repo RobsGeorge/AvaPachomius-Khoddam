@@ -120,7 +120,10 @@ abstract class EventModuleTestCase extends TestCase
 
         UserCourseRole::updateOrCreate(
             ['user_id' => $user->user_id, 'course_id' => $course->course_id],
-            ['role_id' => $role->role_id]
+            [
+                'role_id' => $role->role_id,
+                'church_id' => $course->church_id,
+            ]
         );
     }
 

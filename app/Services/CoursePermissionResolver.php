@@ -3,14 +3,17 @@
 namespace App\Services;
 
 use App\Models\Course;
+use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\EventAdmin;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserChurchRole;
 use App\Models\UserCourseRole;
 use App\Models\UserServiceRole;
 use App\Models\UserSystemRole;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -85,7 +88,11 @@ class CoursePermissionResolver
             return true;
         }
 
-        return $this->permissionsInCourse($user, $course)->contains($permission);
+        if (! $this->permissionsInCourse($user, $course)->contains($permission)) {
+            return false;
+        }
+
+        return $this->permissionAllowedByBoundChurch($permission);
     }
 
     public function canInSystem(User $user, string $permission): bool
@@ -138,7 +145,89 @@ class CoursePermissionResolver
             return true;
         }
 
-        return $this->permissionsInService($user, $service)->contains($permission);
+        if (! $this->permissionsInService($user, $service)->contains($permission)) {
+            return false;
+        }
+
+        return $this->permissionAllowedByBoundChurch($permission);
+    }
+
+    /**
+     * Effective permission keys for this user in a church (T3). Aggregates church-wide
+     * grants plus course/service grants that belong to the church. Cached by
+     * church.permissions_version.
+     */
+    public function permissionsInChurch(User $user, Church $church): Collection
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return $this->courseRbacReady() ? Permission::pluck('key') : collect();
+        }
+
+        if (! $this->courseRbacReady()) {
+            return collect();
+        }
+
+        $version = (int) ($church->permissions_version ?? 1);
+        $cacheKey = "perms:church:{$church->church_id}:{$user->user_id}:{$version}";
+
+        return Cache::remember($cacheKey, 600, function () use ($user, $church) {
+            return $this->resolveChurchPermissions($user, $church);
+        });
+    }
+
+    public function canInChurch(User $user, string $permission, Church $church): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return true;
+        }
+
+        if (! $this->permissionAllowedByCapabilities($permission, $church)) {
+            return false;
+        }
+
+        return $this->permissionsInChurch($user, $church)->contains($permission);
+    }
+
+    /**
+     * Ceiling check: a permission listed under a capability may only be used when that
+     * capability is enabled for the church. Permissions outside every capability list
+     * are unrestricted by this ceiling (platform / unscoped keys).
+     */
+    public function permissionAllowedByCapabilities(string $permission, Church $church): bool
+    {
+        $capabilityKey = $this->capabilityKeyForPermission($permission);
+        if ($capabilityKey === null) {
+            return true;
+        }
+
+        return $church->hasCapability($capabilityKey);
+    }
+
+    public function bumpChurchPermissionsVersion(Church $church): void
+    {
+        $churchId = $church->church_id;
+        $oldVersion = (int) ($church->permissions_version ?? 1);
+        $church->bumpPermissionsVersion();
+        $newVersion = $oldVersion + 1;
+
+        $userIds = collect();
+        if (Schema::hasTable('user_church_role')) {
+            $userIds = $userIds->merge(
+                UserChurchRole::where('church_id', $churchId)->pluck('user_id')
+            );
+        }
+        if (Schema::hasColumn('user_course_role', 'church_id')) {
+            $userIds = $userIds->merge(
+                UserCourseRole::where('church_id', $churchId)->pluck('user_id')
+            );
+        }
+
+        foreach ($userIds->unique() as $userId) {
+            Cache::forget("perms:church:{$churchId}:{$userId}:{$oldVersion}");
+            Cache::forget("perms:church:{$churchId}:{$userId}:{$newVersion}");
+        }
+
+        $church->refresh();
     }
 
     public function canAnyInCourse(User $user, array $permissions, Course $course): bool
@@ -150,7 +239,7 @@ class CoursePermissionResolver
         $held = $this->permissionsInCourse($user, $course);
 
         foreach ($permissions as $permission) {
-            if ($held->contains($permission)) {
+            if ($held->contains($permission) && $this->permissionAllowedByBoundChurch($permission)) {
                 return true;
             }
         }
@@ -383,5 +472,80 @@ class CoursePermissionResolver
     {
         return Schema::hasTable('role_permission')
             && Schema::hasTable('permissions');
+    }
+
+    private function permissionAllowedByBoundChurch(string $permission): bool
+    {
+        $church = TenantContext::current();
+        if (! $church) {
+            return true; // tenancy dormant — no ceiling
+        }
+
+        return $this->permissionAllowedByCapabilities($permission, $church);
+    }
+
+    private function capabilityKeyForPermission(string $permission): ?string
+    {
+        foreach ((array) config('capabilities') as $capabilityKey => $def) {
+            $keys = (array) ($def['permissions'] ?? []);
+            if (in_array($permission, $keys, true)) {
+                return $capabilityKey;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveChurchPermissions(User $user, Church $church): Collection
+    {
+        $roleIds = collect();
+
+        if (Schema::hasTable('user_church_role')) {
+            $roleIds = $roleIds->merge(
+                UserChurchRole::where('church_id', $church->church_id)
+                    ->where('user_id', $user->user_id)
+                    ->pluck('role_id')
+            );
+        }
+
+        if (Schema::hasColumn('user_course_role', 'church_id')) {
+            $roleIds = $roleIds->merge(
+                UserCourseRole::where('user_id', $user->user_id)
+                    ->where(function ($q) use ($church) {
+                        $q->where('church_id', $church->church_id)
+                            ->orWhereHas('course', fn ($c) => $c->withoutGlobalScope('church')
+                                ->where('church_id', $church->church_id));
+                    })
+                    ->pluck('role_id')
+            );
+        } else {
+            $roleIds = $roleIds->merge(
+                UserCourseRole::where('user_id', $user->user_id)
+                    ->whereHas('course', fn ($c) => $c->withoutGlobalScope('church')
+                        ->where('church_id', $church->church_id))
+                    ->pluck('role_id')
+            );
+        }
+
+        if (Schema::hasTable('user_service_role') && Schema::hasColumn('service', 'church_id')) {
+            $roleIds = $roleIds->merge(
+                UserServiceRole::where('user_id', $user->user_id)
+                    ->whereHas('service', fn ($s) => $s->withoutGlobalScope('church')
+                        ->where('church_id', $church->church_id))
+                    ->pluck('role_id')
+            );
+        }
+
+        $roleIds = $roleIds->unique()->filter()->values();
+        if ($roleIds->isEmpty()) {
+            return collect();
+        }
+
+        return DB::table('role_permission')
+            ->join('permissions', 'permissions.permission_id', '=', 'role_permission.permission_id')
+            ->whereIn('role_permission.role_id', $roleIds)
+            ->whereNull('permissions.deprecated_at')
+            ->distinct()
+            ->pluck('permissions.key');
     }
 }
