@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\ImpersonationService;
+use App\Services\People\PersonRegistryService;
 use App\Services\RolePreviewService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -19,7 +20,9 @@ use App\Models\EventAdmin;
 use App\Models\UserSystemRole;
 use App\Services\CoursePermissionResolver;
 use App\Mail\ResetPasswordMail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 
 
@@ -59,6 +62,7 @@ class User extends Authenticatable
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
         'registration_completed', 'application_status', 'communication_locale',
+        'person_id',
         'created_at', 'updated_at',
     ];
 
@@ -76,6 +80,27 @@ class User extends Authenticatable
         'updated_at'    => 'datetime',
         'otp_expires_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::created(function (User $user) {
+            if (! Schema::hasTable('people') || ! Schema::hasColumn('user', 'person_id')) {
+                return;
+            }
+            if ($user->person_id) {
+                return;
+            }
+
+            try {
+                app(PersonRegistryService::class)->ensureForUser($user);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to ensure person for user', [
+                    'user_id' => $user->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
+    }
 
     public static function fullNameFromParts(string $first, string $second, string $third): string
     {
@@ -146,6 +171,11 @@ class User extends Authenticatable
     public function churchMemberships()
     {
         return $this->hasMany(ChurchUser::class, 'user_id', 'user_id');
+    }
+
+    public function person()
+    {
+        return $this->belongsTo(Person::class, 'person_id', 'person_id');
     }
 
     public function belongsToChurch(int $churchId): bool
