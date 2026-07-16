@@ -32,3 +32,18 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - Still deferred: richer form builder, `course.service_id` NOT NULL contraction,
   BelongsToChurch when tenancy lands.
   Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`
+
+## T4 deferred (inside T4 / awaiting product decisions)
+Landed on `feature/church-tenancy-t4`: TrustHosts, sessions migration, `ChurchHost`,
+`ChurchProvisioningService`, superadmin churches CRUD, nav church switcher (host
+links), login membership rejection, `EnsureChurchMember` on web stack.
+Still parked:
+- Public church-registration panel → superadmin approval (master-plan §13 / §17.4).
+- Polymorphic applications center (Church | Service | Course).
+- Church-admin self-service screens on `{slug}` (members/branding within guardrails) —
+  superadmin console covers provisioning for now.
+- Invite-by-email onboarding that creates unverified users (add-member requires
+  existing email today).
+- Per-church branding resolution wired into ThemeController / locale defaults.
+- Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
+  enables MULTI_TENANT).

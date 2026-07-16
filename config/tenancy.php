@@ -29,6 +29,10 @@ return [
     // Host that serves the cross-church superadmin console (no church binding). Used from T4.
     'console_host' => env('TENANCY_CONSOLE_HOST', 'admin.localhost'),
 
+    // Apex / cookie parent domain (without leading dot). Used to build {slug}.{base} URLs.
+    // Falls back to parse_url(APP_URL).host when unset.
+    'base_domain' => env('TENANCY_BASE_DOMAIN'),
+
     // Data-root tables that carry church_id and (from T1) the BelongsToChurch global scope.
     // Auth tables (roles, user_course_role, user_service_role, permissions) are intentionally
     // excluded until T3. This list is the single source of truth for the tenant boundary and

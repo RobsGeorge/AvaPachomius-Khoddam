@@ -41,6 +41,7 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
+use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FeedbackHubController;
 use App\Http\Controllers\FeedbackSurveyStudentController;
@@ -514,6 +515,19 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
+
+    // T4 — church tenant provisioning (also reachable on the console host).
+    Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
+    Route::get('/churches/create', [SuperAdminChurchController::class, 'create'])->name('churches.create');
+    Route::post('/churches', [SuperAdminChurchController::class, 'store'])->name('churches.store');
+    Route::get('/churches/{church}', [SuperAdminChurchController::class, 'show'])->name('churches.show');
+    Route::get('/churches/{church}/edit', [SuperAdminChurchController::class, 'edit'])->name('churches.edit');
+    Route::put('/churches/{church}', [SuperAdminChurchController::class, 'update'])->name('churches.update');
+    Route::post('/churches/{church}/suspend', [SuperAdminChurchController::class, 'suspend'])->name('churches.suspend');
+    Route::post('/churches/{church}/activate', [SuperAdminChurchController::class, 'activate'])->name('churches.activate');
+    Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
+    Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
+
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');
     Route::post('/role-preview',            [SuperAdminController::class, 'previewRole'])->name('role-preview');

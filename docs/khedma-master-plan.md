@@ -110,9 +110,9 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T3 complete → next is T4.** T0–T3 are on `feature/church-tenancy`
-(+ T3 enforce: church-contextual permissions, capability ceiling, church-admin/priest/servant
-templates, `user_church_role`). Still dormant in production while `MULTI_TENANT=false`.
+**Current phase: T4 in progress.** T0–T3 landed (dormant while `MULTI_TENANT=false`).
+T4 = subdomains + provisioning + church switcher (P4/P5). Polymorphic applications /
+public church-registration panel remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -122,7 +122,7 @@ templates, `user_church_role`). Still dormant in production while `MULTI_TENANT=
 | **T1** *(=P1)* | Scoping & resolution | isolation enforced | `BelongsToChurch`, `TenantContext`, `ResolveTenant`, membership gate; **`TenantIsolationTest` goes green** |
 | **T2** *(=P2)* | Capabilities | features toggleable | "Church management" becomes a per-church capability |
 | **T3** *(=P3)* ✅ | Roles & permissions | permission-based | church-admin / priest / servant roles + permission keys; capability→permission ceiling |
-| **T4** *(=P4/P5)* | Subdomains + provisioning | real tenants | **church registration → superadmin approval**; **polymorphic applications center** (§13) |
+| **T4** *(=P4/P5)* | Subdomains + provisioning | real tenants | Superadmin church CRUD + switcher; **church registration / polymorphic apps deferred** |
 | **T5** | Church management module | new feature | priest **confession calendars** (§9), **home-visit schedules** (§10) |
 | **T6** | Financial module | new feature | payroll + money-in (§11), integer minor units |
 | **T7** *(contract)* | Cutover | `MULTI_TENANT=true` | `NOT NULL church_id`, second church pilot (P6) |

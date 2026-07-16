@@ -9,8 +9,11 @@ use App\Services\ProfilePhotoGateService;
 use App\Services\RegistrationApplicationService;
 use App\Services\ServiceContextService;
 use App\Services\StudentOnboardingService;
+use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\RegistrationApplication;
+use App\Support\ChurchHost;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -94,6 +97,21 @@ class AppLayoutComposer
         );
         $showServiceContextLabel = (bool) $currentService && ! $supportsServiceSwitcher;
 
+        // Church switcher (T4): host-based links, only when MULTI_TENANT is on.
+        $tenancyOn = (bool) config('tenancy.enabled');
+        $currentChurch = TenantContext::current();
+        $selectableChurches = collect();
+        if ($tenancyOn) {
+            $selectableChurches = $isSuper
+                ? Church::query()->where('status', 'active')->orderBy('name')->get()
+                : $user->churches()->where('church.status', 'active')->orderBy('church.name')->get();
+        }
+        $supportsChurchSwitcher = $tenancyOn && (
+            $selectableChurches->count() > 1
+            || ($isSuper && $selectableChurches->isNotEmpty())
+        );
+        $showChurchContextLabel = $tenancyOn && (bool) $currentChurch && ! $supportsChurchSwitcher;
+
         $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
         $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
         $courseCapability = $requiresCourseContext
@@ -113,6 +131,12 @@ class AppLayoutComposer
         $view->with('supportsServiceSwitcher', $supportsServiceSwitcher);
         $view->with('showServiceContextLabel', $showServiceContextLabel);
         $view->with('selectableServices', $selectableServices);
+
+        $view->with('currentChurch', $currentChurch);
+        $view->with('supportsChurchSwitcher', $supportsChurchSwitcher);
+        $view->with('showChurchContextLabel', $showChurchContextLabel);
+        $view->with('selectableChurches', $selectableChurches);
+        $view->with('isConsoleHost', ChurchHost::isConsoleHost());
 
         $view->with('currentCourse', $currentCourse);
         $view->with('requiresCourseContext', $requiresCourseContext);

@@ -22,6 +22,11 @@ class Church extends Model
 
     protected $casts = ['settings' => 'array', 'permissions_version' => 'integer'];
 
+    public function getRouteKeyName(): string
+    {
+        return 'church_id';
+    }
+
     /** Bump to invalidate all cached effective-permission entries for this church (T3-enforce). */
     public function bumpPermissionsVersion(): void
     {
