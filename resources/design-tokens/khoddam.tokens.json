@@ -1,0 +1,59 @@
+{
+  "meta": {
+    "name": "khoddam",
+    "source": "public/css/khoddam-theme.css",
+    "version": "1.0.0",
+    "notes": "Canonical web+mobile brand tokens. Sync to AvaPachomius-Khoddam-Mobile/src/theme/tokens.ts after edits."
+  },
+  "fonts": {
+    "sans": "Cairo",
+    "display": "Cairo"
+  },
+  "radii": {
+    "sm": 8,
+    "md": 14,
+    "lg": 20
+  },
+  "light": {
+    "bg1": "#f5f0ff",
+    "bg2": "#ede4ff",
+    "bg3": "#e8efff",
+    "surface": "rgba(255, 255, 255, 0.82)",
+    "surfaceBorder": "rgba(124, 58, 237, 0.15)",
+    "title": "#5b21b6",
+    "titleAccent": "#7c3aed",
+    "text": "#334155",
+    "textMuted": "#64748b",
+    "link": "#6d28d9",
+    "primary": "#7c3aed",
+    "primaryHover": "#6d28d9",
+    "primaryText": "#ffffff",
+    "navBg": "rgba(255, 255, 255, 0.88)",
+    "navText": "#475569",
+    "navActive": "#6d28d9",
+    "success": "#059669",
+    "danger": "#dc2626",
+    "warning": "#d97706"
+  },
+  "dark": {
+    "bg1": "#070f1f",
+    "bg2": "#0f2744",
+    "bg3": "#1a3a5c",
+    "surface": "rgba(15, 39, 68, 0.72)",
+    "surfaceBorder": "rgba(212, 175, 55, 0.18)",
+    "title": "#d4af37",
+    "titleAccent": "#f0d875",
+    "text": "#f8fafc",
+    "textMuted": "#cbd5e1",
+    "link": "#f0d875",
+    "primary": "#d4af37",
+    "primaryHover": "#c9a227",
+    "primaryText": "#0a1628",
+    "navBg": "rgba(7, 15, 31, 0.92)",
+    "navText": "#e2e8f0",
+    "navActive": "#d4af37",
+    "success": "#34d399",
+    "danger": "#f87171",
+    "warning": "#fbbf24"
+  }
+}
