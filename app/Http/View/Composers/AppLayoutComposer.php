@@ -104,7 +104,11 @@ class AppLayoutComposer
         if ($tenancyOn) {
             $selectableChurches = $isSuper
                 ? Church::query()->where('status', 'active')->orderBy('name')->get()
-                : $user->churches()->where('church.status', 'active')->orderBy('church.name')->get();
+                : $user->churches()
+                    ->where('church.status', 'active')
+                    ->wherePivot('status', 'active')
+                    ->orderBy('church.name')
+                    ->get();
         }
         $supportsChurchSwitcher = $tenancyOn && (
             $selectableChurches->count() > 1

@@ -91,6 +91,36 @@ class ChurchMiddlewareTest extends EventModuleTestCase
         $this->assertSame('ok', (new EnsureChurchMember())->handle($this->requestAs($stranger), fn () => 'ok'));
     }
 
+    public function test_church_switcher_query_excludes_inactive_memberships(): void
+    {
+        $main = Church::main();
+        $other = Church::create(['slug' => 'inactive-member-church', 'name' => 'Inactive Member', 'status' => 'active']);
+        $user = $this->createUser(['email' => 'switcher-member@example.com']);
+
+        ChurchUser::create([
+            'church_id' => $main->church_id,
+            'user_id' => $user->user_id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+        ChurchUser::create([
+            'church_id' => $other->church_id,
+            'user_id' => $user->user_id,
+            'status' => 'suspended',
+            'joined_at' => now(),
+        ]);
+
+        // Mirrors AppLayoutComposer non-superadmin selectableChurches query.
+        $selectable = $user->churches()
+            ->where('church.status', 'active')
+            ->wherePivot('status', 'active')
+            ->orderBy('church.name')
+            ->get();
+
+        $this->assertTrue($selectable->contains('church_id', $main->church_id));
+        $this->assertFalse($selectable->contains('church_id', $other->church_id));
+    }
+
     private function requestAs(\App\Models\User $user): Request
     {
         $request = Request::create('http://localhost/');
