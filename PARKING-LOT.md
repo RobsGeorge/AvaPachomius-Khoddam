@@ -58,6 +58,16 @@ Out-of-phase findings. Captured, deliberately NOT built now.
   BelongsToChurch when tenancy lands.
   Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`
 
+## T6 deferred (finance first-cut boundary)
+Landed on `feature/church-tenancy-t6`: payroll runs/lines + money-in with integer
+minor units, currency, fx_rate; church-admin finance permissions; draft→finalize.
+Still parked (master-plan §11 / §17.5):
+- Multi-currency catalogs beyond default EGP / fx_rate=`1`
+- Payroll cadence automation (monthly generators)
+- Approval workflows / multi-step sign-off before finalize
+- Reporting, reconciliation, exports
+- Per-church base-currency in `church.settings`
+
 ## T4 deferred (inside T4 / awaiting product decisions)
 Landed on `feature/church-tenancy-t4`: TrustHosts, sessions migration, `ChurchHost`,
 `ChurchProvisioningService`, superadmin churches CRUD, nav church switcher (host

@@ -81,6 +81,10 @@ return [
         'confession_slot',
         'confession_booking',
         'home_visit',
+        // Finance (T6)
+        'payroll_run',
+        'payroll_line',
+        'money_in',
     ],
 
 ];

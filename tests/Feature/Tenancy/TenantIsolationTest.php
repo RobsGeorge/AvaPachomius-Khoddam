@@ -94,6 +94,37 @@ class TenantIsolationTest extends EventModuleTestCase
         $this->assertSame(2, \App\Models\Priest::whereIn('priest_id', [$priestA->priest_id, $priestB->priest_id])->count());
     }
 
+    public function test_finance_models_are_isolated_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = Church::create(['slug' => 'stmark-t6', 'name' => 'St Mark T6', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $runA = \App\Models\PayrollRun::create([
+            'period_start' => '2026-07-01',
+            'period_end' => '2026-07-31',
+            'status' => \App\Models\PayrollRun::STATUS_DRAFT,
+            'currency' => 'EGP',
+        ]);
+        $this->assertEquals($churchA->church_id, $runA->church_id);
+
+        TenantContext::set($churchB);
+        $runB = \App\Models\PayrollRun::create([
+            'period_start' => '2026-07-01',
+            'period_end' => '2026-07-31',
+            'status' => \App\Models\PayrollRun::STATUS_DRAFT,
+            'currency' => 'EGP',
+        ]);
+        $this->assertEquals($churchB->church_id, $runB->church_id);
+        $this->assertNull(\App\Models\PayrollRun::find($runA->payroll_run_id));
+
+        TenantContext::set($churchA);
+        $this->assertNull(\App\Models\PayrollRun::find($runB->payroll_run_id));
+
+        TenantContext::clear();
+        $this->assertSame(2, \App\Models\PayrollRun::whereIn('payroll_run_id', [$runA->payroll_run_id, $runB->payroll_run_id])->count());
+    }
+
     public function test_a_foreign_church_id_cannot_be_mass_assigned(): void
     {
         $churchA = Church::main();

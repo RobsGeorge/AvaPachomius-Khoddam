@@ -113,6 +113,8 @@ return [
             'priest.manage', 'priest.view',
             'confession.manage', 'confession.view', 'confession.book',
             'home_visit.manage', 'home_visit.view',
+            'finance.payroll.manage', 'finance.payroll.view',
+            'finance.money_in.manage', 'finance.money_in.view',
         ],
         'config' => [],
     ],
