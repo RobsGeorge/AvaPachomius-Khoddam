@@ -24,6 +24,14 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - Dormant `App\Http\Controllers\Auth\PasswordResetLinkController` kept (namespace fixed
   for PSR-4); live forgot-password flow uses `ForgotPasswordController`.
 
+## P1.1 organizations registry (2026-07-16)
+- `organizations` table (§4 shape) is the canonical tenant registry; product code still
+  uses church-native names (`church`, `church_id`, `BelongsToChurch`) during expand.
+- Tenant Zero = `organization_id` 1 / `subdomain=avapakhomios`, numerically aligned with
+  `church.church_id` 1. FK: tenant `church_id` → `organizations.organization_id`.
+- T1+ scopes/middleware already exist on staging but stay dormant while `MULTI_TENANT=false`.
+  Do not enable enforcement in production until T7 cutover PR.
+
 ## Mobile (React Native)
 - Student-first Expo app lives in sibling repo `AvaPachomius-Khoddam-Mobile`.
 - Backend slice: Sanctum token auth + `/api/v1` read APIs — see `docs/mobile/mvp.md`.
