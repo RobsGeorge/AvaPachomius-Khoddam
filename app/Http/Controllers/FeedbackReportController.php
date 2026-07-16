@@ -6,7 +6,9 @@ use App\Models\FeedbackAnswer;
 use App\Models\FeedbackQuestion;
 use App\Models\FeedbackSubmission;
 use App\Models\FeedbackSurvey;
+use App\Models\Role;
 use App\Models\User;
+use App\Models\UserCourseRole;
 use App\Services\FeedbackSurveyService;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,10 +31,11 @@ class FeedbackReportController extends Controller
             ->latest('submitted_at')
             ->paginate(25);
 
-        $enrolledCount = User::query()
-            ->whereHas('courses', fn ($q) => $q->where('course.course_id', $survey->course_id))
-            ->whereHas('roles', fn ($q) => $q->whereRaw('LOWER(role_name) = ?', ['student']))
-            ->count();
+        $enrolledCount = UserCourseRole::query()
+            ->where('course_id', $survey->course_id)
+            ->whereIn('role_id', Role::studentRoleIds())
+            ->distinct('user_id')
+            ->count('user_id');
 
         return view('feedback.admin.report', compact('survey', 'aggregates', 'submissions', 'enrolledCount'));
     }

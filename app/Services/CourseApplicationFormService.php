@@ -16,7 +16,12 @@ class CourseApplicationFormService
 {
     public function getOrCreateForCourse(Course $course, ?User $creator = null): CourseApplicationForm
     {
-        $studentRole = Role::query()->whereRaw('LOWER(role_name) = ?', ['student'])->first();
+        $studentRole = Role::studentRoleForCourse($course->course_id)
+            ?? Role::query()
+                ->whereNull('course_id')
+                ->where('slug', 'student')
+                ->where('is_template', true)
+                ->first();
 
         return CourseApplicationForm::query()->firstOrCreate(
             ['course_id' => $course->course_id],

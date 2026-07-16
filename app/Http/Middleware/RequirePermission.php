@@ -108,7 +108,7 @@ class RequirePermission
             }
         }
 
-        return $user->hasAnyRole(['admin', 'instructor']);
+        return $this->resolver->isStaffAnywhere($user);
     }
 
     private function resolveCourse(Request $request): ?Course

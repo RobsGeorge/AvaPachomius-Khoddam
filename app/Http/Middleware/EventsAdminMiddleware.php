@@ -19,7 +19,6 @@ class EventsAdminMiddleware
 
         $allowed = ($user->is_superadmin ?? false)
             || $user->canInSystem('events.admin')
-            || $user->hasRole('admin')
             || EventAdmin::where('user_id', $user->user_id)->exists();
 
         if (! $allowed) {
