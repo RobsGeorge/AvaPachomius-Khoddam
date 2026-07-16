@@ -124,4 +124,11 @@ class TenancyCutoverTest extends EventModuleTestCase
         $this->assertContains('roles', config('tenancy.tenant_tables_nullable_church_id'));
         $this->assertTrue(Schema::hasColumn('roles', 'church_id'));
     }
+
+    public function test_enforce_not_null_helper_is_safe_on_sqlite(): void
+    {
+        // MySQL path drops SET NULL FKs before MODIFY; SQLite is a no-op.
+        EnforceChurchIdNotNull::enforceNotNullOnMysql();
+        $this->assertTrue(true);
+    }
 }
