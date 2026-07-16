@@ -14,9 +14,12 @@ class CertificateDownloadController extends Controller
             ->with(['graduationStudent', 'user', 'course'])
             ->firstOrFail();
 
+        $user = auth()->user();
         abort_unless(
             Auth::id() === $certificate->user_id
-            || auth()->user()?->roles?->contains(fn ($r) => in_array(strtolower($r->role_name), ['admin', 'instructor'], true)),
+            || ($user && ($user->is_superadmin || $user->isInstructorOrAdmin(
+                $certificate->course_id ? (string) $certificate->course_id : null
+            ))),
             403
         );
 

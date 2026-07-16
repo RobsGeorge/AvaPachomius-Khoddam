@@ -169,10 +169,11 @@ class Role extends Model
     /** @return Collection<int, int> */
     public static function studentRoleIds(): Collection
     {
+        // Template identity via slug (cloned course roles use student / student-N).
         return static::query()
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
+                $q->where('slug', 'student')
+                    ->orWhere('slug', 'like', 'student-%');
             })
             ->pluck('role_id');
     }
@@ -182,8 +183,9 @@ class Role extends Model
     {
         return static::query()
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
-                    ->orWhereIn('slug', ['admin', 'instructor']);
+                $q->whereIn('slug', ['admin', 'instructor'])
+                    ->orWhere('slug', 'like', 'admin-%')
+                    ->orWhere('slug', 'like', 'instructor-%');
             })
             ->pluck('role_id');
     }
@@ -193,9 +195,10 @@ class Role extends Model
         return static::query()
             ->where('course_id', $courseId)
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
+                $q->where('slug', 'student')
+                    ->orWhere('slug', 'like', 'student-%');
             })
+            ->orderBy('role_id')
             ->first();
     }
 }

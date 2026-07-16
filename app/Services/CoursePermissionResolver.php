@@ -32,6 +32,23 @@ class CoursePermissionResolver
         Course::STATUS_ARCHIVED => ['role.manage', 'user.assign_role'],
     ];
 
+    /** Staff permission keys (instructor + admin template intersection used for authz bundles). */
+    public const STAFF_PERMISSION_KEYS = [
+        'curriculum.manage',
+        'attendance.record',
+        'assignment.manage',
+        'exam.author',
+        'grade.manage',
+        'role.manage',
+    ];
+
+    /** Learner permission keys (student template) used for authz bundles. */
+    public const LEARNER_PERMISSION_KEYS = [
+        'assignment.submit',
+        'exam.take',
+        'attendance.view_own',
+    ];
+
     public function permissionsInCourse(User $user, Course $course): Collection
     {
         if (RolePreviewService::isActive() && ($user->is_superadmin ?? false)) {
@@ -43,7 +60,20 @@ class CoursePermissionResolver
         }
 
         $version = (int) ($course->permissions_version ?? 0);
-        $cacheKey = "perms:{$course->course_id}:{$user->user_id}:{$version}";
+        $serviceVersion = 0;
+        if ($course->service_id && Schema::hasTable('service')) {
+            $serviceVersion = (int) (DB::table('service')
+                ->where('service_id', $course->service_id)
+                ->value('permissions_version') ?? 0);
+        }
+        $churchVersion = 0;
+        if ($course->church_id && Schema::hasTable('church')) {
+            $churchVersion = (int) (DB::table('church')
+                ->where('church_id', $course->church_id)
+                ->value('permissions_version') ?? 0);
+        }
+
+        $cacheKey = "perms:{$course->course_id}:{$user->user_id}:{$version}:s{$serviceVersion}:c{$churchVersion}";
 
         return Cache::remember($cacheKey, 600, function () use ($user, $course) {
             return $this->resolveCoursePermissions($user, $course);
@@ -286,14 +316,16 @@ class CoursePermissionResolver
 
         $assignment = UserCourseRole::where('user_id', $user->user_id)
             ->where('course_id', $course->course_id)
+            ->with('role')
             ->first();
 
         if (! $assignment) {
-            return false;
+            // Hierarchical: service/church grants still count as access.
+            return $this->permissionsInCourse($user, $course)->isNotEmpty();
         }
 
         if ($assignment->staff_archived_at !== null) {
-            return $this->isStudentAssignment($assignment);
+            return $this->isLearnerRole($assignment->role);
         }
 
         return true;
@@ -308,10 +340,25 @@ class CoursePermissionResolver
         $course->increment('permissions_version');
         $newVersion = $oldVersion + 1;
 
+        $serviceVersion = 0;
+        if ($course->service_id && Schema::hasTable('service')) {
+            $serviceVersion = (int) (DB::table('service')
+                ->where('service_id', $course->service_id)
+                ->value('permissions_version') ?? 0);
+        }
+        $churchVersion = 0;
+        if ($course->church_id && Schema::hasTable('church')) {
+            $churchVersion = (int) (DB::table('church')
+                ->where('church_id', $course->church_id)
+                ->value('permissions_version') ?? 0);
+        }
+
         $userIds = UserCourseRole::where('course_id', $courseId)->pluck('user_id')->unique();
         foreach ($userIds as $userId) {
-            Cache::forget("perms:{$courseId}:{$userId}:{$oldVersion}");
-            Cache::forget("perms:{$courseId}:{$userId}:{$newVersion}");
+            foreach ([$oldVersion, $newVersion] as $v) {
+                Cache::forget("perms:{$courseId}:{$userId}:{$v}");
+                Cache::forget("perms:{$courseId}:{$userId}:{$v}:s{$serviceVersion}:c{$churchVersion}");
+            }
         }
 
         $course->refresh();
@@ -322,9 +369,22 @@ class CoursePermissionResolver
         if ($course) {
             $course->refresh();
             $version = (int) ($course->permissions_version ?? 0);
-            Cache::forget("perms:{$course->course_id}:{$user->user_id}:{$version}");
-            if ($version > 0) {
-                Cache::forget("perms:{$course->course_id}:{$user->user_id}:".($version - 1));
+            $serviceVersion = 0;
+            if ($course->service_id && Schema::hasTable('service')) {
+                $serviceVersion = (int) (DB::table('service')
+                    ->where('service_id', $course->service_id)
+                    ->value('permissions_version') ?? 0);
+            }
+            $churchVersion = 0;
+            if ($course->church_id && Schema::hasTable('church')) {
+                $churchVersion = (int) (DB::table('church')
+                    ->where('church_id', $course->church_id)
+                    ->value('permissions_version') ?? 0);
+            }
+
+            foreach ([$version, max(0, $version - 1)] as $v) {
+                Cache::forget("perms:{$course->course_id}:{$user->user_id}:{$v}");
+                Cache::forget("perms:{$course->course_id}:{$user->user_id}:{$v}:s{$serviceVersion}:c{$churchVersion}");
             }
         }
         Cache::forget("perms:system:{$user->user_id}");
@@ -396,32 +456,151 @@ class CoursePermissionResolver
         return $keys;
     }
 
+    /**
+     * Hierarchical resolve: course assignment ∪ service role (course.service_id) ∪ church role.
+     */
     private function resolveCoursePermissions(User $user, Course $course): Collection
     {
         if (! $this->courseRbacReady()) {
             return collect();
         }
 
+        $roleIds = collect();
+
         $assignment = UserCourseRole::where('user_id', $user->user_id)
             ->where('course_id', $course->course_id)
             ->with('role')
             ->first();
 
-        if (! $assignment || ! $assignment->role) {
-            return collect();
+        if ($assignment?->role) {
+            $archivedStaff = $assignment->staff_archived_at !== null
+                && ! $this->isLearnerRole($assignment->role);
+
+            if (! $archivedStaff) {
+                $roleIds->push($assignment->role_id);
+            }
         }
 
-        if ($assignment->staff_archived_at !== null && ! $this->isStudentAssignment($assignment)) {
-            return $this->filterByLifecycle($course, collect());
+        if ($course->service_id
+            && Schema::hasTable('user_service_role')
+            && Schema::hasColumn('roles', 'service_id')) {
+            $roleIds = $roleIds->merge(
+                UserServiceRole::where('user_id', $user->user_id)
+                    ->where('service_id', $course->service_id)
+                    ->pluck('role_id')
+            );
+        }
+
+        if ($course->church_id && Schema::hasTable('user_church_role')) {
+            $roleIds = $roleIds->merge(
+                UserChurchRole::where('user_id', $user->user_id)
+                    ->where('church_id', $course->church_id)
+                    ->pluck('role_id')
+            );
+        }
+
+        $roleIds = $roleIds->unique()->filter()->values();
+        if ($roleIds->isEmpty()) {
+            return collect();
         }
 
         $keys = DB::table('role_permission')
             ->join('permissions', 'permissions.permission_id', '=', 'role_permission.permission_id')
-            ->where('role_permission.role_id', $assignment->role_id)
+            ->whereIn('role_permission.role_id', $roleIds)
             ->whereNull('permissions.deprecated_at')
+            ->distinct()
             ->pluck('permissions.key');
 
         return $this->filterByLifecycle($course, $keys);
+    }
+
+    /** True if the user holds any of the given keys in the course (hierarchical). */
+    public function canAnyStaffInCourse(User $user, Course $course): bool
+    {
+        return $this->canAnyInCourse($user, self::STAFF_PERMISSION_KEYS, $course);
+    }
+
+    /** True if the user holds learner keys and not staff keys in the course. */
+    public function canLearnerInCourse(User $user, Course $course): bool
+    {
+        if ($this->canAnyStaffInCourse($user, $course)) {
+            return false;
+        }
+
+        return $this->canAnyInCourse($user, self::LEARNER_PERMISSION_KEYS, $course);
+    }
+
+    /**
+     * Cross-course: holds any of $permissions in at least one enrolled / hierarchical context.
+     *
+     * @param  list<string>  $permissions
+     */
+    public function canAnyInAnyCourse(User $user, array $permissions): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return true;
+        }
+
+        if (! $this->courseRbacReady()) {
+            return false;
+        }
+
+        $courseIds = UserCourseRole::where('user_id', $user->user_id)->pluck('course_id');
+
+        if (Schema::hasTable('user_service_role')) {
+            $serviceIds = UserServiceRole::where('user_id', $user->user_id)->pluck('service_id');
+            if ($serviceIds->isNotEmpty()) {
+                $courseIds = $courseIds->merge(
+                    Course::query()->withoutGlobalScope('church')
+                        ->whereIn('service_id', $serviceIds)
+                        ->pluck('course_id')
+                );
+            }
+        }
+
+        if (Schema::hasTable('user_church_role')) {
+            $churchIds = UserChurchRole::where('user_id', $user->user_id)->pluck('church_id');
+            if ($churchIds->isNotEmpty()) {
+                $courseIds = $courseIds->merge(
+                    Course::query()->withoutGlobalScope('church')
+                        ->whereIn('church_id', $churchIds)
+                        ->pluck('course_id')
+                );
+            }
+        }
+
+        $courseIds = $courseIds->unique()->filter()->values();
+        if ($courseIds->isEmpty()) {
+            return false;
+        }
+
+        foreach (Course::query()->withoutGlobalScope('church')->whereIn('course_id', $courseIds)->get() as $course) {
+            if ($this->canAnyInCourse($user, $permissions, $course)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function isStaffAnywhere(User $user): bool
+    {
+        return $this->canAnyInAnyCourse($user, self::STAFF_PERMISSION_KEYS);
+    }
+
+    public function isLearnerAnywhere(User $user): bool
+    {
+        if ($this->isStaffAnywhere($user)) {
+            return false;
+        }
+
+        return $this->canAnyInAnyCourse($user, self::LEARNER_PERMISSION_KEYS);
+    }
+
+    public function isCourseAdminAnywhere(User $user): bool
+    {
+        return $this->canAnyInAnyCourse($user, ['role.manage'])
+            || $this->canInSystem($user, 'system.role.manage');
     }
 
     private function filterByLifecycle(Course $course, Collection $keys): Collection
@@ -453,12 +632,17 @@ class CoursePermissionResolver
         return $keys->reject(fn (string $key) => $denied->contains($key))->values();
     }
 
-    private function isStudentAssignment(UserCourseRole $assignment): bool
+    /** Learner roles keep access when staff_archived_at is set (students are not "staff"). */
+    private function isLearnerRole(?Role $role): bool
     {
-        $slug = $assignment->role?->effectiveSlug() ?? '';
-        $name = strtolower($assignment->role?->role_name ?? '');
+        if (! $role) {
+            return false;
+        }
 
-        return $slug === 'student' || $name === 'student';
+        // Template slug identity (not authz by role name string in request paths).
+        $slug = $role->effectiveSlug();
+
+        return $slug === 'student';
     }
 
     private function systemRbacReady(): bool
