@@ -127,8 +127,16 @@ Polymorphic applications / public church-registration remain parked (§13 / §17
 | **T5** ✅ | Church management module | new feature | priest **confession calendars** (§9), **home-visit schedules** (§10) |
 | **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
 | **T7** *(contract)* | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
+| **T8** *(scheduled — after T7 sign-off)* | Structure templates + service wrap | template-driven levels | See §15; full scope in `PARKING-LOT.md` “Structure template engine…” |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
+
+**T8 (do not start until T7 staging pilot is signed off):** structure template engine
+(`structure_templates`, anchors, `service_units`), seed `educational_standard` /
+`meeting_flat` / `care_sector`, wrap AvaPachomius as service slug `servants-prep`,
+reversible data migration, `/{service:slug}/…` routes + legacy 301s. Expand-only;
+builds on the existing Service-above-Course layer. Detail remains in `PARKING-LOT.md`
+until a T8 kickoff PR opens.
 
 ## 8. Church management module
 
