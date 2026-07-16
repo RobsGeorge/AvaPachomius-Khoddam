@@ -110,8 +110,10 @@ return [
         'label' => 'capabilities.church_management',
         'permissions' => [
             'church.configure', 'church.members.manage', 'church.role.manage',
+            'priest.manage', 'priest.view',
+            'confession.manage', 'confession.view', 'confession.book',
+            'home_visit.manage', 'home_visit.view',
         ],
         'config' => [],
     ],
-
 ];

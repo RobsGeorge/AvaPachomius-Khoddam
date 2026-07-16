@@ -42,6 +42,9 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
+use App\Http\Controllers\Church\PriestController;
+use App\Http\Controllers\Church\ConfessionController;
+use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FeedbackHubController;
 use App\Http\Controllers\FeedbackSurveyStudentController;
@@ -110,6 +113,44 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
     Route::post('/services/{service}/apply', [ServiceApplicationController::class, 'store'])->name('services.apply.store');
     Route::get('/services/{service}/application/status', [ServiceApplicationController::class, 'status'])->name('services.application.status');
+
+    // T5 — church management (capability-gated)
+    Route::middleware(['capability:church_management'])->prefix('church')->name('church.')->group(function () {
+        Route::middleware(['permission:priest.view,priest.manage'])->group(function () {
+            Route::get('/priests', [PriestController::class, 'index'])->name('priests.index');
+        });
+        Route::middleware(['permission:priest.manage'])->group(function () {
+            Route::get('/priests/create', [PriestController::class, 'create'])->name('priests.create');
+            Route::post('/priests', [PriestController::class, 'store'])->name('priests.store');
+            Route::get('/priests/{priest}/edit', [PriestController::class, 'edit'])->name('priests.edit');
+            Route::put('/priests/{priest}', [PriestController::class, 'update'])->name('priests.update');
+        });
+
+        Route::middleware(['permission:confession.view,confession.manage,confession.book'])->group(function () {
+            Route::get('/confession', [ConfessionController::class, 'index'])->name('confession.index');
+        });
+        Route::middleware(['permission:confession.manage'])->group(function () {
+            Route::get('/confession/slots/create', [ConfessionController::class, 'create'])->name('confession.create');
+            Route::post('/confession/slots', [ConfessionController::class, 'store'])->name('confession.store');
+            Route::get('/confession/slots/{slot}/edit', [ConfessionController::class, 'edit'])->name('confession.edit');
+            Route::put('/confession/slots/{slot}', [ConfessionController::class, 'update'])->name('confession.update');
+        });
+        Route::middleware(['permission:confession.book'])->group(function () {
+            Route::post('/confession/slots/{slot}/book', [ConfessionController::class, 'book'])->name('confession.book');
+            Route::post('/confession/bookings/{booking}/cancel', [ConfessionController::class, 'cancelBooking'])->name('confession.bookings.cancel');
+        });
+
+        Route::middleware(['permission:home_visit.view,home_visit.manage'])->group(function () {
+            Route::get('/home-visits', [HomeVisitController::class, 'index'])->name('home-visits.index');
+        });
+        Route::middleware(['permission:home_visit.manage'])->group(function () {
+            Route::get('/home-visits/create', [HomeVisitController::class, 'create'])->name('home-visits.create');
+            Route::post('/home-visits', [HomeVisitController::class, 'store'])->name('home-visits.store');
+            Route::get('/home-visits/{visit}/edit', [HomeVisitController::class, 'edit'])->name('home-visits.edit');
+            Route::put('/home-visits/{visit}', [HomeVisitController::class, 'update'])->name('home-visits.update');
+        });
+    });
+
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');

@@ -228,7 +228,60 @@ class NavigationHub
             }
         }
 
-        return $links;
+        $church = \App\Tenancy\TenantContext::current()
+            ?? (\Illuminate\Support\Facades\Schema::hasTable('church')
+                ? \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first()
+                : null);
+        $resolver = app(CoursePermissionResolver::class);
+        $churchLinks = [];
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'priest.view', $church)
+            || $resolver->canInChurch($user, 'priest.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.priests.index',
+                'nav.priests',
+                'bi-person-badge',
+                ['church.priests.*'],
+                'priest.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'confession.view', $church)
+            || $resolver->canInChurch($user, 'confession.manage', $church)
+            || $resolver->canInChurch($user, 'confession.book', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.confession.index',
+                'nav.confession',
+                'bi-calendar2-heart',
+                ['church.confession.*'],
+                'confession.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'home_visit.view', $church)
+            || $resolver->canInChurch($user, 'home_visit.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.home-visits.index',
+                'nav.home_visits',
+                'bi-house-heart',
+                ['church.home-visits.*'],
+                'home_visit.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
+        return array_merge($links, self::filterByCapability($churchLinks));
     }
 
     public static function systemLinks(?User $user): array
@@ -431,7 +484,7 @@ class NavigationHub
             return false;
         }
 
-        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*')) {
+        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.home-visits.*')) {
             return true;
         }
 

@@ -76,6 +76,11 @@ return [
         // RBAC anchors (nullable for platform templates until T3-enforce)
         'roles',
         'user_course_role',
+        // Church management (T5)
+        'priest',
+        'confession_slot',
+        'confession_booking',
+        'home_visit',
     ],
 
 ];
