@@ -32,6 +32,24 @@ return [
     'base_domain' => env('TENANCY_BASE_DOMAIN'),
 
     /*
+    | Tables that keep nullable church_id after the T7 contract (platform role templates).
+    */
+    'tenant_tables_nullable_church_id' => [
+        'roles',
+    ],
+
+    /*
+    | Default capability set for the contrasting pilot church (T7 / P6).
+    | Omits exams/grades so the second tenant is deliberately different from Tenant Zero.
+    */
+    'pilot_capabilities' => [
+        'church_management',
+        'announcements',
+        'reporting',
+        'attendance',
+    ],
+
+    /*
     | Data-root tables that carry church_id (FK → organizations.organization_id).
     | Auth/platform tables (permissions, user) are excluded. Child rows reached
     | only through a scoped parent may omit church_id — audit direct queries.

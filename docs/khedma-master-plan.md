@@ -110,10 +110,10 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T6 in progress.** T0–T5 landed (dormant while `MULTI_TENANT=false`).
-T6 = payroll + money-in (integer minor units). Polymorphic applications /
-public church-registration panel remain parked (§13 / §17.4). Finance
-approvals/reporting/reconciliation stay in the parking lot (§11 / §12).
+**Current phase: T7 in progress (contract).** T0–T6 landed. T7 = `NOT NULL church_id`,
+pilot church tooling, and staging cutover runbook (`docs/tenancy-cutover.md`).
+Keep `MULTI_TENANT=false` in production until staging pilot is signed off.
+Polymorphic applications / public church-registration remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -125,8 +125,8 @@ approvals/reporting/reconciliation stay in the parking lot (§11 / §12).
 | **T3** *(=P3)* ✅ | Roles & permissions | permission-based | church-admin / priest / servant roles + permission keys; capability→permission ceiling |
 | **T4** *(=P4/P5)* ✅ | Subdomains + provisioning | real tenants | Superadmin church CRUD + switcher; **church registration / polymorphic apps deferred** |
 | **T5** ✅ | Church management module | new feature | priest **confession calendars** (§9), **home-visit schedules** (§10) |
-| **T6** | Financial module | new feature | payroll + money-in (§11), integer minor units |
-| **T7** *(contract)* | Cutover | `MULTI_TENANT=true` | `NOT NULL church_id`, second church pilot (P6) |
+| **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
+| **T7** *(contract)* | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
