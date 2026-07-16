@@ -42,6 +42,7 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
+use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
@@ -597,6 +598,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/churches/{church}/activate', [SuperAdminChurchController::class, 'activate'])->name('churches.activate');
     Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
     Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
+
+    Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
+    Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
 
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');

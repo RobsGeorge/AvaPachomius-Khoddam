@@ -397,6 +397,7 @@ class NavigationHub
         $exclusiveLinks = [
             self::hubLink('superadmin.index', 'nav.superadmin', 'pages.superadmin_hub_desc', 'bi-shield-lock-fill', ['superadmin.index'], true),
             self::hubLink('superadmin.churches.index', 'tenancy.nav_churches', 'tenancy.nav_churches_desc', 'bi-building', ['superadmin.churches.*'], true),
+            self::hubLink('superadmin.people.merge.index', 'people.nav_merge', 'people.nav_merge_desc', 'bi-people', ['superadmin.people.*'], true),
             self::hubLink('admin.services.index', 'service.manage_title', 'pages.superadmin_services_desc', 'fas fa-church', ['admin.services.*'], true),
             self::hubLink('superadmin.courses', 'pages.manage_courses', 'pages.superadmin_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
             self::hubLink('roles.hub', 'rbac.hub_title', 'rbac.hub_intro', 'bi-shield-check', [

@@ -94,6 +94,10 @@ return [
         // RBAC anchors (nullable for platform templates until T3-enforce)
         'roles',
         'user_course_role',
+        // People registry (P2.1)
+        'people',
+        'families',
+        'relationships',
         // Church management (T5)
         'priest',
         'confession_slot',
