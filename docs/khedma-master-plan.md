@@ -1,7 +1,7 @@
 # Khedma Master Plan — multi-church platform
 
-> **Status:** design / spec. **No church-layer code written yet.** This is the top-level
-> source of truth referenced by `CLAUDE.md`. It sits *above* the detailed tenancy
+> **Status:** active roadmap. **T0–T3 landed** (dormant while `MULTI_TENANT=false`). This is the
+> top-level source of truth referenced by `CLAUDE.md`. It sits *above* the detailed tenancy
 > engineering spec in [`docs/architecture/multi-subsidiary/`](architecture/multi-subsidiary/README.md)
 > and adds the **church-domain** requirements that generic spec does not cover.
 >
@@ -110,9 +110,9 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: PRE-P0.** Nothing tenancy-related is built (`grep` confirms: no `church_id`,
-no `MULTI_TENANT`, no `App\Tenancy\`, no `BelongsToChurch`). `TenantIsolationTest` skips, waiting
-for the expand migration.
+**Current phase: T3 complete → next is T4.** T0–T3 are on `feature/church-tenancy`
+(+ T3 enforce: church-contextual permissions, capability ceiling, church-admin/priest/servant
+templates, `user_church_role`). Still dormant in production while `MULTI_TENANT=false`.
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -121,7 +121,7 @@ for the expand migration.
 | **T0** *(=P0)* | Foundation: church tables + backfill | none | `church`, `church_user`; nullable `church_id` on tenant + **service** tables; backfill to Church #1 |
 | **T1** *(=P1)* | Scoping & resolution | isolation enforced | `BelongsToChurch`, `TenantContext`, `ResolveTenant`, membership gate; **`TenantIsolationTest` goes green** |
 | **T2** *(=P2)* | Capabilities | features toggleable | "Church management" becomes a per-church capability |
-| **T3** *(=P3)* | Roles & permissions | permission-based | church-admin / priest / servant roles + permission keys |
+| **T3** *(=P3)* ✅ | Roles & permissions | permission-based | church-admin / priest / servant roles + permission keys; capability→permission ceiling |
 | **T4** *(=P4/P5)* | Subdomains + provisioning | real tenants | **church registration → superadmin approval**; **polymorphic applications center** (§13) |
 | **T5** | Church management module | new feature | priest **confession calendars** (§9), **home-visit schedules** (§10) |
 | **T6** | Financial module | new feature | payroll + money-in (§11), integer minor units |

@@ -22,6 +22,7 @@ class Role extends Model
         'role_decription',
         'course_id',
         'service_id',
+        'church_id',
         'slug',
         'description',
         'is_system',
@@ -44,6 +45,11 @@ class Role extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
+    }
+
+    public function church(): BelongsTo
+    {
+        return $this->belongsTo(Church::class, 'church_id', 'church_id');
     }
 
     public function clonedFrom(): BelongsTo

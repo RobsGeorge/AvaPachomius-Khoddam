@@ -12,4 +12,5 @@ return [
     'feedback' => 'Feedback surveys',
     'announcements' => 'Announcements',
     'reporting' => 'Reporting',
+    'church_management' => 'Church management',
 ];

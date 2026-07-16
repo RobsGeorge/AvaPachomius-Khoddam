@@ -443,6 +443,33 @@ return [
         ],
     ],
 
+    'church_management' => [
+        'scope' => 'system',
+        'label_en' => 'Church Management',
+        'label_ar' => 'إدارة الكنيسة',
+        'sort' => 140,
+        'permissions' => [
+            'church.configure' => [
+                'label_en' => 'Configure church settings',
+                'label_ar' => 'إعدادات الكنيسة',
+                'type' => 'both',
+                'routes' => [],
+            ],
+            'church.members.manage' => [
+                'label_en' => 'Manage church members',
+                'label_ar' => 'إدارة أعضاء الكنيسة',
+                'type' => 'both',
+                'routes' => [],
+            ],
+            'church.role.manage' => [
+                'label_en' => 'Manage church roles & permissions',
+                'label_ar' => 'إدارة أدوار وصلاحيات الكنيسة',
+                'type' => 'both',
+                'routes' => [],
+            ],
+        ],
+    ],
+
     'service_management' => [
         'scope' => 'service',
         'label_en' => 'Service Management',

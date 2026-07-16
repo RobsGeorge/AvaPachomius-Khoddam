@@ -193,6 +193,16 @@ class User extends Authenticatable
         return app(CoursePermissionResolver::class)->canInService($this, $permission, $service);
     }
 
+    public function permissionsInChurch(Church $church): \Illuminate\Support\Collection
+    {
+        return app(CoursePermissionResolver::class)->permissionsInChurch($this, $church);
+    }
+
+    public function canInChurch(string $permission, Church $church): bool
+    {
+        return app(CoursePermissionResolver::class)->canInChurch($this, $permission, $church);
+    }
+
     public function canAnyInCourse(array $permissions, Course $course): bool
     {
         return app(CoursePermissionResolver::class)->canAnyInCourse($this, $permissions, $course);

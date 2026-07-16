@@ -18,9 +18,15 @@ class Church extends Model
 
     protected $primaryKey = 'church_id';
 
-    protected $fillable = ['slug', 'name', 'domain', 'status', 'settings'];
+    protected $fillable = ['slug', 'name', 'domain', 'status', 'settings', 'permissions_version'];
 
-    protected $casts = ['settings' => 'array'];
+    protected $casts = ['settings' => 'array', 'permissions_version' => 'integer'];
+
+    /** Bump to invalidate all cached effective-permission entries for this church (T3-enforce). */
+    public function bumpPermissionsVersion(): void
+    {
+        $this->increment('permissions_version');
+    }
 
     public function members(): HasMany
     {
@@ -36,6 +42,11 @@ class Church extends Model
     public function capabilities(): HasMany
     {
         return $this->hasMany(ChurchCapability::class, 'church_id', 'church_id');
+    }
+
+    public function roles(): HasMany
+    {
+        return $this->hasMany(Role::class, 'church_id', 'church_id');
     }
 
     /** Enabled capabilities keyed by capability_key (memoized on the instance). */
