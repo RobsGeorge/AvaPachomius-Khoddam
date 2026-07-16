@@ -18,6 +18,49 @@
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 @auth
+                    {{-- Church → Service → Course (host-based church switch when MULTI_TENANT). --}}
+                    @if(!empty($supportsChurchSwitcher))
+                        <div class="dropdown">
+                            <button type="button"
+                                    class="brand-link dropdown-toggle border-0 bg-transparent p-0"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    aria-label="{{ __('tenancy.switch_church') }}">
+                                <i class="bi bi-building ms-1"></i>
+                                @if(!empty($currentChurch))
+                                    {{ $currentChurch->name }}
+                                @elseif(!empty($isConsoleHost))
+                                    {{ __('tenancy.console') }}
+                                @else
+                                    {{ __('tenancy.switch_church') }}
+                                @endif
+                            </button>
+                            <ul class="dropdown-menu app-dropdown-panel">
+                                @foreach($selectableChurches ?? [] as $switchChurch)
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link {{ ($currentChurch->church_id ?? null) === $switchChurch->church_id ? 'active fw-semibold' : '' }}"
+                                           href="{{ \App\Support\ChurchHost::pathPreservingUrl($switchChurch) }}">
+                                            {{ $switchChurch->name }}
+                                        </a>
+                                    </li>
+                                @endforeach
+                                @if($navUser->is_superadmin ?? false)
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item app-dropdown-link" href="{{ \App\Support\ChurchHost::consoleUrl('/superadmin/churches') }}">
+                                            <i class="bi bi-gear me-2"></i>{{ __('tenancy.nav_churches') }}
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
+                    @elseif(!empty($showChurchContextLabel) && !empty($currentChurch))
+                        <span class="brand-link" title="{{ __('tenancy.current_church') }}">
+                            <i class="bi bi-building ms-1"></i>
+                            {{ $currentChurch->name }}
+                        </span>
+                    @endif
+
                     {{-- Service first, then course (service owns courses). --}}
                     @if(!empty($supportsServiceSwitcher))
                         <div class="dropdown">

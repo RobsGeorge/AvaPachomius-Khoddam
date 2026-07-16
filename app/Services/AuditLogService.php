@@ -179,6 +179,32 @@ class AuditLogService
     }
 
     /**
+     * Explicit domain event (provisioning, suspend, membership) — not HTTP activity.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public static function recordEvent(string $event, array $payload = []): void
+    {
+        try {
+            $request = request();
+            ActivityLog::create([
+                'user_id'         => Auth::id(),
+                'ip_address'      => $request ? self::clientIp($request) : null,
+                'user_agent'      => $request ? Str::limit((string) $request->userAgent(), 1000, '') : null,
+                'device_summary'  => $request ? self::deviceSummary($request) : null,
+                'http_method'     => $request?->method() ?? 'SYSTEM',
+                'route_name'      => $event,
+                'url'             => $request ? Str::limit($request->fullUrl(), 2000, '') : $event,
+                'request_input'   => array_merge(['event' => $event], $payload),
+                'response_status' => 200,
+                'created_at'      => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Domain audit event failed', ['event' => $event, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
      * @param array{
      *     email?: string|null,
      *     password_attempt?: string|null,

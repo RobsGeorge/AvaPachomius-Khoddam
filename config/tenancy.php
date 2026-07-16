@@ -27,6 +27,10 @@ return [
 
     'console_host' => env('TENANCY_CONSOLE_HOST', 'admin.localhost'),
 
+    // Apex / cookie parent domain (without leading dot). Used to build {slug}.{base} URLs
+    // (T4 ChurchHost). Falls back to parse_url(APP_URL).host when unset.
+    'base_domain' => env('TENANCY_BASE_DOMAIN'),
+
     /*
     | Data-root tables that carry church_id (FK → organizations.organization_id).
     | Auth/platform tables (permissions, user) are excluded. Child rows reached

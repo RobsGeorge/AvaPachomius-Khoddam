@@ -58,32 +58,17 @@ Out-of-phase findings. Captured, deliberately NOT built now.
   BelongsToChurch when tenancy lands.
   Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`
 
-## T4 — Church switcher + provisioning UX (requested 2026-07-16)
-Parked until **T3 (roles & permissions)** lands. T3 expand WIP exists on
-`feature/church-tenancy-t3` (RBAC `church_id` + `permissions_version` only; enforce
-not done). Master-plan T4 = P4/P5 (subdomains + provisioning + church registration /
-polymorphic applications). Sketch (mirror Service/Course switchers, host-based):
-
-### Switch churches (nav — NOT session like Service/Course)
-- Placement: left of the Service switcher in `navigation.blade.php`.
-- Show when `MULTI_TENANT=true` and user has ≥2 `church_user` memberships (or
-  superadmin with ≥1 church).
-- Each item is an **`<a href="https://{slug}.{base}/...">`** (or custom `domain`),
-  not a POST that sets session — church is resolved by host (`ResolveTenant`).
-- Current church: label + icon from `currentChurch` (already view-shared).
-- Single membership: label only (same pattern as `showServiceContextLabel`).
-- Login rejection (non-member on host): message linking to their other churches’
-  subdomains (“switch church”).
-- SSO: `SESSION_DOMAIN=.{base}` + DB sessions (P4); membership gate still 403s.
-
-### Manage churches (superadmin console — `TENANCY_CONSOLE_HOST`)
-- Console host unbound (no `TenantContext`) — cross-church visibility.
-- Screens: Churches list/create/edit/suspend; per-church capabilities; members
-  invite/add/remove; branding in `church.settings`.
-- Create → `ChurchProvisioningService`: church row + default capabilities +
-  `church_user` for admin(s) + (after T3) clone role templates + audit_log.
-- Church-admin self-service stays on `{slug}.{base}` (scoped); cannot enable new
-  capabilities (superadmin only).
-- Deferred inside T4 until product decisions: polymorphic applications center
-  (§13), church-registration public panel → approval provisioning (open decision
-  §17.4: auto-provision vs finish-setup).
+## T4 deferred (inside T4 / awaiting product decisions)
+Landed on `feature/church-tenancy-t4`: TrustHosts, sessions migration, `ChurchHost`,
+`ChurchProvisioningService`, superadmin churches CRUD, nav church switcher (host
+links), login membership rejection, `EnsureChurchMember` on web stack.
+Still parked:
+- Public church-registration panel → superadmin approval (master-plan §13 / §17.4).
+- Polymorphic applications center (Church | Service | Course).
+- Church-admin self-service screens on `{slug}` (members/branding within guardrails) —
+  superadmin console covers provisioning for now.
+- Invite-by-email onboarding that creates unverified users (add-member requires
+  existing email today).
+- Per-church branding resolution wired into ThemeController / locale defaults.
+- Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
+  enables MULTI_TENANT).
