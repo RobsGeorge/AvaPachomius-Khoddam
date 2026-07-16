@@ -40,12 +40,15 @@ class ChurchMiddlewareTest extends EventModuleTestCase
 
         (new ResolveTenant())->handle(Request::create('http://localhost/'), fn () => 'ok');
 
-        $this->assertNull(TenantContext::current());
-        $this->assertFalse(TenantContext::enforced());
+        // P1.2: dormant mode still binds Tenant Zero so scopes/stamps are consistent.
+        $this->assertNotNull(TenantContext::current());
+        $this->assertSame(Church::main()->church_id, TenantContext::id());
+        $this->assertTrue(TenantContext::enforced());
     }
 
     public function test_member_passes_the_gate(): void
     {
+        config(['tenancy.enabled' => true]);
         $church = Church::main();
         $member = $this->createUser(['email' => 'gate-member@example.com']);
         ChurchUser::create(['church_id' => $church->church_id, 'user_id' => $member->user_id, 'status' => 'active']);
@@ -58,6 +61,7 @@ class ChurchMiddlewareTest extends EventModuleTestCase
 
     public function test_non_member_is_blocked(): void
     {
+        config(['tenancy.enabled' => true]);
         $church = Church::main();
         $stranger = $this->createUser(['email' => 'gate-stranger@example.com']);
         TenantContext::set($church);
@@ -72,6 +76,7 @@ class ChurchMiddlewareTest extends EventModuleTestCase
 
     public function test_superadmin_and_unbound_context_bypass_the_gate(): void
     {
+        config(['tenancy.enabled' => true]);
         $church = Church::main();
         $superadmin = $this->createUser(['is_superadmin' => true, 'email' => 'gate-super@example.com']);
         $stranger = $this->createUser(['email' => 'gate-stranger2@example.com']);
@@ -80,8 +85,9 @@ class ChurchMiddlewareTest extends EventModuleTestCase
         TenantContext::set($church);
         $this->assertSame('ok', (new EnsureChurchMember())->handle($this->requestAs($superadmin), fn () => 'ok'));
 
-        // No church bound → gate is a no-op (production default while MULTI_TENANT=false).
-        TenantContext::clear();
+        // MULTI_TENANT=false → membership gate skipped even if a church is bound.
+        config(['tenancy.enabled' => false]);
+        TenantContext::set($church);
         $this->assertSame('ok', (new EnsureChurchMember())->handle($this->requestAs($stranger), fn () => 'ok'));
     }
 

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +12,8 @@ use Illuminate\Support\Str;
 
 class Event extends Model
 {
+    use BelongsToChurch;
+
     protected $primaryKey = 'event_id';
 
     protected $fillable = [

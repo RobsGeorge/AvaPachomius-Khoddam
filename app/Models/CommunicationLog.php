@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CommunicationLog extends Model
 {
+    use BelongsToChurch;
+
     public const CHANNEL_EMAIL = 'email';
 
     public const CHANNEL_SMS = 'sms';

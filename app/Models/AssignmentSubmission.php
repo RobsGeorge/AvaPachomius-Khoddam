@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssignmentSubmission extends Model
 {
+    use BelongsToChurch;
+
     protected $primaryKey = 'submission_id';
     
     protected $fillable = [
