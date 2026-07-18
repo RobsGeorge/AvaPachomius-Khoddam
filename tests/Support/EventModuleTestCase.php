@@ -120,10 +120,7 @@ abstract class EventModuleTestCase extends TestCase
 
         UserCourseRole::updateOrCreate(
             ['user_id' => $user->user_id, 'course_id' => $course->course_id],
-            [
-                'role_id' => $role->role_id,
-                'church_id' => $course->church_id,
-            ]
+            ['role_id' => $role->role_id]
         );
     }
 
@@ -134,7 +131,6 @@ abstract class EventModuleTestCase extends TestCase
             'role_decription' => $slug,
             'slug' => $slug,
             'course_id' => $course->course_id,
-            'church_id' => $course->church_id,
         ]);
 
         $ids = \App\Models\Permission::whereIn('key', $permissionKeys)->pluck('permission_id');

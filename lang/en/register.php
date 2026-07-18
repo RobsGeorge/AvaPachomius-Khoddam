@@ -43,9 +43,4 @@ return [
     'continue_to_otp'        => 'Go to OTP verification page',
     'complete_otp_first'     => 'Please verify your email with the OTP code before setting a password.',
     'already_completed'      => 'This account is already registered. Please log in.',
-    'duplicate_confirm_title' => 'Possible existing match',
-    'duplicate_confirm_intro' => 'We found people with a similar normalized name. Confirm this is a new registration before continuing.',
-    'duplicate_ack'           => 'I reviewed the possible matches and want to continue as a new registration.',
-    'duplicate_continue'      => 'Continue registration',
-    'duplicate_back'          => 'Back to form',
 ];

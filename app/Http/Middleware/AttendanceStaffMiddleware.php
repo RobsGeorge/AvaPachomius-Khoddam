@@ -22,7 +22,7 @@ class AttendanceStaffMiddleware
             return redirect()->guest(route('login'))->withErrors(__('auth.login_required'));
         }
 
-        if (\App\Services\RolePreviewService::superadminBypassesPermissions($user)) {
+        if ($user->is_superadmin ?? false) {
             return $next($request);
         }
 
@@ -32,7 +32,7 @@ class AttendanceStaffMiddleware
             }
         }
 
-        if ($this->resolver->isStaffAnywhere($user)) {
+        if ($user->hasAnyRole(['admin', 'instructor'])) {
             return $next($request);
         }
 
@@ -41,6 +41,13 @@ class AttendanceStaffMiddleware
 
     private function hasInAnyCourse($user, string $perm): bool
     {
-        return $this->resolver->canAnyInAnyCourse($user, [$perm]);
+        foreach ($user->userCourseRoles()->activeStaff()->pluck('course_id') as $courseId) {
+            $course = \App\Models\Course::find($courseId);
+            if ($course && $this->resolver->canInCourse($user, $perm, $course)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

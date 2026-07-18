@@ -13,7 +13,6 @@ use App\Services\CoursePermissionResolver;
 use App\Services\RoleTemplateService;
 use App\Support\NavigationHub;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 use Tests\Support\EventModuleTestCase;
 
 class DynamicRoleManagementTest extends EventModuleTestCase
@@ -243,11 +242,8 @@ class DynamicRoleManagementTest extends EventModuleTestCase
         $resolver = app(CoursePermissionResolver::class);
         $resolver->permissionsInCourse($user, $course->fresh());
 
-        $course = $course->fresh();
-        $version = (int) $course->permissions_version;
-        $serviceVersion = (int) (DB::table('service')->where('service_id', $course->service_id)->value('permissions_version') ?? 0);
-        $churchVersion = (int) (DB::table('church')->where('church_id', $course->church_id)->value('permissions_version') ?? 0);
-        $cacheKey = "perms:{$course->course_id}:{$user->user_id}:{$version}:s{$serviceVersion}:c{$churchVersion}";
+        $version = (int) $course->fresh()->permissions_version;
+        $cacheKey = "perms:{$course->course_id}:{$user->user_id}:{$version}";
         $this->assertTrue(Cache::has($cacheKey));
 
         $role->permissions()->sync(
@@ -259,7 +255,7 @@ class DynamicRoleManagementTest extends EventModuleTestCase
 
         $course->refresh();
         $newVersion = (int) $course->permissions_version;
-        $newCacheKey = "perms:{$course->course_id}:{$user->user_id}:{$newVersion}:s{$serviceVersion}:c{$churchVersion}";
+        $newCacheKey = "perms:{$course->course_id}:{$user->user_id}:{$newVersion}";
 
         $this->assertFalse(Cache::has($cacheKey));
         $this->assertFalse(Cache::has($newCacheKey));

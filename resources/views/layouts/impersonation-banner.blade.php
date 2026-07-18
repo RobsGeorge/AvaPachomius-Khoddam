@@ -1,6 +1,7 @@
 @if(\App\Services\ImpersonationService::isActive() && auth()->check())
     @php
         $viewingAs = auth()->user();
+        $viewingAs->loadMissing('roles');
         $roleSummary = implode(', ', \App\Services\ImpersonationService::roleSummary($viewingAs));
     @endphp
     <div class="impersonation-banner bg-warning text-dark border-bottom border-warning-subtle sticky-top shadow-sm">

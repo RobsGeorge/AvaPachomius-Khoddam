@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CourseApplicationForm extends Model
 {
-    use BelongsToChurch;
-
     protected $fillable = [
         'course_id',
         'is_enabled',

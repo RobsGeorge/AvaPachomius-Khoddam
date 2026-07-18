@@ -7,7 +7,7 @@
 
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h1 class="page-title mb-0">{{ __('pages.curriculum') }}</h1>
-        @if(auth()->user()->isInstructorOrAdmin())
+        @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
             <a href="{{ route('modules.index') }}" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-collection"></i> {{ __('pages.modules_title') }}
             </a>
@@ -17,7 +17,7 @@
 @if($courses->isEmpty())
         <div class="alert alert-info">{{ __('pages.no_courses_for_curriculum') }}</div>
     @else
-        @if(! auth()->user()->isInstructorOrAdmin())
+        @if(! auth()->user()->hasAnyRole(['admin', 'instructor']))
             <div class="alert alert-light border mb-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span>{{ __('course_applications.available_courses_intro') }}</span>
                 <a href="{{ route('available-courses.index') }}" class="btn btn-outline-primary btn-sm">
@@ -39,7 +39,7 @@
                                class="btn btn-primary mt-auto">
                                 <i class="bi bi-journal-bookmark"></i> {{ __('pages.view_curriculum') }}
                             </a>
-                            @if(auth()->user()->isInstructorOrAdmin())
+                            @if(auth()->user()->hasAnyRole(['admin', 'instructor']))
                                 <a href="{{ route('curriculum.admin', $course->course_id) }}"
                                    class="btn btn-outline-theme btn-sm mt-2">
                                     <i class="bi bi-pencil-square"></i> {{ __('pages.manage_curriculum') }}

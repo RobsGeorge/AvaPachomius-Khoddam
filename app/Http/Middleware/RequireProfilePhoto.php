@@ -65,8 +65,6 @@ class RequireProfilePhoto
             'courses.application.update',
             'courses.select',
             'courses.select.store',
-            'superadmin.impersonate.stop',
-            'superadmin.role-preview.stop',
         ];
 
         $name = $request->route()?->getName();
@@ -79,7 +77,7 @@ class RequireProfilePhoto
             return true;
         }
 
-        foreach (['admin.', 'superadmin.', 'hubs.', 'user-course-roles.', 'roles.', 'available-courses.', 'events.'] as $prefix) {
+        foreach (['admin.', 'hubs.', 'user-course-roles.', 'roles.', 'available-courses.', 'events.'] as $prefix) {
             if (str_starts_with($name, $prefix)) {
                 return true;
             }

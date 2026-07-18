@@ -81,17 +81,6 @@ class AnnouncementModuleTest extends EventModuleTestCase
         $this->assignCourseRole($student, $course, $studentRole);
 
         $timezone = config('attendance.timezone', config('app.timezone'));
-        // The gate must have been enabled *before* the grace started; otherwise the
-        // service resets a grace that predates gate_enabled_at (you cannot be past-grace
-        // for a gate that was only just switched on). PortalSettings::current() defaults
-        // gate_enabled_at to now(), so pin it into the past for this scenario.
-        $settings = \App\Models\PortalSettings::current();
-        $settings->forceFill([
-            'profile_photo_grace_days' => 3,
-            'profile_photo_gate_enabled' => true,
-            'profile_photo_gate_enabled_at' => now($timezone)->subDays(10),
-        ])->save();
-
         $student->forceFill([
             'profile_photo_grace_started_at' => now($timezone)->subDays(4),
         ])->save();

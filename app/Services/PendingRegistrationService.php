@@ -208,8 +208,10 @@ class PendingRegistrationService
             $studentRole = Role::studentRoleForCourse($defaultCourse->course_id)
                 ?? Role::query()
                     ->whereNull('course_id')
-                    ->where('slug', 'student')
-                    ->where('is_template', true)
+                    ->where(function ($q) {
+                        $q->where('slug', 'student')
+                            ->orWhereRaw('LOWER(role_name) = ?', ['student']);
+                    })
                     ->first();
 
             if (! $studentRole) {

@@ -37,8 +37,7 @@ class DashboardService
     /** Course applications awaiting review, scoped to courses the user can administer. */
     private function reviewQueueCard(User $user): ?array
     {
-        if (! $user->isInstructorOrAdmin()
-            && ! \App\Services\RolePreviewService::superadminBypassesPermissions($user)) {
+        if (! $user->isInstructorOrAdmin() && ! ($user->is_superadmin ?? false)) {
             return null;
         }
 

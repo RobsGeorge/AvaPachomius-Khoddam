@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CourseApplication extends Model
 {
-    use BelongsToChurch;
-
     public const STATUS_PENDING_REVIEW = 'pending_review';
 
     public const STATUS_NEEDS_CORRECTION = 'needs_correction';

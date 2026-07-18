@@ -7,7 +7,6 @@ use App\Models\FeedbackAnswer;
 use App\Models\FeedbackQuestion;
 use App\Models\FeedbackSubmission;
 use App\Models\FeedbackSurvey;
-use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use Illuminate\Support\Facades\DB;
@@ -52,7 +51,9 @@ class FeedbackSurveyService
         return UserCourseRole::query()
             ->with(['user', 'role'])
             ->where('course_id', $courseId)
-            ->whereIn('role_id', Role::staffRoleIds())
+            ->whereHas('role', function ($q) {
+                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor']);
+            })
             ->get()
             ->map(fn ($ucr) => $ucr->user)
             ->filter()
