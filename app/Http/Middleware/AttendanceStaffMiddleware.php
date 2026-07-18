@@ -22,7 +22,7 @@ class AttendanceStaffMiddleware
             return redirect()->guest(route('login'))->withErrors(__('auth.login_required'));
         }
 
-        if ($user->is_superadmin ?? false) {
+        if (\App\Services\RolePreviewService::superadminBypassesPermissions($user)) {
             return $next($request);
         }
 

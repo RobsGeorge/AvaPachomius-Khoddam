@@ -2,6 +2,7 @@
 
 namespace App\Tenancy;
 
+use App\Services\ImpersonationService;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,12 @@ class EnsureChurchMember
 
         $user = $request->user();
         $church = TenantContext::current();
+
+        // Impersonation swaps Auth to the target; the acting superadmin must still
+        // be able to preview users who lack church_user (legacy / incomplete membership).
+        if ($user && ImpersonationService::isActive() && ImpersonationService::impersonator()) {
+            return $next($request);
+        }
 
         if ($user && $church && ! ($user->is_superadmin ?? false)
             && ! $user->belongsToChurch($church->church_id)) {
