@@ -11,10 +11,7 @@ class LoginPageTest extends TestCase
 
     public function test_login_page_loads_for_guests(): void
     {
-        // The app is Arabic-primary (config app.locale = ar), so pin the locale to
-        // English via the session before asserting the English login title.
-        $this->withSession(['locale' => 'en'])
-            ->get(route('login'))
+        $this->get(route('login'))
             ->assertOk()
             ->assertSee(__('auth.login_title', [], 'en'), false);
     }

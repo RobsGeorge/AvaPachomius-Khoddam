@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Assignment extends Model
 {
-    use BelongsToChurch;
-
     public const MAX_UPLOAD_KB = 10240;
 
     public const MAX_UPLOAD_MB = 10;

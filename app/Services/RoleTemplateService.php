@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Course;
-use App\Models\Church;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Support\Collection;
@@ -31,7 +30,6 @@ class RoleTemplateService
                 'slug' => $this->uniqueSlugForCourse($course->course_id, $template->effectiveSlug()),
                 'description' => $template->description,
                 'course_id' => $course->course_id,
-                'church_id' => $course->church_id,
                 'is_system' => false,
                 'is_template' => false,
                 'cloned_from_role_id' => $template->role_id,
@@ -131,7 +129,6 @@ class RoleTemplateService
                 'description' => $template->description,
                 'course_id' => null,
                 'service_id' => $service->service_id,
-                'church_id' => $service->church_id,
                 'is_system' => false,
                 'is_template' => false,
                 'cloned_from_role_id' => $template->role_id,
@@ -205,167 +202,6 @@ class RoleTemplateService
         }
 
         return $candidate;
-    }
-
-    /**
-     * Platform templates for church-wide roles (T3). Cloned into each church at
-     * provisioning (T4). church_id stays null on the templates themselves.
-     */
-    public function ensureChurchTemplates(): Collection
-    {
-        $templates = [
-            'church-admin' => [
-                'church.configure', 'church.members.manage', 'church.role.manage',
-                'priest.manage', 'priest.view',
-                'confession.manage', 'confession.view', 'confession.book',
-                'home_visit.manage', 'home_visit.view',
-                'finance.payroll.manage', 'finance.payroll.view',
-                'finance.money_in.manage', 'finance.money_in.view',
-                'role.manage', 'user.assign_role',
-                'announcement.view', 'announcement.manage', 'announcement.publish',
-                'communications.report', 'roster.view', 'roster.announce',
-                'service.view', 'service.manage',
-            ],
-            'priest' => [
-                'priest.view',
-                'confession.manage', 'confession.view',
-                'home_visit.manage', 'home_visit.view',
-                'announcement.view',
-                'roster.view',
-            ],
-            'servant' => [
-                'confession.view', 'confession.book',
-                'home_visit.manage', 'home_visit.view',
-                'announcement.view',
-                'roster.view',
-            ],
-        ];
-
-        $roles = collect();
-
-        foreach ($templates as $slug => $permissionKeys) {
-            $role = Role::firstOrCreate(
-                [
-                    'slug' => $slug,
-                    'course_id' => null,
-                    'service_id' => null,
-                    'church_id' => null,
-                    'is_template' => true,
-                ],
-                [
-                    'role_name' => match ($slug) {
-                        'church-admin' => 'Church Admin',
-                        'priest' => 'Priest',
-                        default => 'Servant',
-                    },
-                    'role_decription' => $slug,
-                    'description' => "Default {$slug} church template",
-                    'is_system' => true,
-                ]
-            );
-
-            $ids = Permission::whereIn('key', $permissionKeys)->pluck('permission_id');
-            $role->permissions()->sync($ids);
-            $roles->push($role);
-        }
-
-        return $roles;
-    }
-
-    /** @return array<string, Role> */
-    public function cloneTemplatesIntoChurch(Church $church): array
-    {
-        $this->ensureChurchTemplates();
-
-        // withoutTenancy: templates are null-church; clones target an arbitrary church
-        // that may differ from the currently bound TenantContext (P1.2 / provisioning).
-        $sourceRoles = Role::withoutTenancy()
-            ->whereNull('course_id')
-            ->whereNull('service_id')
-            ->whereNull('church_id')
-            ->where('is_template', true)
-            ->whereIn('slug', ['church-admin', 'priest', 'servant'])
-            ->get();
-
-        $enabledPermKeys = $this->permissionKeysForChurchCapabilities($church);
-        $created = [];
-
-        foreach ($sourceRoles as $template) {
-            $existing = Role::withoutTenancy()
-                ->where('church_id', $church->church_id)
-                ->whereNull('course_id')
-                ->whereNull('service_id')
-                ->where('slug', $template->effectiveSlug())
-                ->first();
-
-            if ($existing) {
-                $created[$existing->effectiveSlug()] = $existing;
-                continue;
-            }
-
-            $role = Role::create([
-                'role_name' => $template->role_name,
-                'role_decription' => $template->role_decription,
-                'slug' => $this->uniqueSlugForChurch($church->church_id, $template->effectiveSlug()),
-                'description' => $template->description,
-                'course_id' => null,
-                'service_id' => null,
-                'church_id' => $church->church_id,
-                'is_system' => false,
-                'is_template' => false,
-                'cloned_from_role_id' => $template->role_id,
-            ]);
-
-            $templateKeys = $template->permissions()->pluck('permissions.key');
-            $keys = $templateKeys->filter(
-                fn (string $key) => $this->resolver->permissionAllowedByCapabilities($key, $church)
-            );
-            if ($template->effectiveSlug() === 'church-admin') {
-                $keys = $keys->merge($enabledPermKeys)->unique();
-            }
-
-            $ids = Permission::whereIn('key', $keys)->pluck('permission_id');
-            $role->permissions()->sync($ids);
-            $created[$role->effectiveSlug()] = $role;
-        }
-
-        $this->resolver->bumpChurchPermissionsVersion($church);
-
-        return $created;
-    }
-
-    public function uniqueSlugForChurch(int|string $churchId, string $slug): string
-    {
-        $base = Str::slug($slug) ?: 'role';
-        $candidate = $base;
-        $i = 1;
-
-        while (
-            Role::withoutTenancy()
-                ->where('church_id', $churchId)
-                ->whereNull('course_id')
-                ->whereNull('service_id')
-                ->where('slug', $candidate)
-                ->exists()
-        ) {
-            $candidate = $base.'-'.$i;
-            $i++;
-        }
-
-        return $candidate;
-    }
-
-    private function permissionKeysForChurchCapabilities(Church $church): Collection
-    {
-        $keys = collect();
-        foreach ((array) config('capabilities') as $capabilityKey => $def) {
-            if (! $church->hasCapability($capabilityKey)) {
-                continue;
-            }
-            $keys = $keys->merge((array) ($def['permissions'] ?? []));
-        }
-
-        return $keys->unique()->values();
     }
 
     private function adminPermissions(): array

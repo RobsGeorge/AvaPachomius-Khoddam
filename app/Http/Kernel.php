@@ -14,7 +14,7 @@ class Kernel extends HttpKernel
      * @var array<int, class-string|string>
      */
     protected $middleware = [
-        \App\Http\Middleware\TrustHosts::class,
+        // \App\Http\Middleware\TrustHosts::class,
         \App\Http\Middleware\TrustProxies::class,
         \Illuminate\Http\Middleware\HandleCors::class,
         \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
@@ -37,8 +37,6 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetLocale::class,
-            \App\Tenancy\ResolveTenant::class,
-            \App\Tenancy\EnsureChurchMember::class,
             \App\Http\Middleware\LogUserActivity::class,
             \App\Http\Middleware\RequireMandatoryFeedback::class,
             \App\Http\Middleware\RequireProfilePhoto::class,
@@ -53,8 +51,6 @@ class Kernel extends HttpKernel
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
-            \App\Tenancy\ResolveTenant::class,
-            \App\Tenancy\EnsureChurchMember::class,
         ],
     ];
 
@@ -81,8 +77,6 @@ class Kernel extends HttpKernel
         'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         'role'       => \App\Http\Middleware\RoleMiddleware::class,
         'permission' => \App\Http\Middleware\RequirePermission::class,
-        'church.member' => \App\Tenancy\EnsureChurchMember::class,
-        'capability' => \App\Tenancy\RequireCapability::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'impersonator.stop' => \App\Http\Middleware\AllowImpersonatorStop::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,

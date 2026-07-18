@@ -12,7 +12,6 @@ use App\Models\Role;
 use App\Mail\SendOTPEmail;
 use App\Services\AuditLogService;
 use App\Services\PendingRegistrationService;
-use App\Services\People\PersonDuplicateDetector;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -64,23 +63,6 @@ class RegisterController extends Controller
             return back()
                 ->withErrors(['national_id' => __('register.national_id_taken')])
                 ->withInput();
-        }
-
-        if (! $request->boolean('confirm_possible_duplicate')) {
-            $matches = app(PersonDuplicateDetector::class)->findPossibleMatches([
-                'first_name' => $request->first_name,
-                'second_name' => $request->second_name,
-                'third_name' => $request->third_name,
-                'date_of_birth' => $request->date_of_birth,
-                'mobile_number' => $request->mobile_number,
-            ]);
-
-            if ($matches->isNotEmpty()) {
-                return view('auth.register-duplicate-confirm', [
-                    'possibleMatches' => $matches,
-                    'input' => $request->except(['profile_photo', '_token', 'password', 'password_confirmation']),
-                ]);
-            }
         }
 
         return $this->createAndSendOtp($request);

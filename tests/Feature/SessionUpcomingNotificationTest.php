@@ -30,10 +30,6 @@ class SessionUpcomingNotificationTest extends EventModuleTestCase
     /** @return array{staff: \App\Models\User, course: \App\Models\Course, session: Session, students: array<int, \App\Models\User>} */
     private function seedNotifiableSession(array $sessionOverrides = []): array
     {
-        // Freeze the clock at midday so "tomorrow 09:00" is deterministically inside the
-        // 24h upcoming-scan window, independent of the wall-clock time the suite runs at.
-        $this->travelTo(now()->startOfDay()->addHours(12));
-
         $roles = $this->seedBasicRoles();
         $staff = $this->createUser(['email' => 'session-notify-staff@example.com', 'is_superadmin' => true]);
         $course = $this->createCourse(['title' => 'Notify Course']);

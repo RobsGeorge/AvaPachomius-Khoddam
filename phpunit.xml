@@ -22,7 +22,6 @@
             <exclude>tests/Feature/Notifications</exclude>
             <exclude>tests/Feature/Mail</exclude>
             <exclude>tests/Feature/Tenancy</exclude>
-            <exclude>tests/Feature/Rbac</exclude>
         </testsuite>
         <testsuite name="Smoke">
             <directory>tests/Feature/Smoke</directory>
@@ -35,9 +34,6 @@
         </testsuite>
         <testsuite name="Mail">
             <directory>tests/Feature/Mail</directory>
-        </testsuite>
-        <testsuite name="Rbac">
-            <directory>tests/Feature/Rbac</directory>
         </testsuite>
         <testsuite name="Tenancy">
             <directory>tests/Feature/Tenancy</directory>
@@ -59,7 +55,6 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="MAIL_MAILER" value="array"/>
-        <env name="MULTI_TENANT" value="false"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

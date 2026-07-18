@@ -4,7 +4,6 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Services\ImpersonationService;
-use App\Services\People\PersonRegistryService;
 use App\Services\RolePreviewService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -20,9 +19,7 @@ use App\Models\EventAdmin;
 use App\Models\UserSystemRole;
 use App\Services\CoursePermissionResolver;
 use App\Mail\ResetPasswordMail;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Carbon;
 
 
@@ -62,7 +59,6 @@ class User extends Authenticatable
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
         'registration_completed', 'application_status', 'communication_locale',
-        'person_id',
         'created_at', 'updated_at',
     ];
 
@@ -80,27 +76,6 @@ class User extends Authenticatable
         'updated_at'    => 'datetime',
         'otp_expires_at' => 'datetime',
     ];
-
-    protected static function booted(): void
-    {
-        static::created(function (User $user) {
-            if (! Schema::hasTable('people') || ! Schema::hasColumn('user', 'person_id')) {
-                return;
-            }
-            if ($user->person_id) {
-                return;
-            }
-
-            try {
-                app(PersonRegistryService::class)->ensureForUser($user);
-            } catch (\Throwable $e) {
-                Log::warning('Failed to ensure person for user', [
-                    'user_id' => $user->user_id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        });
-    }
 
     public static function fullNameFromParts(string $first, string $second, string $third): string
     {
@@ -161,31 +136,6 @@ class User extends Authenticatable
         return $this->hasMany(UserServiceRole::class, 'user_id', 'user_id');
     }
 
-    // Church tenancy (T0). Shared user pool + church_user membership.
-    public function churches()
-    {
-        return $this->belongsToMany(Church::class, 'church_user', 'user_id', 'church_id', 'user_id', 'church_id')
-            ->withPivot('status', 'joined_at');
-    }
-
-    public function churchMemberships()
-    {
-        return $this->hasMany(ChurchUser::class, 'user_id', 'user_id');
-    }
-
-    public function person()
-    {
-        return $this->belongsTo(Person::class, 'person_id', 'person_id');
-    }
-
-    public function belongsToChurch(int $churchId): bool
-    {
-        return $this->churchMemberships()
-            ->where('church_id', $churchId)
-            ->where('status', 'active')
-            ->exists();
-    }
-
     public function systemRoles()
     {
         return $this->belongsToMany(
@@ -223,19 +173,38 @@ class User extends Authenticatable
         return app(CoursePermissionResolver::class)->canInService($this, $permission, $service);
     }
 
-    public function permissionsInChurch(Church $church): \Illuminate\Support\Collection
-    {
-        return app(CoursePermissionResolver::class)->permissionsInChurch($this, $church);
-    }
-
-    public function canInChurch(string $permission, Church $church): bool
-    {
-        return app(CoursePermissionResolver::class)->canInChurch($this, $permission, $church);
-    }
-
     public function canAnyInCourse(array $permissions, Course $course): bool
     {
         return app(CoursePermissionResolver::class)->canAnyInCourse($this, $permissions, $course);
+    }
+
+    public function hasRole(string $roleName, ?string $courseId = null): bool
+    {
+        if (RolePreviewService::matchesRoleName($this, $roleName, $courseId)) {
+            return true;
+        }
+
+        if ($courseId) {
+            return $this->userCourseRoles()
+                ->where('course_id', $courseId)
+                ->whereHas('role', fn ($q) => $q->whereRaw('LOWER(role_name) = ?', [strtolower($roleName)]))
+                ->exists();
+        }
+
+        return $this->roles->contains(
+            fn ($role) => strcasecmp($role->role_name, $roleName) === 0
+        );
+    }
+
+    public function hasAnyRole(array $roleNames): bool
+    {
+        foreach ($roleNames as $name) {
+            if ($this->hasRole($name)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function previewRoleSlug(): ?string
@@ -247,50 +216,26 @@ class User extends Authenticatable
         return RolePreviewService::previewRole()?->effectiveSlug();
     }
 
-    /**
-     * Learner persona (permission-based). Prefer course-scoped checks via canInCourse.
-     */
-    public function isStudent(?string $courseId = null): bool
+    public function isStudent(): bool
     {
         $slug = $this->previewRoleSlug();
         if ($slug !== null) {
             return $slug === 'student';
         }
 
-        $resolver = app(CoursePermissionResolver::class);
-
-        if ($courseId) {
-            $course = Course::query()->withoutGlobalScope('church')->find($courseId);
-
-            return $course
-                ? $resolver->canLearnerInCourse($this, $course)
-                : false;
-        }
-
-        return $resolver->isLearnerAnywhere($this);
+        return $this->hasRole('student');
     }
 
-    /**
-     * Staff with instruction capabilities (not course-admin-only). Prefer canInCourse.
-     */
-    public function isInstructor(?string $courseId = null): bool
+    public function isInstructor(): bool
     {
         $slug = $this->previewRoleSlug();
         if ($slug !== null) {
             return $slug === 'instructor';
         }
 
-        // Instructor ≈ staff without role.manage (admin has role.manage).
-        if ($this->isAdmin($courseId)) {
-            return false;
-        }
-
-        return $this->isInstructorOrAdmin($courseId);
+        return $this->hasRole('instructor');
     }
 
-    /**
-     * Course/system admin via role.manage (or system.role.manage).
-     */
     public function isAdmin(?string $courseId = null): bool
     {
         $slug = $this->previewRoleSlug();
@@ -303,22 +248,13 @@ class User extends Authenticatable
             return $slug === 'admin' || $this->canInSystem('system.role.manage');
         }
 
-        $resolver = app(CoursePermissionResolver::class);
-
         if ($courseId) {
-            $course = Course::query()->withoutGlobalScope('church')->find($courseId);
-
-            return $course
-                ? $resolver->canInCourse($this, 'role.manage', $course)
-                : false;
+            return $this->hasRole('admin', $courseId);
         }
 
-        return $resolver->isCourseAdminAnywhere($this);
+        return $this->hasRole('admin') || $this->canInSystem('system.role.manage');
     }
 
-    /**
-     * Staff bundle (instructor + admin templates) via permission keys.
-     */
     public function isInstructorOrAdmin(?string $courseId = null): bool
     {
         $slug = $this->previewRoleSlug();
@@ -331,17 +267,15 @@ class User extends Authenticatable
             return in_array($slug, ['admin', 'instructor'], true) || $this->canInSystem('system.role.manage');
         }
 
-        $resolver = app(CoursePermissionResolver::class);
-
         if ($courseId) {
-            $course = Course::query()->withoutGlobalScope('church')->find($courseId);
-
-            return $course
-                ? $resolver->canAnyStaffInCourse($this, $course)
-                : false;
+            return $this->hasRole('admin', $courseId) || $this->hasRole('instructor', $courseId);
         }
 
-        return $resolver->isStaffAnywhere($this) || $this->canInSystem('system.role.manage');
+        return $this->isAdmin() || $this->isInstructor()
+            || $this->userCourseRoles()->activeStaff()->whereHas('role', function ($q) {
+                $q->whereIn('slug', ['admin', 'instructor'])
+                    ->orWhereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor']);
+            })->exists();
     }
 
     public function isEventAdmin(): bool
@@ -351,6 +285,7 @@ class User extends Authenticatable
         }
 
         return $this->canInSystem('events.admin')
+            || $this->hasRole('admin')
             || EventAdmin::where('user_id', $this->user_id)->exists();
     }
 
@@ -360,8 +295,11 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->canInSystem('course_application.review')
-            || $this->isAdmin();
+        if ($this->canInSystem('course_application.review')) {
+            return true;
+        }
+
+        return $this->hasRole('admin');
     }
 
     public function isBeingImpersonated(): bool

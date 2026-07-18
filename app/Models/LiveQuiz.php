@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use App\Services\LiveJoinCodeService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,8 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LiveQuiz extends Model
 {
-    use BelongsToChurch;
-
     public const MODE_INDIVIDUAL = 'individual';
     public const MODE_TEAM = 'team';
 

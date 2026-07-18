@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Services\AuditLogService;
 use App\Services\CourseContextService;
 use App\Services\RegistrationApplicationService;
-use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -48,13 +47,6 @@ class LoginController extends Controller
             } elseif (! $user->is_verified) {
                 $failureReason = 'Account not verified';
                 Auth::logout();
-            } elseif (config('tenancy.enabled')
-                && ($church = TenantContext::current())
-                && ! ($user->is_superadmin ?? false)
-                && ! $user->belongsToChurch($church->church_id)
-            ) {
-                $failureReason = 'Not a church member';
-                Auth::logout();
             } else {
                 $loginSucceeded = true;
                 $redirectRoute = $this->courseContext->resolvePostLoginRoute($user);
@@ -74,10 +66,6 @@ class LoginController extends Controller
 
         if ($failureReason === 'Account not verified') {
             return back()->withErrors(['email' => __('auth.account_not_verified')]);
-        }
-
-        if ($failureReason === 'Not a church member') {
-            return back()->withErrors(['email' => __('auth.not_a_church_member')]);
         }
 
         return back()->withErrors([

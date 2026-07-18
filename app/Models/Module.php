@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use App\Database\CourseModulePivot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,8 +11,6 @@ use App\Models\Lecture;
 
 class Module extends Model
 {
-    use BelongsToChurch;
-
     protected $table = 'modules';
 
     protected $primaryKey = 'module_id';

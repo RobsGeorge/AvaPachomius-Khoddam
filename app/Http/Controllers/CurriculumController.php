@@ -28,13 +28,13 @@ class CurriculumController extends Controller
             return redirect()->route('curriculum.show', $currentCourse->course_id);
         }
 
-        if ($user->isInstructorOrAdmin()) {
+        if ($user->hasAnyRole(['admin', 'instructor'])) {
             $courses = Course::orderBy('title')->get();
         } else {
             $courses = $user->courses()->distinct()->orderBy('title')->get();
         }
 
-        if ($courses->count() === 1 && $user->isInstructorOrAdmin()) {
+        if ($courses->count() === 1 && $user->hasAnyRole(['admin', 'instructor'])) {
             return redirect()->route('curriculum.show', $courses->first()->course_id);
         }
 

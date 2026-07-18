@@ -3,7 +3,6 @@
 namespace App\Http\Middleware;
 
 use App\Services\MandatoryFeedbackService;
-use App\Services\RolePreviewService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,8 +18,7 @@ class RequireMandatoryFeedback
     {
         $user = Auth::user();
 
-        // Role preview must not trap the superadmin in a mandatory survey loop.
-        if (! $user || RolePreviewService::isActive() || ! $user->isStudent()) {
+        if (! $user || ! $user->isStudent()) {
             return $next($request);
         }
 
@@ -71,8 +69,6 @@ class RequireMandatoryFeedback
             'courses.application.status',
             'courses.application.edit',
             'courses.application.update',
-            'superadmin.impersonate.stop',
-            'superadmin.role-preview.stop',
         ];
 
         $name = $request->route()?->getName();

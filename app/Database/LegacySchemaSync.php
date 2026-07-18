@@ -345,22 +345,13 @@ final class LegacySchemaSync
 
         if (Schema::hasTable('course')) {
             MigrationSupport::addColumn('course', 'service_id', function (Blueprint $table) {
-                $col = $table->unsignedBigInteger('service_id')->nullable();
-                if (Schema::hasColumn('course', 'course_id')) {
-                    $col->after('course_id');
-                }
+                $table->unsignedBigInteger('service_id')->nullable()->after('course_id');
             });
         }
 
         if (Schema::hasTable('roles')) {
             MigrationSupport::addColumn('roles', 'service_id', function (Blueprint $table) {
-                $col = $table->unsignedBigInteger('service_id')->nullable();
-                // course_id is added later by dynamic RBAC; only use AFTER when present.
-                if (Schema::hasColumn('roles', 'course_id')) {
-                    $col->after('course_id');
-                } elseif (Schema::hasColumn('roles', 'role_id')) {
-                    $col->after('role_id');
-                }
+                $table->unsignedBigInteger('service_id')->nullable()->after('course_id');
             });
         }
 

@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'not_a_church_member' => 'You are not a member of this church. Switch to a church you belong to, or ask an admin for access.',
     'login_title'       => 'Log in',
     'email'             => 'Email address',
     'password'          => 'Password',

@@ -2,16 +2,12 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServiceApplicationForm extends Model
 {
-    use BelongsToChurch;
-
     protected $table = 'service_application_forms';
 
     protected $primaryKey = 'service_application_form_id';

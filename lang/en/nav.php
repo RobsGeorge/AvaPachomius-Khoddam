@@ -29,9 +29,4 @@ return [
     'system_settings'   => 'System settings',
     'system_settings_desc' => 'Roles, translations, graduation criteria, and admin tools.',
     'open'              => 'Open',
-    'priests'           => 'Priests',
-    'confession'        => 'Confession calendar',
-    'home_visits'       => 'Home visits',
-    'payroll'           => 'Payroll',
-    'money_in'          => 'Money in',
 ];
