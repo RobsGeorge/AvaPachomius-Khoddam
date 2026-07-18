@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\RolePreviewService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class AdminMiddleware
             abort(403, 'Unauthorized');
         }
 
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return $next($request);
         }
 
