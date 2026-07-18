@@ -4,6 +4,7 @@ namespace Tests\Feature\Tenancy;
 
 use App\Models\Church;
 use App\Models\ChurchUser;
+use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserChurchRole;
 use App\Services\ChurchProvisioningService;
@@ -58,6 +59,93 @@ class ChurchProvisioningTest extends EventModuleTestCase
             $church->roles()->where('slug', 'church-admin')->whereNull('course_id')->exists()
         );
         $this->assertTrue($admin->canInChurch('church.members.manage', $church));
+    }
+
+    public function test_provisioning_creates_aligned_organization_row(): void
+    {
+        $church = app(ChurchProvisioningService::class)->create([
+            'slug' => 'st-mina-org',
+            'name' => 'St Mina Org',
+            'capabilities' => ['church_management'],
+        ]);
+
+        $this->assertNotNull($church->organization_id);
+        $this->assertSame((int) $church->church_id, (int) $church->organization_id);
+
+        $this->assertDatabaseHas('organizations', [
+            'organization_id' => $church->church_id,
+            'subdomain' => 'st-mina-org',
+            'name' => 'St Mina Org',
+            'type' => 'church',
+            'status' => 'active',
+        ]);
+
+        $org = Organization::find($church->organization_id);
+        $this->assertNotNull($org);
+        $this->assertSame('st-mina-org', $org->subdomain);
+    }
+
+    public function test_provisioned_church_id_is_valid_tenant_fk_target(): void
+    {
+        $church = app(ChurchProvisioningService::class)->create([
+            'slug' => 'fk-safe-church',
+            'name' => 'FK Safe Church',
+            'capabilities' => ['church_management'],
+        ]);
+
+        $this->assertTrue(
+            Organization::where('organization_id', $church->church_id)->exists(),
+            'Tenant church_id FKs reference organizations.organization_id'
+        );
+
+        // Product path: stamp church_id on a tenant row that FKs → organizations.
+        // church_id is not mass-assignable on Course; set explicitly then persist.
+        $course = $this->createCourse();
+        $course->church_id = $church->church_id;
+        $course->save();
+
+        $this->assertDatabaseHas('course', [
+            'course_id' => $course->course_id,
+            'church_id' => $church->church_id,
+        ]);
+    }
+
+    public function test_ensure_organization_linked_repairs_legacy_church_without_org(): void
+    {
+        $church = Church::create([
+            'slug' => 'legacy-orphan',
+            'name' => 'Legacy Orphan',
+            'status' => 'active',
+            'organization_id' => null,
+        ]);
+
+        $this->assertDatabaseMissing('organizations', ['subdomain' => 'legacy-orphan']);
+
+        $org = app(ChurchProvisioningService::class)->ensureOrganizationLinked($church->fresh());
+
+        $this->assertNotNull($org);
+        $this->assertSame((int) $church->church_id, (int) $org->organization_id);
+        $this->assertSame((int) $church->church_id, (int) $church->fresh()->organization_id);
+    }
+
+    public function test_suspend_syncs_organization_status(): void
+    {
+        $church = app(ChurchProvisioningService::class)->create([
+            'slug' => 'suspend-org',
+            'name' => 'Suspend Org',
+            'capabilities' => ['church_management'],
+        ]);
+
+        app(ChurchProvisioningService::class)->suspend($church->fresh());
+
+        $this->assertDatabaseHas('church', [
+            'church_id' => $church->church_id,
+            'status' => 'suspended',
+        ]);
+        $this->assertDatabaseHas('organizations', [
+            'organization_id' => $church->church_id,
+            'status' => 'suspended',
+        ]);
     }
 
     public function test_suspend_blocks_main_and_404s_resolution(): void

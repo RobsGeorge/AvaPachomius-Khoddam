@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
@@ -31,6 +32,12 @@ class Church extends Model
     public function bumpPermissionsVersion(): void
     {
         $this->increment('permissions_version');
+    }
+
+    /** P1.1 — organizations-shaped registry row (numerically aligned when provisioned). */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'organization_id', 'organization_id');
     }
 
     public function members(): HasMany
