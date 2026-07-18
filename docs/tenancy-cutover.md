@@ -12,7 +12,10 @@ Contract phase for Khedma multi-church (master-plan §7 T7 / P6 pilot).
    Tenant Zero when unbound). While `MULTI_TENANT=false`, ResolveTenant still binds
    church 1 so prod reads stay Tenant-Zero-scoped without changing visible data.
 3. **Pilot church:** `php artisan tenancy:seed-pilot-church` provisions a contrasting
-   second tenant (limited capabilities — no exams by default).
+   second tenant (limited capabilities — no exams by default). Provisioning always
+   creates a matching `organizations` row (`organization_id` === `church_id`) so
+   tenant-table FKs (`church_id` → `organizations.organization_id`) succeed. Re-running
+   the command repairs older churches that were missing that link.
 
 ## Staging enablement (order matters)
 

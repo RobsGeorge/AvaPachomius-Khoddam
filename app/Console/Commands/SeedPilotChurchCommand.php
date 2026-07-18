@@ -28,6 +28,11 @@ class SeedPilotChurchCommand extends Command
         if (Church::where('slug', $slug)->exists()) {
             $this->warn("Church slug [{$slug}] already exists — skipping create.");
             $church = Church::where('slug', $slug)->firstOrFail();
+            // Repair pre-fix churches that lack an organizations row (FK target).
+            $org = $provisioning->ensureOrganizationLinked($church);
+            if ($org) {
+                $this->info("Linked organizations #{$org->organization_id} for church #{$church->church_id}.");
+            }
         } else {
             $adminIds = [];
             $adminEmail = $this->option('admin');
