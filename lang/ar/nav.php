@@ -29,4 +29,9 @@ return [
     'system_settings'   => 'إعدادات النظام',
     'system_settings_desc' => 'الأدوار والترجمات ومعايير التخرج وأدوات الإدارة.',
     'open'              => 'فتح',
+    'priests'           => 'الكهنة',
+    'confession'        => 'جدول الاعتراف',
+    'home_visits'       => 'الزيارات المنزلية',
+    'payroll'           => 'الرواتب',
+    'money_in'          => 'الإيرادات',
 ];

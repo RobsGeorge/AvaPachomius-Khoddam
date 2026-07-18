@@ -1,5 +1,6 @@
 <?php
 
+use App\Database\MigrationSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -27,17 +28,27 @@ return new class extends Migration
 
         if (Schema::hasTable('course') && ! Schema::hasColumn('course', 'service_id')) {
             Schema::table('course', function (Blueprint $table) {
-                $table->unsignedBigInteger('service_id')->nullable()->after('course_id');
-                $table->foreign('service_id')->references('service_id')->on('service')->nullOnDelete();
+                $col = $table->unsignedBigInteger('service_id')->nullable();
+                if (Schema::hasColumn('course', 'course_id')) {
+                    $col->after('course_id');
+                }
             });
         }
 
         if (Schema::hasTable('roles') && ! Schema::hasColumn('roles', 'service_id')) {
             Schema::table('roles', function (Blueprint $table) {
-                $table->unsignedBigInteger('service_id')->nullable()->after('course_id');
-                $table->foreign('service_id')->references('service_id')->on('service')->nullOnDelete();
+                $col = $table->unsignedBigInteger('service_id')->nullable();
+                if (Schema::hasColumn('roles', 'course_id')) {
+                    $col->after('course_id');
+                } elseif (Schema::hasColumn('roles', 'role_id')) {
+                    $col->after('role_id');
+                }
             });
         }
+
+        // Columns may already exist from LegacySchemaSync; still ensure FKs.
+        $this->ensureForeignKey('course', 'course_service_id_foreign', 'service_id', 'service', 'service_id', true);
+        $this->ensureForeignKey('roles', 'roles_service_id_foreign', 'service_id', 'service', 'service_id', true);
 
         if (! Schema::hasTable('user_service_role')) {
             Schema::create('user_service_role', function (Blueprint $table) {
@@ -53,6 +64,10 @@ return new class extends Migration
                 $table->foreign('role_id')->references('role_id')->on('roles')->cascadeOnDelete();
                 $table->unique(['user_id', 'service_id']);
             });
+        } else {
+            $this->ensureForeignKey('user_service_role', 'user_service_role_user_id_foreign', 'user_id', 'user', 'user_id', false);
+            $this->ensureForeignKey('user_service_role', 'user_service_role_service_id_foreign', 'service_id', 'service', 'service_id', false);
+            $this->ensureForeignKey('user_service_role', 'user_service_role_role_id_foreign', 'role_id', 'roles', 'role_id', false);
         }
 
         $this->backfillDefaultService();
@@ -61,23 +76,50 @@ return new class extends Migration
     public function down(): void
     {
         // Expand-only: no destructive down in production. Keep reverse for tests.
+        // Idempotent: only drop the FK when it actually exists — on divergent schemas
+        // the column can pre-exist without the FK (dropping a missing FK errors 1091).
         Schema::dropIfExists('user_service_role');
 
         if (Schema::hasTable('roles') && Schema::hasColumn('roles', 'service_id')) {
-            Schema::table('roles', function (Blueprint $table) {
-                $table->dropForeign(['service_id']);
-                $table->dropColumn('service_id');
-            });
+            if (MigrationSupport::foreignKeyExists('roles', 'roles_service_id_foreign')) {
+                Schema::table('roles', fn (Blueprint $table) => $table->dropForeign(['service_id']));
+            }
+            Schema::table('roles', fn (Blueprint $table) => $table->dropColumn('service_id'));
         }
 
         if (Schema::hasTable('course') && Schema::hasColumn('course', 'service_id')) {
-            Schema::table('course', function (Blueprint $table) {
-                $table->dropForeign(['service_id']);
-                $table->dropColumn('service_id');
-            });
+            if (MigrationSupport::foreignKeyExists('course', 'course_service_id_foreign')) {
+                Schema::table('course', fn (Blueprint $table) => $table->dropForeign(['service_id']));
+            }
+            Schema::table('course', fn (Blueprint $table) => $table->dropColumn('service_id'));
         }
 
         Schema::dropIfExists('service');
+    }
+
+    private function ensureForeignKey(
+        string $table,
+        string $constraint,
+        string $column,
+        string $referencesTable,
+        string $referencesColumn,
+        bool $nullOnDelete
+    ): void {
+        if (! Schema::hasTable($table)
+            || ! Schema::hasColumn($table, $column)
+            || ! Schema::hasTable($referencesTable)
+            || MigrationSupport::foreignKeyExists($table, $constraint)) {
+            return;
+        }
+
+        Schema::table($table, function (Blueprint $blueprint) use ($column, $referencesTable, $referencesColumn, $nullOnDelete) {
+            $fk = $blueprint->foreign($column)->references($referencesColumn)->on($referencesTable);
+            if ($nullOnDelete) {
+                $fk->nullOnDelete();
+            } else {
+                $fk->cascadeOnDelete();
+            }
+        });
     }
 
     private function backfillDefaultService(): void

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +13,8 @@ use Illuminate\Support\Collection;
 
 class Role extends Model
 {
+    use BelongsToChurch;
+
     protected $table = 'roles';
 
     protected $primaryKey = 'role_id';
@@ -22,6 +26,7 @@ class Role extends Model
         'role_decription',
         'course_id',
         'service_id',
+        'church_id',
         'slug',
         'description',
         'is_system',
@@ -44,6 +49,20 @@ class Role extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
+    }
+
+    protected static function churchScopeAllowsNullTemplates(): bool
+    {
+        return true;
+    }
+
+    /**
+     * Platform role templates must keep church_id NULL so cloneTemplatesInto*
+     * can find them while TenantContext is bound (P1.2 dormant tenancy).
+     */
+    protected static function shouldStampChurchIdOnCreate(Model $model): bool
+    {
+        return ! (bool) $model->getAttribute('is_template');
     }
 
     public function clonedFrom(): BelongsTo
@@ -150,10 +169,11 @@ class Role extends Model
     /** @return Collection<int, int> */
     public static function studentRoleIds(): Collection
     {
+        // Template identity via slug (cloned course roles use student / student-N).
         return static::query()
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
+                $q->where('slug', 'student')
+                    ->orWhere('slug', 'like', 'student-%');
             })
             ->pluck('role_id');
     }
@@ -163,8 +183,9 @@ class Role extends Model
     {
         return static::query()
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) IN (?, ?)', ['admin', 'instructor'])
-                    ->orWhereIn('slug', ['admin', 'instructor']);
+                $q->whereIn('slug', ['admin', 'instructor'])
+                    ->orWhere('slug', 'like', 'admin-%')
+                    ->orWhere('slug', 'like', 'instructor-%');
             })
             ->pluck('role_id');
     }
@@ -174,9 +195,10 @@ class Role extends Model
         return static::query()
             ->where('course_id', $courseId)
             ->where(function ($q) {
-                $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                    ->orWhere('slug', 'student');
+                $q->where('slug', 'student')
+                    ->orWhere('slug', 'like', 'student-%');
             })
+            ->orderBy('role_id')
             ->first();
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
@@ -9,6 +11,8 @@ use App\Models\Session;
 
 class Attendance extends Model
 {
+    use BelongsToChurch;
+
     public const ATTENDED_STATUSES = ['Present', 'Permission', 'Late'];
 
     protected $table = 'attendance';

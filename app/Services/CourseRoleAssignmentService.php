@@ -30,10 +30,12 @@ class CourseRoleAssignmentService
             ]);
         }
 
+        $course = Course::find($courseId);
         $assignment = UserCourseRole::create([
             'user_id' => $user->user_id,
             'course_id' => $courseId,
             'role_id' => $roleId,
+            'church_id' => $course?->church_id,
         ]);
 
         if ($notify) {
@@ -56,9 +58,13 @@ class CourseRoleAssignmentService
             return $existing;
         }
 
+        $course = Course::find($courseId);
         $assignment = UserCourseRole::updateOrCreate(
             ['user_id' => $user->user_id, 'course_id' => $courseId],
-            ['role_id' => $roleId]
+            [
+                'role_id' => $roleId,
+                'church_id' => $course?->church_id,
+            ]
         );
 
         if ($notify) {

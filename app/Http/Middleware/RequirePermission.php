@@ -3,10 +3,13 @@
 namespace App\Http\Middleware;
 
 use App\Models\Course;
+use App\Models\Church;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
+use App\Tenancy\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Response;
 
 class RequirePermission
@@ -38,6 +41,11 @@ class RequirePermission
             if ($permission === 'staff') {
                 continue;
             }
+
+            if ($this->isChurchPermission($permission) && $this->canInResolvedChurch($user, $permission)) {
+                return $next($request);
+            }
+
             if ($isSystem || str_starts_with($permission, 'platform.') || str_starts_with($permission, 'system.')) {
                 if ($this->resolver->canInSystem($user, $permission)) {
                     return $next($request);
@@ -60,6 +68,28 @@ class RequirePermission
         abort(403, __('pages.not_authorized'));
     }
 
+    private function isChurchPermission(string $permission): bool
+    {
+        foreach (['church.', 'priest.', 'confession.', 'home_visit.', 'finance.'] as $prefix) {
+            if (str_starts_with($permission, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function canInResolvedChurch($user, string $permission): bool
+    {
+        $church = TenantContext::current();
+        if (! $church && Schema::hasTable('church')) {
+            $church = Church::query()->where('slug', config('tenancy.main_slug'))->first();
+        }
+
+        return $church
+            && $this->resolver->canInChurch($user, $permission, $church);
+    }
+
     private function hasStaffAccess($user): bool
     {
         $staffKeys = [
@@ -78,7 +108,7 @@ class RequirePermission
             }
         }
 
-        return $user->hasAnyRole(['admin', 'instructor']);
+        return $this->resolver->isStaffAnywhere($user);
     }
 
     private function resolveCourse(Request $request): ?Course

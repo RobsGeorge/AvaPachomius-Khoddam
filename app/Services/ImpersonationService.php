@@ -63,9 +63,8 @@ class ImpersonationService
             ]);
         }
 
-        $request->session()->put(self::SESSION_KEY, $impersonator->user_id);
-
         Auth::login($target);
+        $request->session()->put(self::SESSION_KEY, $impersonator->user_id);
         $request->session()->regenerate();
 
         AuditLogService::logImpersonationEvent(
@@ -110,11 +109,11 @@ class ImpersonationService
     /** @return list<string> */
     public static function roleSummary(User $user): array
     {
-        $roles = $user->relationLoaded('roles')
-            ? $user->roles->pluck('role_name')->unique()->values()
-            : $user->roles()->distinct()->pluck('role_name');
+        // withoutTenancy: banner must list all course roles even if a role's church_id
+        // differs from the currently bound tenant during preview/impersonation.
+        $roles = $user->roles()->withoutGlobalScope('church')->distinct()->pluck('role_name');
 
-        $summary = $roles->all();
+        $summary = $roles->filter()->all();
 
         if ($user->is_superadmin) {
             $summary[] = __('pages.superadmin_role');

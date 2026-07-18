@@ -65,6 +65,8 @@ class RequireApprovedApplication
             'courses.application.status',
             'courses.application.edit',
             'courses.application.update',
+            'superadmin.impersonate.stop',
+            'superadmin.role-preview.stop',
         ];
 
         $name = $request->route()?->getName();
