@@ -138,7 +138,6 @@ class RequirePermission
         foreach ($permissions as $p) {
             if (str_starts_with($p, 'platform.') || str_starts_with($p, 'system.')
                 || in_array($p, ['user.approve', 'registration.review', 'registration.send_link',
-                    'course_application.review', 'course_application.form_builder',
                     'translation.manage', 'attendance.configure', 'graduation.settings', 'profile_photo.review'], true)) {
                 return true;
             }

@@ -640,7 +640,8 @@ return [
     ],
 
     'course_applications' => [
-        'scope' => 'system',
+        // both: grantable on course admin roles (roles hub) and system roles
+        'scope' => 'both',
         'label_en' => 'Course Applications',
         'label_ar' => 'طلبات الالتحاق بالدورات',
         'sort' => 210,

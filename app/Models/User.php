@@ -354,13 +354,48 @@ class User extends Authenticatable
             || EventAdmin::where('user_id', $this->user_id)->exists();
     }
 
-    public function canAccessAdminCourseApplications(): bool
+    /**
+     * Review course applications queue / actions.
+     * Honors system grants and course-role grants (roles hub → course admin).
+     */
+    public function canAccessAdminCourseApplications(?Course $course = null): bool
     {
         if ($this->is_superadmin ?? false) {
             return true;
         }
 
-        return $this->canInSystem('course_application.review')
+        if ($this->canInSystem('course_application.review')) {
+            return true;
+        }
+
+        if ($course) {
+            return $this->canInCourse('course_application.review', $course)
+                || $this->isAdmin((string) $course->course_id);
+        }
+
+        return app(CoursePermissionResolver::class)
+            ->canAnyInAnyCourse($this, ['course_application.review'])
+            || $this->isAdmin();
+    }
+
+    /** Build / edit course application forms (course or system grant). */
+    public function canAccessAdminCourseApplicationForms(?Course $course = null): bool
+    {
+        if ($this->is_superadmin ?? false) {
+            return true;
+        }
+
+        if ($this->canInSystem('course_application.form_builder')) {
+            return true;
+        }
+
+        if ($course) {
+            return $this->canInCourse('course_application.form_builder', $course)
+                || $this->isAdmin((string) $course->course_id);
+        }
+
+        return app(CoursePermissionResolver::class)
+            ->canAnyInAnyCourse($this, ['course_application.form_builder'])
             || $this->isAdmin();
     }
 
