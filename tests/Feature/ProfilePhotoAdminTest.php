@@ -90,14 +90,62 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
     public function test_admin_report_page_loads(): void
     {
         $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
         $admin = $this->createUser(['email' => 'report-admin@example.com']);
         $course = $this->createCourse(['title' => 'Report Course']);
         $this->assignCourseRole($admin, $course, $adminRole);
 
+        $pending = $this->createUser([
+            'email' => 'report-pending@example.com',
+            'profile_photo' => 'profile_photos/pending.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+        ]);
+        $overdue = $this->createUser([
+            'email' => 'report-overdue@example.com',
+            'profile_photo' => '',
+            'profile_photo_grace_started_at' => now()->subDays(10),
+        ]);
+        $this->assignCourseRole($pending, $course, $studentRole);
+        $this->assignCourseRole($overdue, $course, $studentRole);
+
+        PortalSettings::current()->update([
+            'profile_photo_gate_enabled' => true,
+            'profile_photo_grace_days' => 3,
+            'profile_photo_gate_enabled_at' => now()->subDays(30),
+        ]);
+
         $this->actingAs($admin)
             ->get(route('admin.profile-photos.index'))
             ->assertOk()
-            ->assertSee(__('profile_photos.report_title'));
+            ->assertSee(__('profile_photos.report_title'))
+            ->assertSee(__('profile_photos.status_pending_review'))
+            ->assertSee(__('profile_photos.status_overdue'));
+    }
+
+    public function test_admin_report_tolerates_legacy_zero_dates(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'zero-date-admin@example.com']);
+        $student = $this->createUser([
+            'email' => 'zero-date-student@example.com',
+            'profile_photo' => '',
+        ]);
+        $course = $this->createCourse(['title' => 'Zero Date Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        \Illuminate\Support\Facades\DB::table('user')
+            ->where('user_id', $student->user_id)
+            ->update([
+                'profile_photo_grace_started_at' => '0000-00-00 00:00:00',
+                'profile_photo_uploaded_at' => '0000-00-00 00:00:00',
+            ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.profile-photos.index'))
+            ->assertOk()
+            ->assertSee($student->email);
     }
 
     public function test_gate_disabled_hides_banners_and_unlocks_overdue_student(): void
