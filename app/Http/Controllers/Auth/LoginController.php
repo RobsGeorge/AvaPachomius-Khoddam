@@ -69,7 +69,9 @@ class LoginController extends Controller
         ]);
 
         if ($loginSucceeded) {
-            return redirect()->route($redirectRoute)->with('success', __('auth.login_success'));
+            $params = $this->applications->redirectParamsFor($user);
+
+            return redirect()->route($redirectRoute, $params)->with('success', __('auth.login_success'));
         }
 
         if ($failureReason === 'Account not verified') {

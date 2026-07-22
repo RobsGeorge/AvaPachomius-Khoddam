@@ -7,6 +7,7 @@ use App\Models\CourseApplication;
 use App\Models\CourseApplicationForm;
 use App\Models\CourseUserApplicationStatus;
 use App\Models\User;
+use App\Models\UserCourseRole;
 use Illuminate\Support\Facades\Schema;
 
 class CourseApplicationService
@@ -126,10 +127,29 @@ class CourseApplicationService
     private function notifyStaffOfSubmission(CourseApplication $application): void
     {
         $application->loadMissing(['user', 'course', 'form']);
+        $course = $application->course;
+        if (! $course) {
+            return;
+        }
+
         $staff = $this->roster->courseStaff((string) $application->course_id);
 
-        foreach ($staff as $member) {
-            if (! $member->canAccessAdminCourseApplications()) {
+        // Course roles may hold course_application.review without an admin/instructor slug.
+        $assigneeIds = UserCourseRole::query()
+            ->where('course_id', $application->course_id)
+            ->pluck('user_id')
+            ->unique();
+
+        $assignees = User::query()
+            ->whereIn('user_id', $assigneeIds)
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->get();
+
+        $recipients = $staff->merge($assignees)->unique('user_id')->values();
+
+        foreach ($recipients as $member) {
+            if (! $member->canAccessAdminCourseApplications($course)) {
                 continue;
             }
 
@@ -137,11 +157,11 @@ class CourseApplicationService
                 $member,
                 'course_application_submitted',
                 __('course_applications.notification_submitted_title', [
-                    'course' => $application->course?->title ?? '',
+                    'course' => $course->title ?? '',
                 ]),
                 __('course_applications.notification_submitted_body', [
                     'name' => $application->user?->displayName() ?? '',
-                    'course' => $application->course?->title ?? '',
+                    'course' => $course->title ?? '',
                 ]),
                 route('admin.course-applications.show', $application),
                 CourseApplication::class,

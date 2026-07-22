@@ -130,7 +130,7 @@ class NotificationPreferenceService
     {
         $roles = [];
 
-        if ($user->is_superadmin || $user->isAdmin()) {
+        if ($user->is_superadmin || $user->isAdmin() || $user->canAccessAdminCourseApplications()) {
             $roles[] = 'admin';
         }
 
