@@ -23,6 +23,51 @@
         </div>
     </div>
 
+    <div class="app-card card border-danger shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 text-danger mb-2">
+                <i class="bi bi-people-fill"></i> {{ __('pages.flush_users_title') }}
+            </h2>
+            <p class="text-muted mb-3">{{ __('pages.flush_users_hint') }}</p>
+            <form method="POST"
+                  action="{{ route('superadmin.sessions.flush-users') }}"
+                  data-confirm="{{ __('pages.flush_users_confirm') }}">
+                @csrf
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="flush-user-ids">{{ __('pages.flush_users_select') }}</label>
+                    <select name="user_ids[]" id="flush-user-ids" class="form-select" multiple size="8" required>
+                        @foreach($users as $user)
+                            @php
+                                $roleNames = $user->roles->pluck('role_name')->unique();
+                                if ($user->is_superadmin) {
+                                    $roleNames = $roleNames->push(__('pages.superadmin_role'));
+                                }
+                                $roleLabel = $roleNames->isNotEmpty()
+                                    ? $roleNames->implode(', ')
+                                    : __('pages.no_roles_yet');
+                            @endphp
+                            <option value="{{ $user->user_id }}"
+                                {{ collect(old('user_ids', []))->contains($user->user_id) ? 'selected' : '' }}>
+                                {{ $user->first_name }} {{ $user->second_name }}
+                                ({{ $user->email }}) — {{ $roleLabel }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text">{{ __('pages.flush_users_select_hint') }}</div>
+                    @error('user_ids')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                    @error('user_ids.*')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-arrow-repeat"></i> {{ __('pages.flush_users_button') }}
+                </button>
+            </form>
+        </div>
+    </div>
+
     <div class="app-card card border-info shadow-sm mb-4">
         <div class="card-body">
             <h2 class="h5 text-info mb-2">

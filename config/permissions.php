@@ -748,7 +748,7 @@ return [
                 'label_en' => 'Flush all sessions',
                 'label_ar' => 'إنهاء كل الجلسات',
                 'type' => 'endpoint',
-                'routes' => ['superadmin.sessions.flush-all'],
+                'routes' => ['superadmin.sessions.flush-all', 'superadmin.sessions.flush-users'],
                 'system_only' => true,
             ],
             'platform.course_crud' => [

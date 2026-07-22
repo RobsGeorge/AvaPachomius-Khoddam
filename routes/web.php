@@ -607,6 +607,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
 
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
+    Route::post('/sessions/flush-users',    [SuperAdminController::class, 'flushSelectedUsers'])->name('sessions.flush-users');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');
     Route::post('/role-preview',            [SuperAdminController::class, 'previewRole'])->name('role-preview');
     Route::post('/assignments',              [SuperAdminController::class, 'store'])->name('store');
@@ -628,6 +629,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/scheduled-tasks', [SuperAdminScheduledTaskController::class, 'index'])->name('scheduled-tasks.index');
     Route::post('/scheduled-tasks', [SuperAdminScheduledTaskController::class, 'store'])->name('scheduled-tasks.store');
     Route::post('/scheduled-tasks/{taskKey}/run', [SuperAdminScheduledTaskController::class, 'run'])->where('taskKey', '.+')->name('scheduled-tasks.run');
+    Route::put('/scheduled-tasks/{taskKey}', [SuperAdminScheduledTaskController::class, 'update'])->where('taskKey', '.+')->name('scheduled-tasks.update');
     Route::post('/scheduled-tasks/{taskKey}/settings', [SuperAdminScheduledTaskController::class, 'updateSettings'])->where('taskKey', '.+')->name('scheduled-tasks.settings');
     Route::delete('/scheduled-tasks/{taskKey}', [SuperAdminScheduledTaskController::class, 'destroy'])->where('taskKey', '.+')->name('scheduled-tasks.destroy');
     Route::get('/scheduled-tasks/runs/{scheduledTaskRun}', [SuperAdminScheduledTaskController::class, 'show'])->name('scheduled-tasks.show');

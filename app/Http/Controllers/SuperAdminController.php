@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Services\AuditLogService;
 use App\Services\CourseRoleAssignmentService;
 use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
@@ -250,12 +251,48 @@ class SuperAdminController extends Controller
     {
         $result = ForceLogoutService::logoutAllUsers($request->session()->getId());
 
+        AuditLogService::recordEvent('platform.sessions_flush_all', [
+            'sessions_cleared' => $result['sessions_cleared'],
+            'remember_tokens_cleared' => $result['remember_tokens_cleared'],
+            'driver' => $result['driver'],
+        ]);
+
         return redirect()
             ->route('superadmin.security')
             ->with('success', __('pages.force_logout_success', [
                 'sessions' => $result['sessions_cleared'],
                 'tokens'   => $result['remember_tokens_cleared'],
                 'driver'   => $result['driver'],
+            ]));
+    }
+
+    public function flushSelectedUsers(Request $request)
+    {
+        $validated = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'user_ids.*' => ['required', 'integer', 'distinct', 'exists:user,user_id'],
+        ]);
+
+        $result = ForceLogoutService::logoutUsers(
+            $validated['user_ids'],
+            $request->session()->getId()
+        );
+
+        AuditLogService::recordEvent('platform.users_cache_flush', [
+            'target_user_ids' => $validated['user_ids'],
+            'sessions_cleared' => $result['sessions_cleared'],
+            'remember_tokens_cleared' => $result['remember_tokens_cleared'],
+            'users_targeted' => $result['users_targeted'],
+            'driver' => $result['driver'],
+        ]);
+
+        return redirect()
+            ->route('superadmin.security')
+            ->with('success', __('pages.flush_users_success', [
+                'users' => $result['users_targeted'],
+                'sessions' => $result['sessions_cleared'],
+                'tokens' => $result['remember_tokens_cleared'],
+                'driver' => $result['driver'],
             ]));
     }
 

@@ -776,6 +776,14 @@ return [
     'force_logout_confirm'            => 'This will log out every user on the platform. Continue?',
     'force_logout_success'            => 'All users were logged out. Cleared :sessions session(s), :tokens remember-me token(s). Driver: :driver.',
 
+    'flush_users_title'               => 'Flush selected users',
+    'flush_users_hint'                => 'Ends active sessions, clears remember-me tokens, and busts permission cache for the selected users. Your current superadmin session is kept if you include yourself.',
+    'flush_users_button'              => 'Flush selected users',
+    'flush_users_confirm'             => 'This will log out the selected users and refresh their permission cache. Continue?',
+    'flush_users_success'             => 'Flushed :users user(s). Cleared :sessions session(s), :tokens remember-me token(s). Driver: :driver.',
+    'flush_users_select'              => 'Users to flush',
+    'flush_users_select_hint'         => 'Hold Ctrl (Windows) or Cmd (Mac) to select multiple users.',
+
     'impersonate_title'               => 'View portal as user',
     'impersonate_hint'                => 'Browse the portal exactly as the selected user would see it — same navigation, pages, and permissions. Your superadmin session is restored when you exit.',
     'impersonate_button'              => 'View portal as this user',
