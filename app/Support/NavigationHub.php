@@ -365,11 +365,11 @@ class NavigationHub
             $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*'], 'registration.review');
         }
 
-        if ($user->canInSystem('course_application.form_builder')) {
+        if ($user->canAccessAdminCourseApplicationForms()) {
             $links[] = self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*'], 'course_application.form_builder');
         }
 
-        if ($user->canInSystem('course_application.review')) {
+        if ($user->canAccessAdminCourseApplications()) {
             $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*'], 'course_application.review');
         }
 

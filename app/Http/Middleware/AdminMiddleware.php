@@ -36,6 +36,11 @@ class AdminMiddleware
             }
         }
 
+        // Course-scoped grants for application review / form builder (roles hub).
+        if ($user->canAccessAdminCourseApplications() || $user->canAccessAdminCourseApplicationForms()) {
+            return $next($request);
+        }
+
         // Course admins (role.manage via hierarchical resolver) keep access.
         if ($user->isAdmin()) {
             return $next($request);

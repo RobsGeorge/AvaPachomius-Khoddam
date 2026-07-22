@@ -21,20 +21,30 @@ class SyncPermissionsCommand extends Command
         $configKeys = [];
 
         foreach ($catalog as $groupKey => $groupDef) {
+            $newScope = $groupDef['scope'] ?? 'course';
+            $existingGroup = PermissionGroup::query()->where('group_key', $groupKey)->first();
+            $previousScope = $existingGroup?->scope;
+
             $group = PermissionGroup::updateOrCreate(
                 ['group_key' => $groupKey],
                 [
                     'label_en' => $groupDef['label_en'] ?? $groupKey,
                     'label_ar' => $groupDef['label_ar'] ?? null,
                     'sort_order' => $groupDef['sort'] ?? 0,
-                    'scope' => $groupDef['scope'] ?? 'course',
+                    'scope' => $newScope,
                 ]
             );
 
-            CourseAdminGroupVisibility::firstOrCreate(
+            $shouldBeVisible = in_array($newScope, ['course', 'both'], true);
+            $visibility = CourseAdminGroupVisibility::firstOrCreate(
                 ['permission_group_id' => $group->permission_group_id],
-                ['visible_to_course_admins' => in_array($groupDef['scope'] ?? 'course', ['course', 'both'], true)]
+                ['visible_to_course_admins' => $shouldBeVisible]
             );
+
+            // When a group moves out of system-only scope, surface it to course admins.
+            if ($previousScope === 'system' && $shouldBeVisible && ! $visibility->visible_to_course_admins) {
+                $visibility->update(['visible_to_course_admins' => true]);
+            }
 
             foreach ($groupDef['permissions'] ?? [] as $permKey => $permDef) {
                 $configKeys[] = $permKey;
