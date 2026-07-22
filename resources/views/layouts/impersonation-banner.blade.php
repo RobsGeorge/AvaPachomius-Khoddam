@@ -3,7 +3,7 @@
         $viewingAs = auth()->user();
         $roleSummary = implode(', ', \App\Services\ImpersonationService::roleSummary($viewingAs));
     @endphp
-    <div class="impersonation-banner bg-warning text-dark border-bottom border-warning-subtle sticky-top shadow-sm">
+    <div class="impersonation-banner impersonation-banner--overlay bg-warning text-dark border-bottom border-warning-subtle shadow-sm">
         <div class="container py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-start gap-2 small">
                 <i class="bi bi-eye-fill fs-5 flex-shrink-0"></i>

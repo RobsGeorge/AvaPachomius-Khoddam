@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ImpersonationService;
 use App\Services\MandatoryFeedbackService;
 use App\Services\RolePreviewService;
 use Closure;
@@ -19,8 +20,8 @@ class RequireMandatoryFeedback
     {
         $user = Auth::user();
 
-        // Role preview must not trap the superadmin in a mandatory survey loop.
-        if (! $user || RolePreviewService::isActive() || ! $user->isStudent()) {
+        // Role preview / impersonation must not trap the superadmin in a mandatory survey loop.
+        if (! $user || RolePreviewService::isActive() || ImpersonationService::isActive() || ! $user->isStudent()) {
             return $next($request);
         }
 

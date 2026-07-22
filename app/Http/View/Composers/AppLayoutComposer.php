@@ -2,11 +2,13 @@
 
 namespace App\Http\View\Composers;
 
+use App\Services\ImpersonationService;
 use App\Services\AnnouncementService;
 use App\Services\CourseContextService;
 use App\Services\NotificationFeedService;
 use App\Services\ProfilePhotoGateService;
 use App\Services\RegistrationApplicationService;
+use App\Services\RolePreviewService;
 use App\Services\ServiceContextService;
 use App\Services\StudentOnboardingService;
 use App\Models\Church;
@@ -117,7 +119,7 @@ class AppLayoutComposer
     private function composeOnboarding(View $view, $user): void
     {
         try {
-            if ($this->onboarding->shouldShow($user)) {
+            if ($this->onboarding->shouldShow($user) && ! ImpersonationService::isActive() && ! RolePreviewService::isActive()) {
                 $locale = $this->onboarding->localeForWizard();
                 $view->with('showStudentOnboarding', true);
                 $view->with('studentOnboardingSteps', $this->onboarding->steps($locale));
