@@ -21,7 +21,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260714b">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260722a">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
@@ -34,7 +34,7 @@
     @stack('styles')
 </head>
 
-<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column"
+<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column{{ \App\Services\ImpersonationService::isActive() ? ' has-impersonation-banner' : '' }}{{ \App\Services\RolePreviewService::isActive() ? ' has-role-preview-banner' : '' }}"
       x-data="{ navOpen: false, navScrollY: 0 }"
       x-effect="if (navOpen && window.matchMedia('(max-width: 767.98px)').matches) {
           navScrollY = window.scrollY;
@@ -48,15 +48,14 @@
     <a class="skip-link visually-hidden-focusable" href="#app-main">{{ __('a11y.skip_to_content') }}</a>
     {{-- Polite live region: JS mirrors toast/flash messages here so screen readers announce them. --}}
     <div id="khoddam-live-region" class="visually-hidden" aria-live="polite" role="status"></div>
+    @include('layouts.impersonation-banner')
+    @include('layouts.role-preview-banner')
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
         @include('layouts.partials.profile-photo-banner')
         @include('layouts.partials.application-review-banner')
         @include('layouts.partials.announcement-banners')
-
-        @include('layouts.impersonation-banner')
-        @include('layouts.role-preview-banner')
 
         <main id="app-main" tabindex="-1" class="app-main flex-grow-1">
             @include('layouts.partials.flash-toast')
