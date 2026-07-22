@@ -67,6 +67,7 @@ use App\Http\Controllers\EventAdminController;
 use App\Http\Controllers\EventCheckInController;
 use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\SuperAdminSystemTestController;
+use App\Http\Controllers\SuperAdminScheduledTaskController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
@@ -623,6 +624,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/system-tests',             [SuperAdminSystemTestController::class, 'index'])->name('system-tests.index');
     Route::post('/system-tests/run',        [SuperAdminSystemTestController::class, 'run'])->name('system-tests.run');
     Route::get('/system-tests/{systemTestRun}', [SuperAdminSystemTestController::class, 'show'])->name('system-tests.show');
+
+    Route::get('/scheduled-tasks', [SuperAdminScheduledTaskController::class, 'index'])->name('scheduled-tasks.index');
+    Route::post('/scheduled-tasks/{taskKey}/run', [SuperAdminScheduledTaskController::class, 'run'])->name('scheduled-tasks.run');
+    Route::post('/scheduled-tasks/{taskKey}/settings', [SuperAdminScheduledTaskController::class, 'updateSettings'])->name('scheduled-tasks.settings');
+    Route::get('/scheduled-tasks/runs/{scheduledTaskRun}', [SuperAdminScheduledTaskController::class, 'show'])->name('scheduled-tasks.show');
 
     Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');
     Route::put('/templates/{role}',         [SystemRoleController::class, 'updateTemplate'])->name('templates.update');

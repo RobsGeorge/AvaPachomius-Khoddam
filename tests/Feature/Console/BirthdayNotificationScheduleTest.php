@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console;
 
+use App\Services\ScheduledTaskRegistrar;
 use Illuminate\Console\Scheduling\Schedule;
 use Tests\TestCase;
 
@@ -11,7 +12,10 @@ class BirthdayNotificationScheduleTest extends TestCase
     {
         $timezone = config('attendance.timezone', config('app.timezone'));
 
-        $events = collect(app(Schedule::class)->events())
+        $schedule = new Schedule;
+        app(ScheduledTaskRegistrar::class)->register($schedule);
+
+        $events = collect($schedule->events())
             ->filter(fn ($event) => str_contains($event->command ?? '', 'birthdays:notify-daily'));
 
         $this->assertCount(1, $events, 'birthdays:notify-daily must be registered in the scheduler');

@@ -22,6 +22,7 @@ return [
     'events_admin'      => 'Event admin',
     'events_tests'      => 'Events tests',
     'system_tests'      => 'System testing report',
+    'scheduled_tasks'   => 'Scheduled tasks',
     'academic'          => 'Academic',
     'academic_desc'     => 'Curriculum, sessions, assignments, exams, feedback, and more.',
     'service'           => 'Service',

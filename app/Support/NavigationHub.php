@@ -414,6 +414,7 @@ class NavigationHub
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
             self::hubLink('superadmin.system-tests.index', 'nav.system_tests', 'pages.superadmin_system_tests_desc', 'bi-clipboard2-check', ['superadmin.system-tests.*'], true),
+            self::hubLink('superadmin.scheduled-tasks.index', 'nav.scheduled_tasks', 'pages.superadmin_scheduled_tasks_desc', 'bi-clock-history', ['superadmin.scheduled-tasks.*'], true),
         ];
 
         $sharedLinks = [];
