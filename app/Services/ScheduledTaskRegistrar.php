@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ScheduledTaskDefinition;
 use App\Models\ScheduledTaskRun;
 use App\Models\ScheduledTaskSetting;
 use App\Models\User;
@@ -9,7 +10,9 @@ use Cron\CronExpression;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class ScheduledTaskRegistrar
 {
@@ -20,7 +23,7 @@ class ScheduledTaskRegistrar
                 continue;
             }
 
-            if (! $this->schemaReady() && ! $this->isEnabledWithoutSettings($key)) {
+            if (! $this->schemaReady() && ! $this->hasTask($key)) {
                 continue;
             }
 
@@ -54,7 +57,10 @@ class ScheduledTaskRegistrar
     /** @return array<string, array<string, mixed>> */
     public function taskDefinitions(): array
     {
-        return config('scheduled_tasks.tasks', []);
+        $builtin = config('scheduled_tasks.tasks', []);
+        $custom = $this->customDefinitionsFromDatabase();
+
+        return $builtin + $custom;
     }
 
     public function taskKeys(): array
@@ -67,12 +73,31 @@ class ScheduledTaskRegistrar
         return array_key_exists($key, $this->taskDefinitions());
     }
 
+    public function isCustomTask(string $key): bool
+    {
+        return str_starts_with($key, 'custom.');
+    }
+
     /** @return array<string, mixed>|null */
     public function resolveTask(string $key): ?array
     {
         $definition = $this->taskDefinitions()[$key] ?? null;
         if ($definition === null) {
             return null;
+        }
+
+        if ($definition['is_custom'] ?? false) {
+            $model = $this->customDefinitionModel($key);
+
+            return array_merge($definition, [
+                'key' => $key,
+                'label' => $model?->localizedLabel() ?? (string) ($definition['label'] ?? $key),
+                'description' => $model?->localizedDescription() ?? (string) ($definition['description'] ?? ''),
+                'enabled' => (bool) ($model?->enabled ?? true),
+                'cron_expression' => $model?->cron_expression,
+                'when_active' => true,
+                'command_display' => $model?->command,
+            ]);
         }
 
         $setting = $this->settingFor($key);
@@ -83,7 +108,23 @@ class ScheduledTaskRegistrar
             'cron_expression' => $setting?->cron_expression,
             'when_config' => $definition['when_config'] ?? null,
             'when_active' => $this->whenConfigActive($definition),
+            'is_custom' => false,
+            'command_display' => $definition['command'] ?? null,
         ]);
+    }
+
+    public function taskDisplayName(string $key): string
+    {
+        $resolved = $this->resolveTask($key);
+        if ($resolved === null) {
+            return $key;
+        }
+
+        if ($resolved['is_custom'] ?? false) {
+            return (string) ($resolved['label'] ?? $key);
+        }
+
+        return __((string) ($resolved['label'] ?? $key));
     }
 
     /** @return list<array<string, mixed>> */
@@ -129,18 +170,33 @@ class ScheduledTaskRegistrar
         return $tasks;
     }
 
+    /** @return list<string> */
+    public function availableCommands(): array
+    {
+        $blocked = config('scheduled_tasks.blocked_commands', []);
+
+        return collect(Artisan::all())
+            ->keys()
+            ->filter(fn (string $name) => ! in_array($name, $blocked, true))
+            ->sort()
+            ->values()
+            ->all();
+    }
+
     public function isEnabled(string $key): bool
     {
-        return $this->isEnabledWithoutSettings($key)
-            && ($this->settingFor($key)?->enabled ?? true);
+        if (! $this->hasTask($key)) {
+            return false;
+        }
+
+        if ($this->isCustomTask($key)) {
+            return (bool) ($this->customDefinitionModel($key)?->enabled ?? true);
+        }
+
+        return (bool) ($this->settingFor($key)?->enabled ?? true);
     }
 
-    private function isEnabledWithoutSettings(string $key): bool
-    {
-        return $this->hasTask($key);
-    }
-
-    public function updateSetting(string $key, array $input, User $user): ScheduledTaskSetting
+    public function updateSetting(string $key, array $input, User $user): ScheduledTaskSetting|ScheduledTaskDefinition
     {
         abort_unless($this->hasTask($key), 404);
 
@@ -149,9 +205,22 @@ class ScheduledTaskRegistrar
             : null;
 
         if ($cron !== null && ! CronExpression::isValidExpression($cron)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'cron_expression' => __('scheduled_tasks.invalid_cron'),
             ]);
+        }
+
+        if ($this->isCustomTask($key)) {
+            $definition = $this->customDefinitionModel($key);
+            abort_unless($definition, 404);
+
+            $definition->update([
+                'enabled' => (bool) ($input['enabled'] ?? true),
+                'cron_expression' => $cron ?? $definition->cron_expression,
+                'updated_by_id' => $user->user_id,
+            ]);
+
+            return $definition->fresh();
         }
 
         return ScheduledTaskSetting::query()->updateOrCreate(
@@ -164,10 +233,144 @@ class ScheduledTaskRegistrar
         );
     }
 
+    public function createCustomTask(array $input, User $user, bool $runAfterCreate = false): array
+    {
+        $this->assertDefinitionsSchemaReady();
+
+        $validated = $this->validateCustomTaskInput($input);
+
+        $taskKey = $this->uniqueCustomTaskKey($validated['slug']);
+
+        $definition = ScheduledTaskDefinition::query()->create([
+            'task_key' => $taskKey,
+            'label_en' => $validated['label_en'],
+            'label_ar' => $validated['label_ar'],
+            'description_en' => $validated['description_en'] ?? null,
+            'description_ar' => $validated['description_ar'] ?? null,
+            'command' => $validated['command'],
+            'parameters' => $validated['parameters'] ?? [],
+            'cron_expression' => $validated['cron_expression'],
+            'timezone' => $validated['timezone'] ?? null,
+            'enabled' => (bool) ($validated['enabled'] ?? true),
+            'created_by_id' => $user->user_id,
+            'updated_by_id' => $user->user_id,
+        ]);
+
+        $run = null;
+        if ($runAfterCreate) {
+            $run = app(ScheduledTaskRunner::class)->runManually($taskKey, $user);
+        }
+
+        return ['definition' => $definition, 'run' => $run];
+    }
+
+    public function deleteCustomTask(string $key): void
+    {
+        abort_unless($this->isCustomTask($key) && $this->hasTask($key), 404);
+
+        ScheduledTaskDefinition::query()->where('task_key', $key)->delete();
+    }
+
+    /** @param array<string, mixed> $input */
+    private function validateCustomTaskInput(array $input): array
+    {
+        $validated = validator($input, [
+            'slug' => ['required', 'string', 'max:60', 'regex:/^[a-z][a-z0-9\-]*$/'],
+            'label_en' => ['required', 'string', 'max:120'],
+            'label_ar' => ['required', 'string', 'max:120'],
+            'description_en' => ['nullable', 'string', 'max:500'],
+            'description_ar' => ['nullable', 'string', 'max:500'],
+            'command' => ['required', 'string', 'max:120'],
+            'cron_expression' => ['required', 'string', 'max:120'],
+            'timezone' => ['nullable', 'string', 'max:64'],
+            'enabled' => ['nullable', 'boolean'],
+            'parameters_json' => ['nullable', 'string', 'max:2000'],
+        ], [], [
+            'slug' => __('scheduled_tasks.field_slug'),
+            'label_en' => __('scheduled_tasks.field_label_en'),
+            'label_ar' => __('scheduled_tasks.field_label_ar'),
+            'command' => __('scheduled_tasks.field_command'),
+            'cron_expression' => __('scheduled_tasks.cron_override'),
+        ])->validate();
+
+        if (! CronExpression::isValidExpression($validated['cron_expression'])) {
+            throw ValidationException::withMessages([
+                'cron_expression' => __('scheduled_tasks.invalid_cron'),
+            ]);
+        }
+
+        if (! $this->isAllowedCommand($validated['command'])) {
+            throw ValidationException::withMessages([
+                'command' => __('scheduled_tasks.invalid_command'),
+            ]);
+        }
+
+        if (! empty($validated['parameters_json'])) {
+            $parameters = json_decode($validated['parameters_json'], true);
+            if (! is_array($parameters)) {
+                throw ValidationException::withMessages([
+                    'parameters_json' => __('scheduled_tasks.invalid_parameters_json'),
+                ]);
+            }
+            $validated['parameters'] = $parameters;
+        }
+
+        return $validated;
+    }
+
+    private function isAllowedCommand(string $command): bool
+    {
+        if (! preg_match('/^[a-z][a-z0-9:\-]*$/', $command)) {
+            return false;
+        }
+
+        $blocked = config('scheduled_tasks.blocked_commands', []);
+
+        return ! in_array($command, $blocked, true)
+            && array_key_exists($command, Artisan::all());
+    }
+
+    private function uniqueCustomTaskKey(string $slug): string
+    {
+        $base = 'custom.'.$slug;
+        $key = $base;
+        $counter = 2;
+
+        while ($this->hasTask($key)) {
+            $key = $base.'-'.$counter;
+            $counter++;
+        }
+
+        return $key;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private function customDefinitionsFromDatabase(): array
+    {
+        if (! $this->definitionsSchemaReady()) {
+            return [];
+        }
+
+        return ScheduledTaskDefinition::query()
+            ->orderBy('task_key')
+            ->get()
+            ->mapWithKeys(fn (ScheduledTaskDefinition $row) => [
+                $row->task_key => $row->toTaskDefinition(),
+            ])
+            ->all();
+    }
+
+    private function customDefinitionModel(string $key): ?ScheduledTaskDefinition
+    {
+        if (! $this->definitionsSchemaReady()) {
+            return null;
+        }
+
+        return ScheduledTaskDefinition::query()->where('task_key', $key)->first();
+    }
+
     private function buildEvent(Schedule $schedule, string $key, array $definition): ?Event
     {
-        $setting = $this->settingFor($key);
-
         if (($definition['type'] ?? null) === 'command') {
             $event = $schedule->command(
                 (string) $definition['command'],
@@ -186,18 +389,37 @@ class ScheduledTaskRegistrar
             return null;
         }
 
-        $cron = $setting?->cron_expression;
+        $cron = $this->resolveCronExpression($key, $definition);
         if ($cron) {
             $event->cron($cron);
         } else {
             $this->applyDefaultSchedule($event, $definition['schedule'] ?? []);
         }
 
-        if ($timezone = $this->resolveTimezone($definition['schedule'] ?? [])) {
+        $timezone = $this->resolveEventTimezone($key, $definition);
+        if ($timezone) {
             $event->timezone($timezone);
         }
 
         return $event;
+    }
+
+    private function resolveCronExpression(string $key, array $definition): ?string
+    {
+        if ($definition['is_custom'] ?? false) {
+            return $this->customDefinitionModel($key)?->cron_expression;
+        }
+
+        return $this->settingFor($key)?->cron_expression;
+    }
+
+    private function resolveEventTimezone(string $key, array $definition): ?string
+    {
+        if (($definition['is_custom'] ?? false) && ($model = $this->customDefinitionModel($key)) && $model->timezone) {
+            return $model->timezone;
+        }
+
+        return $this->resolveTimezone($definition['schedule'] ?? []);
     }
 
     private function applyDefaultSchedule(Event $event, array $schedule): void
@@ -255,5 +477,15 @@ class ScheduledTaskRegistrar
     {
         return Schema::hasTable('scheduled_task_settings')
             && Schema::hasTable('scheduled_task_runs');
+    }
+
+    private function definitionsSchemaReady(): bool
+    {
+        return Schema::hasTable('scheduled_task_definitions');
+    }
+
+    private function assertDefinitionsSchemaReady(): void
+    {
+        abort_unless($this->definitionsSchemaReady(), 503);
     }
 }

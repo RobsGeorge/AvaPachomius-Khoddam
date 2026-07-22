@@ -6,7 +6,7 @@
 <div class="container py-4 animate-in">
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
         <h1 class="page-title mb-0">
-            {{ $task ? __($task['label']) : $run->task_key }}
+            {{ $taskName }}
             · <span class="badge bg-{{ $run->isSuccess() ? 'success' : ($run->isRunning() ? 'secondary' : 'danger') }}">{{ __('scheduled_tasks.status_'.$run->status) }}</span>
         </h1>
         <a href="{{ route('superadmin.scheduled-tasks.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('scheduled_tasks.back_to_dashboard') }}</a>
