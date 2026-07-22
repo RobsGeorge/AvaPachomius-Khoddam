@@ -6,7 +6,6 @@ use App\Models\ScheduledTaskDefinition;
 use App\Models\ScheduledTaskRun;
 use App\Models\ScheduledTaskSetting;
 use App\Models\User;
-use Cron\CronExpression;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\App;
@@ -16,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class ScheduledTaskRegistrar
 {
+    public function __construct(
+        private CronScheduleBuilder $scheduleBuilder,
+    ) {}
+
     public function register(Schedule $schedule): void
     {
         foreach ($this->taskDefinitions() as $key => $definition) {
@@ -92,9 +95,12 @@ class ScheduledTaskRegistrar
             return array_merge($definition, [
                 'key' => $key,
                 'label' => $model?->localizedLabel() ?? (string) ($definition['label'] ?? $key),
+                'label_en' => $model?->label_en,
+                'label_ar' => $model?->label_ar,
                 'description' => $model?->localizedDescription() ?? (string) ($definition['description'] ?? ''),
                 'enabled' => (bool) ($model?->enabled ?? true),
                 'cron_expression' => $model?->cron_expression,
+                'timezone' => $model?->timezone,
                 'when_active' => true,
                 'command_display' => $model?->command,
             ]);
@@ -127,6 +133,22 @@ class ScheduledTaskRegistrar
         return __((string) ($resolved['label'] ?? $key));
     }
 
+    /** @param array<string, mixed> $resolved */
+    public function scheduleUiForTask(array $resolved): array
+    {
+        if (filled($resolved['cron_expression'] ?? null)) {
+            return $this->scheduleBuilder->parse((string) $resolved['cron_expression']);
+        }
+
+        return $this->scheduleBuilder->scheduleUiFromConfig($resolved['schedule'] ?? []);
+    }
+
+    /** @param array<string, mixed> $resolved */
+    public function scheduleLabel(array $resolved): string
+    {
+        return $this->scheduleBuilder->describe($this->scheduleUiForTask($resolved));
+    }
+
     /** @return list<array<string, mixed>> */
     public function allTasksForDisplay(Schedule $schedule): array
     {
@@ -157,13 +179,22 @@ class ScheduledTaskRegistrar
                 }
             }
 
+            $scheduleUi = $this->scheduleUiForTask($resolved);
+
             $tasks[] = array_merge($resolved, [
                 'expression' => $expression,
+                'schedule_ui' => $scheduleUi,
+                'schedule_label' => $this->scheduleBuilder->describe($scheduleUi),
                 'next_run_at' => $nextRun,
                 'last_run' => ScheduledTaskRun::query()
                     ->where('task_key', $key)
                     ->orderByDesc('run_id')
                     ->first(),
+                'recent_runs' => ScheduledTaskRun::query()
+                    ->where('task_key', $key)
+                    ->orderByDesc('run_id')
+                    ->limit(5)
+                    ->get(),
             ]);
         }
 
@@ -196,32 +227,13 @@ class ScheduledTaskRegistrar
         return (bool) ($this->settingFor($key)?->enabled ?? true);
     }
 
-    public function updateSetting(string $key, array $input, User $user): ScheduledTaskSetting|ScheduledTaskDefinition
+    public function updateSetting(string $key, array $input, User $user): ScheduledTaskSetting
     {
         abort_unless($this->hasTask($key), 404);
+        abort_if($this->isCustomTask($key), 404);
 
-        $cron = isset($input['cron_expression']) && $input['cron_expression'] !== ''
-            ? trim((string) $input['cron_expression'])
-            : null;
-
-        if ($cron !== null && ! CronExpression::isValidExpression($cron)) {
-            throw ValidationException::withMessages([
-                'cron_expression' => __('scheduled_tasks.invalid_cron'),
-            ]);
-        }
-
-        if ($this->isCustomTask($key)) {
-            $definition = $this->customDefinitionModel($key);
-            abort_unless($definition, 404);
-
-            $definition->update([
-                'enabled' => (bool) ($input['enabled'] ?? true),
-                'cron_expression' => $cron ?? $definition->cron_expression,
-                'updated_by_id' => $user->user_id,
-            ]);
-
-            return $definition->fresh();
-        }
+        $schedule = $this->scheduleBuilder->validateScheduleInput($input);
+        $cron = $this->scheduleBuilder->build($schedule);
 
         return ScheduledTaskSetting::query()->updateOrCreate(
             ['task_key' => $key],
@@ -233,11 +245,40 @@ class ScheduledTaskRegistrar
         );
     }
 
+    public function updateCustomTask(string $key, array $input, User $user): ScheduledTaskDefinition
+    {
+        abort_unless($this->isCustomTask($key) && $this->hasTask($key), 404);
+
+        $definition = $this->customDefinitionModel($key);
+        abort_unless($definition, 404);
+
+        $validated = $this->validateCustomTaskInput($input, $key);
+        $schedule = $this->scheduleBuilder->validateScheduleInput($input);
+        $cron = $this->scheduleBuilder->build($schedule);
+
+        $definition->update([
+            'label_en' => $validated['label_en'],
+            'label_ar' => $validated['label_ar'],
+            'description_en' => $validated['description_en'] ?? null,
+            'description_ar' => $validated['description_ar'] ?? null,
+            'command' => $validated['command'],
+            'parameters' => $validated['parameters'] ?? [],
+            'cron_expression' => $cron,
+            'timezone' => $validated['timezone'] ?? null,
+            'enabled' => (bool) ($input['enabled'] ?? true),
+            'updated_by_id' => $user->user_id,
+        ]);
+
+        return $definition->fresh();
+    }
+
     public function createCustomTask(array $input, User $user, bool $runAfterCreate = false): array
     {
         $this->assertDefinitionsSchemaReady();
 
         $validated = $this->validateCustomTaskInput($input);
+        $schedule = $this->scheduleBuilder->validateScheduleInput($input);
+        $cron = $this->scheduleBuilder->build($schedule);
 
         $taskKey = $this->uniqueCustomTaskKey($validated['slug']);
 
@@ -249,9 +290,9 @@ class ScheduledTaskRegistrar
             'description_ar' => $validated['description_ar'] ?? null,
             'command' => $validated['command'],
             'parameters' => $validated['parameters'] ?? [],
-            'cron_expression' => $validated['cron_expression'],
+            'cron_expression' => $cron,
             'timezone' => $validated['timezone'] ?? null,
-            'enabled' => (bool) ($validated['enabled'] ?? true),
+            'enabled' => (bool) ($input['enabled'] ?? true),
             'created_by_id' => $user->user_id,
             'updated_by_id' => $user->user_id,
         ]);
@@ -261,7 +302,7 @@ class ScheduledTaskRegistrar
             $run = app(ScheduledTaskRunner::class)->runManually($taskKey, $user);
         }
 
-        return ['definition' => $definition, 'run' => $run];
+        return ['definition' => $definition, 'run' => $run, 'task_key' => $taskKey];
     }
 
     public function deleteCustomTask(string $key): void
@@ -272,32 +313,28 @@ class ScheduledTaskRegistrar
     }
 
     /** @param array<string, mixed> $input */
-    private function validateCustomTaskInput(array $input): array
+    private function validateCustomTaskInput(array $input, ?string $existingKey = null): array
     {
-        $validated = validator($input, [
-            'slug' => ['required', 'string', 'max:60', 'regex:/^[a-z][a-z0-9\-]*$/'],
+        $rules = [
             'label_en' => ['required', 'string', 'max:120'],
             'label_ar' => ['required', 'string', 'max:120'],
             'description_en' => ['nullable', 'string', 'max:500'],
             'description_ar' => ['nullable', 'string', 'max:500'],
             'command' => ['required', 'string', 'max:120'],
-            'cron_expression' => ['required', 'string', 'max:120'],
             'timezone' => ['nullable', 'string', 'max:64'],
-            'enabled' => ['nullable', 'boolean'],
             'parameters_json' => ['nullable', 'string', 'max:2000'],
-        ], [], [
+        ];
+
+        if ($existingKey === null) {
+            $rules['slug'] = ['required', 'string', 'max:60', 'regex:/^[a-z][a-z0-9\-]*$/'];
+        }
+
+        $validated = validator($input, $rules, [], [
             'slug' => __('scheduled_tasks.field_slug'),
             'label_en' => __('scheduled_tasks.field_label_en'),
             'label_ar' => __('scheduled_tasks.field_label_ar'),
             'command' => __('scheduled_tasks.field_command'),
-            'cron_expression' => __('scheduled_tasks.cron_override'),
         ])->validate();
-
-        if (! CronExpression::isValidExpression($validated['cron_expression'])) {
-            throw ValidationException::withMessages([
-                'cron_expression' => __('scheduled_tasks.invalid_cron'),
-            ]);
-        }
 
         if (! $this->isAllowedCommand($validated['command'])) {
             throw ValidationException::withMessages([

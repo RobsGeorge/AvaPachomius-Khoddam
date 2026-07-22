@@ -70,12 +70,16 @@ class ScheduledTaskRunner
     ): void {
         $finishedAt = now();
         $durationMs = max(0, (int) $run->started_at?->diffInMilliseconds($finishedAt));
+        $impact = app(ScheduledTaskImpactParser::class)->parse($output);
+        $metadata = is_array($run->metadata) ? $run->metadata : [];
+        $metadata['impact'] = $impact;
 
         $run->update([
             'status' => $success ? ScheduledTaskRun::STATUS_SUCCESS : ScheduledTaskRun::STATUS_FAILED,
             'exit_code' => $exitCode,
             'duration_ms' => $durationMs,
             'output' => $output !== '' ? $output : null,
+            'metadata' => $metadata,
             'finished_at' => $finishedAt,
         ]);
 

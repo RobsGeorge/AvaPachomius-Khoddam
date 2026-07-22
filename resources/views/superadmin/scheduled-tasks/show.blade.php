@@ -31,6 +31,29 @@
         </div>
     </div>
 
+    @if(!empty($impact))
+        <div class="mb-3">
+            <h2 class="h6 mb-3">{{ __('scheduled_tasks.impact') }}</h2>
+            @if($impactSummary)
+                <p class="small text-muted-theme mb-3">{{ $impactSummary }}</p>
+            @endif
+            <div class="row g-3">
+                @foreach($impact as $metricKey => $metricValue)
+                    @if($metricValue > 0)
+                        <div class="col-6 col-md-3">
+                            <div class="app-card card shadow-sm h-100 border-primary border-opacity-25">
+                                <div class="card-body py-3">
+                                    <div class="small text-muted-theme">{{ __('scheduled_tasks.impact_metric_'.$metricKey) }}</div>
+                                    <div class="fs-4 fw-bold">{{ $metricValue }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="app-card card shadow-sm">
         <div class="card-body">
             <h2 class="h6">{{ __('scheduled_tasks.raw_output') }}</h2>

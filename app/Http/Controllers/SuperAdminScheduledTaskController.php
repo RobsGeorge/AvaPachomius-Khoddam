@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ScheduledTaskRun;
 use App\Services\ScheduledTaskRegistrar;
+use App\Services\ScheduledTaskReportService;
 use App\Services\ScheduledTaskRunner;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -13,8 +15,11 @@ use Throwable;
 
 class SuperAdminScheduledTaskController extends Controller
 {
-    public function index(ScheduledTaskRegistrar $registrar)
-    {
+    public function index(
+        Request $request,
+        ScheduledTaskRegistrar $registrar,
+        ScheduledTaskReportService $reportService,
+    ) {
         $schedule = new Schedule;
         $registrar->register($schedule);
         $tasks = $registrar->allTasksForDisplay($schedule);
@@ -26,12 +31,19 @@ class SuperAdminScheduledTaskController extends Controller
         return view('superadmin.scheduled-tasks.index', [
             'tasks' => $tasks,
             'runs' => $runs,
+            'runsWithImpact' => $reportService->runsWithImpact($runs),
+            'stats' => $reportService->dashboardStats($tasks),
+            'reportService' => $reportService,
+            'expand' => $request->query('expand'),
             'availableCommands' => $registrar->availableCommands(),
         ]);
     }
 
-    public function store(Request $request, ScheduledTaskRegistrar $registrar)
-    {
+    public function store(
+        Request $request,
+        ScheduledTaskRegistrar $registrar,
+        ScheduledTaskReportService $reportService,
+    ) {
         try {
             $result = $registrar->createCustomTask(
                 $request->all(),
@@ -45,20 +57,47 @@ class SuperAdminScheduledTaskController extends Controller
                     ->with('success', __('scheduled_tasks.created_and_ran'));
             }
 
-            return redirect()
-                ->route('superadmin.scheduled-tasks.index')
-                ->with('success', __('scheduled_tasks.created'));
+            return $this->indexRedirect(
+                $reportService->taskExpandKey($result['task_key']),
+                ['success' => __('scheduled_tasks.created')]
+            );
         } catch (ValidationException $e) {
-            return redirect()
-                ->route('superadmin.scheduled-tasks.index')
+            return $this->indexRedirect('create-task')
                 ->withErrors($e->errors())
                 ->withInput();
         } catch (Throwable $e) {
             report($e);
 
-            return redirect()
-                ->route('superadmin.scheduled-tasks.index')
+            return $this->indexRedirect('create-task')
                 ->with('error', __('scheduled_tasks.create_failed', ['message' => $e->getMessage()]))
+                ->withInput();
+        }
+    }
+
+    public function update(
+        Request $request,
+        ScheduledTaskRegistrar $registrar,
+        ScheduledTaskReportService $reportService,
+        string $taskKey,
+    ) {
+        abort_unless($registrar->isCustomTask($taskKey), 404);
+
+        try {
+            $registrar->updateCustomTask($taskKey, $request->all(), Auth::user());
+
+            return $this->indexRedirect(
+                $reportService->taskExpandKey($taskKey),
+                ['success' => __('scheduled_tasks.updated')]
+            );
+        } catch (ValidationException $e) {
+            return $this->indexRedirect($reportService->taskExpandKey($taskKey))
+                ->withErrors($e->errors())
+                ->withInput();
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->indexRedirect($reportService->taskExpandKey($taskKey))
+                ->with('error', __('scheduled_tasks.update_failed', ['message' => $e->getMessage()]))
                 ->withInput();
         }
     }
@@ -90,27 +129,26 @@ class SuperAdminScheduledTaskController extends Controller
     public function updateSettings(
         Request $request,
         ScheduledTaskRegistrar $registrar,
+        ScheduledTaskReportService $reportService,
         string $taskKey,
     ) {
         abort_unless($registrar->hasTask($taskKey), 404);
+        abort_if($registrar->isCustomTask($taskKey), 404);
 
         try {
-            $validated = $request->validate([
-                'enabled' => ['nullable', 'boolean'],
-                'cron_expression' => ['nullable', 'string', 'max:120'],
-            ]);
-
             $registrar->updateSetting($taskKey, [
                 'enabled' => $request->boolean('enabled'),
-                'cron_expression' => $validated['cron_expression'] ?? null,
+                'schedule_frequency' => $request->input('schedule_frequency'),
+                'schedule_time' => $request->input('schedule_time'),
+                'schedule_day' => $request->input('schedule_day'),
             ], Auth::user());
 
-            return redirect()
-                ->route('superadmin.scheduled-tasks.index')
-                ->with('success', __('scheduled_tasks.settings_saved'));
+            return $this->indexRedirect(
+                $reportService->taskExpandKey($taskKey),
+                ['success' => __('scheduled_tasks.settings_saved')]
+            );
         } catch (ValidationException $e) {
-            return redirect()
-                ->route('superadmin.scheduled-tasks.index')
+            return $this->indexRedirect($reportService->taskExpandKey($taskKey))
                 ->withErrors($e->errors())
                 ->withInput();
         }
@@ -127,12 +165,29 @@ class SuperAdminScheduledTaskController extends Controller
             ->with('success', __('scheduled_tasks.deleted'));
     }
 
-    public function show(ScheduledTaskRun $scheduledTaskRun, ScheduledTaskRegistrar $registrar)
-    {
+    public function show(
+        ScheduledTaskRun $scheduledTaskRun,
+        ScheduledTaskRegistrar $registrar,
+        ScheduledTaskReportService $reportService,
+    ) {
         return view('superadmin.scheduled-tasks.show', [
             'run' => $scheduledTaskRun->load('triggeredBy'),
             'task' => $registrar->resolveTask($scheduledTaskRun->task_key),
             'taskName' => $registrar->taskDisplayName($scheduledTaskRun->task_key),
+            'impact' => $reportService->impactForRun($scheduledTaskRun),
+            'impactSummary' => $reportService->impactSummaryForRun($scheduledTaskRun),
+            'reportService' => $reportService,
         ]);
+    }
+
+    /** @param array<string, mixed> $with */
+    private function indexRedirect(?string $expand = null, array $with = []): RedirectResponse
+    {
+        $url = route('superadmin.scheduled-tasks.index');
+        if ($expand !== null && $expand !== '') {
+            $url .= '?expand='.urlencode($expand);
+        }
+
+        return redirect()->to($url)->with($with);
     }
 }
