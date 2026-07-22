@@ -25,7 +25,11 @@ class ChurchMiddlewareTest extends EventModuleTestCase
 
     public function test_resolve_tenant_binds_main_when_enabled(): void
     {
-        config(['tenancy.enabled' => true]);
+        config([
+            'tenancy.enabled' => true,
+            'tenancy.base_domain' => 'staging.example.test',
+            'app.url' => 'https://staging.example.test',
+        ]);
 
         $response = (new ResolveTenant())->handle(Request::create('http://localhost/'), fn () => 'ok');
 
