@@ -626,8 +626,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/system-tests/{systemTestRun}', [SuperAdminSystemTestController::class, 'show'])->name('system-tests.show');
 
     Route::get('/scheduled-tasks', [SuperAdminScheduledTaskController::class, 'index'])->name('scheduled-tasks.index');
-    Route::post('/scheduled-tasks/{taskKey}/run', [SuperAdminScheduledTaskController::class, 'run'])->name('scheduled-tasks.run');
-    Route::post('/scheduled-tasks/{taskKey}/settings', [SuperAdminScheduledTaskController::class, 'updateSettings'])->name('scheduled-tasks.settings');
+    Route::post('/scheduled-tasks', [SuperAdminScheduledTaskController::class, 'store'])->name('scheduled-tasks.store');
+    Route::post('/scheduled-tasks/{taskKey}/run', [SuperAdminScheduledTaskController::class, 'run'])->where('taskKey', '.+')->name('scheduled-tasks.run');
+    Route::post('/scheduled-tasks/{taskKey}/settings', [SuperAdminScheduledTaskController::class, 'updateSettings'])->where('taskKey', '.+')->name('scheduled-tasks.settings');
+    Route::delete('/scheduled-tasks/{taskKey}', [SuperAdminScheduledTaskController::class, 'destroy'])->where('taskKey', '.+')->name('scheduled-tasks.destroy');
     Route::get('/scheduled-tasks/runs/{scheduledTaskRun}', [SuperAdminScheduledTaskController::class, 'show'])->name('scheduled-tasks.show');
 
     Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');

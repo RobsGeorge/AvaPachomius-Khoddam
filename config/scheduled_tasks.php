@@ -1,6 +1,17 @@
 <?php
 
 return [
+    'blocked_commands' => [
+        'migrate',
+        'migrate:fresh',
+        'migrate:refresh',
+        'migrate:reset',
+        'db:wipe',
+        'tinker',
+        'env',
+        'down',
+    ],
+
     'tasks' => [
         'attendance.mark_absent' => [
             'label' => 'scheduled_tasks.tasks.attendance_mark_absent',
