@@ -425,6 +425,7 @@ return [
     'superadmin_audit_desc'       => 'Review activity logs and login trial records.',
     'superadmin_events_tests_desc' => 'Run automated tests for the events module.',
     'superadmin_system_tests_desc' => 'Run the categorized system-wide test pipelines and view the report.',
+    'superadmin_scheduled_tasks_desc' => 'Monitor cron jobs, adjust schedules, run tasks manually, and review outputs.',
     'superadmin_course_picker_desc' => 'Choose a course to scope academic and admin pages.',
     'superadmin_course_curriculum_desc' => 'Open curriculum for the selected course.',
     'superadmin_course_roles_desc' => 'Manage roles and permissions inside the selected course.',
