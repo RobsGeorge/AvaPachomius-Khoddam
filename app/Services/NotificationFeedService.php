@@ -57,6 +57,13 @@ class NotificationFeedService
         );
     }
 
+    public function markUnread(UserNotification $notification): void
+    {
+        if ($notification->read_at !== null) {
+            $notification->update(['read_at' => null]);
+        }
+    }
+
     public function markAllRead(User $user): int
     {
         $count = UserNotification::query()

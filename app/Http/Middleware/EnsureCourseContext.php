@@ -25,6 +25,7 @@ class EnsureCourseContext
         'notifications.reminders.store',
         'notifications.reminders.destroy',
         'notifications.mark-all-read',
+        'notifications.toggle-read',
         'application.status',
         'application.edit',
         'application.update',
