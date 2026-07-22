@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\CoursePermissionResolver;
 use App\Tenancy\BelongsToChurch;
 
 use Illuminate\Database\Eloquent\Builder;
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class Role extends Model
 {
@@ -166,10 +169,43 @@ class Role extends Model
         return $this->slug ?? \Illuminate\Support\Str::slug($this->role_name);
     }
 
-    /** @return Collection<int, int> */
+    /**
+     * Role IDs that hold any of the given permission keys (authz via keys, not role_name).
+     *
+     * @param  list<string>  $keys
+     * @return Collection<int, int>
+     */
+    public static function roleIdsHoldingAnyPermission(array $keys): Collection
+    {
+        if ($keys === []
+            || ! Schema::hasTable('role_permission')
+            || ! Schema::hasTable('permissions')) {
+            return collect();
+        }
+
+        return DB::table('role_permission')
+            ->join('permissions', 'permissions.permission_id', '=', 'role_permission.permission_id')
+            ->whereIn('permissions.key', $keys)
+            ->whereNull('permissions.deprecated_at')
+            ->distinct()
+            ->pluck('role_permission.role_id');
+    }
+
+    /**
+     * Learner roster roles: hold learner keys and not staff keys.
+     * Falls back to template slug when the permission catalog is empty.
+     *
+     * @return Collection<int, int>
+     */
     public static function studentRoleIds(): Collection
     {
-        // Template identity via slug (cloned course roles use student / student-N).
+        $learner = self::roleIdsHoldingAnyPermission(CoursePermissionResolver::LEARNER_PERMISSION_KEYS);
+        $staff = self::roleIdsHoldingAnyPermission(CoursePermissionResolver::STAFF_PERMISSION_KEYS);
+
+        if ($learner->isNotEmpty()) {
+            return $learner->diff($staff)->values();
+        }
+
         return static::query()
             ->where(function ($q) {
                 $q->where('slug', 'student')
@@ -178,9 +214,19 @@ class Role extends Model
             ->pluck('role_id');
     }
 
-    /** @return Collection<int, int> */
+    /**
+     * Staff roster roles via staff permission keys (not role_name strings).
+     *
+     * @return Collection<int, int>
+     */
     public static function staffRoleIds(): Collection
     {
+        $staff = self::roleIdsHoldingAnyPermission(CoursePermissionResolver::STAFF_PERMISSION_KEYS);
+
+        if ($staff->isNotEmpty()) {
+            return $staff->values();
+        }
+
         return static::query()
             ->where(function ($q) {
                 $q->whereIn('slug', ['admin', 'instructor'])
@@ -192,6 +238,19 @@ class Role extends Model
 
     public static function studentRoleForCourse(int|string $courseId): ?self
     {
+        $ids = self::studentRoleIds();
+        if ($ids->isNotEmpty()) {
+            $byPermission = static::query()
+                ->where('course_id', $courseId)
+                ->whereIn('role_id', $ids)
+                ->orderBy('role_id')
+                ->first();
+
+            if ($byPermission) {
+                return $byPermission;
+            }
+        }
+
         return static::query()
             ->where('course_id', $courseId)
             ->where(function ($q) {
