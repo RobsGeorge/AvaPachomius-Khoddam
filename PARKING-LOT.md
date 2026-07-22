@@ -64,7 +64,7 @@ BelongsToChurch dormant stamp, `tenancy:seed-pilot-church`, cutover runbook.
 Still parked / ops-owned:
 - Flip production `MULTI_TENANT=true` (staging first; see `docs/tenancy-cutover.md`)
 - Wildcard DNS/TLS + SESSION_DOMAIN for shared SSO cookies
-- Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`)
+- Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`) — use `docs/staging-acceptance-checklist.md` + `php artisan tenancy:acceptance-check`
 - Optional FK hardening on every tenant table → `organizations.organization_id`
 - Public church registration / polymorphic applications (§13)
 
