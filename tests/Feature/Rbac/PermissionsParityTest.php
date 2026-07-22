@@ -173,6 +173,58 @@ class PermissionsParityTest extends EventModuleTestCase
         $this->assertFalse($staffIds->contains($roles['student']->role_id));
     }
 
+    public function test_roster_role_ids_keep_unsynced_slug_roles_when_learner_catalog_exists(): void
+    {
+        Artisan::call('permissions:sync');
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+
+        // Seed at least one permission-backed learner role so the catalog path is active.
+        $syncedCourse = $this->createCourse(['title' => 'Synced Roster']);
+        $synced = app(RoleTemplateService::class)->cloneTemplatesIntoCourse($syncedCourse);
+
+        $legacyCourse = $this->createCourse(['title' => 'Legacy Slug Roster']);
+        $legacyStudent = Role::create([
+            'role_name' => 'Student',
+            'role_decription' => 'unsynced student',
+            'slug' => 'student',
+            'course_id' => $legacyCourse->course_id,
+            'church_id' => $legacyCourse->church_id,
+            'is_template' => false,
+        ]);
+        $legacyAdmin = Role::create([
+            'role_name' => 'Admin',
+            'role_decription' => 'unsynced admin',
+            'slug' => 'admin',
+            'course_id' => $legacyCourse->course_id,
+            'church_id' => $legacyCourse->church_id,
+            'is_template' => false,
+        ]);
+
+        $this->assertSame(0, $legacyStudent->permissions()->count());
+        $this->assertSame(0, $legacyAdmin->permissions()->count());
+
+        $studentIds = Role::studentRoleIds();
+        $staffIds = Role::staffRoleIds();
+
+        $this->assertTrue($studentIds->contains($synced['student']->role_id));
+        $this->assertTrue(
+            $studentIds->contains($legacyStudent->role_id),
+            'Unsynced slug=student roles must stay in roster IDs once any learner permissions exist'
+        );
+        $this->assertFalse($studentIds->contains($legacyAdmin->role_id));
+
+        $this->assertTrue($staffIds->contains($synced['admin']->role_id));
+        $this->assertTrue(
+            $staffIds->contains($legacyAdmin->role_id),
+            'Unsynced slug=admin roles must stay in roster IDs once any staff permissions exist'
+        );
+        $this->assertFalse($staffIds->contains($legacyStudent->role_id));
+
+        $resolved = Role::studentRoleForCourse($legacyCourse->course_id);
+        $this->assertNotNull($resolved);
+        $this->assertSame($legacyStudent->role_id, $resolved->role_id);
+    }
+
     public function test_permissions_catalog_syncs(): void
     {
         Artisan::call('permissions:sync');
