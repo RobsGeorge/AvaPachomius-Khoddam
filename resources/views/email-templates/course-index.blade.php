@@ -127,6 +127,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/tinymce@7.6.0/tinymce.min.js" referrerpolicy="origin"></script>
+{{-- TinyMCE 7.6.0 is affected by CVE-2026-47762 (stored XSS); 7.9.3+ is patched. --}}
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7.9.3/tinymce.min.js" referrerpolicy="origin"></script>
 <script src="{{ asset('js/email-template-editor.js') }}?v=20260714c"></script>
 @endpush
