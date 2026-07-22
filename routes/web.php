@@ -218,6 +218,9 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
+Route::get('/register/enrollment/{user_id}', [RegisterController::class, 'showEnrollmentForm'])->name('register.enrollment');
+Route::post('/register/enrollment', [RegisterController::class, 'storeEnrollment'])->name('register.enrollment.store');
+Route::get('/register/enrollment/courses', [RegisterController::class, 'enrollmentCourses'])->name('register.enrollment.courses');
 
 Route::get('/communications/t/{token}.gif', [CommunicationReportController::class, 'trackOpen'])
     ->name('communications.track-open')

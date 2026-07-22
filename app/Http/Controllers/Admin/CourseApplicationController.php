@@ -7,8 +7,10 @@ use App\Models\Course;
 use App\Models\CourseApplication;
 use App\Models\CourseApplicationFieldReview;
 use App\Models\User;
+use App\Models\UserCourseRole;
 use App\Services\CourseApplicationReviewService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class CourseApplicationController extends Controller
@@ -19,12 +21,20 @@ class CourseApplicationController extends Controller
 
     public function index(Request $request)
     {
+        $admin = Auth::user();
+        abort_unless($admin instanceof User && $admin->canAccessAdminCourseApplications(), 403);
+
         $filter = $request->query('filter');
         $courseFilter = $request->query('course_id');
+        $allowedCourseIds = $this->reviewableCourseIds($admin);
 
         $query = CourseApplication::query()
             ->with(['user', 'course'])
             ->latest('submitted_at');
+
+        if ($allowedCourseIds !== null) {
+            $query->whereIn('course_id', $allowedCourseIds->isEmpty() ? [-1] : $allowedCourseIds);
+        }
 
         if ($filter && in_array($filter, CourseApplication::statuses(), true)) {
             $query->where('status', $filter);
@@ -35,11 +45,19 @@ class CourseApplicationController extends Controller
         }
 
         $applications = $query->get();
-        $courses = Course::orderBy('title')->get();
+        $coursesQuery = Course::orderBy('title');
+        if ($allowedCourseIds !== null) {
+            $coursesQuery->whereIn('course_id', $allowedCourseIds->isEmpty() ? [-1] : $allowedCourseIds);
+        }
+        $courses = $coursesQuery->get();
 
         $counts = [];
         foreach (CourseApplication::statuses() as $status) {
-            $counts[$status] = CourseApplication::query()->where('status', $status)->count();
+            $countQuery = CourseApplication::query()->where('status', $status);
+            if ($allowedCourseIds !== null) {
+                $countQuery->whereIn('course_id', $allowedCourseIds->isEmpty() ? [-1] : $allowedCourseIds);
+            }
+            $counts[$status] = $countQuery->count();
         }
 
         return view('admin.course-applications.index', compact(
@@ -53,6 +71,7 @@ class CourseApplicationController extends Controller
 
     public function show(CourseApplication $application)
     {
+        $this->authorizeReview($application);
         $application->load(['user', 'fieldReviews', 'reviewer', 'course', 'form.steps.fields']);
 
         $fieldReviews = $application->fieldReviews->keyBy('field_key');
@@ -72,6 +91,7 @@ class CourseApplicationController extends Controller
 
     public function requestCorrections(Request $request, CourseApplication $application)
     {
+        $this->authorizeReview($application);
         $fieldInput = $this->validatedFieldInput($request, $application);
         $admin = Auth::user();
         if (! $admin instanceof User) {
@@ -87,6 +107,7 @@ class CourseApplicationController extends Controller
 
     public function approve(Request $request, CourseApplication $application)
     {
+        $this->authorizeReview($application);
         $fieldInput = $this->validatedFieldInput($request, $application);
         $admin = Auth::user();
         if (! $admin instanceof User) {
@@ -107,6 +128,7 @@ class CourseApplicationController extends Controller
 
     public function reject(Request $request, CourseApplication $application)
     {
+        $this->authorizeReview($application);
         $validated = $request->validate([
             'overall_rejection_note' => ['required', 'string', 'max:2000'],
         ]);
@@ -125,6 +147,7 @@ class CourseApplicationController extends Controller
 
     public function restore(Request $request, CourseApplication $application)
     {
+        $this->authorizeReview($application);
         $validated = $request->validate([
             'target_status' => ['required', 'in:pending_review,needs_correction'],
         ]);
@@ -155,5 +178,50 @@ class CourseApplicationController extends Controller
         }
 
         return $input;
+    }
+
+    private function authorizeReview(CourseApplication $application): void
+    {
+        $admin = Auth::user();
+        abort_unless($admin instanceof User, 403);
+
+        $course = $application->course
+            ?? Course::query()->withoutGlobalScope('church')->find($application->course_id);
+
+        abort_unless(
+            $course && $admin->canAccessAdminCourseApplications($course),
+            403
+        );
+    }
+
+    /**
+     * null = unrestricted (system / superadmin); otherwise course IDs the reviewer may see.
+     *
+     * @return Collection<int, int>|null
+     */
+    private function reviewableCourseIds(User $admin): ?Collection
+    {
+        if (($admin->is_superadmin ?? false) || $admin->canInSystem('course_application.review')) {
+            return null;
+        }
+
+        $courseIds = UserCourseRole::query()
+            ->where('user_id', $admin->user_id)
+            ->pluck('course_id')
+            ->unique()
+            ->filter()
+            ->values();
+
+        if ($courseIds->isEmpty()) {
+            return collect();
+        }
+
+        return Course::query()
+            ->withoutGlobalScope('church')
+            ->whereIn('course_id', $courseIds)
+            ->get()
+            ->filter(fn (Course $course) => $admin->canAccessAdminCourseApplications($course))
+            ->pluck('course_id')
+            ->values();
     }
 }

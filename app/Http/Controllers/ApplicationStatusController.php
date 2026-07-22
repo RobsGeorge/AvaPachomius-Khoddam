@@ -25,6 +25,16 @@ class ApplicationStatusController extends Controller
             abort(403);
         }
 
+        if ($user->registration_intent_course_id) {
+            $courseApps = app(\App\Services\CourseApplicationService::class);
+            $courseId = (int) $user->registration_intent_course_id;
+
+            return redirect()->route(
+                $courseApps->redirectRouteFor($user, $courseId),
+                $courseApps->redirectParamsFor($courseId)
+            );
+        }
+
         $application = $this->applications->latestForUser($user);
         $application?->load('fieldReviews');
 

@@ -17,6 +17,7 @@ class CourseApplicationReviewService
         private CourseRoleAssignmentService $roleAssignment,
         private CourseApplicationMailService $mail,
         private ServiceRoleAssignmentService $serviceMembership,
+        private RegistrationApplicationService $registrationApplications,
     ) {}
 
     /** @param array<string, array{status?: string, comment?: string|null}> $fieldInput */
@@ -66,6 +67,8 @@ class CourseApplicationReviewService
                 $application->course_id,
                 CourseApplication::STATUS_NEEDS_CORRECTION
             );
+
+            $this->registrationApplications->syncPlatformStatusFromCourseApplication($user, $application);
 
             $this->mail->send($user, CourseApplicationReviewTemplate::KEY_NEEDS_CORRECTION, $application, [
                 'fields_table' => $this->mail->buildFieldsTable($application->fresh('fieldReviews')),
@@ -125,6 +128,8 @@ class CourseApplicationReviewService
                 CourseApplication::STATUS_APPROVED
             );
 
+            $this->registrationApplications->syncPlatformStatusFromCourseApplication($user, $application);
+
             $this->mail->send($user, CourseApplicationReviewTemplate::KEY_APPROVED, $application);
 
             return $application->fresh(['fieldReviews', 'user', 'course', 'form']);
@@ -147,6 +152,8 @@ class CourseApplicationReviewService
                 $application->course_id,
                 CourseApplication::STATUS_REJECTED
             );
+
+            $this->registrationApplications->syncPlatformStatusFromCourseApplication($user, $application);
 
             $this->mail->send($user, CourseApplicationReviewTemplate::KEY_REJECTED, $application, [
                 'note' => $note,
@@ -186,6 +193,8 @@ class CourseApplicationReviewService
                 $application->course_id,
                 $targetStatus
             );
+
+            $this->registrationApplications->syncPlatformStatusFromCourseApplication($user, $application);
 
             return $application->fresh(['fieldReviews', 'user', 'course']);
         });
