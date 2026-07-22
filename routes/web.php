@@ -95,11 +95,13 @@ use App\Http\Controllers\LiveQuizHostController;
 use App\Http\Controllers\LiveQuizPlayController;
 use App\Http\Controllers\CourseRoleController;
 use App\Http\Controllers\SystemRoleController;
+use App\Http\Controllers\FaviconController;
 
 
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::post('/theme', [ThemeController::class, 'update'])->name('theme.update');
+Route::get('/favicon/{icon}.svg', [FaviconController::class, 'show'])->name('favicon.show');
 
 require __DIR__.'/auth.php';
 
@@ -258,6 +260,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/reminders', [NotificationSettingsController::class, 'storeReminder'])->name('notifications.reminders.store');
     Route::delete('/notifications/reminders/{reminder}', [NotificationSettingsController::class, 'destroyReminder'])->name('notifications.reminders.destroy');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::post('/notifications/{notification}/toggle-read', [NotificationController::class, 'toggleRead'])->name('notifications.toggle-read')->whereNumber('notification');
     Route::get('/notifications/{notification}', [NotificationController::class, 'show'])->name('notifications.show')->whereNumber('notification');
 
     Route::put('/profile/picture', [ProfileController::class, 'updatePicture'])->name('profile.picture.update');

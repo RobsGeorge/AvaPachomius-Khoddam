@@ -86,6 +86,7 @@ class RequireApprovedCourseApplication
             'notifications.settings',
             'notifications.settings.update',
             'notifications.mark-all-read',
+            'notifications.toggle-read',
             'notifications.reminders.store',
             'notifications.reminders.destroy',
             'application.status',

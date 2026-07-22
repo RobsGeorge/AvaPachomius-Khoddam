@@ -46,4 +46,20 @@ class NotificationController extends Controller
 
         return back()->with('success', __('notifications.all_marked_read'));
     }
+
+    public function toggleRead(UserNotification $notification)
+    {
+        $user = Auth::user();
+        abort_unless($notification->user_id === $user->user_id, 403);
+
+        if ($notification->isUnread()) {
+            $this->feed->markRead($notification);
+
+            return back()->with('success', __('notifications.marked_read'));
+        }
+
+        $this->feed->markUnread($notification);
+
+        return back()->with('success', __('notifications.marked_unread'));
+    }
 }

@@ -1178,6 +1178,10 @@ i.fa,
     border-inline-start-color: #f59e0b;
 }
 
+.notification-row .notification-read-toggle {
+    min-width: 2.25rem;
+}
+
 .hub-tile-highlight {
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
