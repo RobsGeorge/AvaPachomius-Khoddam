@@ -584,17 +584,51 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'status' => 'required|in:Present,Absent,Late,Permission',
-            'permission_reason' => 'required_if:status,Permission|nullable|string|max:255'
+            'permission_reason' => 'required_if:status,Permission|nullable|string|max:255',
+            'lock_version' => 'nullable|integer|min:0',
         ]);
 
         $attendance = Attendance::findOrFail($id);
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'lock_version')
+            && $request->filled('lock_version')
+        ) {
+            $expected = (int) $request->input('lock_version');
+            $affected = Attendance::query()
+                ->where('attendance_id', $attendance->attendance_id)
+                ->where('lock_version', $expected)
+                ->update([
+                    'status' => $request->status,
+                    'permission_reason' => $request->permission_reason,
+                    'lock_version' => $expected + 1,
+                    'updated_at' => now(),
+                ]);
+
+            if ($affected === 0) {
+                throw new \App\Exceptions\OptimisticLockException(
+                    __('structure.optimistic_lock_conflict'),
+                    $attendance->fresh()?->lock_version
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث الحالة بنجاح',
+                'lock_version' => $expected + 1,
+            ]);
+        }
+
         $attendance->status = $request->status;
         $attendance->permission_reason = $request->permission_reason;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'lock_version')) {
+            $attendance->lock_version = (int) $attendance->lock_version + 1;
+        }
         $attendance->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'تم تحديث الحالة بنجاح'
+            'message' => 'تم تحديث الحالة بنجاح',
+            'lock_version' => $attendance->lock_version ?? null,
         ]);
     }
 

@@ -16,4 +16,7 @@ return [
         'assignment_levels' => 'مستويات الواجبات',
         'report_rollup' => 'تجميع التقارير',
     ],
+    'optimistic_lock_conflict' => 'تم تحديث سجل الحضور بواسطة شخص آخر. حدّث الصفحة ثم أعد المحاولة.',
+    'enrollment' => 'تسجيل',
+    'enrollments' => 'التسجيلات',
 ];

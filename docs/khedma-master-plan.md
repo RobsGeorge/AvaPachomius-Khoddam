@@ -110,12 +110,12 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T8 in progress (expand).** T0–T7 landed. **T8a** (this track): structure
+**Current phase: T8 in progress (expand).** T0–T7 landed. **T8a** landed: structure
 templates + anchors, `service` slug/template binding, `service_units` dual-write from courses,
-Tenant Zero service slug `servants-prep` + `educational_standard`. **T8b** (parked):
-`/{service:slug}/…` routes + legacy 301s, enrollments cutover, attendance optimistic locking.
-Keep `MULTI_TENANT=false` in production until staging pilot is signed off.
-Polymorphic applications / public church-registration remain parked (§13 / §17.4).
+Tenant Zero service slug `servants-prep` + `educational_standard`. **T8b** (this track):
+`/{service:slug}` hub + legacy numeric 301s, `enrollments` dual-write, attendance `lock_version`,
+nav filtered by structure anchors. Keep `MULTI_TENANT=false` in production until staging pilot
+is signed off. Polymorphic applications / public church-registration remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -133,14 +133,15 @@ Polymorphic applications / public church-registration remain parked (§13 / §17
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
-**T8a (landed / landing):** `structure_templates` seeded (`educational_standard`, `meeting_flat`,
+**T8a (landed):** `structure_templates` seeded (`educational_standard`, `meeting_flat`,
 `care_sector`), `StructureAnchorResolver`, expand `service` (`slug`, `structure_template_id`,
 level overrides), `service_units` dual-write from `course`, Tenant Zero default service →
 `servants-prep` + educational template.
 
-**T8b (do not start in the same PR as T8a):** `/{service:slug}/…` routes + resolution middleware
-+ legacy 301s; enrollments table cutover; attendance per-person optimistic locking (§14 G7).
-Detail in `PARKING-LOT.md`.
+**T8b (landed / landing):** slug route key + `/s/{service}` hub + numeric→slug 301s;
+`enrollments` table dual-write from `user_course_role` (UCR still source of truth for reads);
+attendance `lock_version` CAS; NavigationHub incremental filter via structure anchors.
+Detail / residual in `PARKING-LOT.md`.
 
 ## 8. Church management module
 

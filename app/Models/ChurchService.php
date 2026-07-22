@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class ChurchService extends Model
 {
@@ -45,9 +46,71 @@ class ChurchService extends Model
         'custom_field_defs' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (ChurchService $service) {
+            if (! Schema::hasColumn($service->getTable(), 'slug')) {
+                return;
+            }
+            if (filled($service->slug)) {
+                return;
+            }
+            $service->slug = static::uniqueSlugCandidate(
+                (string) ($service->title_en ?: $service->title ?: 'service'),
+                $service->church_id
+            );
+        });
+    }
+
+    /**
+     * T8b: canonical public URLs use slug. Numeric legacy params still resolve
+     * so RedirectNumericServiceToSlug can 301 to the slug URL.
+     */
     public function getRouteKeyName(): string
     {
+        if (Schema::hasColumn($this->getTable(), 'slug')) {
+            return 'slug';
+        }
+
         return 'service_id';
+    }
+
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field ??= $this->getRouteKeyName();
+
+        if ($field === 'slug' && is_numeric($value) && ctype_digit((string) $value)) {
+            return $this->resolveRouteBindingQuery($this->newQuery(), $value, $this->getKeyName())
+                ->first();
+        }
+
+        return $this->resolveRouteBindingQuery($this->newQuery(), $value, $field)
+            ->first();
+    }
+
+    public static function uniqueSlugCandidate(string $source, mixed $churchId = null): string
+    {
+        $base = Str::slug($source);
+        if ($base === '') {
+            $base = 'service';
+        }
+        $base = mb_substr($base, 0, 70);
+
+        $candidate = $base;
+        $i = 2;
+        while (static::query()
+            ->when(
+                $churchId !== null && Schema::hasColumn((new static)->getTable(), 'church_id'),
+                fn ($q) => $q->where('church_id', $churchId)
+            )
+            ->where('slug', $candidate)
+            ->exists()
+        ) {
+            $candidate = mb_substr($base, 0, 60).'-'.$i;
+            $i++;
+        }
+
+        return $candidate;
     }
 
     public function structureTemplate(): BelongsTo

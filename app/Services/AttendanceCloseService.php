@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\OptimisticLockException;
 use App\Models\Attendance;
 use App\Models\Role;
 use App\Models\Session;
@@ -10,6 +11,7 @@ use App\Models\UserCourseRole;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceCloseService
@@ -111,6 +113,7 @@ class AttendanceCloseService
         int $actorId,
         ?string $permissionReason = null,
         bool $allowNonEnrolled = false,
+        ?int $expectedLockVersion = null,
     ): Attendance {
         $this->assertValidStatus($status);
 
@@ -138,15 +141,46 @@ class AttendanceCloseService
             'permission_reason' => $status === 'Permission' ? $permissionReason : null,
         ];
 
-        $attendance = Attendance::updateOrCreate(
-            [
-                'session_id' => $session->session_id,
-                'user_id' => $userId,
-            ],
-            $attributes,
-        );
+        $existing = Attendance::query()
+            ->where('session_id', $session->session_id)
+            ->where('user_id', $userId)
+            ->first();
 
-        return $attendance->fresh(['user', 'takenBy', 'session']);
+        if (! $existing) {
+            $attributes['session_id'] = $session->session_id;
+            $attributes['user_id'] = $userId;
+            if (Schema::hasColumn('attendance', 'lock_version')) {
+                $attributes['lock_version'] = 0;
+            }
+
+            return Attendance::create($attributes)->fresh(['user', 'takenBy', 'session']);
+        }
+
+        if (Schema::hasColumn('attendance', 'lock_version')) {
+            $expected = $expectedLockVersion ?? (int) $existing->lock_version;
+            $affected = Attendance::query()
+                ->where('attendance_id', $existing->attendance_id)
+                ->where('lock_version', $expected)
+                ->update(array_merge($attributes, [
+                    'lock_version' => $expected + 1,
+                    'updated_at' => $now,
+                ]));
+
+            if ($affected === 0) {
+                $fresh = $existing->fresh();
+                throw new OptimisticLockException(
+                    __('structure.optimistic_lock_conflict'),
+                    $fresh?->lock_version
+                );
+            }
+
+            return $existing->fresh(['user', 'takenBy', 'session']);
+        }
+
+        $existing->fill($attributes);
+        $existing->save();
+
+        return $existing->fresh(['user', 'takenBy', 'session']);
     }
 
     /** @return Collection<int, int> */
@@ -297,15 +331,22 @@ class AttendanceCloseService
         }
 
         $now = now();
-        $records = $missingStudentIds->map(fn ($userId) => [
-            'user_id' => $userId,
-            'session_id' => $session->session_id,
-            'taken_by_id' => $actorId,
-            'status' => $status,
-            'attendance_time' => $now,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ])->all();
+        $records = $missingStudentIds->map(function ($userId) use ($session, $actorId, $status, $now) {
+            $row = [
+                'user_id' => $userId,
+                'session_id' => $session->session_id,
+                'taken_by_id' => $actorId,
+                'status' => $status,
+                'attendance_time' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+            if (Schema::hasColumn('attendance', 'lock_version')) {
+                $row['lock_version'] = 0;
+            }
+
+            return $row;
+        })->all();
 
         foreach (array_chunk($records, 100) as $chunk) {
             Attendance::insert($chunk);
