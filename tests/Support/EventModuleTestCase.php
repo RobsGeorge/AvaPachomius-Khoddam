@@ -49,12 +49,23 @@ abstract class EventModuleTestCase extends TestCase
 
     protected function createRole(string $name): Role
     {
-        return Role::create([
+        $role = Role::create([
             'role_name' => $name,
             'role_decription' => substr($name, 0, 25),
             'slug' => strtolower($name),
             'is_template' => false,
         ]);
+
+        // Authorization is permission-based (CoursePermissionResolver), not role-name
+        // based, so a role with no permissions fails every gate (403). Mirror production:
+        // copy the permission set from the matching seeded system template (admin /
+        // instructor / student) created by RbacSeeder->ensureSystemTemplates().
+        $template = Role::where('slug', $role->slug)->where('is_template', true)->first();
+        if ($template) {
+            $role->permissions()->sync($template->permissions()->pluck('permissions.permission_id'));
+        }
+
+        return $role;
     }
 
     protected function createCourse(array $overrides = []): Course
