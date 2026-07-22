@@ -24,15 +24,21 @@ class RequireMandatoryFeedback
             return $next($request);
         }
 
-        if (! $this->mandatoryFeedback->hasPending($user)) {
+        try {
+            if (! $this->mandatoryFeedback->hasPending($user)) {
+                return $next($request);
+            }
+
+            if ($this->routeIsAllowed($request)) {
+                return $next($request);
+            }
+
+            $pending = $this->mandatoryFeedback->firstPending($user);
+        } catch (\Throwable $e) {
+            report($e);
+
             return $next($request);
         }
-
-        if ($this->routeIsAllowed($request)) {
-            return $next($request);
-        }
-
-        $pending = $this->mandatoryFeedback->firstPending($user);
 
         return redirect()
             ->route('feedback.surveys.show', $pending['survey_id'] ?? 0)

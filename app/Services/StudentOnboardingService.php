@@ -30,7 +30,7 @@ class StudentOnboardingService
             return false;
         }
 
-        return $user->student_onboarding_completed_at === null;
+        return ! $user->hasRealDateAttribute('student_onboarding_completed_at');
     }
 
     /** @return list<array{icon: string, title: string, body: string}> */

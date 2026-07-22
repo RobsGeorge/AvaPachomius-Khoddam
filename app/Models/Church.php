@@ -95,6 +95,18 @@ class Church extends Model
     /** The default church that all pre-existing data was backfilled into (Tenant Zero). */
     public static function main(): self
     {
-        return static::where('slug', config('tenancy.main_slug'))->firstOrFail();
+        $slug = config('tenancy.main_slug');
+        $main = static::where('slug', $slug)->first();
+        if ($main) {
+            return $main;
+        }
+
+        // Prefer church_id=1 (Tenant Zero backfill) before failing the whole request stack.
+        $fallback = static::query()->orderBy('church_id')->first();
+        if ($fallback) {
+            return $fallback;
+        }
+
+        return static::where('slug', $slug)->firstOrFail();
     }
 }

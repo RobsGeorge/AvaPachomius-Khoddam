@@ -280,7 +280,7 @@ class AnnouncementService
                 }
 
                 return $announcement->hasChannel(Announcement::CHANNEL_BANNER_DISMISSIBLE)
-                    && $delivery->dismissed_at === null;
+                    && ! $delivery->isDismissed();
             })
             ->map(fn (AnnouncementDelivery $delivery) => [
                 'announcement' => $delivery->announcement,
