@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserChurchRole;
 use App\Models\UserCourseRole;
+use App\Models\UserServiceRole;
 use App\Services\CoursePermissionResolver;
 use App\Services\RoleTemplateService;
 use App\Tenancy\TenantContext;
@@ -112,9 +113,127 @@ class PermissionsParityTest extends EventModuleTestCase
         $this->assertFalse($resolver->canInCourse($scoped, 'exam.grade', $course));
     }
 
+    public function test_service_role_grants_flow_into_course_hierarchy(): void
+    {
+        Artisan::call('permissions:sync');
+        app(RoleTemplateService::class)->ensureServiceTemplates();
+
+        $service = $this->createService(['title' => 'Hierarchy Service']);
+        $roles = app(RoleTemplateService::class)->cloneTemplatesIntoService($service);
+        $course = $this->createCourse([
+            'title' => 'Service Hier Course',
+            'service_id' => $service->service_id,
+        ]);
+
+        $svcAdmin = $this->createUser(['email' => 'svc-hier@example.com']);
+        $serviceAdminRole = $roles['service-admin'] ?? collect($roles)->first(
+            fn (Role $role) => str_starts_with($role->effectiveSlug(), 'service-admin')
+        );
+        $this->assertNotNull($serviceAdminRole);
+        UserServiceRole::create([
+            'service_id' => $service->service_id,
+            'user_id' => $svcAdmin->user_id,
+            'role_id' => $serviceAdminRole->role_id,
+            'is_primary' => true,
+        ]);
+
+        $this->assertSame(
+            0,
+            UserCourseRole::where('user_id', $svcAdmin->user_id)
+                ->where('course_id', $course->course_id)
+                ->count()
+        );
+
+        $resolver = app(CoursePermissionResolver::class);
+        // Service clones keep service/both-scoped keys; those must still resolve in course context.
+        $held = $resolver->permissionsInCourse($svcAdmin, $course);
+        $this->assertTrue(
+            $held->contains('service.manage'),
+            'Expected service.manage via service→course hierarchy; held=['.$held->implode(',').']'
+        );
+        $this->assertTrue($resolver->canInCourse($svcAdmin, 'service.manage', $course));
+        $this->assertTrue($resolver->canInCourse($svcAdmin, 'service.view', $course));
+    }
+
+    public function test_roster_role_ids_use_permission_keys_not_role_name(): void
+    {
+        Artisan::call('permissions:sync');
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+
+        $course = $this->createCourse(['title' => 'Roster Keys']);
+        $roles = app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $studentIds = Role::studentRoleIds();
+        $staffIds = Role::staffRoleIds();
+
+        $this->assertTrue($studentIds->contains($roles['student']->role_id));
+        $this->assertFalse($studentIds->contains($roles['admin']->role_id));
+        $this->assertTrue($staffIds->contains($roles['admin']->role_id));
+        $this->assertTrue($staffIds->contains($roles['instructor']->role_id));
+        $this->assertFalse($staffIds->contains($roles['student']->role_id));
+    }
+
     public function test_permissions_catalog_syncs(): void
     {
         Artisan::call('permissions:sync');
+
+        $mappedPatterns = collect();
+        foreach (config('permissions', []) as $groupDef) {
+            foreach ($groupDef['permissions'] ?? [] as $permDef) {
+                foreach ($permDef['routes'] ?? [] as $pattern) {
+                    $mappedPatterns->push($pattern);
+                }
+            }
+        }
+
+        $publicPrefixes = [
+            'login', 'register', 'password.', 'otp.', 'locale.', 'theme.', 'sanctum.',
+            'ignition.', 'verification.',
+            'logout', 'home', 'dashboard',
+            'profile', 'profile.',
+            'account.',
+            'notifications.',
+            'help.',
+            'calendar.',
+            'my-learning.',
+            'hubs.',
+            'onboarding.',
+            'application.',
+            'communications.track-open',
+            'courses.select',
+        ];
+        $unmapped = collect(\Illuminate\Support\Facades\Route::getRoutes())
+            ->map(fn ($route) => $route->getName())
+            ->filter()
+            ->unique()
+            ->filter(function (string $name) use ($publicPrefixes) {
+                foreach ($publicPrefixes as $prefix) {
+                    if (\Illuminate\Support\Str::startsWith($name, $prefix)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->filter(function (string $name) use ($mappedPatterns) {
+                foreach ($mappedPatterns as $pattern) {
+                    if (\Illuminate\Support\Str::is($pattern, $name)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })
+            ->values()
+            ->sort()
+            ->values();
+
+        $this->assertSame(
+            [],
+            $unmapped->all(),
+            'Unmapped named routes (attach in config/permissions.php): '.$unmapped->implode(', ')
+        );
+
         $this->assertGreaterThan(50, Permission::count());
         $this->assertTrue(Permission::where('key', 'role.manage')->exists());
         $this->assertTrue(Permission::where('key', 'assignment.submit')->exists());
