@@ -7,6 +7,7 @@ use App\Models\ScheduledTaskRun;
 use App\Models\ScheduledTaskSetting;
 use App\Models\User;
 use App\Services\ScheduledTaskRegistrar;
+use App\Services\ScheduledTaskReportService;
 use Illuminate\Console\Scheduling\Schedule;
 use Tests\Support\EventModuleTestCase;
 
@@ -29,9 +30,25 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
             'label_en' => 'List schedule test',
             'label_ar' => 'اختبار قائمة الجدولة',
             'command' => 'schedule:list',
-            'cron_expression' => '0 3 * * *',
+            'schedule_frequency' => 'daily_at',
+            'schedule_time' => '03:00',
             'enabled' => '1',
         ], $overrides);
+    }
+
+    private function scheduleSettingsPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'schedule_frequency' => 'daily_at',
+            'schedule_time' => '01:10',
+        ], $overrides);
+    }
+
+    private function expandUrl(string $taskKey): string
+    {
+        return route('superadmin.scheduled-tasks.index').'?expand='.urlencode(
+            app(ScheduledTaskReportService::class)->taskExpandKey($taskKey)
+        );
     }
 
     public function test_superadmin_can_view_scheduled_tasks_dashboard(): void
@@ -42,7 +59,8 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
             ->assertSee(__('scheduled_tasks.dashboard'), false)
             ->assertSee(__('scheduled_tasks.tasks.birthdays_notify_daily'), false)
             ->assertSee(__('scheduled_tasks.run_now'), false)
-            ->assertSee(__('scheduled_tasks.create_custom'), false);
+            ->assertSee(__('scheduled_tasks.create_custom'), false)
+            ->assertSee(__('scheduled_tasks.execution_report'), false);
     }
 
     public function test_non_superadmin_cannot_access_scheduled_tasks_dashboard(): void
@@ -72,6 +90,7 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
         $this->assertSame(ScheduledTaskRun::TRIGGER_MANUAL, $run->trigger);
         $this->assertSame($super->user_id, $run->triggered_by_id);
         $this->assertNotNull($run->finished_at);
+        $this->assertIsArray($run->metadata['impact'] ?? null);
     }
 
     public function test_settings_update_can_disable_task_registration(): void
@@ -85,10 +104,8 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
 
         $this->actingAs($super)
             ->from(route('superadmin.scheduled-tasks.index'))
-            ->post(route('superadmin.scheduled-tasks.settings', 'birthdays.notify_daily'), [
-                'cron_expression' => '',
-            ])
-            ->assertRedirect(route('superadmin.scheduled-tasks.index'))
+            ->post(route('superadmin.scheduled-tasks.settings', 'birthdays.notify_daily'), $this->scheduleSettingsPayload())
+            ->assertRedirect($this->expandUrl('birthdays.notify_daily'))
             ->assertSessionHas('success');
 
         $schedule = new Schedule;
@@ -100,17 +117,17 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
         $this->assertCount(0, $events);
     }
 
-    public function test_settings_update_accepts_valid_cron_override(): void
+    public function test_settings_update_accepts_valid_schedule_override(): void
     {
         $super = $this->superadmin();
 
         $this->actingAs($super)
             ->from(route('superadmin.scheduled-tasks.index'))
-            ->post(route('superadmin.scheduled-tasks.settings', 'birthdays.notify_daily'), [
+            ->post(route('superadmin.scheduled-tasks.settings', 'birthdays.notify_daily'), $this->scheduleSettingsPayload([
                 'enabled' => '1',
-                'cron_expression' => '10 1 * * *',
-            ])
-            ->assertRedirect(route('superadmin.scheduled-tasks.index'))
+                'schedule_time' => '01:10',
+            ]))
+            ->assertRedirect($this->expandUrl('birthdays.notify_daily'))
             ->assertSessionHas('success');
 
         $setting = ScheduledTaskSetting::query()->where('task_key', 'birthdays.notify_daily')->first();
@@ -124,7 +141,7 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
         $this->assertSame('10 1 * * *', $event->expression);
     }
 
-    public function test_run_detail_page_shows_output(): void
+    public function test_run_detail_page_shows_output_and_impact(): void
     {
         $super = $this->superadmin();
 
@@ -135,6 +152,13 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
             'exit_code' => 0,
             'duration_ms' => 42,
             'output' => 'Done. 1 course(s), 2 email(s), 2 portal notification(s).',
+            'metadata' => [
+                'impact' => [
+                    'courses' => 1,
+                    'emails' => 2,
+                    'portal_notifications' => 2,
+                ],
+            ],
             'started_at' => now()->subSeconds(1),
             'finished_at' => now(),
             'triggered_by_id' => $super->user_id,
@@ -144,7 +168,10 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
             ->get(route('superadmin.scheduled-tasks.show', $run))
             ->assertOk()
             ->assertSee('Done. 1 course(s)', false)
-            ->assertSee(__('scheduled_tasks.tasks.birthdays_notify_daily'), false);
+            ->assertSee(__('scheduled_tasks.tasks.birthdays_notify_daily'), false)
+            ->assertSee(__('scheduled_tasks.impact'), false)
+            ->assertSee(__('scheduled_tasks.impact_metric_courses'), false)
+            ->assertSee('1', false);
     }
 
     public function test_superadmin_can_create_custom_task(): void
@@ -154,7 +181,7 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
         $this->actingAs($super)
             ->from(route('superadmin.scheduled-tasks.index'))
             ->post(route('superadmin.scheduled-tasks.store'), $this->customTaskPayload())
-            ->assertRedirect(route('superadmin.scheduled-tasks.index'))
+            ->assertRedirect($this->expandUrl('custom.test-list-schedule'))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('scheduled_task_definitions', [
@@ -271,13 +298,13 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
             ->assertSessionHasErrors('command');
     }
 
-    public function test_create_rejects_invalid_cron_expression(): void
+    public function test_create_rejects_invalid_schedule_frequency(): void
     {
         $this->actingAs($this->superadmin())
             ->from(route('superadmin.scheduled-tasks.index'))
             ->post(route('superadmin.scheduled-tasks.store'), $this->customTaskPayload([
-                'cron_expression' => 'not-a-cron',
+                'schedule_frequency' => 'not-a-frequency',
             ]))
-            ->assertSessionHasErrors('cron_expression');
+            ->assertSessionHasErrors('schedule_frequency');
     }
 }
