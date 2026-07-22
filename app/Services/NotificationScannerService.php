@@ -212,6 +212,9 @@ class NotificationScannerService
     public function notifyAnnouncement(User $user, Announcement $announcement): void
     {
         $this->preferences->ensureDefaults($user);
+        // Portal row only here. Email/WhatsApp are owned by announcement channels
+        // (AnnouncementMail / WhatsApp dispatch UI) — avoid a second SMTP blast and
+        // keep publish resilient when mail is slow or misconfigured.
         $this->generator->createOrUpdate(
             $user,
             UserNotification::TYPE_ADMIN_ANNOUNCEMENT,
@@ -221,8 +224,9 @@ class NotificationScannerService
             'announcement',
             $announcement->announcement_id,
             UserNotification::PRIORITY_HIGH,
-            [],
-            "admin_announcement:{$announcement->announcement_id}"
+            ['course_id' => $announcement->course_id, 'service_id' => $announcement->service_id],
+            "admin_announcement:{$announcement->announcement_id}:user:{$user->user_id}",
+            false
         );
     }
 
