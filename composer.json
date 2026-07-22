@@ -14,14 +14,13 @@
         "ext-pdo_mysql": "*",
         "ext-xml": "*",
         "barryvdh/laravel-dompdf": "^3.1",
-        "guzzlehttp/guzzle": "^7.2",
-        "intervention/image": "*",
+        "guzzlehttp/guzzle": "^7.15.1",
+        "intervention/image": "^3.11",
         "laravel/framework": "^10.10",
         "laravel/reverb": "^1.10",
         "laravel/sanctum": "^3.3",
         "laravel/tinker": "^2.8",
         "laravel/ui": "^4.6",
-        "phpunit/phpunit": "^10.1",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "symfony/css-selector": "^7.0"
     },
@@ -33,6 +32,7 @@
         "laravel/sail": "^1.18",
         "mockery/mockery": "^1.4.4",
         "nunomaduro/collision": "^7.0",
+        "phpunit/phpunit": "^10.1",
         "spatie/laravel-ignition": "^2.0"
     },
     "autoload": {

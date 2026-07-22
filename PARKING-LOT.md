@@ -119,3 +119,13 @@ above). CLAUDE.md rule 10 → park, do not build.
 `docs/khedma-master-plan.md` §7). Kickoff PR should start expand-only: templates +
 anchors first; migration; then `/{service:slug}/…` routes. Related principle already
 stated in master-plan §15 (anchors, not level names).
+
+## Security / framework upgrade (2026-07-22)
+- Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
+  GHSA-crmm-hgp2-wgrp (temporary signed URL path confusion). Patches require
+  Laravel **12.60+ / 12.61.1+** (or 13.x). App mitigates email CRLF via
+  `App\Validation\SafeValidator`. Temporary filesystem signed URLs are unused;
+  route signatures (`hasValidSignature`) remain.
+- **Do not** start a Laravel 10→12 major upgrade mid-tenancy migration. Schedule a
+  dedicated upgrade PR after T7 cutover stability (or when Laravel 10 is EOL and
+  blocking).
