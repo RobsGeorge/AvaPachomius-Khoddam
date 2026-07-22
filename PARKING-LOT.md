@@ -93,29 +93,22 @@ Still parked:
 - Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
   enables MULTI_TENANT).
 
-## Structure template engine + wrap as service #1 (parked 2026-07-16)
+## T8b residual — structure routes / enrollments / attendance lock (parked)
 
-**Requested** (prompt citing plan §2.3 / §4 / §15 / §7 P3 — longer expand-contract
-sequence, not current `docs/khedma-master-plan.md` phase table):
+**Landed as T8a:** `structure_templates` + seeds, `StructureAnchorResolver`, `service` slug/
+template columns, `service_units` dual-write from courses, Tenant Zero `servants-prep` +
+`educational_standard`.
 
-1. Structure template engine: `structure_templates`, `template_id` / `level_labels` /
-   `enabled_levels` on services, `level_key` on `service_units`, `custom_field_defs`;
-   seed `educational_standard`, `meeting_flat`, `care_sector`.
-2. Anchor resolver (`enrollment_level`, `attendance_level`, `assignment_levels`,
-   `report_rollup`) — no hardcoded level names outside template JSON.
-3. Reversible migrate of class/attendance → services / service_units / enrollments /
-   sessions / attendance; seed service slug `servants-prep` with
-   `educational_standard`.
-4. Attendance per-person rows + optimistic locking (§14 G7).
-5. Route group `/{service:slug}/...`, resolution middleware, legacy 301s, nav from
-   registry filtered by permissions.
+**Still parked (T8b):**
 
-**Why parked:** master-plan §7 current phase is **T7 (contract / cutover)**. T3 (=P3)
-roles/permissions already landed. This wrap is a new product-shape layer beyond T7
-and beyond the existing Service-above-Course expand (see “Service above Course”
-above). CLAUDE.md rule 10 → park, do not build.
+1. Route group `/{service:slug}/...`, resolution middleware, legacy 301s from numeric hub.
+2. `enrollments` table cutover beside / replacing `user_course_role` (contract later).
+3. Attendance per-person rows + optimistic locking (§14 G7).
+4. Nav registry filtered purely from structure anchors (incremental).
 
-**Resume when:** **T7 staging pilot signed off**, then open **T8** (scheduled in
-`docs/khedma-master-plan.md` §7). Kickoff PR should start expand-only: templates +
-anchors first; migration; then `/{service:slug}/…` routes. Related principle already
-stated in master-plan §15 (anchors, not level names).
+**Resume when:** T8a merged to staging and smoke-checked; then open a dedicated T8b PR.
+
+## Structure template engine + wrap as service #1 (superseded 2026-07-22)
+
+Original full request parked 2026-07-16; **T8a delivered the expand kickoff**. Residual items
+live under **T8b residual** above. Do not re-open the old block for new work.
