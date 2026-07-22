@@ -93,22 +93,21 @@ Still parked:
 - Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
   enables MULTI_TENANT).
 
-## T8b residual — structure routes / enrollments / attendance lock (parked)
+## T8 residual — post T8b (parked)
 
-**Landed as T8a:** `structure_templates` + seeds, `StructureAnchorResolver`, `service` slug/
-template columns, `service_units` dual-write from courses, Tenant Zero `servants-prep` +
-`educational_standard`.
+**Landed as T8a + T8b:** structure templates/anchors/`service_units`/`servants-prep`; slug
+binding + `/s/{service}` hub + numeric 301s; `enrollments` dual-write (UCR still SOT for reads);
+attendance `lock_version` CAS; nav filtered by structure anchors.
 
-**Still parked (T8b):**
+**Still parked:**
 
-1. Route group `/{service:slug}/...`, resolution middleware, legacy 301s from numeric hub.
-2. `enrollments` table cutover beside / replacing `user_course_role` (contract later).
-3. Attendance per-person rows + optimistic locking (§14 G7).
-4. Nav registry filtered purely from structure anchors (incremental).
+1. Contract: drop/rename `user_course_role` only after enrollments cutover sign-off (Phase 5 style).
+2. Broader `/{service:slug}/…` route tree beyond hub + existing `/services/{slug}/…` (full product wrap).
+3. Nav registry driven *purely* from structure template (today: incremental anchor tags only).
 
-**Resume when:** T8a merged to staging and smoke-checked; then open a dedicated T8b PR.
+**Resume when:** T8b merged to staging and smoke-checked; contract items wait for a dedicated cutover PR.
 
 ## Structure template engine + wrap as service #1 (superseded 2026-07-22)
 
-Original full request parked 2026-07-16; **T8a delivered the expand kickoff**. Residual items
-live under **T8b residual** above. Do not re-open the old block for new work.
+Original full request parked 2026-07-16; **T8a/T8b delivered the expand track**. Residual items
+live under **T8 residual** above. Do not re-open the old block for new work.

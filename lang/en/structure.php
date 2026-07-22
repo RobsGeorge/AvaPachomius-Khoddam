@@ -16,4 +16,7 @@ return [
         'assignment_levels' => 'Assignment levels',
         'report_rollup' => 'Report rollup',
     ],
+    'optimistic_lock_conflict' => 'This attendance record was updated by someone else. Refresh and try again.',
+    'enrollment' => 'Enrollment',
+    'enrollments' => 'Enrollments',
 ];

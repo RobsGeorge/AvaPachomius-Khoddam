@@ -20,12 +20,13 @@ class Attendance extends Model
     protected $primaryKey = 'attendance_id';
 
     protected $fillable = [
-        'user_id', 'session_id', 'taken_by_id', 'status', 
-        'permission_reason', 'attendance_time',
+        'user_id', 'session_id', 'taken_by_id', 'status',
+        'permission_reason', 'attendance_time', 'lock_version',
     ];
 
     protected $casts = [
         'attendance_time' => 'datetime',
+        'lock_version' => 'integer',
     ];
 
     public function getDisplaySessionDateAttribute(): ?string

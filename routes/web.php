@@ -113,6 +113,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/services/select', [ServiceContextController::class, 'store'])->name('services.select.store');
     Route::post('/services/select/clear', [ServiceContextController::class, 'clear'])->name('services.select.clear');
     Route::get('/services/roster', [ServiceRosterController::class, 'index'])->name('services.roster');
+    // T8b — canonical slug hub (+ legacy numeric /services/{id}/… 301 via middleware).
+    Route::get('/s/{service}', [ServiceContextController::class, 'hub'])->name('services.hub');
     Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
     Route::post('/services/{service}/apply', [ServiceApplicationController::class, 'store'])->name('services.apply.store');
     Route::get('/services/{service}/application/status', [ServiceApplicationController::class, 'status'])->name('services.application.status');

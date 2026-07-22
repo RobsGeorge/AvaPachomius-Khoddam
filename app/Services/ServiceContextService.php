@@ -190,11 +190,16 @@ class ServiceContextService
             return;
         }
 
-        if (is_numeric($serviceParam)) {
+        $service = null;
+
+        if (is_numeric($serviceParam) && ctype_digit((string) $serviceParam)) {
             $service = ChurchService::find((int) $serviceParam);
-            if ($service && $this->userCanSelectService($user, $service)) {
-                SessionStore::put(self::SESSION_KEY, $service->service_id);
-            }
+        } elseif (is_string($serviceParam) && $serviceParam !== '' && Schema::hasColumn('service', 'slug')) {
+            $service = ChurchService::query()->where('slug', $serviceParam)->first();
+        }
+
+        if ($service && $this->userCanSelectService($user, $service)) {
+            SessionStore::put(self::SESSION_KEY, $service->service_id);
         }
     }
 }
