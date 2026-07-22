@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Tenancy\BelongsToChurch;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
 
@@ -30,15 +31,35 @@ class ChurchService extends Model
         'branding_theme',
         'status',
         'permissions_version',
+        'slug',
+        'structure_template_id',
+        'level_labels',
+        'enabled_levels',
+        'custom_field_defs',
     ];
 
     protected $casts = [
         'permissions_version' => 'integer',
+        'level_labels' => 'array',
+        'enabled_levels' => 'array',
+        'custom_field_defs' => 'array',
     ];
 
     public function getRouteKeyName(): string
     {
         return 'service_id';
+    }
+
+    public function structureTemplate(): BelongsTo
+    {
+        return $this->belongsTo(StructureTemplate::class, 'structure_template_id', 'structure_template_id');
+    }
+
+    public function units(): HasMany
+    {
+        return $this->hasMany(ServiceUnit::class, 'service_id', 'service_id')
+            ->orderBy('sort_order')
+            ->orderBy('service_unit_id');
     }
 
     public function courses(): HasMany

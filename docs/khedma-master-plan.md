@@ -110,8 +110,10 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T7 in progress (contract).** T0–T6 landed. T7 = `NOT NULL church_id`,
-pilot church tooling, and staging cutover runbook (`docs/tenancy-cutover.md`).
+**Current phase: T8 in progress (expand).** T0–T7 landed. **T8a** (this track): structure
+templates + anchors, `service` slug/template binding, `service_units` dual-write from courses,
+Tenant Zero service slug `servants-prep` + `educational_standard`. **T8b** (parked):
+`/{service:slug}/…` routes + legacy 301s, enrollments cutover, attendance optimistic locking.
 Keep `MULTI_TENANT=false` in production until staging pilot is signed off.
 Polymorphic applications / public church-registration remain parked (§13 / §17.4).
 
@@ -126,17 +128,19 @@ Polymorphic applications / public church-registration remain parked (§13 / §17
 | **T4** *(=P4/P5)* ✅ | Subdomains + provisioning | real tenants | Superadmin church CRUD + switcher; **church registration / polymorphic apps deferred** |
 | **T5** ✅ | Church management module | new feature | priest **confession calendars** (§9), **home-visit schedules** (§10) |
 | **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
-| **T7** *(contract)* | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
-| **T8** *(scheduled — after T7 sign-off)* | Structure templates + service wrap | template-driven levels | See §15; full scope in `PARKING-LOT.md` “Structure template engine…” |
+| **T7** *(contract)* ✅ | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
+| **T8** *(expand)* | Structure templates + service wrap | template-driven levels | **T8a:** templates/anchors/`service_units`/`servants-prep`. **T8b:** slug routes, enrollments, attendance lock |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
-**T8 (do not start until T7 staging pilot is signed off):** structure template engine
-(`structure_templates`, anchors, `service_units`), seed `educational_standard` /
-`meeting_flat` / `care_sector`, wrap AvaPachomius as service slug `servants-prep`,
-reversible data migration, `/{service:slug}/…` routes + legacy 301s. Expand-only;
-builds on the existing Service-above-Course layer. Detail remains in `PARKING-LOT.md`
-until a T8 kickoff PR opens.
+**T8a (landed / landing):** `structure_templates` seeded (`educational_standard`, `meeting_flat`,
+`care_sector`), `StructureAnchorResolver`, expand `service` (`slug`, `structure_template_id`,
+level overrides), `service_units` dual-write from `course`, Tenant Zero default service →
+`servants-prep` + educational template.
+
+**T8b (do not start in the same PR as T8a):** `/{service:slug}/…` routes + resolution middleware
++ legacy 301s; enrollments table cutover; attendance per-person optimistic locking (§14 G7).
+Detail in `PARKING-LOT.md`.
 
 ## 8. Church management module
 
