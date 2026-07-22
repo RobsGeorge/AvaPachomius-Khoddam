@@ -1,5 +1,5 @@
 @if(\App\Services\RolePreviewService::isActive() && auth()->check() && (auth()->user()->is_superadmin ?? false))
-    <div class="role-preview-banner role-preview-banner--overlay bg-info text-dark border-bottom border-info-subtle shadow-sm">
+    <div class="role-preview-banner bg-info text-dark border-bottom border-info-subtle sticky-top shadow-sm">
         <div class="container py-2 d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-start gap-2 small">
                 <i class="bi bi-person-badge-fill fs-5 flex-shrink-0"></i>

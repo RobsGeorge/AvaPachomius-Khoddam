@@ -188,6 +188,77 @@ class StudentBirthdayAnnouncementTest extends EventModuleTestCase
         );
     }
 
+    public function test_daily_birthday_command_notifies_custom_role_with_roster_announce_permission(): void
+    {
+        Mail::fake();
+
+        $coordinatorRole = $this->courseRoleWithPermissions(
+            $this->createCourse(['title' => 'Custom Role Birthday Course']),
+            'course-coordinator',
+            ['roster.announce', 'roster.view', 'course.access']
+        );
+        $course = $coordinatorRole->course;
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', ['roster.view', 'course.access']);
+
+        $coordinator = $this->createUser(['email' => 'daily-birthday-coordinator@example.com']);
+        $this->assignCourseRole($coordinator, $course, $coordinatorRole);
+
+        $today = now(config('attendance.timezone', config('app.timezone')));
+
+        $student = $this->createUser([
+            'email' => 'daily-birthday-custom-student@example.com',
+            'date_of_birth' => sprintf('2000-%02d-%02d', $today->month, $today->day),
+        ]);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->artisan('birthdays:notify-daily', ['--date' => $today->toDateString()])
+            ->assertSuccessful();
+
+        Mail::assertSent(DailyBirthdayAnnouncementMail::class, 1);
+
+        $this->assertSame(
+            1,
+            UserNotification::query()
+                ->where('type', 'birthday_today')
+                ->where('user_id', $coordinator->user_id)
+                ->where('dedupe_key', 'birthday_today:'.$course->course_id.':'.$today->format('Y-m-d'))
+                ->count()
+        );
+    }
+
+    public function test_daily_birthday_command_creates_portal_notification_without_email(): void
+    {
+        Mail::fake();
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+
+        $admin = $this->createUser(['email' => '']);
+        $course = $this->createCourse(['title' => 'Portal Only Birthday Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $today = now(config('attendance.timezone', config('app.timezone')));
+
+        $student = $this->createUser([
+            'email' => 'daily-portal-student@example.com',
+            'date_of_birth' => sprintf('2000-%02d-%02d', $today->month, $today->day),
+        ]);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->artisan('birthdays:notify-daily', ['--date' => $today->toDateString()])
+            ->assertSuccessful();
+
+        Mail::assertNothingSent();
+
+        $this->assertSame(
+            1,
+            UserNotification::query()
+                ->where('type', 'birthday_today')
+                ->where('user_id', $admin->user_id)
+                ->count()
+        );
+    }
+
     public function test_daily_birthday_command_skips_when_no_birthdays_today(): void
     {
         Mail::fake();

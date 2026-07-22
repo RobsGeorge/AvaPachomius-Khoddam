@@ -78,7 +78,8 @@ class ProfilePhotoGateUxTest extends EventModuleTestCase
         $this->get(route('profile'))
             ->assertOk()
             ->assertSee(__('pages.impersonate_exit'), false)
-            ->assertSee('impersonation-banner--overlay', false)
+            ->assertSee('impersonation-banner', false)
+            ->assertSee('sticky-top', false)
             ->assertDontSee('id="photoRequiredModal"', false);
 
         $this->post(route('superadmin.impersonate.stop'))

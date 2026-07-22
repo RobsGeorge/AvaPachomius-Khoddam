@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Services\BirthdayNotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class NotifyDailyBirthdays extends Command
 {
@@ -40,6 +41,13 @@ class NotifyDailyBirthdays extends Command
         $this->info(
             "Done. {$summary['courses']} course(s), {$summary['emails']} email(s), {$summary['portal']} portal notification(s)."
         );
+
+        Log::info('birthdays:notify-daily completed', [
+            'date' => $dateLabel,
+            'courses' => $summary['courses'],
+            'emails' => $summary['emails'],
+            'portal' => $summary['portal'],
+        ]);
 
         return self::SUCCESS;
     }
