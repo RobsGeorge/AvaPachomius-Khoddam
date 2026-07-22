@@ -26,6 +26,11 @@ class NotificationDispatchService
         string $body,
         ?string $actionUrl = null
     ): void {
+        // Only dispatch to users in this type's audience (see NotificationGeneratorService).
+        if (! $this->preferences->appliesTo($user, $type)) {
+            return;
+        }
+
         $pref = $this->preferences->ensureMandatoryChannels($user, $type);
 
         $mailNotification = $notification ?? new UserNotification([

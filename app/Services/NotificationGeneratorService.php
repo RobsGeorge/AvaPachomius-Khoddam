@@ -30,7 +30,14 @@ class NotificationGeneratorService
         array $metadata = [],
         ?string $dedupeKey = null,
         bool $dispatch = true,
-    ): UserNotification {
+    ): ?UserNotification {
+        // Only notify users in this type's audience. Outside it, the user has no preference
+        // row for the type; skip rather than 500 (e.g. course closure strips a staff member's
+        // role identity, so a graduation-announced notification no longer applies to them).
+        if (! $this->preferences->appliesTo($user, $type)) {
+            return null;
+        }
+
         $dedupeKey ??= $this->buildDedupeKey($type, $sourceType, $sourceId, $metadata);
 
         $pref = $this->preferences->ensureMandatoryChannels($user, $type);
