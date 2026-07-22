@@ -46,6 +46,21 @@ class RouteInventoryTest extends EventModuleTestCase
         );
     }
 
+    public function test_favicon_route_points_at_autoloadable_controller(): void
+    {
+        $route = Route::getRoutes()->getByName('favicon.show');
+
+        $this->assertNotNull($route, 'favicon.show route must be registered');
+        $this->assertStringContainsString(
+            'FaviconController@show',
+            $route->getActionName()
+        );
+        $this->assertTrue(
+            class_exists(\App\Http\Controllers\FaviconController::class),
+            'FaviconController must exist whenever favicon.show is registered'
+        );
+    }
+
     public function test_every_route_has_a_unique_registered_uri_method_pair(): void
     {
         $seen = [];
