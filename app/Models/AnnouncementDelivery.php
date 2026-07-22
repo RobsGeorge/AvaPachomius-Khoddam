@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AnnouncementDelivery extends Model
 {
+    use Concerns\SafelyCastsDates;
+
     protected $primaryKey = 'delivery_id';
 
     protected $fillable = [
@@ -39,6 +41,11 @@ class AnnouncementDelivery extends Model
 
     public function isUnread(): bool
     {
-        return $this->read_at === null;
+        return ! $this->hasRealDateAttribute('read_at');
+    }
+
+    public function isDismissed(): bool
+    {
+        return $this->hasRealDateAttribute('dismissed_at');
     }
 }

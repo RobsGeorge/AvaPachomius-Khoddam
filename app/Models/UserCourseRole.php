@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schema;
 class UserCourseRole extends Model
 {
     use BelongsToChurch;
+    use Concerns\SafelyCastsDates;
 
     protected $table = 'user_course_role';
 
@@ -50,10 +51,18 @@ class UserCourseRole extends Model
         return $this->belongsTo(Role::class, 'role_id', 'role_id');
     }
 
+    public function isStaffArchived(): bool
+    {
+        return self::hasStaffArchivedColumn() && $this->hasRealDateAttribute('staff_archived_at');
+    }
+
     public function scopeActiveStaff(Builder $query): Builder
     {
         if (self::hasStaffArchivedColumn()) {
-            return $query->whereNull('staff_archived_at');
+            return $query->where(function (Builder $inner) {
+                $inner->whereNull('staff_archived_at')
+                    ->orWhere('staff_archived_at', 'like', '0000-00-00%');
+            });
         }
 
         return $query;
@@ -62,7 +71,8 @@ class UserCourseRole extends Model
     public function scopeStaffArchivedOnly(Builder $query): Builder
     {
         if (self::hasStaffArchivedColumn()) {
-            return $query->whereNotNull('staff_archived_at');
+            return $query->whereNotNull('staff_archived_at')
+                ->where('staff_archived_at', 'not like', '0000-00-00%');
         }
 
         return $query->whereRaw('1 = 0');

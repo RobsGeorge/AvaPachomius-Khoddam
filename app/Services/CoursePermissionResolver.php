@@ -324,7 +324,7 @@ class CoursePermissionResolver
             return $this->permissionsInCourse($user, $course)->isNotEmpty();
         }
 
-        if ($assignment->staff_archived_at !== null) {
+        if ($assignment->isStaffArchived()) {
             return $this->isLearnerRole($assignment->role);
         }
 
@@ -473,7 +473,7 @@ class CoursePermissionResolver
             ->first();
 
         if ($assignment?->role) {
-            $archivedStaff = $assignment->staff_archived_at !== null
+            $archivedStaff = $assignment->isStaffArchived()
                 && ! $this->isLearnerRole($assignment->role);
 
             if (! $archivedStaff) {
