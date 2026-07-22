@@ -10,7 +10,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', __('app.name'))</title>
-    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml" />
+    @php
+        $faviconOverride = trim($__env->yieldContent('favicon_icon'));
+        $faviconUrl = app(\App\Support\PageFavicon::class)->url(
+            auth()->user(),
+            $faviconOverride !== '' ? $faviconOverride : ($pageIcon ?? null)
+        );
+    @endphp
+    <link rel="icon" href="{{ $faviconUrl }}" type="image/svg+xml" />
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />

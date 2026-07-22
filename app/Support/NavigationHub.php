@@ -619,6 +619,65 @@ class NavigationHub
         }));
     }
 
+    public static function activePageIcon(?User $user): ?string
+    {
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $activeLinks = array_values(array_filter(
+            self::allNavLinks($user),
+            static fn (array $link): bool => ! empty($link['active']) && ! empty($link['icon'])
+        ));
+
+        if ($activeLinks === []) {
+            return null;
+        }
+
+        $specificLinks = array_values(array_filter(
+            $activeLinks,
+            static fn (array $link): bool => ! self::isGenericHubLink($link)
+        ));
+
+        $chosen = $specificLinks[0] ?? $activeLinks[0];
+
+        return is_string($chosen['icon'] ?? null) ? $chosen['icon'] : null;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected static function allNavLinks(User $user): array
+    {
+        return array_merge(
+            self::academicLinks($user),
+            self::serviceLinks($user),
+            self::systemLinks($user),
+            self::superadminLinks($user),
+        );
+    }
+
+    protected static function isGenericHubLink(array $link): bool
+    {
+        static $hubUrls = null;
+
+        if ($hubUrls === null) {
+            $hubUrls = array_values(array_filter([
+                parse_url(route('hubs.academic', [], false), PHP_URL_PATH),
+                parse_url(route('hubs.service', [], false), PHP_URL_PATH),
+                parse_url(route('hubs.system', [], false), PHP_URL_PATH),
+                parse_url(route('superadmin.index', [], false), PHP_URL_PATH),
+            ]));
+        }
+
+        $url = $link['url'] ?? null;
+        if (! is_string($url) || $url === '') {
+            return false;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;
+
+        return in_array($path, $hubUrls, true);
+    }
+
     protected static function anyActive(array $links): bool
     {
         foreach ($links as $link) {
