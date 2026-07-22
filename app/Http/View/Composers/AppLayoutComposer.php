@@ -38,15 +38,25 @@ class AppLayoutComposer
             return;
         }
 
-        $this->photoGate->ensureGraceStarted($user);
-
-        $view->with('profilePhotoWarning', $this->photoGate->shouldShowWarningBanner($user));
-        $view->with('profilePhotoPending', $this->photoGate->shouldShowPendingBanner($user));
-        $view->with('profilePhotoRejected', $this->photoGate->shouldShowRejectedBanner($user));
-        $view->with('profilePhotoRejectionNote', $user->profile_photo_rejection_note);
-        $view->with('profilePhotoDeadline', $this->photoGate->deadlineFor($user));
-        $view->with('profilePhotoDaysRemaining', $this->photoGate->daysRemaining($user));
-        $view->with('profilePhotoHardBlocked', $this->photoGate->isHardBlocked($user));
+        try {
+            $this->photoGate->ensureGraceStarted($user);
+            $view->with('profilePhotoWarning', $this->photoGate->shouldShowWarningBanner($user));
+            $view->with('profilePhotoPending', $this->photoGate->shouldShowPendingBanner($user));
+            $view->with('profilePhotoRejected', $this->photoGate->shouldShowRejectedBanner($user));
+            $view->with('profilePhotoRejectionNote', $user->profile_photo_rejection_note);
+            $view->with('profilePhotoDeadline', $this->photoGate->deadlineFor($user));
+            $view->with('profilePhotoDaysRemaining', $this->photoGate->daysRemaining($user));
+            $view->with('profilePhotoHardBlocked', $this->photoGate->isHardBlocked($user));
+        } catch (\Throwable $e) {
+            report($e);
+            $view->with('profilePhotoWarning', false);
+            $view->with('profilePhotoPending', false);
+            $view->with('profilePhotoRejected', false);
+            $view->with('profilePhotoRejectionNote', null);
+            $view->with('profilePhotoDeadline', null);
+            $view->with('profilePhotoDaysRemaining', null);
+            $view->with('profilePhotoHardBlocked', false);
+        }
 
         if (Schema::hasColumn('user', 'application_status') && ! $this->applications->isApproved($user) && ! $user->isAdmin() && ! $user->is_superadmin) {
             $view->with('applicationReviewBanner', match ($user->application_status) {

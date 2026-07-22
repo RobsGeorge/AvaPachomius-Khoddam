@@ -20,7 +20,7 @@
         <div class="alert alert-danger">
             {{ __('pages.profile_photo_required_locked') }}
         </div>
-    @elseif($photoDeadline)
+    @elseif($photoDeadline instanceof \Illuminate\Support\Carbon)
         <div class="alert alert-warning">
             {{ __('pages.profile_photo_required_banner', ['deadline' => $photoDeadline->format('d/m/Y H:i')]) }}
         </div>

@@ -22,9 +22,16 @@ class RequireProfilePhoto
             return $next($request);
         }
 
-        $this->photoGate->ensureGraceStarted($user);
+        try {
+            $this->photoGate->ensureGraceStarted($user);
+            $hardBlocked = $this->photoGate->isHardBlocked($user);
+        } catch (\Throwable $e) {
+            report($e);
 
-        if (! $this->photoGate->isHardBlocked($user)) {
+            return $next($request);
+        }
+
+        if (! $hardBlocked) {
             return $next($request);
         }
 
