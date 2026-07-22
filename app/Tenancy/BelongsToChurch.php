@@ -28,7 +28,12 @@ trait BelongsToChurch
                 return;
             }
 
-            $column = $query->getModel()->getTable().'.church_id';
+            $table = $query->getModel()->getTable();
+            if (! Schema::hasColumn($table, 'church_id')) {
+                return;
+            }
+
+            $column = $table.'.church_id';
 
             if (static::churchScopeAllowsNullTemplates()) {
                 $query->where(function (Builder $inner) use ($column, $churchId) {
@@ -48,6 +53,11 @@ trait BelongsToChurch
 
             // Platform templates (null church_id) and other opt-outs must stay unscoped.
             if (! static::shouldStampChurchIdOnCreate($model)) {
+                return;
+            }
+
+            // Never stamp a column the table does not have yet (partial migrate / older clone).
+            if (! Schema::hasColumn($model->getTable(), 'church_id')) {
                 return;
             }
 

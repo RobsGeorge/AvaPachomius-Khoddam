@@ -70,7 +70,7 @@ class NotificationActionLinkTest extends EventModuleTestCase
             'title' => $announcement->title,
             'body' => 'Preview',
             'action_url' => route('announcements.show', $announcement),
-            'dedupe_key' => "admin_announcement:{$announcement->announcement_id}",
+            'dedupe_key' => "admin_announcement:{$announcement->announcement_id}:user:{$student->user_id}",
         ]);
 
         $this->clickNotification($student, $notification)
