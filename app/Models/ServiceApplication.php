@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServiceApplication extends Model
 {
+    use BelongsToChurch;
+
     public const STATUS_PENDING = 'pending_review';
 
     public const STATUS_APPROVED = 'approved';

@@ -29,8 +29,7 @@ class StudentRosterService
             ->merge(
                 $user->userCourseRoles()
                     ->staffArchivedOnly()
-                    ->whereHas('role', fn ($q) => $q->whereRaw('LOWER(role_name) = ?', ['student'])
-                        ->orWhere('slug', 'student'))
+                    ->whereIn('role_id', Role::studentRoleIds())
                     ->pluck('course_id')
             )
             ->unique();

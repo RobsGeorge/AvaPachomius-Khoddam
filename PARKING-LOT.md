@@ -13,6 +13,25 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - GitHub Actions deploy pipeline is unreliable (SSH i/o timeouts). Manual deploy.sh is
   the current path. Revisit CI/CD deployment after P0.
 
+## P0.1 sweep leftovers (2026-07-16)
+- Duplicate migration timestamps remain by design (already applied in prod; reorder unsafe):
+  `2026_07_18_000001_*` (branding + dynamic RBAC) and `2026_07_19_000001_*`
+  (assignments course_id + user created_at backfill). Alphabetical order is fine today.
+- Broad Unit/Feature suites still have pre-existing failures; CI `full-suite-report` is
+  non-blocking. Closing those gaps is separate from the gated pipelines.
+- `DatabaseSeeder` is intentionally empty; `RbacSeeder` / `permissions:sync` are not
+  wired into `migrate:fresh --seed` (apps rely on artisan commands / staging data).
+- Dormant `App\Http\Controllers\Auth\PasswordResetLinkController` kept (namespace fixed
+  for PSR-4); live forgot-password flow uses `ForgotPasswordController`.
+
+## P1.1 organizations registry (2026-07-16)
+- `organizations` table (§4 shape) is the canonical tenant registry; product code still
+  uses church-native names (`church`, `church_id`, `BelongsToChurch`) during expand.
+- Tenant Zero = `organization_id` 1 / `subdomain=avapakhomios`, numerically aligned with
+  `church.church_id` 1. FK: tenant `church_id` → `organizations.organization_id`.
+- T1+ scopes/middleware already exist on staging but stay dormant while `MULTI_TENANT=false`.
+  Do not enable enforcement in production until T7 cutover PR.
+
 ## Mobile (React Native)
 - Student-first Expo app lives in sibling repo `AvaPachomius-Khoddam-Mobile`.
 - Backend slice: Sanctum token auth + `/api/v1` read APIs — see `docs/mobile/mvp.md`.
@@ -38,3 +57,65 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - Still deferred: richer form builder, `course.service_id` NOT NULL contraction,
   BelongsToChurch when tenancy lands.
   Plan: `.cursor/plans/service_entity_layer_c1010b64.plan.md` / `service_entity_layer_c8cd74f8.plan.md`
+
+## T7 deferred / ops follow-ups
+Landed on `feature/church-tenancy-t7`: `church_id` backfill + MySQL NOT NULL contract,
+BelongsToChurch dormant stamp, `tenancy:seed-pilot-church`, cutover runbook.
+Still parked / ops-owned:
+- Flip production `MULTI_TENANT=true` (staging first; see `docs/tenancy-cutover.md`)
+- Wildcard DNS/TLS + SESSION_DOMAIN for shared SSO cookies
+- Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`)
+- Optional FK hardening on every tenant table → `organizations.organization_id`
+- Public church registration / polymorphic applications (§13)
+
+## T6 deferred (finance first-cut boundary)
+Landed on `feature/church-tenancy-t6`: payroll runs/lines + money-in with integer
+minor units, currency, fx_rate; church-admin finance permissions; draft→finalize.
+Still parked (master-plan §11 / §17.5):
+- Multi-currency catalogs beyond default EGP / fx_rate=`1`
+- Payroll cadence automation (monthly generators)
+- Approval workflows / multi-step sign-off before finalize
+- Reporting, reconciliation, exports
+- Per-church base-currency in `church.settings`
+
+## T4 deferred (inside T4 / awaiting product decisions)
+Landed on `feature/church-tenancy-t4`: TrustHosts, sessions migration, `ChurchHost`,
+`ChurchProvisioningService`, superadmin churches CRUD, nav church switcher (host
+links), login membership rejection, `EnsureChurchMember` on web stack.
+Still parked:
+- Public church-registration panel → superadmin approval (master-plan §13 / §17.4).
+- Polymorphic applications center (Church | Service | Course).
+- Church-admin self-service screens on `{slug}` (members/branding within guardrails) —
+  superadmin console covers provisioning for now.
+- Invite-by-email onboarding that creates unverified users (add-member requires
+  existing email today).
+- Per-church branding resolution wired into ThemeController / locale defaults.
+- Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
+  enables MULTI_TENANT).
+
+## Structure template engine + wrap as service #1 (parked 2026-07-16)
+
+**Requested** (prompt citing plan §2.3 / §4 / §15 / §7 P3 — longer expand-contract
+sequence, not current `docs/khedma-master-plan.md` phase table):
+
+1. Structure template engine: `structure_templates`, `template_id` / `level_labels` /
+   `enabled_levels` on services, `level_key` on `service_units`, `custom_field_defs`;
+   seed `educational_standard`, `meeting_flat`, `care_sector`.
+2. Anchor resolver (`enrollment_level`, `attendance_level`, `assignment_levels`,
+   `report_rollup`) — no hardcoded level names outside template JSON.
+3. Reversible migrate of class/attendance → services / service_units / enrollments /
+   sessions / attendance; seed service slug `servants-prep` with
+   `educational_standard`.
+4. Attendance per-person rows + optimistic locking (§14 G7).
+5. Route group `/{service:slug}/...`, resolution middleware, legacy 301s, nav from
+   registry filtered by permissions.
+
+**Why parked:** master-plan §7 current phase is **T7 (contract / cutover)**. T3 (=P3)
+roles/permissions already landed. This wrap is a new product-shape layer beyond T7
+and beyond the existing Service-above-Course expand (see “Service above Course”
+above). CLAUDE.md rule 10 → park, do not build.
+
+**Resume when:** **T7 staging pilot signed off**, then open **T8** (scheduled in
+`docs/khedma-master-plan.md` §7). Kickoff PR should start expand-only: templates +
+anchors first; migration; then `/{service:slug}/…` routes. Related principle already
+stated in master-plan §15 (anchors, not level names).

@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 
 class AttendancePolicy extends Model
 {
+    use BelongsToChurch;
+
     protected $table = 'attendance_policy';
 
     protected $primaryKey = 'id';

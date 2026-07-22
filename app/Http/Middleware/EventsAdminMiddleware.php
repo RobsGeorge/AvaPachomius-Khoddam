@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\EventAdmin;
+use App\Services\RolePreviewService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,9 +18,8 @@ class EventsAdminMiddleware
             abort(403);
         }
 
-        $allowed = ($user->is_superadmin ?? false)
+        $allowed = RolePreviewService::superadminBypassesPermissions($user)
             || $user->canInSystem('events.admin')
-            || $user->hasRole('admin')
             || EventAdmin::where('user_id', $user->user_id)->exists();
 
         if (! $allowed) {

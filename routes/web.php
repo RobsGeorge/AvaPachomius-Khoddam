@@ -41,6 +41,13 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
+use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
+use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
+use App\Http\Controllers\Church\PriestController;
+use App\Http\Controllers\Church\ConfessionController;
+use App\Http\Controllers\Church\HomeVisitController;
+use App\Http\Controllers\Church\PayrollController;
+use App\Http\Controllers\Church\MoneyInController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\FeedbackHubController;
 use App\Http\Controllers\FeedbackSurveyStudentController;
@@ -109,6 +116,71 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
     Route::post('/services/{service}/apply', [ServiceApplicationController::class, 'store'])->name('services.apply.store');
     Route::get('/services/{service}/application/status', [ServiceApplicationController::class, 'status'])->name('services.application.status');
+
+    // T5 — church management (capability-gated)
+    Route::middleware(['capability:church_management'])->prefix('church')->name('church.')->group(function () {
+        Route::middleware(['permission:priest.view,priest.manage'])->group(function () {
+            Route::get('/priests', [PriestController::class, 'index'])->name('priests.index');
+        });
+        Route::middleware(['permission:priest.manage'])->group(function () {
+            Route::get('/priests/create', [PriestController::class, 'create'])->name('priests.create');
+            Route::post('/priests', [PriestController::class, 'store'])->name('priests.store');
+            Route::get('/priests/{priest}/edit', [PriestController::class, 'edit'])->name('priests.edit');
+            Route::put('/priests/{priest}', [PriestController::class, 'update'])->name('priests.update');
+        });
+
+        Route::middleware(['permission:confession.view,confession.manage,confession.book'])->group(function () {
+            Route::get('/confession', [ConfessionController::class, 'index'])->name('confession.index');
+        });
+        Route::middleware(['permission:confession.manage'])->group(function () {
+            Route::get('/confession/slots/create', [ConfessionController::class, 'create'])->name('confession.create');
+            Route::post('/confession/slots', [ConfessionController::class, 'store'])->name('confession.store');
+            Route::get('/confession/slots/{slot}/edit', [ConfessionController::class, 'edit'])->name('confession.edit');
+            Route::put('/confession/slots/{slot}', [ConfessionController::class, 'update'])->name('confession.update');
+        });
+        Route::middleware(['permission:confession.book'])->group(function () {
+            Route::post('/confession/slots/{slot}/book', [ConfessionController::class, 'book'])->name('confession.book');
+            Route::post('/confession/bookings/{booking}/cancel', [ConfessionController::class, 'cancelBooking'])->name('confession.bookings.cancel');
+        });
+
+        Route::middleware(['permission:home_visit.view,home_visit.manage'])->group(function () {
+            Route::get('/home-visits', [HomeVisitController::class, 'index'])->name('home-visits.index');
+        });
+        Route::middleware(['permission:home_visit.manage'])->group(function () {
+            Route::get('/home-visits/create', [HomeVisitController::class, 'create'])->name('home-visits.create');
+            Route::post('/home-visits', [HomeVisitController::class, 'store'])->name('home-visits.store');
+            Route::get('/home-visits/{visit}/edit', [HomeVisitController::class, 'edit'])->name('home-visits.edit');
+            Route::put('/home-visits/{visit}', [HomeVisitController::class, 'update'])->name('home-visits.update');
+        });
+
+        // T6 — finance (first cut)
+        Route::prefix('finance')->name('finance.')->group(function () {
+            Route::middleware(['permission:finance.payroll.view,finance.payroll.manage'])->group(function () {
+                Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+                Route::get('/payroll/{run}', [PayrollController::class, 'show'])->name('payroll.show');
+            });
+            Route::middleware(['permission:finance.payroll.manage'])->group(function () {
+                Route::get('/payroll-create', [PayrollController::class, 'create'])->name('payroll.create');
+                Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+                Route::post('/payroll/{run}/lines', [PayrollController::class, 'storeLine'])->name('payroll.lines.store');
+                Route::delete('/payroll/{run}/lines/{line}', [PayrollController::class, 'destroyLine'])->name('payroll.lines.destroy');
+                Route::post('/payroll/{run}/finalize', [PayrollController::class, 'finalize'])->name('payroll.finalize');
+                Route::delete('/payroll/{run}', [PayrollController::class, 'destroy'])->name('payroll.destroy');
+            });
+
+            Route::middleware(['permission:finance.money_in.view,finance.money_in.manage'])->group(function () {
+                Route::get('/money-in', [MoneyInController::class, 'index'])->name('money-in.index');
+            });
+            Route::middleware(['permission:finance.money_in.manage'])->group(function () {
+                Route::get('/money-in/create', [MoneyInController::class, 'create'])->name('money-in.create');
+                Route::post('/money-in', [MoneyInController::class, 'store'])->name('money-in.store');
+                Route::get('/money-in/{entry}/edit', [MoneyInController::class, 'edit'])->name('money-in.edit');
+                Route::put('/money-in/{entry}', [MoneyInController::class, 'update'])->name('money-in.update');
+                Route::delete('/money-in/{entry}', [MoneyInController::class, 'destroy'])->name('money-in.destroy');
+            });
+        });
+    });
+
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
@@ -297,7 +369,7 @@ Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttenda
 Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post')->middleware(['auth', 'permission:attendance.edit']);
 
 // Exam routes
-Route::middleware(['auth', 'course.assessments'])->group(function () {
+Route::middleware(['auth', 'course.assessments', 'capability:exams'])->group(function () {
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
     Route::get('/exams/schedules/{schedule}/lobby', [ExamAttemptController::class, 'lobby'])->name('exams.attempt.lobby');
     Route::post('/exams/schedules/{schedule}/begin', [ExamAttemptController::class, 'begin'])->name('exams.attempt.begin');
@@ -310,7 +382,7 @@ Route::middleware(['auth', 'course.assessments'])->group(function () {
     Route::get('/exams/schedules/{schedule}/confirmation', [ExamAttemptController::class, 'confirmation'])->name('exams.attempt.confirmation');
 });
 
-Route::middleware(['auth', 'permission:staff'])->group(function () {
+Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(function () {
     Route::get('/exams/dashboard', [ExamController::class, 'dashboard'])->name('exams.dashboard');
     Route::get('/exams/admin-dashboard', [ExamController::class, 'adminDashboard'])->name('exams.admin-dashboard');
     Route::post('/exams', [ExamController::class, 'store'])->name('exams.store');
@@ -351,7 +423,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Events & conferences — register /events/admin before /events/{event} wildcard
-Route::middleware(['auth', 'permission:events.admin'])->prefix('events/admin')->name('events.admin.')->group(function () {
+Route::middleware(['auth', 'permission:events.admin', 'capability:events'])->prefix('events/admin')->name('events.admin.')->group(function () {
     Route::get('/', [EventAdminController::class, 'index'])->name('index');
     Route::get('/create', [EventAdminController::class, 'create'])->name('create');
     Route::post('/', [EventAdminController::class, 'store'])->name('store');
@@ -366,7 +438,7 @@ Route::middleware(['auth', 'permission:events.admin'])->prefix('events/admin')->
     Route::post('/{event}/check-in', [EventCheckInController::class, 'record'])->name('check-in.record');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'capability:events'])->group(function () {
     Route::get('/events', [EventController::class, 'index'])->name('events.index');
     Route::get('/events/my-reservations', [EventController::class, 'myReservations'])->name('events.my-reservations');
     Route::get('/events/{event}', [EventController::class, 'show'])->name('events.show')->whereNumber('event');
@@ -374,7 +446,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->name('events.cancel')->whereNumber('event');
 });
 
-Route::middleware(['auth', 'permission:events.admin'])->group(function () {
+Route::middleware(['auth', 'permission:events.admin', 'capability:events'])->group(function () {
     Route::get('/events/{event}/check-in/verify/{user}', [EventCheckInController::class, 'verify'])
         ->name('events.check-in.verify')
         ->whereNumber('event')
@@ -514,6 +586,22 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
+
+    // T4 — church tenant provisioning (also reachable on the console host).
+    Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
+    Route::get('/churches/create', [SuperAdminChurchController::class, 'create'])->name('churches.create');
+    Route::post('/churches', [SuperAdminChurchController::class, 'store'])->name('churches.store');
+    Route::get('/churches/{church}', [SuperAdminChurchController::class, 'show'])->name('churches.show');
+    Route::get('/churches/{church}/edit', [SuperAdminChurchController::class, 'edit'])->name('churches.edit');
+    Route::put('/churches/{church}', [SuperAdminChurchController::class, 'update'])->name('churches.update');
+    Route::post('/churches/{church}/suspend', [SuperAdminChurchController::class, 'suspend'])->name('churches.suspend');
+    Route::post('/churches/{church}/activate', [SuperAdminChurchController::class, 'activate'])->name('churches.activate');
+    Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
+    Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
+
+    Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
+    Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
+
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/impersonate',              [SuperAdminController::class, 'impersonate'])->name('impersonate');
     Route::post('/role-preview',            [SuperAdminController::class, 'previewRole'])->name('role-preview');
@@ -552,7 +640,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // Live interactive quiz (separate from async exams)
-Route::middleware('auth')->prefix('live-quiz')->name('live-quiz.')->group(function () {
+Route::middleware(['auth', 'capability:live_quiz'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
     Route::get('/join', [LiveQuizPlayController::class, 'joinForm'])->name('play.join');
     Route::post('/join', [LiveQuizPlayController::class, 'join'])->name('play.join.submit');
     Route::get('/sessions/{session}/lobby', [LiveQuizPlayController::class, 'lobby'])->name('play.lobby');
@@ -561,7 +649,7 @@ Route::middleware('auth')->prefix('live-quiz')->name('live-quiz.')->group(functi
     Route::get('/', [LiveQuizController::class, 'index'])->name('index');
 });
 
-Route::middleware(['auth', 'permission:staff'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
+Route::middleware(['auth', 'permission:staff', 'capability:live_quiz'])->prefix('live-quiz')->name('live-quiz.')->group(function () {
     Route::get('/create', [LiveQuizController::class, 'create'])->name('create');
     Route::post('/', [LiveQuizController::class, 'store'])->name('store');
     Route::get('/{liveQuiz}', [LiveQuizController::class, 'show'])->name('show');
@@ -579,7 +667,7 @@ Route::middleware(['auth', 'permission:staff'])->prefix('live-quiz')->name('live
 });
 
 // Module feedback surveys
-Route::middleware('auth')->prefix('feedback')->name('feedback.')->group(function () {
+Route::middleware(['auth', 'capability:feedback'])->prefix('feedback')->name('feedback.')->group(function () {
     Route::get('/', [FeedbackHubController::class, 'index'])->name('index');
 
     Route::middleware('permission:staff')->group(function () {

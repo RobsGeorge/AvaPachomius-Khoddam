@@ -2,10 +2,14 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Model;
 
 class GradeCategory extends Model
 {
+    use BelongsToChurch;
+
     protected $primaryKey = 'category_id';
 
     protected $fillable = ['course_id', 'type', 'name', 'weight_percentage', 'ordering'];

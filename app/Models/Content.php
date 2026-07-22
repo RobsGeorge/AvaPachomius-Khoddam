@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Tenancy\BelongsToChurch;
+
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Module;
 
 class Content extends Model
 {
+    use BelongsToChurch;
+
     use HasFactory;
 
     public $timestamps = false;
