@@ -34,7 +34,7 @@
     @stack('styles')
 </head>
 
-<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column{{ \App\Services\ImpersonationService::isActive() ? ' has-impersonation-banner' : '' }}{{ \App\Services\RolePreviewService::isActive() ? ' has-role-preview-banner' : '' }}"
+<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column"
       x-data="{ navOpen: false, navScrollY: 0 }"
       x-effect="if (navOpen && window.matchMedia('(max-width: 767.98px)').matches) {
           navScrollY = window.scrollY;
@@ -48,14 +48,15 @@
     <a class="skip-link visually-hidden-focusable" href="#app-main">{{ __('a11y.skip_to_content') }}</a>
     {{-- Polite live region: JS mirrors toast/flash messages here so screen readers announce them. --}}
     <div id="khoddam-live-region" class="visually-hidden" aria-live="polite" role="status"></div>
-    @include('layouts.impersonation-banner')
-    @include('layouts.role-preview-banner')
     <div class="app-shell d-flex flex-column flex-grow-1">
         @include('layouts.navigation')
 
         @include('layouts.partials.profile-photo-banner')
         @include('layouts.partials.application-review-banner')
         @include('layouts.partials.announcement-banners')
+
+        @include('layouts.impersonation-banner')
+        @include('layouts.role-preview-banner')
 
         <main id="app-main" tabindex="-1" class="app-main flex-grow-1">
             @include('layouts.partials.flash-toast')

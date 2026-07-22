@@ -1062,40 +1062,6 @@ i.fa,
     gap: 0.5rem;
 }
 
-/* Superadmin preview bars stay above modals (photo gate, onboarding, feedback). */
-.impersonation-banner--overlay,
-.role-preview-banner--overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 2000;
-}
-
-body.has-impersonation-banner,
-body.has-role-preview-banner {
-    --preview-banner-offset: 3.25rem;
-}
-
-body.has-impersonation-banner.has-role-preview-banner {
-    --preview-banner-offset: 6.5rem;
-}
-
-body.has-impersonation-banner .app-shell,
-body.has-role-preview-banner .app-shell {
-    padding-top: var(--preview-banner-offset, 0);
-}
-
-body.has-impersonation-banner .app-nav.sticky-top,
-body.has-role-preview-banner .app-nav.sticky-top {
-    top: var(--preview-banner-offset, 0);
-}
-
-body.has-impersonation-banner .app-main,
-body.has-role-preview-banner .app-main {
-    scroll-margin-top: var(--preview-banner-offset, 0);
-}
-
 /* Toast alerts (attendance AJAX, etc.) */
 .app-toast-alert {
     position: fixed;
