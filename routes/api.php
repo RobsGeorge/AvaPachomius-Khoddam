@@ -62,14 +62,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/notification-settings', [NotificationSettingsController::class, 'show']);
         Route::put('/notification-settings', [NotificationSettingsController::class, 'update']);
 
-        // Announcements (Wave A)
-        Route::get('/announcements', [AnnouncementController::class, 'index']);
-        Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->whereNumber('announcement');
-        Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])
-            ->whereNumber('announcement');
+        // Announcements (Wave A) — T2: gated on the church's announcements capability
+        Route::middleware('capability:announcements')->group(function () {
+            Route::get('/announcements', [AnnouncementController::class, 'index']);
+            Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->whereNumber('announcement');
+            Route::post('/announcements/{announcement}/dismiss-banner', [AnnouncementController::class, 'dismissBanner'])
+                ->whereNumber('announcement');
+        });
 
-        // Attendance (Wave A)
-        Route::get('/attendance/mine', [AttendanceController::class, 'mine']);
+        // Attendance (Wave A) — T2: gated on the church's attendance capability
+        Route::get('/attendance/mine', [AttendanceController::class, 'mine'])->middleware('capability:attendance');
 
         // Courses / academic reads (Wave B)
         Route::get('/courses', [CourseController::class, 'index']);
@@ -77,29 +79,36 @@ Route::prefix('v1')->group(function () {
         Route::post('/courses/current', [CourseController::class, 'setCurrent']);
         Route::delete('/courses/current', [CourseController::class, 'clearCurrent']);
         Route::get('/courses/{course}', [CourseController::class, 'show'])->whereNumber('course');
-        Route::get('/courses/{course}/curriculum', [CurriculumController::class, 'show'])->whereNumber('course');
-        Route::get('/courses/{course}/sessions', [SessionController::class, 'index'])->whereNumber('course');
-        Route::get('/courses/{course}/grades', [GradeController::class, 'show'])->whereNumber('course');
-        Route::get('/courses/{course}/final-grades', [GradeController::class, 'finalGrades'])->whereNumber('course');
-        Route::get('/courses/{course}/assignments', [AssignmentController::class, 'index'])->whereNumber('course');
-        Route::get('/courses/{course}/exams', [ExamController::class, 'index'])->whereNumber('course');
+        // Academic reads — T2: each gated on the matching per-church capability
+        Route::get('/courses/{course}/curriculum', [CurriculumController::class, 'show'])->whereNumber('course')->middleware('capability:curriculum');
+        Route::get('/courses/{course}/sessions', [SessionController::class, 'index'])->whereNumber('course')->middleware('capability:curriculum');
+        Route::get('/courses/{course}/grades', [GradeController::class, 'show'])->whereNumber('course')->middleware('capability:grades');
+        Route::get('/courses/{course}/final-grades', [GradeController::class, 'finalGrades'])->whereNumber('course')->middleware('capability:grades');
+        Route::get('/courses/{course}/assignments', [AssignmentController::class, 'index'])->whereNumber('course')->middleware('capability:assignments');
+        Route::get('/courses/{course}/exams', [ExamController::class, 'index'])->whereNumber('course')->middleware('capability:exams');
         Route::get('/courses/{course}/application', [CourseApplicationController::class, 'status'])->whereNumber('course');
 
-        // Assignments (Wave C)
-        Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->whereNumber('assignment');
-        Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->whereNumber('assignment');
-        Route::post('/submissions/{submission}', [AssignmentController::class, 'updateSubmission'])->whereNumber('submission');
+        // Assignments (Wave C) — T2: gated on the church's assignments capability
+        Route::middleware('capability:assignments')->group(function () {
+            Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->whereNumber('assignment');
+            Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->whereNumber('assignment');
+            Route::post('/submissions/{submission}', [AssignmentController::class, 'updateSubmission'])->whereNumber('submission');
+        });
 
-        // Certificates (Wave B)
-        Route::get('/certificates', [CertificateController::class, 'index']);
-        Route::get('/certificates/{uuid}', [CertificateController::class, 'download']);
+        // Certificates (Wave B) — T2: certificates live under the grades capability
+        Route::middleware('capability:grades')->group(function () {
+            Route::get('/certificates', [CertificateController::class, 'index']);
+            Route::get('/certificates/{uuid}', [CertificateController::class, 'download']);
+        });
 
-        // Events (Wave D)
-        Route::get('/events', [EventController::class, 'index']);
-        Route::get('/events/mine', [EventController::class, 'myReservations']);
-        Route::get('/events/{event}', [EventController::class, 'show'])->whereNumber('event');
-        Route::post('/events/{event}/reserve', [EventController::class, 'reserve'])->whereNumber('event');
-        Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->whereNumber('event');
+        // Events (Wave D) — T2: gated on the church's events capability
+        Route::middleware('capability:events')->group(function () {
+            Route::get('/events', [EventController::class, 'index']);
+            Route::get('/events/mine', [EventController::class, 'myReservations']);
+            Route::get('/events/{event}', [EventController::class, 'show'])->whereNumber('event');
+            Route::post('/events/{event}/reserve', [EventController::class, 'reserve'])->whereNumber('event');
+            Route::post('/events/{event}/cancel', [EventController::class, 'cancel'])->whereNumber('event');
+        });
 
         // Applications / services (Wave D)
         Route::get('/available-courses', [CourseApplicationController::class, 'available']);
@@ -108,10 +117,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/services/{service}/apply', [ServiceController::class, 'apply'])->whereNumber('service');
         Route::get('/services/{service}/application', [ServiceController::class, 'applicationStatus'])->whereNumber('service');
 
-        // Feedback (Wave C)
-        Route::get('/feedback/surveys', [FeedbackController::class, 'index']);
-        Route::get('/feedback/surveys/{survey}', [FeedbackController::class, 'show'])->whereNumber('survey');
-        Route::post('/feedback/surveys/{survey}/submit', [FeedbackController::class, 'submit'])->whereNumber('survey');
+        // Feedback (Wave C) — T2: gated on the church's feedback capability
+        Route::middleware('capability:feedback')->group(function () {
+            Route::get('/feedback/surveys', [FeedbackController::class, 'index']);
+            Route::get('/feedback/surveys/{survey}', [FeedbackController::class, 'show'])->whereNumber('survey');
+            Route::post('/feedback/surveys/{survey}/submit', [FeedbackController::class, 'submit'])->whereNumber('survey');
+        });
 
         // Birthdays (Wave D)
         Route::get('/birthdays', [BirthdayController::class, 'index']);
