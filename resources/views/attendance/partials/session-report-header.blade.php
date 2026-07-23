@@ -42,8 +42,7 @@
                 @if($canCloseSession)
                     <form method="POST"
                           action="{{ route('sessions.close-attendance', $session->session_id) }}"
-                          data-confirm="{{ __('pages.confirm_close_attendance') }}"
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          data-confirm="{{ __('pages.confirm_close_attendance') }}">
                         @csrf
                         <button type="submit" class="btn btn-sm btn-success">
                             <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}

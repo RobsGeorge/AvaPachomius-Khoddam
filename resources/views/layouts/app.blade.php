@@ -80,7 +80,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
     {{-- Pin Alpine exactly: floating @3.x.x is a supply-chain risk (auto-pulls any new 3.x). --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260714b"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260724a"></script>
     @stack('scripts')
 </body>
 </html>

@@ -75,7 +75,7 @@
                         <div class="border rounded p-3 mb-3">
                             <div class="d-flex justify-content-between">
                                 <strong>#{{ $question->order_index }} · {{ strtoupper($question->question_type) }}</strong>
-                                <form method="POST" action="{{ route('live-quiz.questions.destroy', [$liveQuiz, $question]) }}" onsubmit="return confirm('{{ __('pages.confirm_delete') }}')">@csrf @method('DELETE')
+                                <form method="POST" action="{{ route('live-quiz.questions.destroy', [$liveQuiz, $question]) }}" data-confirm="{{ __('pages.confirm_delete') }}">@csrf @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger">{{ __('pages.delete') }}</button>
                                 </form>
                             </div>

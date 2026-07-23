@@ -33,8 +33,8 @@
                 </div>
             </div>
         @endif
-        <form method="POST" action="{{ route('events.cancel', $event->event_id) }}">@csrf
-            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm(@json(__('events.confirm_cancel')))">{{ __('events.cancel_reservation') }}</button>
+        <form method="POST" action="{{ route('events.cancel', $event->event_id) }}" data-confirm="{{ __('events.confirm_cancel') }}">@csrf
+            <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('events.cancel_reservation') }}</button>
         </form>
     @else
         <form method="POST" action="{{ route('events.reserve', $event->event_id) }}">@csrf

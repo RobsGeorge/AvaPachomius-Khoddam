@@ -27,8 +27,7 @@
                                 <td>
                                     <form method="POST"
                                           action="{{ route('superadmin.event-admins.destroy', $ea->user_id) }}"
-                                          data-confirm="{{ __('pages.confirm_delete') }}"
-                                          onsubmit="return confirm(this.dataset.confirm)">
+                                          data-confirm="{{ __('pages.confirm_delete') }}">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-xs btn-outline-danger py-0 px-1">
                                             <i class="bi bi-trash"></i>

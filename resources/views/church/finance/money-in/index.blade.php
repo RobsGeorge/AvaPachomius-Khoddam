@@ -31,7 +31,7 @@
                             <td>{{ Money::fromMinor((int) $entry->amount_minor) }} {{ $entry->currency }}</td>
                             <td class="text-end">
                                 <a href="{{ route('church.finance.money-in.edit', $entry) }}" class="btn btn-sm btn-outline-primary">{{ __('finance.edit_money_in') }}</a>
-                                <form method="POST" action="{{ route('church.finance.money-in.destroy', $entry) }}" class="d-inline" onsubmit="return confirm(@json(__('finance.confirm_delete')))">
+                                <form method="POST" action="{{ route('church.finance.money-in.destroy', $entry) }}" class="d-inline" data-confirm="{{ __('finance.confirm_delete') }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('finance.delete') }}</button>

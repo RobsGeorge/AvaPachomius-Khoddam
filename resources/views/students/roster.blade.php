@@ -11,7 +11,7 @@
         </div>
         @if($course)
             <form method="POST" action="{{ route('students.roster.announce', $course) }}"
-                  onsubmit="return confirm(@json(__('students.confirm_announce')))">
+                  data-confirm="{{ __('students.confirm_announce') }}">
                 @csrf
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-envelope-heart"></i> {{ __('students.send_announcement') }}
