@@ -183,4 +183,47 @@ class NotificationDeliveryTest extends EventModuleTestCase
             ->assertSee('notification-read-toggle', false)
             ->assertSee(__('notifications.mark_read'), false);
     }
+
+    public function test_unread_badge_caps_at_nine_plus_without_full_count(): void
+    {
+        $user = $this->createUser([
+            'email' => 'badge-cap@example.com',
+            'application_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $feed = app(\App\Services\NotificationFeedService::class);
+
+        for ($i = 1; $i <= 8; $i++) {
+            UserNotification::create([
+                'user_id' => $user->user_id,
+                'type' => 'exam_upcoming',
+                'title' => "Unread {$i}",
+                'body' => 'Body',
+                'dedupe_key' => "notif:badge-cap:{$i}",
+            ]);
+        }
+
+        $this->assertSame(8, $feed->unreadBadgeCount($user));
+        $this->assertSame('8', $feed->unreadBadgeLabel($user));
+
+        for ($i = 9; $i <= 12; $i++) {
+            UserNotification::create([
+                'user_id' => $user->user_id,
+                'type' => 'exam_upcoming',
+                'title' => "Unread {$i}",
+                'body' => 'Body',
+                'dedupe_key' => "notif:badge-cap:{$i}",
+            ]);
+        }
+
+        $this->assertSame(9, $feed->unreadBadgeCount($user));
+        $this->assertSame('9+', $feed->unreadBadgeLabel($user));
+        $this->assertSame(12, $feed->unreadCount($user));
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('9+', false);
+    }
 }

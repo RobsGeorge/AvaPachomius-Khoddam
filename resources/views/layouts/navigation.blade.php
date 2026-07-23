@@ -366,8 +366,8 @@
                 @auth
                     <a href="{{ route('notifications.index') }}" class="app-toolbar-btn position-relative text-decoration-none" aria-label="{{ __('notifications.hub_title') }}">
                         <i class="bi bi-bell"></i>
-                        @if(!empty($unreadNotificationCount) && $unreadNotificationCount > 0)
-                            <span class="nav-notification-badge">{{ $unreadNotificationCount }}</span>
+                        @if(!empty($unreadNotificationBadge))
+                            <span class="nav-notification-badge">{{ $unreadNotificationBadge }}</span>
                         @endif
                     </a>
 
@@ -486,8 +486,8 @@
                     <a href="{{ route('notifications.index') }}" class="app-nav-link d-flex align-items-center gap-2 {{ request()->routeIs('notifications.*') ? 'active' : '' }}" @click="navOpen = false">
                         <i class="bi bi-bell"></i>
                         {{ __('notifications.hub_title') }}
-                        @if(!empty($unreadNotificationCount) && $unreadNotificationCount > 0)
-                            <span class="badge bg-danger">{{ $unreadNotificationCount }}</span>
+                        @if(!empty($unreadNotificationBadge))
+                            <span class="badge bg-danger">{{ $unreadNotificationBadge }}</span>
                         @endif
                     </a>
 
