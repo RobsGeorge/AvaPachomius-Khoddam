@@ -2,6 +2,7 @@
 
 return [
     'not_a_church_member' => 'You are not a member of this church. Switch to a church you belong to, or ask an admin for access.',
+    'token_wrong_church' => 'This sign-in is for a different church. Please sign in again for this church.',
     'login_title'       => 'Log in',
     'email'             => 'Email address',
     'password'          => 'Password',

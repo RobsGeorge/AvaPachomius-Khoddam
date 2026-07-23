@@ -47,7 +47,12 @@ class AuthController extends Controller
         }
 
         $deviceName = $credentials['device_name'] ?? 'mobile';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        // Scope the token to the church resolved from the login host, so it can't be
+        // replayed against another church (enforced by the token.church middleware).
+        // No church bound (tenancy disabled) → an unrestricted token, unchanged behavior.
+        $church = \App\Tenancy\TenantContext::current();
+        $abilities = $church ? ["church:{$church->church_id}"] : ['*'];
+        $token = $user->createToken($deviceName, $abilities)->plainTextToken;
 
         return response()->json([
             'token' => $token,
