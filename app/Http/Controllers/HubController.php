@@ -11,9 +11,9 @@ class HubController extends Controller
     {
         $user = auth()->user();
         $links = NavigationHub::academicLinks($user);
-        $unreadNotificationCount = $user ? $notificationFeed->unreadCount($user) : 0;
+        $unreadNotificationBadge = $user ? $notificationFeed->unreadBadgeLabel($user) : '';
 
-        return view('hubs.academic', compact('links', 'unreadNotificationCount'));
+        return view('hubs.academic', compact('links', 'unreadNotificationBadge'));
     }
 
     public function service()

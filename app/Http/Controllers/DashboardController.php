@@ -35,9 +35,9 @@ class DashboardController extends Controller
             }
         }
 
-        $unreadNotificationCount = $user instanceof User
-            ? $notificationFeed->unreadCount($user)
-            : 0;
+        $unreadNotificationBadge = $user instanceof User
+            ? $notificationFeed->unreadBadgeLabel($user)
+            : '';
 
         $completedCourses = $user instanceof User && $user->isStudent()
             ? $this->announcedCoursesForStudent($user, $currentCourse)
@@ -52,7 +52,7 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'todayBirthdays',
             'homepageAnnouncements',
-            'unreadNotificationCount',
+            'unreadNotificationBadge',
             'completedCourses',
             'showNoCoursesCta',
             'focusCards',

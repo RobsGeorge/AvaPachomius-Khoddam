@@ -109,10 +109,10 @@ class AppLayoutComposer
     private function composeNotifications(View $view, $user): void
     {
         try {
-            $view->with('unreadNotificationCount', $this->notifications->unreadCount($user));
+            $view->with('unreadNotificationBadge', $this->notifications->unreadBadgeLabel($user));
         } catch (\Throwable $e) {
             report($e);
-            $view->with('unreadNotificationCount', 0);
+            $view->with('unreadNotificationBadge', '');
         }
     }
 

@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Schema;
 
 class NotificationFeedService
 {
+    /** Max unread rows scanned for the red badge; display becomes "9+". */
+    public const UNREAD_BADGE_CAP = 9;
+
     public function __construct(
         private CommunicationLogService $communicationLogs,
     ) {}
@@ -20,11 +23,45 @@ class NotificationFeedService
             return 0;
         }
 
+        return $this->unreadQuery($user)->count();
+    }
+
+    /**
+     * Unread total for the nav/hub red badge only: scans at most UNREAD_BADGE_CAP rows.
+     * Returns 0–9; 9 means "9 or more" (callers should render that as "9+").
+     */
+    public function unreadBadgeCount(User $user): int
+    {
+        if (! Schema::hasTable('user_notifications')) {
+            return 0;
+        }
+
+        // limit()+count() would ignore the limit — fetch at most CAP ids instead.
+        return $this->unreadQuery($user)
+            ->limit(self::UNREAD_BADGE_CAP)
+            ->get(['id'])
+            ->count();
+    }
+
+    public function unreadBadgeLabel(User $user): string
+    {
+        $count = $this->unreadBadgeCount($user);
+
+        if ($count === 0) {
+            return '';
+        }
+
+        return $count >= self::UNREAD_BADGE_CAP
+            ? self::UNREAD_BADGE_CAP.'+'
+            : (string) $count;
+    }
+
+    private function unreadQuery(User $user): \Illuminate\Database\Eloquent\Builder
+    {
         return UserNotification::query()
             ->where('user_id', $user->user_id)
             ->whereNull('read_at')
-            ->whereNull('dismissed_at')
-            ->count();
+            ->whereNull('dismissed_at');
     }
 
     public function inbox(User $user, ?string $filter = null, int $perPage = 25): LengthAwarePaginator
