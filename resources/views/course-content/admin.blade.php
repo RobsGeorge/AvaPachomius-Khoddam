@@ -260,45 +260,48 @@
                             </select>
                             <div class="form-text">{{ __('pages.sessions_multiselect_hint') }}</div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label small mb-0">{{ __('pages.module_state') }}</label>
-                            <div class="d-flex flex-column gap-2">
-                                @if($pivot->feedback_open ?? false)
-                                    <span class="badge bg-success">
-                                        <i class="bi bi-chat-square-text"></i> {{ __('pages.feedback_open') }}
-                                    </span>
-                                @elseif($status === 'ended')
+                    </div>
+                </form>
+                <div class="row g-2 mt-2">
+                    <div class="col-md-8 d-none d-md-block" aria-hidden="true"></div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-0">{{ __('pages.module_state') }}</label>
+                        <div class="d-flex flex-column gap-2">
+                            @if($pivot->feedback_open ?? false)
+                                <span class="badge bg-success">
+                                    <i class="bi bi-chat-square-text"></i> {{ __('pages.feedback_open') }}
+                                </span>
+                                <small class="text-muted">
+                                    {{ __('pages.module_ended_on', ['date' => $pivot->ended_at ? \Illuminate\Support\Carbon::parse($pivot->ended_at)->format('Y-m-d H:i') : '—']) }}
+                                </small>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <a href="{{ route('feedback.surveys.create', ['course_id' => $course->course_id, 'module_id' => $module->module_id]) }}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-plus-lg"></i> {{ __('pages.feedback_create_survey') }}
+                                    </a>
+                                    <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
+                                    </a>
+                                </div>
+                            @else
+                                @if($status === 'ended')
                                     <span class="badge bg-secondary">{{ __('pages.module_status_ended') }}</span>
                                 @else
                                     <span class="badge bg-info text-dark">{{ __('pages.module_status_' . $status) }}</span>
                                 @endif
-                                @if(!($pivot->feedback_open ?? false))
-                                    <button type="submit"
-                                            formaction="{{ route('curriculum.end-module', [$course->course_id, $module->module_id]) }}"
-                                            formmethod="POST"
-                                            class="btn btn-sm btn-warning"
-                                            data-confirm="{{ __('pages.confirm_end_module') }}"
-                                            onclick="return confirm(this.dataset.confirm)">
+                                {{-- Own POST form: must not sit inside the PUT schedule form (_method spoof would 405). --}}
+                                <form method="POST"
+                                      action="{{ route('curriculum.end-module', [$course->course_id, $module->module_id]) }}"
+                                      onsubmit="return confirm(@json(__('pages.confirm_end_module')))">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm btn-warning">
                                         <i class="bi bi-megaphone"></i> {{ __('pages.end_module_open_feedback') }}
                                     </button>
-                                @else
-                                    <small class="text-muted">
-                                        {{ __('pages.module_ended_on', ['date' => $pivot->ended_at ? \Illuminate\Support\Carbon::parse($pivot->ended_at)->format('Y-m-d H:i') : '—']) }}
-                                    </small>
-                                    <div class="d-flex flex-wrap gap-2 mt-2">
-                                        <a href="{{ route('feedback.surveys.create', ['course_id' => $course->course_id, 'module_id' => $module->module_id]) }}"
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-plus-lg"></i> {{ __('pages.feedback_create_survey') }}
-                                        </a>
-                                        <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
-                                        </a>
-                                    </div>
-                                @endif
-                            </div>
+                                </form>
+                            @endif
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
 
             {{-- Module exams --}}
