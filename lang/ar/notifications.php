@@ -48,6 +48,7 @@ return [
         'admin_announcement' => 'إعلانات الإدارة',
         'birthday_today' => 'أعياد الميلاد اليوم',
         'assignment_deadline' => 'مواعيد تسليم الواجبات',
+        'assignment_submission_reminder' => 'تذكيرات تسليم الواجبات',
         'exam_upcoming' => 'امتحانات قادمة',
         'session_upcoming' => 'جلسات قادمة',
         'grade_posted' => 'درجات جديدة',
@@ -68,6 +69,8 @@ return [
     'generated' => [
         'assignment_deadline_title' => 'موعد تسليم قريب: :title',
         'assignment_deadline_body' => 'التسليم :date',
+        'assignment_submission_reminder_title' => 'تذكير: تسليم :title',
+        'assignment_submission_reminder_body' => 'لم تُسلّم بعد. الموعد :date',
         'exam_upcoming_title' => 'امتحان قادم: :title',
         'exam_upcoming_body' => 'موعد الامتحان :date',
         'session_upcoming_title' => 'جلسة قادمة: :title',

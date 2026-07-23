@@ -8,7 +8,12 @@
         <div class="col-md-8">
             <div class="app-card card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h2 class="page-title mb-0">{{ $assignment->assignment_name }}</h2>
+                    <div>
+                        <h2 class="page-title mb-0">{{ $assignment->assignment_name }}</h2>
+                        <span class="badge {{ $assignment->isOffline() ? 'bg-secondary' : 'bg-primary' }} mt-1">
+                            {{ $assignment->isOffline() ? __('pages.mode_offline_short') : __('pages.mode_online_short') }}
+                        </span>
+                    </div>
                     @if(Auth::user()->isInstructorOrAdmin())
                     <div>
                         <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning">{{ __('pages.edit') }}</a>
@@ -58,7 +63,7 @@
                             @if($studentStatus === 'graded')
                                 <span class="badge bg-success fs-6">{{ __('pages.status_graded') }} ({{ $currentSubmission->points_earned }}/{{ $assignment->total_points }})</span>
                             @elseif($studentStatus === 'submitted')
-                                <span class="badge bg-primary fs-6">{{ __('pages.status_submitted') }}</span>
+                                <span class="badge bg-primary fs-6">{{ $assignment->isOffline() ? __('pages.offline_received_label') : __('pages.status_submitted') }}</span>
                             @elseif($studentStatus === 'not_submitted')
                                 <span class="badge bg-secondary fs-6">{{ __('pages.status_not_submitted') }}</span>
                             @else
@@ -66,13 +71,23 @@
                             @endif
                         </div>
 
-                        <div class="alert alert-info mb-4">
-                            <h5 class="alert-heading mb-2">
-                                <i class="fas fa-info-circle me-1"></i>
-                                {{ __('pages.upload_requirements_title') }}
-                            </h5>
-                            <p class="mb-0">{{ __('pages.upload_requirements_body', ['max' => \App\Models\Assignment::MAX_UPLOAD_MB]) }}</p>
-                        </div>
+                        @if($assignment->isOffline())
+                            <div class="alert alert-info mb-4">
+                                <h5 class="alert-heading mb-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    {{ __('pages.mode_offline_short') }}
+                                </h5>
+                                <p class="mb-0">{{ __('pages.assignment_offline_student_hint') }}</p>
+                            </div>
+                        @else
+                            <div class="alert alert-info mb-4">
+                                <h5 class="alert-heading mb-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    {{ __('pages.upload_requirements_title') }}
+                                </h5>
+                                <p class="mb-0">{{ __('pages.upload_requirements_body', ['max' => \App\Models\Assignment::MAX_UPLOAD_MB]) }}</p>
+                            </div>
+                        @endif
 
                         @if($canSubmit)
                     <div class="mb-4" id="submit">
@@ -100,10 +115,10 @@
                             <button type="submit" class="btn btn-primary">{{ __('pages.submit_assignment') }}</button>
                         </form>
                     </div>
-                        @elseif(!$currentSubmission && !$submissionOpen)
+                        @elseif($assignment->isOnline() && !$currentSubmission && !$submissionOpen)
                             <div class="alert alert-warning mb-4">
                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                {{ __('pages.deadline_passed', ['date' => $assignment->due_date->addHours(3)->format('Y-m-d H:i')]) }}
+                                {{ __('pages.deadline_passed', ['date' => $assignment->due_date->copy()->addHours(3)->format('Y-m-d H:i')]) }}
                             </div>
                         @endif
 
@@ -114,13 +129,19 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 class="card-title mb-0">{{ $currentSubmission->user->displayName() }}</h5>
-                                        <span class="badge bg-info">{{ $currentSubmission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
+                                        <span class="badge bg-info">{{ $currentSubmission->submitted_at->copy()->addHours(3)->format('Y-m-d H:i') }}</span>
                                     </div>
                                     
+                                    @if($currentSubmission->submission_content)
                                     <div class="mb-3">
                                         <h6 class="fw-bold">{{ __('pages.content_label') }}:</h6>
                                             <p class="card-text">{{ $currentSubmission->submission_content }}</p>
                                     </div>
+                                    @elseif($assignment->isOffline())
+                                    <div class="mb-3">
+                                        <p class="card-text text-muted-theme mb-0">{{ __('pages.offline_received_label') }}</p>
+                                    </div>
+                                    @endif
 
                                         @if($currentSubmission->file_path)
                                         <div class="mb-3">
@@ -160,7 +181,7 @@
                                             </div>
                                         @endif
 
-                                        @if($submissionOpen)
+                                        @if($assignment->isOnline() && $submissionOpen)
                                             <div class="mt-3">
                                                 <h6 class="fw-bold">{{ __('pages.update_submission') }}</h6>
                                                 <form action="{{ route('assignments.update-submission', $currentSubmission) }}" method="POST" enctype="multipart/form-data">
@@ -196,10 +217,10 @@
                                                     </button>
                                                 </form>
                                             </div>
-                                        @else
+                                        @elseif($assignment->isOnline() && !$submissionOpen)
                                             <div class="alert alert-warning mt-3">
                                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                                {{ __('pages.deadline_passed', ['date' => $assignment->due_date->addHours(3)->format('Y-m-d H:i')]) }}
+                                                {{ __('pages.deadline_passed', ['date' => $assignment->due_date->copy()->addHours(3)->format('Y-m-d H:i')]) }}
                                         </div>
                                         @endif
                                     </div>
@@ -220,6 +241,30 @@
                             <h4 class="mb-0">{{ __('pages.submissions') }} ({{ $submissions->count() }})</h4>
                             <a href="{{ route('assignments.status', $assignment) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_status_report') }}</a>
                         </div>
+
+                        @if($assignment->isOffline() && $pendingStudents->isNotEmpty())
+                            <div class="mb-4">
+                                <h5>{{ __('pages.pending_offline_receipts') }}</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <tbody>
+                                            @foreach($pendingStudents as $pendingStudent)
+                                                <tr>
+                                                    <td>{{ $pendingStudent->displayName() }}</td>
+                                                    <td class="text-end">
+                                                        <form action="{{ route('assignments.mark-received', [$assignment, $pendingStudent]) }}" method="POST" class="d-inline">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-success btn-sm">{{ __('pages.mark_received') }}</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        @endif
+
                         @forelse($submissions as $submission)
                             <div class="card mb-3">
                                 <div class="card-body">
@@ -231,14 +276,20 @@
                                             @else
                                                 <span class="badge bg-warning text-dark">{{ __('pages.not_graded') }}</span>
                                             @endif
-                                            <span class="badge bg-info">{{ $submission->submitted_at->addHours(3)->format('Y-m-d H:i') }}</span>
+                                            <span class="badge bg-info">{{ $submission->submitted_at->copy()->addHours(3)->format('Y-m-d H:i') }}</span>
                                         </div>
                                     </div>
                                     
+                                    @if($submission->submission_content)
                                     <div class="mb-3">
                                         <h6 class="fw-bold">{{ __('pages.content_label') }}:</h6>
                                         <p class="card-text">{{ $submission->submission_content }}</p>
                                     </div>
+                                    @elseif($assignment->isOffline())
+                                    <div class="mb-3">
+                                        <p class="card-text text-muted-theme mb-0">{{ __('pages.offline_received_label') }}</p>
+                                    </div>
+                                    @endif
 
                                     @if($submission->file_path)
                                         <div class="mb-3">
@@ -266,10 +317,10 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <div class="form-group mb-3">
-                                                    <label for="points_earned" class="form-label">{{ __('pages.grade') }}</label>
+                                                    <label for="points_earned_{{ $submission->submission_id }}" class="form-label">{{ __('pages.grade') }}</label>
                                                     <input type="number" 
                                                            class="form-control @error('points_earned') is-invalid @enderror" 
-                                                           id="points_earned" 
+                                                           id="points_earned_{{ $submission->submission_id }}" 
                                                            name="points_earned" 
                                                            value="{{ old('points_earned', $submission->points_earned) }}" 
                                                            min="0" 
@@ -281,9 +332,9 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="form-group mb-3">
-                                                    <label for="feedback" class="form-label">{{ __('pages.feedback_title') }}</label>
+                                                    <label for="feedback_{{ $submission->submission_id }}" class="form-label">{{ __('pages.feedback_title') }}</label>
                                                     <textarea class="form-control @error('feedback') is-invalid @enderror" 
-                                                              id="feedback" 
+                                                              id="feedback_{{ $submission->submission_id }}" 
                                                               name="feedback" 
                                                               rows="3">{{ old('feedback', $submission->feedback) }}</textarea>
                                                     @error('feedback')

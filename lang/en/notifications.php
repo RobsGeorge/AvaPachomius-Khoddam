@@ -48,6 +48,7 @@ return [
         'admin_announcement' => 'Admin announcements',
         'birthday_today' => "Today's birthdays",
         'assignment_deadline' => 'Assignment deadlines',
+        'assignment_submission_reminder' => 'Assignment submission reminders',
         'exam_upcoming' => 'Upcoming exams',
         'session_upcoming' => 'Upcoming sessions',
         'grade_posted' => 'New grades posted',
@@ -68,6 +69,8 @@ return [
     'generated' => [
         'assignment_deadline_title' => 'Assignment due soon: :title',
         'assignment_deadline_body' => 'Due :date',
+        'assignment_submission_reminder_title' => 'Reminder: submit :title',
+        'assignment_submission_reminder_body' => 'You have not submitted yet. Due :date',
         'exam_upcoming_title' => 'Upcoming exam: :title',
         'exam_upcoming_body' => 'Scheduled for :date',
         'session_upcoming_title' => 'Upcoming session: :title',

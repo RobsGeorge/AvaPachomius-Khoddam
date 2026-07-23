@@ -413,6 +413,8 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/assignments/create', [AssignmentController::class, 'create'])->name('assignments.create');
     Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
     Route::get('/assignments/{assignment}/status', [AssignmentController::class, 'submissionStatusReport'])->name('assignments.status');
+    Route::post('/assignments/{assignment}/remind-unsubmitted', [AssignmentController::class, 'remindUnsubmitted'])->name('assignments.remind-unsubmitted');
+    Route::post('/assignments/{assignment}/students/{user}/mark-received', [AssignmentController::class, 'markReceived'])->name('assignments.mark-received');
     Route::get('/assignments/{assignment}/edit', [AssignmentController::class, 'edit'])->name('assignments.edit');
     Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->name('assignments.update');
     Route::delete('/assignments/{assignment}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');

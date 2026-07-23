@@ -5,7 +5,12 @@
                 $submission = $studentSubmissions->get($assignment->assignment_id);
             @endphp
             <article class="data-card">
-                <div class="data-card-title">{{ $assignment->assignment_name }}</div>
+                <div class="data-card-title">
+                    {{ $assignment->assignment_name }}
+                    <span class="badge {{ $assignment->isOffline() ? 'bg-secondary' : 'bg-primary' }} ms-1">
+                        {{ $assignment->isOffline() ? __('pages.mode_offline_short') : __('pages.mode_online_short') }}
+                    </span>
+                </div>
                 <dl class="data-meta-list mb-0">
                     <div class="data-meta-row">
                         <dt>{{ __('pages.description') }}</dt>
@@ -25,7 +30,7 @@
                             @if($submission && $submission->points_earned !== null)
                                 <span class="badge bg-success">{{ __('pages.status_graded') }} ({{ $submission->points_earned }}/{{ $assignment->total_points }})</span>
                             @elseif($submission)
-                                <span class="badge bg-primary">{{ __('pages.status_submitted') }}</span>
+                                <span class="badge bg-primary">{{ $assignment->isOffline() ? __('pages.offline_received_label') : __('pages.status_submitted') }}</span>
                             @elseif(!$assignment->isSubmissionOpen())
                                 <span class="badge bg-danger">{{ __('pages.status_overdue') }}</span>
                             @else
@@ -36,9 +41,9 @@
                 </dl>
                 <div class="data-card-actions">
                     <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
-                    @if(!$submission && $assignment->isSubmissionOpen())
+                    @if($assignment->isOnline() && !$submission && $assignment->isSubmissionOpen())
                         <a href="{{ route('assignments.show', $assignment) }}#submit" class="btn btn-primary btn-sm">{{ __('pages.submit_assignment') }}</a>
-                    @elseif($submission && $assignment->isSubmissionOpen())
+                    @elseif($assignment->isOnline() && $submission && $assignment->isSubmissionOpen())
                         <a href="{{ route('assignments.show', $assignment) }}#my-submission" class="btn btn-warning btn-sm">{{ __('pages.update_submission') }}</a>
                     @endif
                 </div>
@@ -53,6 +58,7 @@
             <thead>
                 <tr>
                     <th>{{ __('pages.assignment_name') }}</th>
+                    <th>{{ __('pages.delivery_mode') }}</th>
                     <th>{{ __('pages.description') }}</th>
                     <th>{{ __('pages.total_points') }}</th>
                     <th>{{ __('pages.due_date') }}</th>
@@ -69,6 +75,11 @@
                     @endphp
                     <tr>
                         <td>{{ $assignment->assignment_name }}</td>
+                        <td>
+                            <span class="badge {{ $assignment->isOffline() ? 'bg-secondary' : 'bg-primary' }}">
+                                {{ $assignment->isOffline() ? __('pages.mode_offline_short') : __('pages.mode_online_short') }}
+                            </span>
+                        </td>
                         <td>{{ Str::limit($assignment->assignment_description, 500) }}</td>
                         <td>{{ $assignment->total_points }}</td>
                         <td>{{ $assignment->due_date->format('Y-m-d H:i') }}</td>
@@ -94,7 +105,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted-theme">{{ __('pages.no_assignments') }}</td>
+                        <td colspan="7" class="text-center text-muted-theme">{{ __('pages.no_assignments') }}</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -105,7 +116,12 @@
         @forelse($assignments as $assignment)
             @php $submission = $studentSubmissions->get($assignment->assignment_id); @endphp
             <article class="data-card">
-                <div class="data-card-title">{{ $assignment->assignment_name }}</div>
+                <div class="data-card-title">
+                    {{ $assignment->assignment_name }}
+                    <span class="badge {{ $assignment->isOffline() ? 'bg-secondary' : 'bg-primary' }} ms-1">
+                        {{ $assignment->isOffline() ? __('pages.mode_offline_short') : __('pages.mode_online_short') }}
+                    </span>
+                </div>
                 <dl class="data-meta-list mb-3">
                     <div class="data-meta-row">
                         <dt>{{ __('pages.description') }}</dt>
