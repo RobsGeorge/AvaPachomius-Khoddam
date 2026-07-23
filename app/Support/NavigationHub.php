@@ -10,6 +10,7 @@ use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
 use App\Services\ServiceContextService;
+use App\Services\Structure\StructureAnchorResolver;
 use App\Services\StudentRosterService;
 
 class NavigationHub
@@ -24,18 +25,18 @@ class NavigationHub
         $links = [];
 
         if (self::canAnyCourse($user, $resolver, ['curriculum.view', 'curriculum.manage'])) {
-            $links[] = self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view', 'curriculum');
+            $links[] = self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view', 'curriculum', StructureAnchorResolver::ANCHOR_ENROLLMENT);
         }
 
         if (self::canAnyCourse($user, $resolver, ['curriculum.manage'])) {
-            $links[] = self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage', 'curriculum');
-            $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage', 'curriculum');
+            $links[] = self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage', 'curriculum', StructureAnchorResolver::ANCHOR_ATTENDANCE);
+            $links[] = self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage', 'curriculum', StructureAnchorResolver::ANCHOR_ENROLLMENT);
         }
 
         if (self::canAnyCourse($user, $resolver, ['assignment.view', 'assignment.manage'])) {
             $links[] = self::link('assignments.index', 'dashboard.assignments', 'bi-journal-text', [
                 'assignments.*',
-            ], 'assignment.view', 'assignments');
+            ], 'assignment.view', 'assignments', StructureAnchorResolver::ANCHOR_ASSIGNMENT_LEVELS);
         }
 
         if (self::canAnyCourse($user, $resolver, ['exam.author', 'exam.grade'])) {
@@ -53,12 +54,12 @@ class NavigationHub
         if (self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
             $links[] = self::link('attendance.all', 'nav.attendance', 'bi-calendar-check', [
                 'attendance.all', 'attendance.user', 'attendance.by-date', 'attendance.user-report',
-            ], 'attendance.view_all', 'attendance');
-            $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report', 'attendance');
+            ], 'attendance.view_all', 'attendance', StructureAnchorResolver::ANCHOR_ATTENDANCE);
+            $links[] = self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report', 'attendance', StructureAnchorResolver::ANCHOR_ATTENDANCE);
         }
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
-            $links[] = self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce'], 'roster.view');
+            $links[] = self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce'], 'roster.view', null, StructureAnchorResolver::ANCHOR_ENROLLMENT);
         }
 
         if (self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
@@ -96,7 +97,7 @@ class NavigationHub
         }
 
         if (self::canAnyCourse($user, $resolver, ['attendance.view_own']) && ! self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
-            $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own', 'attendance');
+            $links[] = self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own', 'attendance', StructureAnchorResolver::ANCHOR_ATTENDANCE);
         }
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
@@ -128,7 +129,7 @@ class NavigationHub
             ], 'events.view', 'events');
         }
 
-        return self::filterByCapability($links);
+        return self::filterByStructureAnchors(self::filterByCapability($links), $user);
     }
 
     public static function serviceLinks(?User $user): array
@@ -562,7 +563,7 @@ class NavigationHub
         return $link;
     }
 
-    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null, ?string $capability = null): array
+    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null, ?string $capability = null, ?string $structureAnchor = null): array
     {
         $course = current_course();
         if ($course && $routeName === 'curriculum.index') {
@@ -574,6 +575,7 @@ class NavigationHub
                     || request()->routeIs('curriculum.show', 'curriculum.admin'),
                 'permission' => $permission,
                 'capability' => $capability,
+                'structure_anchor' => $structureAnchor,
             ];
         }
 
@@ -585,6 +587,7 @@ class NavigationHub
                 'active' => request()->routeIs('graduation.show', 'graduation.export', 'graduation.*'),
                 'permission' => $permission,
                 'capability' => $capability,
+                'structure_anchor' => $structureAnchor,
             ];
         }
 
@@ -595,6 +598,7 @@ class NavigationHub
             'active' => request()->routeIs(...$patterns),
             'permission' => $permission,
             'capability' => $capability,
+            'structure_anchor' => $structureAnchor,
         ];
     }
 
@@ -617,6 +621,41 @@ class NavigationHub
             $capability = $link['capability'] ?? null;
 
             return $capability === null || $church->hasCapability($capability);
+        }));
+    }
+
+    /**
+     * T8b — incremental: when the current service has a structure template, hide links
+     * whose required anchor is absent. Untagged links and services without a template
+     * stay visible (backward compatible).
+     *
+     * @param  array<int, array<string, mixed>>  $links
+     * @return array<int, array<string, mixed>>
+     */
+    protected static function filterByStructureAnchors(array $links, User $user): array
+    {
+        $service = app(ServiceContextService::class)->currentService($user) ?? current_service();
+        if (! $service instanceof ChurchService || ! $service->structure_template_id) {
+            return $links;
+        }
+
+        $resolver = app(StructureAnchorResolver::class);
+        $hasEnrollment = filled($resolver->enrollmentLevel($service));
+        $hasAttendance = filled($resolver->attendanceLevel($service));
+        $hasAssignments = $resolver->assignmentLevels($service) !== [];
+
+        return array_values(array_filter($links, function (array $link) use ($hasEnrollment, $hasAttendance, $hasAssignments) {
+            $anchor = $link['structure_anchor'] ?? null;
+            if ($anchor === null) {
+                return true;
+            }
+
+            return match ($anchor) {
+                StructureAnchorResolver::ANCHOR_ENROLLMENT => $hasEnrollment,
+                StructureAnchorResolver::ANCHOR_ATTENDANCE => $hasAttendance,
+                StructureAnchorResolver::ANCHOR_ASSIGNMENT_LEVELS => $hasAssignments,
+                default => true,
+            };
         }));
     }
 

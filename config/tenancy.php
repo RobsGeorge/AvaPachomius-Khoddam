@@ -77,6 +77,7 @@ return [
         'activity_logs',
         // Service layer
         'service',
+        'service_units',
         'user_service_role',
         'service_application_forms',
         'service_applications',

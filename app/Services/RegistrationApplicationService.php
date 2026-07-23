@@ -68,6 +68,12 @@ class RegistrationApplicationService
 
     public function redirectRouteFor(User $user): string
     {
+        if (Schema::hasColumn('user', 'registration_intent_course_id')
+            && $user->registration_intent_course_id) {
+            return app(CourseApplicationService::class)
+                ->redirectRouteFor($user, (int) $user->registration_intent_course_id);
+        }
+
         $status = $user->application_status ?? RegistrationApplication::STATUS_PENDING_REVIEW;
 
         return match ($status) {
@@ -75,5 +81,45 @@ class RegistrationApplicationService
             RegistrationApplication::STATUS_REJECTED => 'application.status',
             default => 'application.status',
         };
+    }
+
+    public function redirectParamsFor(User $user): array
+    {
+        if (Schema::hasColumn('user', 'registration_intent_course_id')
+            && $user->registration_intent_course_id) {
+            return app(CourseApplicationService::class)
+                ->redirectParamsFor((int) $user->registration_intent_course_id);
+        }
+
+        return [];
+    }
+
+    public function syncPlatformStatusFromCourseApplication(User $user, \App\Models\CourseApplication $application): void
+    {
+        if (! Schema::hasColumn('user', 'registration_intent_course_id')
+            || ! Schema::hasColumn('user', 'application_status')) {
+            return;
+        }
+
+        if ((int) $user->registration_intent_course_id !== (int) $application->course_id) {
+            return;
+        }
+
+        if ($application->status === \App\Models\CourseApplication::STATUS_APPROVED) {
+            $user->forceFill([
+                'is_verified' => true,
+                'application_status' => RegistrationApplication::STATUS_APPROVED,
+            ])->save();
+
+            AuditLogService::recordEvent('registration.platform_unlocked_via_course', [
+                'user_id' => $user->user_id,
+                'course_id' => $application->course_id,
+                'application_id' => $application->id,
+            ]);
+
+            return;
+        }
+
+        $user->forceFill(['application_status' => $application->status])->save();
     }
 }

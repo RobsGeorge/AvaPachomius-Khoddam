@@ -54,10 +54,10 @@
                                 @endif
                             </ul>
                         </div>
-                    @elseif(!empty($showChurchContextLabel) && !empty($currentChurch))
+                    @elseif(!empty($showChurchContextLabel) && !empty($labeledChurch))
                         <span class="brand-link" title="{{ __('tenancy.current_church') }}">
                             <i class="bi bi-building ms-1"></i>
-                            {{ $currentChurch->name }}
+                            {{ $labeledChurch->name }}
                         </span>
                     @endif
 

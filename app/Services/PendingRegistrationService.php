@@ -19,6 +19,8 @@ class PendingRegistrationService
 {
     public const SESSION_PASSWORD_USER_KEY = 'registration_password_user_id';
 
+    public const SESSION_ENROLLMENT_USER_KEY = 'registration_enrollment_user_id';
+
     public static function isPending(User $user): bool
     {
         if (! Schema::hasColumn('user', 'registration_completed')) {

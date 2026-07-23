@@ -222,4 +222,27 @@ class ChurchProvisioningTest extends EventModuleTestCase
         $html = $this->actingAs($super)->get('/dashboard')->assertOk()->getContent();
         $this->assertStringContainsString(__('tenancy.switch_church'), $html);
     }
+
+    public function test_single_church_shows_static_label_not_dropdown(): void
+    {
+        config(['tenancy.enabled' => true]);
+        // Remove any extra churches seeded elsewhere so only Tenant Zero is active.
+        Church::query()->where('slug', '!=', config('tenancy.main_slug'))->delete();
+
+        $user = $this->createUser(['email' => 'one-church@example.com']);
+        ChurchUser::create([
+            'church_id' => Church::main()->church_id,
+            'user_id' => $user->user_id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        $html = $this->actingAs($user)->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString(Church::main()->name, $html);
+        $this->assertDoesNotMatchRegularExpression(
+            '/aria-label="'.preg_quote(__('tenancy.switch_church'), '/').'"/',
+            $html
+        );
+    }
 }

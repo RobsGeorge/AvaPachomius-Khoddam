@@ -11,6 +11,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Mail\SendOTPEmail;
 use App\Services\AuditLogService;
+use App\Services\RegistrationEnrollmentService;
 use App\Services\PendingRegistrationService;
 use App\Services\People\PersonDuplicateDetector;
 use Illuminate\Http\Request;
@@ -28,6 +29,10 @@ use Illuminate\Database\QueryException;
 
 class RegisterController extends Controller
 {
+    public function __construct(
+        private RegistrationEnrollmentService $enrollment,
+    ) {}
+
     public function showRegistrationForm()
     {
         return view('auth.register');
@@ -412,8 +417,11 @@ class RegisterController extends Controller
         }
 
         $user->password               = Hash::make($request->password);
-        PendingRegistrationService::markCompleted($user);
+        $user->save();
 
+        session([
+            PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY => $user->user_id,
+        ]);
         session()->forget(PendingRegistrationService::SESSION_PASSWORD_USER_KEY);
 
         AuditLogService::setPasswordResult($request, [
@@ -422,6 +430,116 @@ class RegisterController extends Controller
             'email'   => $user->email,
         ]);
 
-        return redirect()->route('login')->with('success', 'تم تعيين كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.');
+        return redirect()
+            ->route('register.enrollment', ['user_id' => $user->user_id])
+            ->with('success', __('register.password_saved_continue_enrollment'));
+    }
+
+    // ── Enrollment intent ─────────────────────────────────────────────────────
+
+    public function showEnrollmentForm(int|string $user_id)
+    {
+        $user = User::where('user_id', $user_id)->firstOrFail();
+
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY) != $user->user_id) {
+            return redirect()
+                ->route('password.set', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.complete_password_first')]);
+        }
+
+        $services = $this->enrollment->eligibleServices();
+
+        if ($services->isEmpty()) {
+            return redirect()
+                ->route('password.set', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.enrollment_no_courses_available')]);
+        }
+
+        $coursesByService = [];
+        foreach ($services as $service) {
+            $coursesByService[$service->service_id] = $this->enrollment
+                ->eligibleCoursesForService($service->service_id)
+                ->map(fn ($course) => [
+                    'id' => $course->course_id,
+                    'title' => $course->title,
+                ])
+                ->values()
+                ->all();
+        }
+
+        $selectedServiceId = (int) old('service_id', $services->first()->service_id);
+        $selectedCourseId = old('course_id');
+
+        if ($services->count() === 1 && count($coursesByService[$services->first()->service_id] ?? []) === 1) {
+            $selectedServiceId = $services->first()->service_id;
+            $selectedCourseId = $selectedCourseId
+                ?? $coursesByService[$selectedServiceId][0]['id'];
+        }
+
+        return view('auth.register_enrollment', [
+            'user_id' => $user->user_id,
+            'services' => $services,
+            'coursesByService' => $coursesByService,
+            'selectedServiceId' => $selectedServiceId,
+            'selectedCourseId' => $selectedCourseId,
+        ]);
+    }
+
+    public function enrollmentCourses(Request $request)
+    {
+        $request->validate([
+            'service_id' => ['required', 'integer'],
+        ]);
+
+        $courses = $this->enrollment
+            ->eligibleCoursesForService((int) $request->service_id)
+            ->map(fn ($course) => [
+                'id' => $course->course_id,
+                'title' => $course->title,
+            ])
+            ->values();
+
+        return response()->json(['courses' => $courses]);
+    }
+
+    public function storeEnrollment(Request $request)
+    {
+        $request->validate([
+            'user_id' => ['required', 'exists:user,user_id'],
+            'service_id' => ['required', 'integer'],
+            'course_id' => ['required', 'integer'],
+        ]);
+
+        $user = User::where('user_id', $request->user_id)->firstOrFail();
+
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY) != $user->user_id) {
+            return redirect()
+                ->route('password.set', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.complete_password_first')]);
+        }
+
+        try {
+            $this->enrollment->completeWithEnrollment(
+                $user,
+                (int) $request->service_id,
+                (int) $request->course_id,
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
+
+        session()->forget(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY);
+
+        return redirect()
+            ->route('login')
+            ->with('success', __('register.enrollment_submitted_success'));
     }
 }

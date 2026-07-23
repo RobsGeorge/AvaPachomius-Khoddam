@@ -107,7 +107,22 @@ class SyncPermissionsCommand extends Command
             }
         }
 
-        $publicPrefixes = ['login', 'register', 'password.', 'otp.', 'locale.', 'theme.', 'sanctum.'];
+        $publicPrefixes = [
+            'login', 'register', 'password.', 'otp.', 'locale.', 'theme.', 'sanctum.',
+            'ignition.', 'verification.',
+            'logout', 'home', 'dashboard',
+            'profile', 'profile.',
+            'account.',
+            'notifications.',
+            'help.',
+            'calendar.',
+            'my-learning.',
+            'hubs.',
+            'onboarding.',
+            'application.',
+            'communications.track-open',
+            'courses.select',
+        ];
 
         return collect(Route::getRoutes())
             ->map(fn ($route) => $route->getName())

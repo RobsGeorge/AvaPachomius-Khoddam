@@ -22,7 +22,11 @@ return [
                 'label_en' => 'View available courses',
                 'label_ar' => 'عرض الدورات المتاحة',
                 'type' => 'both',
-                'routes' => ['available-courses.index', 'courses.apply', 'courses.apply.store', 'courses.application.status', 'courses.application.edit', 'courses.application.update'],
+                'routes' => [
+                    'available-courses.index', 'courses.apply', 'courses.apply.store',
+                    'courses.application.status', 'courses.application.edit', 'courses.application.update',
+                    'courses.index', 'courses.show',
+                ],
                 'nav' => ['academic.available_courses'],
             ],
         ],
@@ -51,6 +55,7 @@ return [
                     'curriculum.end-module', 'modules.*', 'sessions.*', 'lectures.*', 'lecture-materials.*',
                     'sessions.close-attendance', 'sessions.attendance.*', 'sessions.notify-students',
                     'sessions.notify-next', 'sessions.toggle-notify',
+                    'contents.feedback', 'contents.store-feedback',
                 ],
                 'nav' => ['academic.curriculum', 'academic.sessions', 'academic.modules'],
             ],
@@ -121,7 +126,11 @@ return [
                 'label_en' => 'Author exams',
                 'label_ar' => 'إنشاء الامتحانات',
                 'type' => 'both',
-                'routes' => ['exams.dashboard', 'exams.store', 'exams.update', 'exams.destroy', 'exams.builder', 'exams.questions.*', 'exams.publish'],
+                'routes' => [
+                    'exams.dashboard', 'exams.store', 'exams.update', 'exams.destroy', 'exams.builder',
+                    'exams.questions.*', 'exams.publish',
+                    'assessments.*', 'course-assessments.*', 'user-assessments.*',
+                ],
                 'nav' => ['academic.exams.manage'],
             ],
             'exam.schedule' => [
@@ -408,7 +417,7 @@ return [
                 'label_en' => 'Administer events',
                 'label_ar' => 'إدارة الفعاليات',
                 'type' => 'both',
-                'routes' => ['events.admin.*'],
+                'routes' => ['events.admin.*', 'superadmin.event-admins', 'superadmin.event-admins.*'],
                 'nav' => ['academic.events'],
             ],
             'events.check_in' => [
@@ -453,13 +462,13 @@ return [
                 'label_en' => 'Configure church settings',
                 'label_ar' => 'إعدادات الكنيسة',
                 'type' => 'both',
-                'routes' => [],
+                'routes' => ['superadmin.churches.*'],
             ],
             'church.members.manage' => [
                 'label_en' => 'Manage church members',
                 'label_ar' => 'إدارة أعضاء الكنيسة',
                 'type' => 'both',
-                'routes' => [],
+                'routes' => ['superadmin.churches.members.*'],
             ],
             'church.role.manage' => [
                 'label_en' => 'Manage church roles & permissions',
@@ -621,7 +630,7 @@ return [
                 'label_en' => 'Approve users',
                 'label_ar' => 'الموافقة على المستخدمين',
                 'type' => 'endpoint',
-                'routes' => ['admin.users.approve'],
+                'routes' => ['admin.users.approve', 'admin.users.unverified', 'users.*'],
             ],
             'registration.review' => [
                 'label_en' => 'Review registration applications',
@@ -650,7 +659,7 @@ return [
                 'label_en' => 'Review course applications',
                 'label_ar' => 'مراجعة طلبات الدورات',
                 'type' => 'both',
-                'routes' => ['admin.course-applications.*'],
+                'routes' => ['admin.course-applications.*', 'course-applications.index'],
                 'nav' => ['system.course_applications'],
             ],
             'course_application.form_builder' => [
@@ -741,7 +750,10 @@ return [
                 'label_en' => 'Impersonate users',
                 'label_ar' => 'انتحال هوية المستخدمين',
                 'type' => 'endpoint',
-                'routes' => ['superadmin.impersonate', 'superadmin.impersonate.stop'],
+                'routes' => [
+                    'superadmin.impersonate', 'superadmin.impersonate.stop',
+                    'superadmin.role-preview', 'superadmin.role-preview.stop',
+                ],
                 'system_only' => true,
             ],
             'platform.session_flush' => [
@@ -755,7 +767,10 @@ return [
                 'label_en' => 'Create/delete courses',
                 'label_ar' => 'إنشاء/حذف الدورات',
                 'type' => 'endpoint',
-                'routes' => ['superadmin.courses.store', 'superadmin.courses.destroy', 'superadmin.courses'],
+                'routes' => [
+                    'superadmin.courses.store', 'superadmin.courses.destroy', 'superadmin.courses',
+                    'courses.create', 'courses.store', 'courses.edit', 'courses.update', 'courses.destroy',
+                ],
                 'system_only' => true,
             ],
             'platform.service_crud' => [
@@ -780,6 +795,23 @@ return [
                 'type' => 'both',
                 'routes' => ['roles.hub', 'superadmin.templates.*'],
                 'nav' => ['system.templates'],
+                'system_only' => true,
+            ],
+            'platform.console' => [
+                'label_en' => 'Superadmin console',
+                'label_ar' => 'لوحة المشرف الأعلى',
+                'type' => 'both',
+                'routes' => [
+                    'superadmin.index', 'superadmin.store', 'superadmin.destroy', 'superadmin.security',
+                    'superadmin.course-roles', 'superadmin.events.tests.*', 'superadmin.system-tests.*',
+                ],
+                'system_only' => true,
+            ],
+            'platform.people_merge' => [
+                'label_en' => 'Merge people records',
+                'label_ar' => 'دمج سجلات الأشخاص',
+                'type' => 'both',
+                'routes' => ['superadmin.people.merge.*'],
                 'system_only' => true,
             ],
         ],

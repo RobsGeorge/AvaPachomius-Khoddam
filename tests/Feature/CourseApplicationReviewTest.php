@@ -66,9 +66,22 @@ class CourseApplicationReviewTest extends EventModuleTestCase
     {
         $admin = $this->createUser(['email' => 'course-app-admin@example.com']);
         $course = $this->createCourse(['title' => 'Year Two']);
-        $adminRole = $this->courseRoleWithPermissions($course, 'admin', ['course_application.form_builder']);
         $studentRole = $this->courseRoleWithPermissions($course, 'student', ['exam.view']);
-        $this->assignCourseRole($admin, $course, $adminRole);
+
+        // Building a course's application form is a SYSTEM-level permission:
+        // course_application.form_builder is treated as system in AdminMiddleware and
+        // RequirePermission::isSystemPermission(), so it must be granted via a system role,
+        // not a course role.
+        $formAdminRole = \App\Models\Role::create([
+            'role_name' => 'Application Form Admin',
+            'role_decription' => 'form builder',
+            'slug' => 'application-form-admin',
+            'is_template' => false,
+        ]);
+        $formAdminRole->permissions()->sync(
+            \App\Models\Permission::where('key', 'course_application.form_builder')->pluck('permission_id')
+        );
+        \App\Models\UserSystemRole::create(['user_id' => $admin->user_id, 'role_id' => $formAdminRole->role_id]);
 
         $this->actingAs($admin)
             ->get(route('admin.courses.application-form.edit', $course->course_id))

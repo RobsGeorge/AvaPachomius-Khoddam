@@ -112,9 +112,15 @@ class ResolveTenant
 
     private function isApexHost(string $host): bool
     {
+        // Local dev + PHPUnit always resolve to Tenant Zero when MULTI_TENANT=true,
+        // even if TENANCY_BASE_DOMAIN / APP_URL point at staging/production.
+        if (in_array($host, ['localhost', '127.0.0.1'], true)) {
+            return true;
+        }
+
         $base = config('tenancy.base_domain') ?: parse_url((string) config('app.url'), PHP_URL_HOST);
         if (! $base) {
-            return in_array($host, ['localhost', '127.0.0.1'], true);
+            return false;
         }
 
         return strcasecmp($host, $base) === 0

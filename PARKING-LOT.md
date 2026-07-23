@@ -64,7 +64,7 @@ BelongsToChurch dormant stamp, `tenancy:seed-pilot-church`, cutover runbook.
 Still parked / ops-owned:
 - Flip production `MULTI_TENANT=true` (staging first; see `docs/tenancy-cutover.md`)
 - Wildcard DNS/TLS + SESSION_DOMAIN for shared SSO cookies
-- Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`)
+- Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`) — use `docs/staging-acceptance-checklist.md` + `php artisan tenancy:acceptance-check`
 - Optional FK hardening on every tenant table → `organizations.organization_id`
 - Public church registration / polymorphic applications (§13)
 
@@ -93,32 +93,24 @@ Still parked:
 - Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
   enables MULTI_TENANT).
 
-## Structure template engine + wrap as service #1 (parked 2026-07-16)
+## T8 residual — post T8b (parked)
 
-**Requested** (prompt citing plan §2.3 / §4 / §15 / §7 P3 — longer expand-contract
-sequence, not current `docs/khedma-master-plan.md` phase table):
+**Landed as T8a + T8b:** structure templates/anchors/`service_units`/`servants-prep`; slug
+binding + `/s/{service}` hub + numeric 301s; `enrollments` dual-write (UCR still SOT for reads);
+attendance `lock_version` CAS; nav filtered by structure anchors.
 
-1. Structure template engine: `structure_templates`, `template_id` / `level_labels` /
-   `enabled_levels` on services, `level_key` on `service_units`, `custom_field_defs`;
-   seed `educational_standard`, `meeting_flat`, `care_sector`.
-2. Anchor resolver (`enrollment_level`, `attendance_level`, `assignment_levels`,
-   `report_rollup`) — no hardcoded level names outside template JSON.
-3. Reversible migrate of class/attendance → services / service_units / enrollments /
-   sessions / attendance; seed service slug `servants-prep` with
-   `educational_standard`.
-4. Attendance per-person rows + optimistic locking (§14 G7).
-5. Route group `/{service:slug}/...`, resolution middleware, legacy 301s, nav from
-   registry filtered by permissions.
+**Still parked:**
 
-**Why parked:** master-plan §7 current phase is **T7 (contract / cutover)**. T3 (=P3)
-roles/permissions already landed. This wrap is a new product-shape layer beyond T7
-and beyond the existing Service-above-Course expand (see “Service above Course”
-above). CLAUDE.md rule 10 → park, do not build.
+1. Contract: drop/rename `user_course_role` only after enrollments cutover sign-off (Phase 5 style).
+2. Broader `/{service:slug}/…` route tree beyond hub + existing `/services/{slug}/…` (full product wrap).
+3. Nav registry driven *purely* from structure template (today: incremental anchor tags only).
 
-**Resume when:** **T7 staging pilot signed off**, then open **T8** (scheduled in
-`docs/khedma-master-plan.md` §7). Kickoff PR should start expand-only: templates +
-anchors first; migration; then `/{service:slug}/…` routes. Related principle already
-stated in master-plan §15 (anchors, not level names).
+**Resume when:** T8b merged to staging and smoke-checked; contract items wait for a dedicated cutover PR.
+
+## Structure template engine + wrap as service #1 (superseded 2026-07-22)
+
+Original full request parked 2026-07-16; **T8a/T8b delivered the expand track**. Residual items
+live under **T8 residual** above. Do not re-open the old block for new work.
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

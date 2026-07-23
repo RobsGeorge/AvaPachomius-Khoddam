@@ -62,7 +62,7 @@ class User extends Authenticatable
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
-        'registration_completed', 'application_status', 'communication_locale',
+        'registration_completed', 'application_status', 'registration_intent_course_id', 'communication_locale',
         'person_id',
         'created_at', 'updated_at',
     ];
@@ -361,7 +361,7 @@ class User extends Authenticatable
      */
     public function canAccessAdminCourseApplications(?Course $course = null): bool
     {
-        if ($this->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
             return true;
         }
 
@@ -382,7 +382,7 @@ class User extends Authenticatable
     /** Build / edit course application forms (course or system grant). */
     public function canAccessAdminCourseApplicationForms(?Course $course = null): bool
     {
-        if ($this->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
             return true;
         }
 

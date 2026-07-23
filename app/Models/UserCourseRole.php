@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
 
+use App\Services\Structure\EnrollmentDualWrite;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +36,24 @@ class UserCourseRole extends Model
     ];
 
     public $timestamps = false;
+
+    protected static function booted(): void
+    {
+        static::saved(function (UserCourseRole $assignment) {
+            try {
+                app(EnrollmentDualWrite::class)->syncFromUserCourseRole($assignment);
+            } catch (\Throwable) {
+                // Dual-write must not break UCR persistence during mid-migrate.
+            }
+        });
+
+        static::deleted(function (UserCourseRole $assignment) {
+            try {
+                app(EnrollmentDualWrite::class)->removeForUserCourseRole($assignment);
+            } catch (\Throwable) {
+            }
+        });
+    }
 
     public function user()
     {

@@ -116,6 +116,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/services/select', [ServiceContextController::class, 'store'])->name('services.select.store');
     Route::post('/services/select/clear', [ServiceContextController::class, 'clear'])->name('services.select.clear');
     Route::get('/services/roster', [ServiceRosterController::class, 'index'])->name('services.roster');
+    // T8b — canonical slug hub (+ legacy numeric /services/{id}/… 301 via middleware).
+    Route::get('/s/{service}', [ServiceContextController::class, 'hub'])->name('services.hub');
     Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
     Route::post('/services/{service}/apply', [ServiceApplicationController::class, 'store'])->name('services.apply.store');
     Route::get('/services/{service}/application/status', [ServiceApplicationController::class, 'status'])->name('services.application.status');
@@ -219,6 +221,9 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
+Route::get('/register/enrollment/{user_id}', [RegisterController::class, 'showEnrollmentForm'])->name('register.enrollment');
+Route::post('/register/enrollment', [RegisterController::class, 'storeEnrollment'])->name('register.enrollment.store');
+Route::get('/register/enrollment/courses', [RegisterController::class, 'enrollmentCourses'])->name('register.enrollment.courses');
 
 Route::get('/communications/t/{token}.gif', [CommunicationReportController::class, 'trackOpen'])
     ->name('communications.track-open')
