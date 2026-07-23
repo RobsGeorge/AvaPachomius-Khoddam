@@ -351,7 +351,8 @@
                 return;
             }
 
-            const message = form.dataset.confirm;
+            const submitter = event.submitter instanceof HTMLElement ? event.submitter : null;
+            const message = form.dataset.confirm || submitter?.dataset?.confirm || '';
             if (!message) {
                 return;
             }
@@ -368,7 +369,9 @@
         }, true);
 
         document.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-khoddam-confirm-button="1"]');
+            const button = event.target.closest(
+                '[data-khoddam-confirm-button="1"], button[type="submit"][data-confirm], input[type="submit"][data-confirm]'
+            );
             if (!button) {
                 return;
             }
@@ -389,6 +392,17 @@
                 submitConfirmedForm(form);
             });
         }, true);
+
+        if (typeof MutationObserver !== 'undefined') {
+            let moTimer = null;
+            const mo = new MutationObserver(() => {
+                if (moTimer) {
+                    clearTimeout(moTimer);
+                }
+                moTimer = setTimeout(() => migrateInlineConfirmHandlers(), 200);
+            });
+            mo.observe(document.body, { childList: true, subtree: true });
+        }
     }
 
     function initFlashMessages() {

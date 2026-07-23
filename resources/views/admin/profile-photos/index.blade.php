@@ -110,8 +110,7 @@
                                         </form>
                                     </div>
                                     <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}"
-                                          data-confirm="{{ __('profile_photos.confirm_reject') }}"
-                                          onsubmit="return confirm(this.dataset.confirm)">
+                                          data-confirm="{{ __('profile_photos.confirm_reject') }}">
                                         @csrf
                                         <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
                                                placeholder="{{ __('profile_photos.rejection_note') }}">
@@ -128,8 +127,7 @@
                                 </form>
 
                                 <form method="POST" action="{{ route('admin.profile-photos.reset-grace', $student) }}"
-                                      data-confirm="{{ __('profile_photos.confirm_reset_grace') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('profile_photos.confirm_reset_grace') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('profile_photos.reset_grace') }}</button>
                                 </form>
@@ -196,8 +194,7 @@
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}"
-                                  data-confirm="{{ __('profile_photos.confirm_reject') }}"
-                                  onsubmit="return confirm(this.dataset.confirm)">
+                                  data-confirm="{{ __('profile_photos.confirm_reject') }}">
                                 @csrf
                                 <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
                                        placeholder="{{ __('profile_photos.rejection_note') }}">
@@ -212,8 +209,7 @@
                             <button type="submit" class="btn btn-sm btn-outline-primary w-100">{{ __('profile_photos.extend_deadline') }}</button>
                         </form>
                         <form method="POST" action="{{ route('admin.profile-photos.reset-grace', $student) }}"
-                              data-confirm="{{ __('profile_photos.confirm_reset_grace') }}"
-                              onsubmit="return confirm(this.dataset.confirm)">
+                              data-confirm="{{ __('profile_photos.confirm_reset_grace') }}">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-outline-warning w-100">{{ __('profile_photos.reset_grace') }}</button>
                         </form>

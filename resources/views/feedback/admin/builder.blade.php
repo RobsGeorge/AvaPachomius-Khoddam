@@ -59,7 +59,7 @@
                         @endif
                         @if(!$survey->submissions()->exists())
                             <form method="POST" action="{{ route('feedback.surveys.destroy', $survey) }}"
-                                  onsubmit="return confirm('{{ __('pages.confirm_delete') }}')">@csrf @method('DELETE')
+                                  data-confirm="{{ __('pages.confirm_delete') }}">@csrf @method('DELETE')
                                 <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('pages.delete') }}</button>
                             </form>
                         @endif

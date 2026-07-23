@@ -108,8 +108,7 @@
                         </button>
                     </form>
                     <form method="POST" action="{{ route('grade-categories.destroy', $cat->category_id) }}"
-                          data-confirm="{{ __('pages.confirm_delete_category_items') }}"
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          data-confirm="{{ __('pages.confirm_delete_category_items') }}">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-danger py-0 px-2" title="{{ __('pages.delete') }}">
                             <i class="bi bi-trash"></i>
@@ -153,8 +152,7 @@
                                                 <i class="bi bi-input-cursor-text"></i> {{ __('pages.grades') }}
                                             </a>
                                             <form method="POST" action="{{ route('grade-items.destroy', $item->item_id) }}"
-                                                  data-confirm="{{ __('pages.confirm_delete_item_grades') }}"
-                                                  onsubmit="return confirm(this.dataset.confirm)">
+                                                  data-confirm="{{ __('pages.confirm_delete_item_grades') }}">
                                                 @csrf @method('DELETE')
                                                 <button class="btn btn-sm btn-outline-danger py-0 px-2">
                                                     <i class="bi bi-trash"></i>
@@ -211,8 +209,7 @@
                                 </a>
                                 <form method="POST" action="{{ route('grade-items.destroy', $item->item_id) }}"
                                       class="w-100"
-                                      data-confirm="{{ __('pages.confirm_delete_item_grades') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('pages.confirm_delete_item_grades') }}">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger w-100">
                                         <i class="bi bi-trash"></i> {{ __('pages.delete') }}

@@ -23,7 +23,7 @@
                         <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-primary">{{ __('pages.view_submissions') }}</a>
                         @if(($stats['not_submitted'] + $stats['overdue']) > 0)
                             <form action="{{ route('assignments.remind-unsubmitted', $assignment) }}" method="POST" class="d-inline"
-                                  onsubmit="return confirm(@json(__('pages.confirm_remind_unsubmitted')))">
+                                  data-confirm="{{ __('pages.confirm_remind_unsubmitted') }}">
                                 @csrf
                                 <button type="submit" class="btn btn-warning">
                                     <i class="fas fa-bell me-1"></i>

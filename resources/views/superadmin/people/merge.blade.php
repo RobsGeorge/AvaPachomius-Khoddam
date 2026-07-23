@@ -25,7 +25,7 @@
         <div class="card-body">
             <h2 class="h6 mb-3">{{ __('people.merge_form_title') }}</h2>
             <form method="POST" action="{{ route('superadmin.people.merge.store') }}"
-                  onsubmit="return confirm(@json(__('people.merge_confirm')));">
+                  data-confirm="{{ __('people.merge_confirm') }}">
                 @csrf
                 <div class="row g-3">
                     <div class="col-md-5">

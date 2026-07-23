@@ -118,8 +118,7 @@
         <div class="app-card card shadow-sm border-danger">
             <div class="card-body">
                 <form method="POST" action="{{ route('admin.course-applications.reject', $application) }}"
-                      data-confirm="{{ __('course_applications.confirm_reject_application') }}"
-                      onsubmit="return confirm(this.dataset.confirm);">
+                      data-confirm="{{ __('course_applications.confirm_reject_application') }}">
                     @csrf
                     <label for="overall_rejection_note" class="form-label">{{ __('course_applications.overall_rejection_note') }}</label>
                     <textarea id="overall_rejection_note" name="overall_rejection_note" rows="3" class="form-control mb-3" required>{{ old('overall_rejection_note') }}</textarea>
@@ -158,8 +157,7 @@
                         <p><strong>{{ __('course_applications.overall_rejection_note') }}:</strong> {{ $application->overall_rejection_note }}</p>
                     @endif
                     <form method="POST" action="{{ route('admin.course-applications.restore', $application) }}"
-                          data-confirm="{{ __('course_applications.confirm_restore') }}"
-                          onsubmit="return confirm(this.dataset.confirm);">
+                          data-confirm="{{ __('course_applications.confirm_restore') }}">
                         @csrf
                         <input type="hidden" name="target_status" value="pending_review">
                         <button type="submit" class="btn btn-primary">{{ __('course_applications.restore_application') }}</button>
