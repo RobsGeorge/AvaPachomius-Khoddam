@@ -914,6 +914,7 @@ i.fa,
 
 /* No dimmed page overlay — alerts sit on the live page background. */
 .swal2-container.swal2-backdrop-show,
+.swal2-container.swal2-no-backdrop,
 .swal2-container.swal2-top,
 .swal2-container.swal2-top-start,
 .swal2-container.swal2-top-end,

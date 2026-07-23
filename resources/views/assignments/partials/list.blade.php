@@ -94,8 +94,7 @@
                                 <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-outline-secondary btn-sm">{{ __('pages.view_submissions') }}</a>
                                 <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
                                 <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline"
-                                      data-confirm="{{ __('pages.confirm_delete_assignment') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('pages.confirm_delete_assignment') }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-danger btn-sm">{{ __('pages.delete') }}</button>
@@ -146,8 +145,7 @@
                     <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-outline-secondary btn-sm">{{ __('pages.view_submissions') }}</a>
                     <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning btn-sm">{{ __('pages.edit') }}</a>
                     <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="w-100"
-                          data-confirm="{{ __('pages.confirm_delete_assignment') }}"
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          data-confirm="{{ __('pages.confirm_delete_assignment') }}">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-danger btn-sm w-100">{{ __('pages.delete') }}</button>

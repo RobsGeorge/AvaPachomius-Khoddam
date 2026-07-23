@@ -690,6 +690,7 @@ return [
     'linked_sessions'             => 'الجلسات الأسبوعية',
     'give_feedback'               => 'قدّم تقييمك',
     'feedback_submitted'          => 'تم إرسال التقييم',
+    'module_feedback_surveys'     => 'استبيانات تقييم الوحدة',
     'module_feedback_title'       => 'تقييم الوحدة الأسبوعي',
     'module_feedback_not_open'    => 'التقييم غير متاح لهذه الوحدة بعد.',
     'module_feedback_saved'       => 'شكراً — تم حفظ تقييمك.',

@@ -191,8 +191,7 @@
                     </a>
                     <form method="POST"
                           action="{{ route('curriculum.detach-module', [$course->course_id, $module->module_id]) }}"
-                          data-confirm="{{ __('pages.unlink_module_confirm') }}"
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          data-confirm="{{ __('pages.unlink_module_confirm') }}">
                         @csrf @method('DELETE')
                         <button class="btn btn-sm btn-outline-light py-0 px-2" title="{{ __('pages.unlink_from_course') }}">
                             <i class="bi bi-x-lg"></i>
@@ -274,31 +273,41 @@
                                 <small class="text-muted">
                                     {{ __('pages.module_ended_on', ['date' => $pivot->ended_at ? \Illuminate\Support\Carbon::parse($pivot->ended_at)->format('Y-m-d H:i') : '—']) }}
                                 </small>
-                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                    <a href="{{ route('feedback.surveys.create', ['course_id' => $course->course_id, 'module_id' => $module->module_id]) }}"
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-plus-lg"></i> {{ __('pages.feedback_create_survey') }}
-                                    </a>
-                                    <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-secondary">
-                                        <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
-                                    </a>
-                                </div>
+                            @elseif($status === 'ended')
+                                <span class="badge bg-secondary">{{ __('pages.module_status_ended') }}</span>
                             @else
-                                @if($status === 'ended')
-                                    <span class="badge bg-secondary">{{ __('pages.module_status_ended') }}</span>
-                                @else
-                                    <span class="badge bg-info text-dark">{{ __('pages.module_status_' . $status) }}</span>
-                                @endif
+                                <span class="badge bg-info text-dark">{{ __('pages.module_status_' . $status) }}</span>
+                            @endif
+
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{{ route('feedback.surveys.create', ['course_id' => $course->course_id, 'module_id' => $module->module_id]) }}"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-plus-lg"></i> {{ __('pages.feedback_create_survey') }}
+                                </a>
+                                <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
+                                </a>
+                            </div>
+
+                            @if(!($pivot->feedback_open ?? false))
                                 {{-- Own POST form: must not sit inside the PUT schedule form (_method spoof would 405). --}}
                                 <form method="POST"
                                       action="{{ route('curriculum.end-module', [$course->course_id, $module->module_id]) }}"
-                                      onsubmit="return confirm(@json(__('pages.confirm_end_module')))">
+                                      data-confirm="{{ __('pages.confirm_end_module') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-warning">
                                         <i class="bi bi-megaphone"></i> {{ __('pages.end_module_open_feedback') }}
                                     </button>
                                 </form>
                             @endif
+
+                            @include('course-content.partials.module-surveys', [
+                                'module' => $module,
+                                'course' => $course,
+                                'surveys' => $moduleSurveys->get($module->module_id) ?? collect(),
+                                'canManageFeedback' => true,
+                                'variant' => 'admin',
+                            ])
                         </div>
                     </div>
                 </div>

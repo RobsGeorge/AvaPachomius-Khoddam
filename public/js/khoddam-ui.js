@@ -37,6 +37,10 @@
             // resize / scrollbar-padding shift).
             heightAuto: false,
             scrollbarPadding: false,
+            // Transparent backdrop (never backdrop:false): false leaves a full-screen
+            // .swal2-container that can block clicks after Cancel/Escape.
+            backdrop: 'rgba(0,0,0,0)',
+            didClose: cleanupAfterSwal,
             customClass: {
                 popup: swalPopupClass(extraPopupClass),
                 title: 'khoddam-swal-title',
@@ -146,10 +150,15 @@
             cancelButtonText: options.cancelText || config.confirmCancel,
             reverseButtons: config.dir === 'rtl',
             focusCancel: destructive,
-            // Keep the page visible; no dimmed/black overlay behind confirms.
-            backdrop: false,
             allowOutsideClick: false,
-        }).then((result) => result.isConfirmed);
+            allowEscapeKey: true,
+        }).then((result) => {
+            cleanupAfterSwal();
+            return result.isConfirmed;
+        }).catch(() => {
+            cleanupAfterSwal();
+            return false;
+        });
     }
 
     function promptDialog(message, options = {}) {
@@ -170,13 +179,21 @@
             confirmButtonText: options.confirmText || config.promptSubmit || config.confirmYes,
             cancelButtonText: options.cancelText || config.confirmCancel,
             reverseButtons: config.dir === 'rtl',
+            allowOutsideClick: false,
+            allowEscapeKey: true,
             inputValidator: (value) => {
                 if (options.required !== false && !value) {
                     return options.requiredMessage || config.promptPlaceholder;
                 }
                 return undefined;
             },
-        }).then((result) => (result.isConfirmed ? result.value : null));
+        }).then((result) => {
+            cleanupAfterSwal();
+            return result.isConfirmed ? result.value : null;
+        }).catch(() => {
+            cleanupAfterSwal();
+            return null;
+        });
     }
 
     function showValidationErrors(errors) {
@@ -205,7 +222,7 @@
             allowOutsideClick: true,
             allowEscapeKey: true,
             showCloseButton: true,
-        });
+        }).then(() => cleanupAfterSwal()).catch(() => cleanupAfterSwal());
     }
 
     function escapeHtml(value) {
@@ -221,33 +238,15 @@
             return '';
         }
 
-        const datasetMatch = source.match(/dataset\.confirm/);
-        if (datasetMatch) {
+        // Message already lives on data-confirm; nothing to extract from the handler body.
+        if (/confirm\s*\(\s*this\.dataset\.confirm\s*\)/.test(source)) {
             return '';
         }
 
-        const patterns = [
-            /confirm\s*\(\s*@json\(([^)]+)\)\s*\)/,
-            /confirm\s*\(\s*this\.dataset\.confirm\s*\)/,
-            /confirm\s*\(\s*([^)]+)\s*\)/,
-        ];
-
-        for (const pattern of patterns) {
-            const match = source.match(pattern);
-            if (!match) {
-                continue;
-            }
-            let raw = match[1] || '';
-            raw = raw.trim();
-            if (raw === 'this.dataset.confirm') {
-                return '';
-            }
-            if ((raw.startsWith("'") && raw.endsWith("'")) || (raw.startsWith('"') && raw.endsWith('"'))) {
-                return raw.slice(1, -1);
-            }
-            if (raw.startsWith('`') && raw.endsWith('`')) {
-                return raw.slice(1, -1);
-            }
+        // Prefer quoted string args (covers Blade @json(...) and '{{ ... }}' after render).
+        const quoted = source.match(/confirm\s*\(\s*(["'`])([\s\S]*?)\1\s*\)/);
+        if (quoted) {
+            return quoted[2];
         }
 
         return '';
@@ -266,9 +265,26 @@
     }
 
     function releaseSwalBodyLock() {
-        document.body.classList.remove('swal2-shown', 'swal2-height-auto');
-        document.body.style.removeProperty('padding-right');
-        document.body.style.removeProperty('overflow');
+        const html = document.documentElement;
+        const body = document.body;
+        ['swal2-shown', 'swal2-height-auto', 'swal2-no-backdrop'].forEach((cls) => {
+            html.classList.remove(cls);
+            body.classList.remove(cls);
+        });
+        body.style.removeProperty('padding-right');
+        body.style.removeProperty('overflow');
+        html.style.removeProperty('overflow');
+    }
+
+    function cleanupAfterSwal() {
+        releaseSwalBodyLock();
+
+        // Drop any stuck non-toast containers that still capture pointer events.
+        document.querySelectorAll('body > .swal2-container').forEach((el) => {
+            if (!el.querySelector('.swal2-toast')) {
+                el.remove();
+            }
+        });
     }
 
     function submitConfirmedForm(form) {
@@ -280,14 +296,14 @@
             Swal.close();
         }
 
-        releaseSwalBodyLock();
+        cleanupAfterSwal();
 
         // Native submit bypasses submit listeners (avoids SweetAlert re-intercept loop).
         form.submit();
     }
 
-    function migrateInlineConfirmHandlers() {
-        document.querySelectorAll('form[onsubmit]').forEach((form) => {
+    function migrateInlineConfirmHandlers(root = document) {
+        root.querySelectorAll('form[onsubmit]').forEach((form) => {
             const code = form.getAttribute('onsubmit') || '';
             if (!/confirm\s*\(/.test(code)) {
                 return;
@@ -300,10 +316,13 @@
                 }
             }
 
-            form.removeAttribute('onsubmit');
+            // Only strip the native handler once we have a Swal-bound message.
+            if (form.dataset.confirm) {
+                form.removeAttribute('onsubmit');
+            }
         });
 
-        document.querySelectorAll('button[onclick*="confirm"], input[onclick*="confirm"]').forEach((el) => {
+        root.querySelectorAll('button[onclick*="confirm"], input[onclick*="confirm"]').forEach((el) => {
             const code = el.getAttribute('onclick') || '';
             if (!/confirm\s*\(/.test(code)) {
                 return;
@@ -316,8 +335,10 @@
                 }
             }
 
-            el.dataset.khoddamConfirmButton = '1';
-            el.removeAttribute('onclick');
+            if (el.dataset.confirm || el.closest('form')?.dataset.confirm) {
+                el.dataset.khoddamConfirmButton = '1';
+                el.removeAttribute('onclick');
+            }
         });
     }
 

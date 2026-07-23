@@ -17,10 +17,11 @@
                     @if(Auth::user()->isInstructorOrAdmin())
                     <div>
                         <a href="{{ route('assignments.edit', $assignment) }}" class="btn btn-warning">{{ __('pages.edit') }}</a>
-                        <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline">
+                        <form action="{{ route('assignments.destroy', $assignment) }}" method="POST" class="d-inline"
+                              data-confirm="{{ __('pages.confirm_delete_assignment') }}">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-danger" onclick="return confirm(@json(__('pages.confirm_delete_assignment')))">{{ __('pages.delete') }}</button>
+                            <button type="submit" class="btn btn-danger">{{ __('pages.delete') }}</button>
                         </form>
                     </div>
                     @endif

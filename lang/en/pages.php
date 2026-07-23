@@ -690,6 +690,7 @@ return [
     'linked_sessions'             => 'Weekly sessions',
     'give_feedback'               => 'Give feedback',
     'feedback_submitted'          => 'Feedback submitted',
+    'module_feedback_surveys'     => 'Module feedback surveys',
     'module_feedback_title'       => 'Weekly module feedback',
     'module_feedback_not_open'    => 'Feedback is not open for this module yet.',
     'module_feedback_saved'       => 'Thank you — your feedback has been saved.',

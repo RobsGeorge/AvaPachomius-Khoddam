@@ -8,7 +8,7 @@
             <h1 class="mb-0">{{ $course->title }}</h1>
             <small class="text-muted">{{ $course->description }} &mdash; {{ $course->year }}</small>
         </div>
-        @if(auth()->user()->roles->contains('role_name', 'admin') || auth()->user()->roles->contains('role_name', 'instructor'))
+        @if($canManageCurriculum)
             <a href="{{ route('curriculum.admin', $course->course_id) }}" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-pencil-square"></i> {{ __('pages.manage_curriculum') }}
             </a>
@@ -16,6 +16,15 @@
     </div>
 
 @forelse($course->modules as $module)
+        @php
+            $feedbackOpen = (bool) ($module->pivot->feedback_open ?? false);
+            $surveysForModule = ($moduleSurveys->get($module->module_id) ?? collect());
+            if (! $canManageFeedback) {
+                $surveysForModule = $surveysForModule->reject(
+                    fn ($survey) => $survey->status === \App\Models\FeedbackSurvey::STATUS_DRAFT
+                )->values();
+            }
+        @endphp
         <div class="card shadow-sm mb-4">
             {{-- Module header --}}
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"
@@ -34,18 +43,18 @@
                     <span class="badge bg-white text-dark">
                         {{ $module->lectures->count() }} {{ __('pages.lecture') }}
                     </span>
-                    @php
-                        $moduleSurveys = $openSurveys->get($module->module_id, collect());
-                        $pendingSurvey = $moduleSurveys->first(fn ($s) => ! isset($submittedSurveyIds[$s->survey_id]));
-                    @endphp
-                    @if($pendingSurvey)
-                        <a href="{{ route('feedback.surveys.show', $pendingSurvey) }}"
-                           class="btn btn-sm btn-warning">
-                            <i class="bi bi-chat-square-text"></i> {{ __('pages.give_feedback') }}
-                        </a>
-                    @elseif($moduleSurveys->isNotEmpty())
+                    @if($feedbackOpen)
+                        <span class="badge bg-success">
+                            <i class="bi bi-chat-square-text"></i> {{ __('pages.feedback_open') }}
+                        </span>
+                    @endif
+                    @if($canManageCurriculum && $canManageFeedback)
                         <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-light">
-                            <i class="bi bi-check-circle"></i> {{ __('pages.feedback_submitted') }}
+                            <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
+                        </a>
+                        <a href="{{ route('feedback.surveys.create', ['course_id' => $course->course_id, 'module_id' => $module->module_id]) }}"
+                           class="btn btn-sm btn-light text-dark">
+                            <i class="bi bi-plus-lg"></i> {{ __('pages.feedback_create_survey') }}
                         </a>
                     @endif
                 </div>
@@ -53,6 +62,17 @@
 
             @if($module->description)
                 <div class="px-3 pt-2 text-muted small">{{ $module->description }}</div>
+            @endif
+
+            @if($feedbackOpen)
+                @include('course-content.partials.module-surveys', [
+                    'module' => $module,
+                    'course' => $course,
+                    'surveys' => $surveysForModule,
+                    'submittedSurveyIds' => $submittedSurveyIds,
+                    'canManageFeedback' => $canManageFeedback,
+                    'variant' => 'student',
+                ])
             @endif
 
             @if($module->exams->isNotEmpty())
