@@ -55,7 +55,11 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Tenancy\ResolveTenant::class,
-            \App\Tenancy\EnsureChurchMember::class,
+            // NOTE: the church-membership gate must run AFTER authentication. On the API,
+            // auth is `auth:sanctum` route middleware (runs after this group), so a bearer
+            // token isn't resolved here yet — `$request->user()` (default web guard) is null
+            // and the gate would no-op. It is applied via the `church.member` alias inside
+            // the `auth:sanctum` groups in routes/api.php instead.
         ],
     ];
 
