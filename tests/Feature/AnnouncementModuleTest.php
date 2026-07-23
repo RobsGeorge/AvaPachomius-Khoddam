@@ -6,6 +6,8 @@ use App\Mail\AnnouncementMail;
 use App\Models\Announcement;
 use App\Models\AnnouncementDelivery;
 use App\Models\User;
+use App\Models\UserNotification;
+use App\Services\NotificationScannerService;
 use App\Services\ProfilePhotoGateService;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
@@ -52,6 +54,13 @@ class AnnouncementModuleTest extends EventModuleTestCase
             'user_id' => $student->user_id,
         ]);
 
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $student->user_id,
+            'type' => UserNotification::TYPE_ADMIN_ANNOUNCEMENT,
+            'title' => 'Important update',
+            'dedupe_key' => "admin_announcement:{$announcement->announcement_id}:user:{$student->user_id}",
+        ]);
+
         Mail::assertSent(AnnouncementMail::class);
 
         $this->actingAs($student)
@@ -68,6 +77,53 @@ class AnnouncementModuleTest extends EventModuleTestCase
             ->assertSee('Please review the new schedule.');
 
         $this->assertNotNull($delivery->fresh()->read_at);
+    }
+
+    public function test_publish_keeps_deliveries_when_recipient_notification_fails(): void
+    {
+        Mail::fake();
+
+        $studentRole = $this->createRole('student');
+        $instructorRole = $this->createRole('instructor');
+
+        $instructor = $this->createUser(['email' => 'announce-resilient-instructor@example.com']);
+        $student = $this->createUser(['email' => 'announce-resilient-student@example.com']);
+        $course = $this->createCourse(['title' => 'Resilient Announce Course']);
+
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->mock(NotificationScannerService::class, function ($mock) {
+            $mock->shouldReceive('notifyAnnouncement')
+                ->once()
+                ->andThrow(new \RuntimeException('forced notification failure'));
+        });
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.store'), [
+                'title' => 'Still delivered',
+                'body' => 'Delivery must survive notification errors.',
+                'target_mode' => Announcement::TARGET_COURSE,
+                'course_id' => $course->course_id,
+                'channels' => [
+                    Announcement::CHANNEL_HOMEPAGE => true,
+                ],
+            ])
+            ->assertRedirect();
+
+        $announcement = Announcement::query()->first();
+        $this->assertNotNull($announcement);
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.publish', $announcement))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('announcement_deliveries', [
+            'announcement_id' => $announcement->announcement_id,
+            'user_id' => $student->user_id,
+        ]);
+
+        $this->assertSame(Announcement::STATUS_PUBLISHED, $announcement->fresh()->status);
     }
 
     public function test_student_without_photo_is_hard_blocked_after_grace_period(): void

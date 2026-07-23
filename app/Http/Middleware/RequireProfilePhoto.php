@@ -22,9 +22,16 @@ class RequireProfilePhoto
             return $next($request);
         }
 
-        $this->photoGate->ensureGraceStarted($user);
+        try {
+            $this->photoGate->ensureGraceStarted($user);
+            $hardBlocked = $this->photoGate->isHardBlocked($user);
+        } catch (\Throwable $e) {
+            report($e);
 
-        if (! $this->photoGate->isHardBlocked($user)) {
+            return $next($request);
+        }
+
+        if (! $hardBlocked) {
             return $next($request);
         }
 
@@ -54,6 +61,7 @@ class RequireProfilePhoto
             'notifications.settings',
             'notifications.settings.update',
             'notifications.mark-all-read',
+            'notifications.toggle-read',
             'notifications.reminders.store',
             'notifications.reminders.destroy',
             'course-applications.index',

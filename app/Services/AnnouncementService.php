@@ -13,7 +13,9 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 class AnnouncementService
 {
@@ -30,48 +32,34 @@ class AnnouncementService
     /** @param array<string, mixed> $data */
     public function createDraft(User $author, array $data): Announcement
     {
-        $announcement = Announcement::create([
+        $announcement = Announcement::create($this->persistableAttributes($data, [
             'created_by_user_id' => $author->user_id,
-            'course_id' => $data['course_id'] ?? null,
-            'service_id' => $data['service_id'] ?? null,
-            'title' => $data['title'],
-            'body' => $data['body'],
-            'target_mode' => $data['target_mode'],
-            'channels' => $this->normalizeChannels($data['channels'] ?? []),
             'status' => Announcement::STATUS_DRAFT,
-            'banner_starts_at' => $data['banner_starts_at'] ?? null,
-            'banner_ends_at' => $data['banner_ends_at'] ?? null,
-        ]);
+        ]));
 
         $this->syncTargetUsers($announcement, $data['target_user_ids'] ?? []);
         $this->recordRevision($announcement, $author, AnnouncementRevision::ACTION_CREATED);
 
-        return $announcement->fresh(['targetUsers', 'course', 'service']);
+        return $this->freshAnnouncement($announcement);
     }
 
     /** @param array<string, mixed> $data */
     public function updateAnnouncement(Announcement $announcement, User $editor, array $data): Announcement
     {
-        $announcement->fill([
-            'course_id' => $data['course_id'] ?? null,
-            'service_id' => $data['service_id'] ?? null,
-            'title' => $data['title'],
-            'body' => $data['body'],
-            'target_mode' => $data['target_mode'],
-            'channels' => $this->normalizeChannels($data['channels'] ?? []),
-            'banner_starts_at' => $data['banner_starts_at'] ?? null,
-            'banner_ends_at' => $data['banner_ends_at'] ?? null,
-        ])->save();
+        $announcement->fill($this->persistableAttributes($data))->save();
 
         $this->syncTargetUsers($announcement, $data['target_user_ids'] ?? []);
         $this->recordRevision($announcement, $editor, AnnouncementRevision::ACTION_UPDATED);
 
-        return $announcement->fresh(['targetUsers', 'course', 'service']);
+        return $this->freshAnnouncement($announcement);
     }
 
     public function publish(Announcement $announcement, User $publisher, bool $republish = false): Announcement
     {
-        return DB::transaction(function () use ($announcement, $publisher, $republish) {
+        // Persist publish + deliveries only inside the transaction. Portal notifications
+        // and SMTP must run after commit — otherwise a mail timeout/500 rolls back
+        // deliveries and students never see the announcement.
+        $recipients = DB::transaction(function () use ($announcement, $publisher, $republish) {
             $announcement->update([
                 'status' => Announcement::STATUS_PUBLISHED,
                 'published_at' => now($this->timezone()),
@@ -88,7 +76,19 @@ class AnnouncementService
                     ],
                     []
                 );
+            }
 
+            $this->recordRevision(
+                $announcement,
+                $publisher,
+                $republish ? AnnouncementRevision::ACTION_REPUBLISHED : AnnouncementRevision::ACTION_PUBLISHED
+            );
+
+            return $recipients;
+        });
+
+        foreach ($recipients as $recipient) {
+            try {
                 $this->communicationLogs->record([
                     'user' => $recipient,
                     'channel' => CommunicationLog::CHANNEL_ANNOUNCEMENT,
@@ -105,20 +105,20 @@ class AnnouncementService
                 ]);
 
                 app(NotificationScannerService::class)->notifyAnnouncement($recipient, $announcement);
+            } catch (\Throwable $e) {
+                Log::warning('Announcement recipient notification failed', [
+                    'announcement_id' => $announcement->announcement_id,
+                    'user_id' => $recipient->user_id,
+                    'error' => $e->getMessage(),
+                ]);
             }
+        }
 
-            if ($announcement->hasChannel(Announcement::CHANNEL_EMAIL)) {
-                $this->sendEmails($announcement, $recipients);
-            }
+        if ($announcement->hasChannel(Announcement::CHANNEL_EMAIL)) {
+            $this->sendEmails($announcement, $recipients);
+        }
 
-            $this->recordRevision(
-                $announcement,
-                $publisher,
-                $republish ? AnnouncementRevision::ACTION_REPUBLISHED : AnnouncementRevision::ACTION_PUBLISHED
-            );
-
-            return $announcement->fresh(['deliveries.user', 'revisions.editor', 'publisher', 'creator']);
-        });
+        return $announcement->fresh(['deliveries.user', 'revisions.editor', 'publisher', 'creator']);
     }
 
     public function resendEmails(Announcement $announcement, User $actor): int
@@ -280,7 +280,7 @@ class AnnouncementService
                 }
 
                 return $announcement->hasChannel(Announcement::CHANNEL_BANNER_DISMISSIBLE)
-                    && $delivery->dismissed_at === null;
+                    && ! $delivery->isDismissed();
             })
             ->map(fn (AnnouncementDelivery $delivery) => [
                 'announcement' => $delivery->announcement,
@@ -387,6 +387,43 @@ class AnnouncementService
         }
 
         return $sent;
+    }
+
+    /**
+     * Build fillable create/update attributes, omitting columns that are not
+     * present yet (e.g. service_id before the service-org migration on a clone).
+     *
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $extra
+     * @return array<string, mixed>
+     */
+    private function persistableAttributes(array $data, array $extra = []): array
+    {
+        $attributes = array_merge($extra, [
+            'course_id' => $data['course_id'] ?? null,
+            'title' => $data['title'],
+            'body' => $data['body'],
+            'target_mode' => $data['target_mode'],
+            'channels' => $this->normalizeChannels($data['channels'] ?? []),
+            'banner_starts_at' => $data['banner_starts_at'] ?? null,
+            'banner_ends_at' => $data['banner_ends_at'] ?? null,
+        ]);
+
+        if (Schema::hasColumn('announcements', 'service_id')) {
+            $attributes['service_id'] = $data['service_id'] ?? null;
+        }
+
+        return $attributes;
+    }
+
+    private function freshAnnouncement(Announcement $announcement): Announcement
+    {
+        $with = ['targetUsers', 'course'];
+        if (Schema::hasColumn('announcements', 'service_id') && ChurchService::tableReady()) {
+            $with[] = 'service';
+        }
+
+        return $announcement->fresh($with);
     }
 
     /** @param list<int|string> $userIds */

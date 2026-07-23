@@ -20,7 +20,7 @@
         <div class="alert alert-danger">
             {{ __('pages.profile_photo_required_locked') }}
         </div>
-    @elseif($photoDeadline)
+    @elseif($photoDeadline instanceof \Illuminate\Support\Carbon)
         <div class="alert alert-warning">
             {{ __('pages.profile_photo_required_banner', ['deadline' => $photoDeadline->format('d/m/Y H:i')]) }}
         </div>
@@ -132,34 +132,4 @@
     </div>
 </div>
 
-@if(!empty($photoGateBlocked) && ! $user->profile_photo)
-<div class="modal fade" id="photoRequiredModal" tabindex="-1" aria-hidden="true" data-show-on-load="1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ __('pages.profile_photo_required_locked') }}</h5>
-            </div>
-            <div class="modal-body text-center">
-                <p class="mb-3">{{ __('pages.upload_new_photo') }}</p>
-                <label for="profile_photo_modal_input" class="btn btn-primary">
-                    <i class="bi bi-camera"></i> {{ __('pages.profile_photo_required_link') }}
-                </label>
-                <input type="file" id="profile_photo_modal_input" class="d-none" accept="image/*"
-                       onchange="document.getElementById('profile_photo_input').files = this.files; document.getElementById('profilePhotoUploadForm').submit();">
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-@endpush
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const requiredModal = document.getElementById('photoRequiredModal');
-    if (requiredModal?.dataset.showOnLoad === '1') {
-        bootstrap.Modal.getOrCreateInstance(requiredModal, { backdrop: 'static', keyboard: false }).show();
-    }
-});
-</script>
 @endpush

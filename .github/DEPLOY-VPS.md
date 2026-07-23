@@ -92,3 +92,29 @@ php8.2 artisan up
 Heavy schema changes (new columns on `lectures` / `session`) need a quiet window. The deploy workflow enables maintenance mode before migrations to reduce table locks.
 
 If `migrate:deploy` fails with a lock error, wait for traffic to drop or run the manual commands above during off-peak hours.
+
+## Laravel scheduler (cron)
+
+Daily birthday emails and portal notifications for course staff depend on the scheduler.
+Without a system cron entry, `birthdays:notify-daily` never runs even though it is registered
+in `app/Console/Kernel.php` (daily at `00:05` in the attendance timezone).
+
+On the VPS as root (or via `sudo crontab -u deploy -e`):
+
+```bash
+* * * * * cd /var/www/avapakhomios && php8.2 artisan schedule:run >> /dev/null 2>&1
+```
+
+For staging:
+
+```bash
+* * * * * cd /var/www/khedma-staging && php8.2 artisan schedule:run >> /dev/null 2>&1
+```
+
+Verify:
+
+```bash
+cd /var/www/avapakhomios
+php8.2 artisan schedule:list | grep birthdays
+php8.2 artisan birthdays:notify-daily --date=$(date +%F)
+```

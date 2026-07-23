@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
 
 class User extends Authenticatable
 {
+    use Concerns\SafelyCastsDates;
     use Notifiable, HasApiTokens, HasFactory;
 
     public const PHOTO_STATUS_PENDING = 'pending';

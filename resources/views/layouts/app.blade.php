@@ -10,7 +10,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', __('app.name'))</title>
-    <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml" />
+    @php
+        $faviconOverride = trim($__env->yieldContent('favicon_icon'));
+        $faviconUrl = app(\App\Support\PageFavicon::class)->url(
+            auth()->user(),
+            $faviconOverride !== '' ? $faviconOverride : ($pageIcon ?? null)
+        );
+    @endphp
+    <link rel="icon" href="{{ $faviconUrl }}" type="image/svg+xml" />
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -21,7 +28,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260714b">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260722a">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">

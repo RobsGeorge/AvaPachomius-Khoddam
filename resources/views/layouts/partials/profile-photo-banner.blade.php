@@ -1,4 +1,9 @@
-@if(!empty($profilePhotoWarning) && $profilePhotoDeadline)
+@if(!empty($profilePhotoHardBlocked))
+    <div class="alert alert-danger profile-photo-banner mb-0 rounded-0 border-0 text-center">
+        {{ __('pages.profile_photo_required_locked') }}
+        <a href="{{ route('profile') }}" class="alert-link fw-semibold">{{ __('pages.profile_photo_required_link') }}</a>
+    </div>
+@elseif(!empty($profilePhotoWarning) && $profilePhotoDeadline instanceof \Illuminate\Support\Carbon)
     <div class="alert alert-warning profile-photo-banner mb-0 rounded-0 border-0 text-center">
         {{ __('pages.profile_photo_required_banner', ['deadline' => $profilePhotoDeadline->format('d/m/Y H:i')]) }}
         <a href="{{ route('profile') }}" class="alert-link fw-semibold">{{ __('pages.profile_photo_required_link') }}</a>

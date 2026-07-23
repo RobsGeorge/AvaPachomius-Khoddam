@@ -27,7 +27,7 @@ class BirthdayNotificationService
             return ['count' => 0, 'recipients' => collect()];
         }
 
-        $staff = $this->rosterService->courseStaff($course->course_id);
+        $staff = $this->rosterService->birthdayNotificationRecipients($course->course_id);
         $recipients = collect();
 
         foreach ($staff as $recipient) {
@@ -76,7 +76,7 @@ class BirthdayNotificationService
             return ['emails' => 0, 'portal' => 0, 'recipients' => collect()];
         }
 
-        $staff = $this->rosterService->courseStaff($course->course_id);
+        $staff = $this->rosterService->birthdayNotificationRecipients($course->course_id);
         $recipients = collect();
         $emailCount = 0;
         $portalCount = 0;
@@ -101,7 +101,7 @@ class BirthdayNotificationService
                 'course',
                 $course->course_id,
                 UserNotification::PRIORITY_NORMAL,
-                [],
+                ['course_id' => $course->course_id],
                 "birthday_today:{$course->course_id}:{$dateKey}"
             );
             $portalCount++;

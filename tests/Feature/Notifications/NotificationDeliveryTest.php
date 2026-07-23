@@ -121,4 +121,109 @@ class NotificationDeliveryTest extends EventModuleTestCase
             UserNotification::query()->where('user_id', $user->user_id)->whereNull('read_at')->count()
         );
     }
+
+    public function test_toggle_read_marks_notification_read_without_leaving_inbox(): void
+    {
+        $user = $this->createUser(['email' => 'toggle-read-notif@example.com']);
+
+        $notification = UserNotification::create([
+            'user_id' => $user->user_id,
+            'type' => 'exam_upcoming',
+            'title' => 'Toggle read',
+            'body' => 'Unread item',
+            'dedupe_key' => 'notif:toggle-read:1',
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('notifications.index'))
+            ->post(route('notifications.toggle-read', $notification))
+            ->assertRedirect(route('notifications.index'))
+            ->assertSessionHas('success');
+
+        $this->assertNotNull($notification->fresh()->read_at);
+    }
+
+    public function test_toggle_read_marks_notification_unread_when_already_read(): void
+    {
+        $user = $this->createUser(['email' => 'toggle-unread-notif@example.com']);
+
+        $notification = UserNotification::create([
+            'user_id' => $user->user_id,
+            'type' => 'exam_upcoming',
+            'title' => 'Toggle unread',
+            'body' => 'Read item',
+            'read_at' => now(),
+            'dedupe_key' => 'notif:toggle-unread:1',
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('notifications.index'))
+            ->post(route('notifications.toggle-read', $notification))
+            ->assertRedirect(route('notifications.index'))
+            ->assertSessionHas('success');
+
+        $this->assertNull($notification->fresh()->read_at);
+    }
+
+    public function test_notification_index_shows_toggle_read_button(): void
+    {
+        $user = $this->createUser(['email' => 'toggle-btn-notif@example.com']);
+
+        UserNotification::create([
+            'user_id' => $user->user_id,
+            'type' => 'exam_upcoming',
+            'title' => 'Button test',
+            'body' => 'Has toggle',
+            'dedupe_key' => 'notif:toggle-btn:1',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('notification-read-toggle', false)
+            ->assertSee(__('notifications.mark_read'), false);
+    }
+
+    public function test_unread_badge_caps_at_nine_plus_without_full_count(): void
+    {
+        $user = $this->createUser([
+            'email' => 'badge-cap@example.com',
+            'application_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        $feed = app(\App\Services\NotificationFeedService::class);
+
+        for ($i = 1; $i <= 8; $i++) {
+            UserNotification::create([
+                'user_id' => $user->user_id,
+                'type' => 'exam_upcoming',
+                'title' => "Unread {$i}",
+                'body' => 'Body',
+                'dedupe_key' => "notif:badge-cap:{$i}",
+            ]);
+        }
+
+        $this->assertSame(8, $feed->unreadBadgeCount($user));
+        $this->assertSame('8', $feed->unreadBadgeLabel($user));
+
+        for ($i = 9; $i <= 12; $i++) {
+            UserNotification::create([
+                'user_id' => $user->user_id,
+                'type' => 'exam_upcoming',
+                'title' => "Unread {$i}",
+                'body' => 'Body',
+                'dedupe_key' => "notif:badge-cap:{$i}",
+            ]);
+        }
+
+        $this->assertSame(9, $feed->unreadBadgeCount($user));
+        $this->assertSame('9+', $feed->unreadBadgeLabel($user));
+        $this->assertSame(12, $feed->unreadCount($user));
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('9+', false);
+    }
 }

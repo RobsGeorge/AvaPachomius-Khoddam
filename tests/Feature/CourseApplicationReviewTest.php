@@ -12,6 +12,7 @@ use App\Models\CourseUserApplicationStatus;
 use App\Models\UserCourseRole;
 use App\Models\UserNotification;
 use App\Services\CourseApplicationFormService;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
 
@@ -121,19 +122,24 @@ class CourseApplicationReviewTest extends EventModuleTestCase
     public function test_student_submit_creates_pending_application_and_notifies_staff(): void
     {
         Mail::fake();
+        Artisan::call('permissions:sync');
 
-        $roles = $this->seedBasicRoles();
         $course = $this->createCourse(['title' => 'Apply Course']);
         $admin = $this->createUser(['email' => 'course-app-staff@example.com']);
-        $this->assignCourseRole($admin, $course, $roles['admin']);
-        $this->createEnabledForm($course, $roles);
+        $adminRole = $this->courseRoleWithPermissions($course, 'admin', [
+            'role.manage',
+            'course_application.review',
+        ]);
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', ['exam.view']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->createEnabledForm($course, ['student' => $studentRole, 'admin' => $adminRole]);
 
         $student = $this->createUser([
             'email' => 'course-app-student@example.com',
             'application_status' => 'approved',
             'is_verified' => true,
         ]);
-        $this->assignCourseRole($student, $this->createCourse(), $roles['student']);
+        $this->assignCourseRole($student, $this->createCourse(), $this->createRole('student'));
 
         $this->actingAs($student)
             ->post(route('courses.apply.store', $course->course_id), [
@@ -379,5 +385,91 @@ class CourseApplicationReviewTest extends EventModuleTestCase
             ->assertSee(__('course_applications.available_courses_title'))
             ->assertSee('Enrolled Course')
             ->assertSee('Open Course');
+    }
+
+    public function test_course_role_review_permission_unlocks_queue_nav_and_notification(): void
+    {
+        Artisan::call('permissions:sync');
+
+        $course = $this->createCourse(['title' => 'Reviewable Course']);
+        $otherCourse = $this->createCourse(['title' => 'Other Course']);
+        $reviewer = $this->createUser(['email' => 'course-app-reviewer@example.com']);
+        // Course grant only — no role.manage / system role.
+        $reviewRole = $this->courseRoleWithPermissions($course, 'application-reviewer', [
+            'course_application.review',
+        ]);
+        $this->assignCourseRole($reviewer, $course, $reviewRole);
+
+        $this->assertTrue($reviewer->fresh()->canAccessAdminCourseApplications($course));
+        $this->assertFalse($reviewer->fresh()->isAdmin());
+
+        $navUrls = collect(\App\Support\NavigationHub::systemLinks($reviewer->fresh()))
+            ->pluck('url');
+        $this->assertTrue(
+            $navUrls->contains(route('admin.course-applications.index')),
+            'Course-level course_application.review must surface the applications queue in nav'
+        );
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.course-applications.index'))
+            ->assertOk();
+
+        $form = $this->createEnabledForm($course, [
+            'student' => $this->courseRoleWithPermissions($course, 'student', ['exam.view']),
+        ]);
+        $otherForm = $this->createEnabledForm($otherCourse, [
+            'student' => $this->courseRoleWithPermissions($otherCourse, 'student-other', ['exam.view']),
+        ]);
+
+        $student = $this->createUser([
+            'email' => 'course-app-applicant@example.com',
+            'application_status' => 'approved',
+            'is_verified' => true,
+        ]);
+
+        $application = CourseApplication::create([
+            'user_id' => $student->user_id,
+            'course_id' => $course->course_id,
+            'form_id' => $form->id,
+            'status' => CourseApplication::STATUS_PENDING_REVIEW,
+            'snapshot' => ['motivation' => 'I want to serve.', 'experience' => 'One year'],
+            'submitted_at' => now(),
+        ]);
+
+        $reflection = new \ReflectionClass(\App\Services\CourseApplicationService::class);
+        $method = $reflection->getMethod('notifyStaffOfSubmission');
+        $method->setAccessible(true);
+        $method->invoke(app(\App\Services\CourseApplicationService::class), $application);
+
+        $this->assertTrue(
+            UserNotification::query()
+                ->where('user_id', $reviewer->user_id)
+                ->where('type', 'course_application_submitted')
+                ->exists(),
+            'Reviewers with course_application.review must be notified on submit'
+        );
+
+        $otherApplication = CourseApplication::create([
+            'user_id' => $student->user_id,
+            'course_id' => $otherCourse->course_id,
+            'form_id' => $otherForm->id,
+            'status' => CourseApplication::STATUS_PENDING_REVIEW,
+            'snapshot' => ['motivation' => 'Other'],
+            'submitted_at' => now(),
+        ]);
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.course-applications.index'))
+            ->assertOk()
+            ->assertSee('Reviewable Course')
+            ->assertDontSee('Other Course');
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.course-applications.show', $application))
+            ->assertOk();
+
+        $this->actingAs($reviewer)
+            ->get(route('admin.course-applications.show', $otherApplication))
+            ->assertForbidden();
     }
 }

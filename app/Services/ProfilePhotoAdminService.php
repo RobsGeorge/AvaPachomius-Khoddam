@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\Storage;
 
 class ProfilePhotoAdminService
 {
+    /** @var Collection<int, User>|null */
+    private ?Collection $studentsCache = null;
+
     public function __construct(
         private ProfilePhotoGateService $gate
     ) {}
@@ -22,28 +25,71 @@ class ProfilePhotoAdminService
     /** @return Collection<int, User> */
     public function studentReport(?string $filter = null): Collection
     {
+        $students = $this->enrolledStudents();
+
+        if ($filter) {
+            return $students
+                ->filter(fn (User $user) => $this->gate->complianceStatus($user) === $filter)
+                ->values();
+        }
+
+        return $students;
+    }
+
+    /**
+     * Status tallies from a single student load (avoids 7× full-table scans on the report page).
+     *
+     * @return array{not_started: int, in_grace: int, overdue: int, pending_review: int, approved: int, rejected: int}
+     */
+    public function statusCounts(): array
+    {
+        $counts = [
+            'not_started' => 0,
+            'in_grace' => 0,
+            'overdue' => 0,
+            'pending_review' => 0,
+            'approved' => 0,
+            'rejected' => 0,
+        ];
+
+        foreach ($this->enrolledStudents() as $student) {
+            $status = $this->gate->complianceStatus($student);
+            if (array_key_exists($status, $counts)) {
+                $counts[$status]++;
+            }
+        }
+
+        return $counts;
+    }
+
+    /** @return Collection<int, User> */
+    private function enrolledStudents(): Collection
+    {
+        if ($this->studentsCache !== null) {
+            return $this->studentsCache;
+        }
+
         $studentRoleIds = Role::studentRoleIds();
 
         if ($studentRoleIds->isEmpty()) {
-            return collect();
+            return $this->studentsCache = collect();
         }
 
         $studentIds = UserCourseRole::query()
             ->whereIn('role_id', $studentRoleIds)
             ->pluck('user_id')
-            ->unique();
+            ->unique()
+            ->values();
 
-        $students = User::query()
+        if ($studentIds->isEmpty()) {
+            return $this->studentsCache = collect();
+        }
+
+        return $this->studentsCache = User::query()
             ->whereIn('user_id', $studentIds)
             ->orderBy('first_name')
             ->orderBy('second_name')
             ->get();
-
-        if ($filter) {
-            $students = $students->filter(fn (User $user) => $this->gate->reportStatus($user) === $filter)->values();
-        }
-
-        return $students;
     }
 
     public function updateSettings(int $graceDays, bool $enabled): PortalSettings

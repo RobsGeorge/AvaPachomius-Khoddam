@@ -4,8 +4,7 @@
 
 @section('content')
 @php
-    use App\Services\ProfilePhotoGateService;
-    $gate = app(ProfilePhotoGateService::class);
+    $gate = app(\App\Services\ProfilePhotoGateService::class);
 @endphp
 <div class="container-fluid py-4 animate-in student-data-hub">
     <div class="mb-4">
@@ -72,8 +71,12 @@
             </thead>
             <tbody>
                 @forelse($students as $student)
-                    @php($status = $gate->reportStatus($student))
-                    @php($deadline = $gate->deadlineFor($student))
+                    @php
+                        $status = $gate->complianceStatus($student);
+                        $deadline = $gate->complianceDeadline($student);
+                        $graceStarted = $gate->safeDate($student, 'profile_photo_grace_started_at');
+                        $uploadedAt = $gate->safeDate($student, 'profile_photo_uploaded_at');
+                    @endphp
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
@@ -92,9 +95,9 @@
                             </div>
                         </td>
                         <td><span class="badge bg-secondary">{{ __('profile_photos.status_'.$status) }}</span></td>
-                        <td>{{ $student->profile_photo_grace_started_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                        <td>{{ $graceStarted?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>{{ $deadline?->format('d/m/Y H:i') ?? '—' }}</td>
-                        <td>{{ $student->profile_photo_uploaded_at?->format('d/m/Y H:i') ?? '—' }}</td>
+                        <td>{{ $uploadedAt?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>
                             <div class="d-flex flex-column gap-2">
                                 @if($student->isProfilePhotoPending())
@@ -144,8 +147,12 @@
 
     <div class="d-lg-none admin-data-cards student-data-hub">
         @forelse($students as $student)
-            @php($status = $gate->reportStatus($student))
-            @php($deadline = $gate->deadlineFor($student))
+            @php
+                $status = $gate->complianceStatus($student);
+                $deadline = $gate->complianceDeadline($student);
+                $graceStarted = $gate->safeDate($student, 'profile_photo_grace_started_at');
+                $uploadedAt = $gate->safeDate($student, 'profile_photo_uploaded_at');
+            @endphp
             <article class="data-card app-card card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-2">
@@ -169,7 +176,7 @@
                         </div>
                         <div class="data-meta-row">
                             <dt>{{ __('profile_photos.grace_started') }}</dt>
-                            <dd>{{ $student->profile_photo_grace_started_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                            <dd>{{ $graceStarted?->format('d/m/Y H:i') ?? '—' }}</dd>
                         </div>
                         <div class="data-meta-row">
                             <dt>{{ __('profile_photos.deadline') }}</dt>
@@ -177,7 +184,7 @@
                         </div>
                         <div class="data-meta-row">
                             <dt>{{ __('profile_photos.uploaded_at') }}</dt>
-                            <dd>{{ $student->profile_photo_uploaded_at?->format('d/m/Y H:i') ?? '—' }}</dd>
+                            <dd>{{ $uploadedAt?->format('d/m/Y H:i') ?? '—' }}</dd>
                         </div>
                     </dl>
                     <div class="data-card-actions d-flex flex-column gap-2">
@@ -218,4 +225,6 @@
         @endforelse
     </div>
 </div>
+
+@include('students.partials.student-photo-modal')
 @endsection

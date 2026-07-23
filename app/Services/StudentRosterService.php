@@ -160,12 +160,45 @@ class StudentRosterService
 
         return User::query()
             ->whereIn('user_id', $userIds)
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
             ->orderBy('first_name')
+            ->orderBy('second_name')
             ->get()
-            ->unique('email')
+            ->unique('user_id')
             ->values();
+    }
+
+    /**
+     * Course staff who should receive birthday announcements (email + portal).
+     * Includes slug-based admin/instructor roles and any role with roster.announce.
+     */
+    public function birthdayNotificationRecipients(Course|string $course, bool $includeArchived = false): Collection
+    {
+        $courseId = $course instanceof Course ? $course->course_id : $course;
+        $courseModel = $course instanceof Course ? $course : Course::find($courseId);
+
+        $staff = $this->courseStaff($courseId, $includeArchived);
+
+        if (! $courseModel) {
+            return $staff;
+        }
+
+        $resolver = app(CoursePermissionResolver::class);
+
+        $query = UserCourseRole::query()->where('course_id', $courseId);
+        if (! $includeArchived) {
+            $query->activeStaff();
+        }
+
+        $assigneeIds = $query->pluck('user_id')->unique();
+
+        $permissionHolders = User::query()
+            ->whereIn('user_id', $assigneeIds)
+            ->orderBy('first_name')
+            ->orderBy('second_name')
+            ->get()
+            ->filter(fn (User $user) => $resolver->canInCourse($user, 'roster.announce', $courseModel));
+
+        return $staff->merge($permissionHolders)->unique('user_id')->values();
     }
 
     public function studentsWithBirthdayInMonth(Collection $students, int $month, ?Carbon $on = null): Collection

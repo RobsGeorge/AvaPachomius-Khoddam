@@ -649,7 +649,8 @@ return [
     ],
 
     'course_applications' => [
-        'scope' => 'system',
+        // both: grantable on course admin roles (roles hub) and system roles
+        'scope' => 'both',
         'label_en' => 'Course Applications',
         'label_ar' => 'طلبات الالتحاق بالدورات',
         'sort' => 210,
@@ -759,7 +760,7 @@ return [
                 'label_en' => 'Flush all sessions',
                 'label_ar' => 'إنهاء كل الجلسات',
                 'type' => 'endpoint',
-                'routes' => ['superadmin.sessions.flush-all'],
+                'routes' => ['superadmin.sessions.flush-all', 'superadmin.sessions.flush-users'],
                 'system_only' => true,
             ],
             'platform.course_crud' => [

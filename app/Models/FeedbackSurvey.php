@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class FeedbackSurvey extends Model
 {
     use BelongsToChurch;
+    use Concerns\SafelyCastsDates;
 
     public const STATUS_DRAFT = 'draft';
     public const STATUS_OPEN = 'open';

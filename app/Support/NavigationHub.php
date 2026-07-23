@@ -366,11 +366,11 @@ class NavigationHub
             $links[] = self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*'], 'registration.review');
         }
 
-        if ($user->canInSystem('course_application.form_builder')) {
+        if ($user->canAccessAdminCourseApplicationForms()) {
             $links[] = self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*'], 'course_application.form_builder');
         }
 
-        if ($user->canInSystem('course_application.review')) {
+        if ($user->canAccessAdminCourseApplications()) {
             $links[] = self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*'], 'course_application.review');
         }
 
@@ -415,6 +415,7 @@ class NavigationHub
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
             self::hubLink('superadmin.system-tests.index', 'nav.system_tests', 'pages.superadmin_system_tests_desc', 'bi-clipboard2-check', ['superadmin.system-tests.*'], true),
+            self::hubLink('superadmin.scheduled-tasks.index', 'nav.scheduled_tasks', 'pages.superadmin_scheduled_tasks_desc', 'bi-clock-history', ['superadmin.scheduled-tasks.*'], true),
         ];
 
         $sharedLinks = [];
@@ -656,6 +657,65 @@ class NavigationHub
                 default => true,
             };
         }));
+    }
+
+    public static function activePageIcon(?User $user): ?string
+    {
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        $activeLinks = array_values(array_filter(
+            self::allNavLinks($user),
+            static fn (array $link): bool => ! empty($link['active']) && ! empty($link['icon'])
+        ));
+
+        if ($activeLinks === []) {
+            return null;
+        }
+
+        $specificLinks = array_values(array_filter(
+            $activeLinks,
+            static fn (array $link): bool => ! self::isGenericHubLink($link)
+        ));
+
+        $chosen = $specificLinks[0] ?? $activeLinks[0];
+
+        return is_string($chosen['icon'] ?? null) ? $chosen['icon'] : null;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected static function allNavLinks(User $user): array
+    {
+        return array_merge(
+            self::academicLinks($user),
+            self::serviceLinks($user),
+            self::systemLinks($user),
+            self::superadminLinks($user),
+        );
+    }
+
+    protected static function isGenericHubLink(array $link): bool
+    {
+        static $hubUrls = null;
+
+        if ($hubUrls === null) {
+            $hubUrls = array_values(array_filter([
+                parse_url(route('hubs.academic', [], false), PHP_URL_PATH),
+                parse_url(route('hubs.service', [], false), PHP_URL_PATH),
+                parse_url(route('hubs.system', [], false), PHP_URL_PATH),
+                parse_url(route('superadmin.index', [], false), PHP_URL_PATH),
+            ]));
+        }
+
+        $url = $link['url'] ?? null;
+        if (! is_string($url) || $url === '') {
+            return false;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH) ?: $url;
+
+        return in_array($path, $hubUrls, true);
     }
 
     protected static function anyActive(array $links): bool

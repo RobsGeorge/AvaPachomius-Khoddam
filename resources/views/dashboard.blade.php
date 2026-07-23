@@ -126,11 +126,11 @@
 
     <div class="row g-4">
         <div class="col-md-6">
-            <a href="{{ route('notifications.index') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none position-relative {{ !empty($unreadNotificationCount) && $unreadNotificationCount > 0 ? 'hub-tile-highlight' : '' }}">
+            <a href="{{ route('notifications.index') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none position-relative {{ !empty($unreadNotificationBadge) ? 'hub-tile-highlight' : '' }}">
                 <h3><i class="bi bi-bell"></i> {{ __('notifications.dashboard_tile') }}</h3>
                 <p class="text-muted-theme mb-0">{{ __('notifications.dashboard_tile_desc') }}</p>
-                @if(!empty($unreadNotificationCount) && $unreadNotificationCount > 0)
-                    <span class="nav-notification-badge position-absolute top-0 end-0 m-3">{{ $unreadNotificationCount }}</span>
+                @if(!empty($unreadNotificationBadge))
+                    <span class="nav-notification-badge position-absolute top-0 end-0 m-3">{{ $unreadNotificationBadge }}</span>
                 @endif
             </a>
         </div>

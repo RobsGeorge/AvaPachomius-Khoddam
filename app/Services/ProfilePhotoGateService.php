@@ -55,9 +55,10 @@ class ProfilePhotoGateService
             return;
         }
 
+        $this->healLegacyZeroDates($user);
         $this->refreshGracePeriodIfNeeded($user);
 
-        if (! $this->appliesTo($user) || $user->profile_photo_grace_started_at) {
+        if (! $this->appliesTo($user) || $this->safeDate($user, 'profile_photo_grace_started_at')) {
             return;
         }
 
@@ -72,13 +73,14 @@ class ProfilePhotoGateService
             return;
         }
 
-        $enabledAt = $this->settings()->profile_photo_gate_enabled_at;
+        $enabledAt = $this->safeSettingsDate('profile_photo_gate_enabled_at');
+        $started = $this->safeDate($user, 'profile_photo_grace_started_at');
 
-        if (! $enabledAt || ! $user->profile_photo_grace_started_at) {
+        if (! $enabledAt || ! $started) {
             return;
         }
 
-        if ($user->profile_photo_grace_started_at->lt($enabledAt)) {
+        if ($started->lt($enabledAt)) {
             $user->forceFill([
                 'profile_photo_grace_started_at' => null,
                 'profile_photo_deadline_at' => null,
@@ -88,15 +90,17 @@ class ProfilePhotoGateService
 
     public function deadlineFor(User $user): ?Carbon
     {
-        if (! $this->appliesTo($user) || ! $user->profile_photo_grace_started_at) {
+        $started = $this->safeDate($user, 'profile_photo_grace_started_at');
+        if (! $this->appliesTo($user) || ! $started) {
             return null;
         }
 
-        if ($user->profile_photo_deadline_at) {
-            return $user->profile_photo_deadline_at->copy()->timezone($this->timezone());
+        $override = $this->safeDate($user, 'profile_photo_deadline_at');
+        if ($override) {
+            return $override->copy()->timezone($this->timezone());
         }
 
-        return $user->profile_photo_grace_started_at
+        return $started
             ->copy()
             ->timezone($this->timezone())
             ->addDays($this->graceDays());
@@ -119,7 +123,7 @@ class ProfilePhotoGateService
             return false;
         }
 
-        if (! $this->appliesTo($user) || ! $user->profile_photo_grace_started_at) {
+        if (! $this->appliesTo($user) || ! $this->safeDate($user, 'profile_photo_grace_started_at')) {
             return false;
         }
 
@@ -146,7 +150,7 @@ class ProfilePhotoGateService
     public function shouldShowWarningBanner(User $user): bool
     {
         return $this->appliesTo($user)
-            && $user->profile_photo_grace_started_at
+            && $this->safeDate($user, 'profile_photo_grace_started_at')
             && $this->isWithinGracePeriod($user);
     }
 
@@ -165,6 +169,15 @@ class ProfilePhotoGateService
 
     public function reportStatus(User $user): string
     {
+        return $this->complianceStatus($user);
+    }
+
+    /**
+     * Admin-report status for an enrolled student. Does not call isStudent()
+     * (permission-resolver heavy / false-negative when learner keys are unsynced).
+     */
+    public function complianceStatus(User $user): string
+    {
         if ($user->isProfilePhotoApproved()) {
             return 'approved';
         }
@@ -177,18 +190,125 @@ class ProfilePhotoGateService
             return 'rejected';
         }
 
-        if (! $user->profile_photo_grace_started_at) {
+        $started = $this->safeDate($user, 'profile_photo_grace_started_at');
+        if (! $started) {
             return 'not_started';
         }
 
-        if ($this->isHardBlocked($user)) {
-            return 'overdue';
-        }
-
-        if ($this->shouldShowWarningBanner($user)) {
+        if (! $this->isEnabled()) {
             return 'in_grace';
         }
 
-        return 'unknown';
+        $deadline = $this->complianceDeadline($user, $started);
+        if ($deadline && now($this->timezone())->gte($deadline)) {
+            return 'overdue';
+        }
+
+        return 'in_grace';
+    }
+
+    /**
+     * Deadline for admin compliance UI (enrolled students; no isStudent() gate).
+     */
+    public function complianceDeadline(User $user, ?Carbon $started = null): ?Carbon
+    {
+        if ($user->isProfilePhotoApproved() || $user->isProfilePhotoPending()) {
+            return null;
+        }
+
+        $started ??= $this->safeDate($user, 'profile_photo_grace_started_at');
+        if (! $started) {
+            return null;
+        }
+
+        $override = $this->safeDate($user, 'profile_photo_deadline_at');
+        if ($override) {
+            return $override->timezone($this->timezone());
+        }
+
+        return $started->copy()->timezone($this->timezone())->addDays($this->graceDays());
+    }
+
+    public function safeDate(User $user, string $attribute): ?Carbon
+    {
+        $raw = $user->getAttributes()[$attribute] ?? null;
+
+        if ($raw === null || $raw === '' || $raw === '0000-00-00' || $raw === '0000-00-00 00:00:00') {
+            return null;
+        }
+
+        if (is_string($raw) && str_starts_with($raw, '0000-00-00')) {
+            return null;
+        }
+
+        try {
+            $value = $user->getAttribute($attribute);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! $value instanceof Carbon) {
+            try {
+                $value = Carbon::parse($raw);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        if ($value->year < 1) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    public function safeSettingsDate(string $attribute): ?Carbon
+    {
+        $settings = $this->settings();
+        $raw = $settings->getAttributes()[$attribute] ?? null;
+
+        if ($raw === null || $raw === '' || (is_string($raw) && str_starts_with($raw, '0000-00-00'))) {
+            return null;
+        }
+
+        try {
+            $value = $settings->getAttribute($attribute);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! $value instanceof Carbon) {
+            try {
+                $value = Carbon::parse($raw);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        if ($value->year < 1) {
+            return null;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Null out MySQL zero-dates so datetime casts never throw on later reads.
+     */
+    private function healLegacyZeroDates(User $user): void
+    {
+        $fix = [];
+        foreach (['profile_photo_grace_started_at', 'profile_photo_deadline_at'] as $attribute) {
+            $raw = $user->getAttributes()[$attribute] ?? null;
+            if (is_string($raw) && str_starts_with($raw, '0000-00-00')) {
+                $fix[$attribute] = null;
+            }
+        }
+
+        if ($fix === []) {
+            return;
+        }
+
+        $user->forceFill($fix)->save();
     }
 }

@@ -33,6 +33,10 @@
     function baseSwalOptions(extraPopupClass = '') {
         return {
             buttonsStyling: true,
+            // Keep the underlying page layout stable when a dialog opens (no body
+            // resize / scrollbar-padding shift).
+            heightAuto: false,
+            scrollbarPadding: false,
             customClass: {
                 popup: swalPopupClass(extraPopupClass),
                 title: 'khoddam-swal-title',
@@ -69,6 +73,11 @@
     function baseToastOptions() {
         return {
             buttonsStyling: false,
+            // Prevent SweetAlert2 from resizing <html>/<body> or adding scrollbar
+            // padding, which otherwise pushes centred layouts (e.g. login) down and
+            // introduces a scroll when a toast appears.
+            heightAuto: false,
+            scrollbarPadding: false,
             customClass: {
                 popup: 'khoddam-swal-popup khoddam-swal-toast',
                 title: 'khoddam-swal-title',

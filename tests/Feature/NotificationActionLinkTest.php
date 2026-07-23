@@ -70,7 +70,7 @@ class NotificationActionLinkTest extends EventModuleTestCase
             'title' => $announcement->title,
             'body' => 'Preview',
             'action_url' => route('announcements.show', $announcement),
-            'dedupe_key' => "admin_announcement:{$announcement->announcement_id}",
+            'dedupe_key' => "admin_announcement:{$announcement->announcement_id}:user:{$student->user_id}",
         ]);
 
         $this->clickNotification($student, $notification)
@@ -374,16 +374,25 @@ class NotificationActionLinkTest extends EventModuleTestCase
 
     public function test_course_application_submitted_skips_instructors_without_admin_access(): void
     {
-        $roles = $this->seedBasicRoles();
-        $instructorRole = $this->createRole('instructor');
+        \Illuminate\Support\Facades\Artisan::call('permissions:sync');
+
         $course = $this->createCourse(['title' => 'Application notify course']);
+        $instructorRole = $this->courseRoleWithPermissions($course, 'instructor', [
+            'attendance.record',
+            'assignment.manage',
+        ]);
+        $adminRole = $this->courseRoleWithPermissions($course, 'admin', [
+            'role.manage',
+            'course_application.review',
+        ]);
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', ['exam.view']);
         $instructor = $this->createUser(['email' => 'notif-link-app-instructor@example.com']);
         $admin = $this->createUser(['email' => 'notif-link-app-admin@example.com']);
         $student = $this->createUser(['email' => 'notif-link-app-student@example.com']);
 
         $this->assignCourseRole($instructor, $course, $instructorRole);
-        $this->assignCourseRole($admin, $course, $roles['admin']);
-        $this->assignCourseRole($student, $course, $roles['student']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($student, $course, $studentRole);
 
         $form = app(CourseApplicationFormService::class)->getOrCreateForCourse($course);
         $application = CourseApplication::create([

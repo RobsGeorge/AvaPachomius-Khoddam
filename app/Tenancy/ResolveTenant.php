@@ -19,9 +19,15 @@ class ResolveTenant
     public function handle(Request $request, Closure $next)
     {
         if (! config('tenancy.enabled')) {
-            $main = Church::main();
-            TenantContext::set($main);
-            view()->share('currentChurch', $main);
+            try {
+                $main = Church::main();
+                TenantContext::set($main);
+                view()->share('currentChurch', $main);
+            } catch (\Throwable $e) {
+                report($e);
+                TenantContext::clear();
+                view()->share('currentChurch', null);
+            }
 
             return $next($request);
         }

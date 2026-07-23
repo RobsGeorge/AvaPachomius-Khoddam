@@ -19,17 +19,9 @@ class ProfilePhotoReportController extends Controller
     public function index(Request $request)
     {
         $filter = $request->query('filter');
-        $students = $this->adminService->studentReport($filter);
+        $students = $this->adminService->studentReport(is_string($filter) ? $filter : null);
         $settings = $this->gate->settings();
-
-        $counts = [
-            'not_started' => $this->adminService->studentReport('not_started')->count(),
-            'in_grace' => $this->adminService->studentReport('in_grace')->count(),
-            'overdue' => $this->adminService->studentReport('overdue')->count(),
-            'pending_review' => $this->adminService->studentReport('pending_review')->count(),
-            'approved' => $this->adminService->studentReport('approved')->count(),
-            'rejected' => $this->adminService->studentReport('rejected')->count(),
-        ];
+        $counts = $this->adminService->statusCounts();
 
         return view('admin.profile-photos.index', compact('students', 'settings', 'filter', 'counts'));
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\ImpersonationService;
 use App\Services\MandatoryFeedbackService;
 use App\Services\RolePreviewService;
 use Closure;
@@ -19,20 +20,26 @@ class RequireMandatoryFeedback
     {
         $user = Auth::user();
 
-        // Role preview must not trap the superadmin in a mandatory survey loop.
-        if (! $user || RolePreviewService::isActive() || ! $user->isStudent()) {
+        // Role preview / impersonation must not trap the superadmin in a mandatory survey loop.
+        if (! $user || RolePreviewService::isActive() || ImpersonationService::isActive() || ! $user->isStudent()) {
             return $next($request);
         }
 
-        if (! $this->mandatoryFeedback->hasPending($user)) {
+        try {
+            if (! $this->mandatoryFeedback->hasPending($user)) {
+                return $next($request);
+            }
+
+            if ($this->routeIsAllowed($request)) {
+                return $next($request);
+            }
+
+            $pending = $this->mandatoryFeedback->firstPending($user);
+        } catch (\Throwable $e) {
+            report($e);
+
             return $next($request);
         }
-
-        if ($this->routeIsAllowed($request)) {
-            return $next($request);
-        }
-
-        $pending = $this->mandatoryFeedback->firstPending($user);
 
         return redirect()
             ->route('feedback.surveys.show', $pending['survey_id'] ?? 0)
@@ -62,6 +69,7 @@ class RequireMandatoryFeedback
             'notifications.settings',
             'notifications.settings.update',
             'notifications.mark-all-read',
+            'notifications.toggle-read',
             'notifications.reminders.store',
             'notifications.reminders.destroy',
             'course-applications.index',

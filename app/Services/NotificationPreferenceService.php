@@ -65,10 +65,27 @@ class NotificationPreferenceService
     {
         $this->ensureDefaults($user);
 
-        return UserNotificationPreference::query()
+        $existing = UserNotificationPreference::query()
             ->where('user_id', $user->user_id)
             ->where('type', $type)
-            ->firstOrFail();
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        // Explicit notify paths (e.g. course_application.review without role.manage)
+        // may target users outside the type's default audience — still seed defaults.
+        $definition = config("notifications.types.{$type}", []);
+
+        return UserNotificationPreference::query()->create([
+            'user_id' => $user->user_id,
+            'type' => $type,
+            'portal_enabled' => $definition['defaults']['portal_enabled'] ?? true,
+            'email_enabled' => $definition['defaults']['email_enabled'] ?? false,
+            'whatsapp_enabled' => $definition['defaults']['whatsapp_enabled'] ?? false,
+            'config' => $definition['defaults']['config'] ?? [],
+        ]);
     }
 
     public function configValue(User $user, string $type, string $key, mixed $default = null): mixed
