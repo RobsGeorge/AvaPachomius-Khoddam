@@ -10,11 +10,27 @@
                 <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                         <h2 class="page-title mb-1">{{ __('pages.submission_status_report') }}</h2>
-                        <p class="text-muted-theme mb-0">{{ $assignment->assignment_name }} — {{ __('pages.due_date') }}: {{ $assignment->due_date->format('Y-m-d H:i') }}</p>
+                        <p class="text-muted-theme mb-0">
+                            {{ $assignment->assignment_name }} — {{ __('pages.due_date') }}: {{ $assignment->due_date->format('Y-m-d H:i') }}
+                            ·
+                            <span class="badge {{ $assignment->isOffline() ? 'bg-secondary' : 'bg-primary' }}">
+                                {{ $assignment->isOffline() ? __('pages.mode_offline_short') : __('pages.mode_online_short') }}
+                            </span>
+                        </p>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{{ route('assignments.show', $assignment) }}" class="btn btn-outline-theme">{{ __('pages.back_to_assignment') }}</a>
                         <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-primary">{{ __('pages.view_submissions') }}</a>
+                        @if(($stats['not_submitted'] + $stats['overdue']) > 0)
+                            <form action="{{ route('assignments.remind-unsubmitted', $assignment) }}" method="POST" class="d-inline"
+                                  onsubmit="return confirm(@json(__('pages.confirm_remind_unsubmitted')))">
+                                @csrf
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-bell me-1"></i>
+                                    {{ __('pages.remind_unsubmitted') }}
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
 
@@ -98,6 +114,9 @@
                                         <td>
                                             @if($submission && $submission->points_earned !== null)
                                                 {{ $submission->points_earned }}/{{ $assignment->total_points }}
+                                                @if($submission->feedback)
+                                                    <div class="small text-muted-theme mt-1">{{ Str::limit($submission->feedback, 80) }}</div>
+                                                @endif
                                             @else
                                                 {{ __('pages.not_graded') }}
                                             @endif
@@ -105,6 +124,11 @@
                                         <td>
                                             @if($submission)
                                                 <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                            @elseif($assignment->isOffline())
+                                                <form action="{{ route('assignments.mark-received', [$assignment, $student]) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-success btn-sm">{{ __('pages.mark_received') }}</button>
+                                                </form>
                                             @elseif($student->email)
                                                 <a href="mailto:{{ $student->email }}" class="btn btn-outline-primary btn-sm">{{ __('pages.contact') }}</a>
                                             @endif
@@ -160,6 +184,9 @@
                                         <dd>
                                             @if($submission && $submission->points_earned !== null)
                                                 {{ $submission->points_earned }}/{{ $assignment->total_points }}
+                                                @if($submission->feedback)
+                                                    <div class="small text-muted-theme mt-1">{{ Str::limit($submission->feedback, 80) }}</div>
+                                                @endif
                                             @else
                                                 {{ __('pages.not_graded') }}
                                             @endif
@@ -169,6 +196,11 @@
                                 <div class="data-card-actions d-flex flex-wrap gap-2">
                                     @if($submission)
                                         <a href="{{ route('assignments.show', $assignment) }}#submissions" class="btn btn-info btn-sm">{{ __('pages.view') }}</a>
+                                    @elseif($assignment->isOffline())
+                                        <form action="{{ route('assignments.mark-received', [$assignment, $student]) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-success btn-sm">{{ __('pages.mark_received') }}</button>
+                                        </form>
                                     @elseif($student->email)
                                         <a href="mailto:{{ $student->email }}" class="btn btn-outline-primary btn-sm">{{ __('pages.contact') }}</a>
                                     @endif

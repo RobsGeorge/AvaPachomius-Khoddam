@@ -8,7 +8,9 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserNotification;
 use App\Services\CoursePermissionResolver;
+use App\Services\NotificationGeneratorService;
 use App\Services\StudentRosterService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -22,6 +24,7 @@ class AssignmentController extends Controller
     public function __construct(
         private StudentRosterService $roster,
         private CoursePermissionResolver $permissions,
+        private NotificationGeneratorService $notifications,
     ) {}
 
     public function index(Request $request)
@@ -92,6 +95,7 @@ class AssignmentController extends Controller
             'due_date' => 'required|date|after:now',
             'instructions' => 'nullable|string',
             'resources' => 'nullable|string',
+            'delivery_mode' => 'required|in:'.Assignment::MODE_ONLINE.','.Assignment::MODE_OFFLINE,
         ]);
 
         $this->authorizeManageCourse((int) $validated['course_id']);
@@ -127,13 +131,21 @@ class AssignmentController extends Controller
         $currentSubmission = null;
         $canSubmit = false;
         $submissionOpen = $assignment->isSubmissionOpen();
+        $pendingStudents = collect();
 
         if (Auth::user()->isStudent()) {
             $currentSubmission = $assignment->submissions()
                 ->where('user_id', Auth::id())
                 ->first();
 
-            $canSubmit = $submissionOpen && $currentSubmission === null;
+            $canSubmit = $assignment->isOnline() && $submissionOpen && $currentSubmission === null;
+        }
+
+        if (Auth::user()->isInstructorOrAdmin() && $assignment->isOffline()) {
+            $submittedUserIds = $submissions->pluck('user_id')->all();
+            $pendingStudents = $this->enrolledStudents($assignment)
+                ->reject(fn (User $student) => in_array($student->user_id, $submittedUserIds, true))
+                ->values();
         }
 
         $studentStatus = $this->resolveSubmissionStatus($assignment, $currentSubmission);
@@ -144,7 +156,8 @@ class AssignmentController extends Controller
             'currentSubmission',
             'canSubmit',
             'submissionOpen',
-            'studentStatus'
+            'studentStatus',
+            'pendingStudents'
         ));
     }
 
@@ -253,6 +266,10 @@ class AssignmentController extends Controller
             abort(403);
         }
 
+        if ($assignment->isOffline()) {
+            return back()->with('error', __('pages.assignment_offline_no_upload'));
+        }
+
         if (! $assignment->isSubmissionOpen()) {
             return back()->with('error', __('pages.submission_deadline_passed'));
         }
@@ -301,12 +318,18 @@ class AssignmentController extends Controller
         ]);
 
         try {
-            $teamSubmissions = $submission->isTeamSubmission()
-                ? $submission->getMainSubmission()->teamSubmissions()->get()
-                : collect([$submission]);
+            $teamSubmissions = collect([$submission]);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('assignment_submission', 'team_submission_id')
+                && $submission->isTeamSubmission()) {
+                $main = $submission->getMainSubmission() ?? $submission;
+                $team = $main->teamSubmissions()->get();
+                $teamSubmissions = $team->isNotEmpty() ? $team->prepend($main)->unique('submission_id') : collect([$submission]);
+            }
+
+            $gradePayload = array_merge($validated, ['graded_at' => now()]);
 
             foreach ($teamSubmissions as $teamSubmission) {
-                $teamSubmission->update($validated);
+                $teamSubmission->update($gradePayload);
             }
 
             return redirect()->route('assignments.show', $assignment)
@@ -322,6 +345,100 @@ class AssignmentController extends Controller
         }
     }
 
+    public function markReceived(Assignment $assignment, User $user)
+    {
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
+
+        if (! $assignment->isOffline()) {
+            return back()->with('error', __('pages.assignment_mark_received_online_only'));
+        }
+
+        $enrolledIds = $this->enrolledStudents($assignment)->pluck('user_id');
+        if (! $enrolledIds->contains($user->user_id)) {
+            return back()->with('error', __('pages.assignment_student_not_enrolled'));
+        }
+
+        $existing = $assignment->submissions()->where('user_id', $user->user_id)->first();
+        if ($existing) {
+            return redirect()->route('assignments.show', $assignment)
+                ->with('success', __('pages.assignment_already_marked_received'));
+        }
+
+        $assignment->submissions()->create([
+            'user_id' => $user->user_id,
+            'submission_content' => null,
+            'file_path' => null,
+            'submitted_at' => now(),
+        ]);
+
+        return back()->with('success', __('pages.assignment_marked_received'));
+    }
+
+    public function remindUnsubmitted(Assignment $assignment)
+    {
+        $this->authorizeViewAssignment($assignment);
+        if ($assignment->course_id) {
+            $this->authorizeManageCourse((int) $assignment->course_id);
+        }
+
+        $students = $this->enrolledStudents($assignment);
+        $submissions = $assignment->submissions()->get()->keyBy('user_id');
+        $dayKey = now()->format('Y-m-d');
+        $sent = 0;
+        $skipped = 0;
+
+        foreach ($students as $student) {
+            $submission = $submissions->get($student->user_id);
+            $status = $this->resolveSubmissionStatus($assignment, $submission);
+            if (! in_array($status, ['not_submitted', 'overdue'], true)) {
+                continue;
+            }
+
+            $title = __('notifications.generated.assignment_submission_reminder_title', [
+                'title' => $assignment->assignment_name,
+            ]);
+            $body = __('notifications.generated.assignment_submission_reminder_body', [
+                'date' => $assignment->due_date?->format('d/m/Y H:i'),
+            ]);
+            $actionUrl = route('assignments.show', $assignment);
+            $dedupeKey = "assignment_submission_reminder:{$assignment->assignment_id}:{$student->user_id}:{$dayKey}";
+
+            if (UserNotification::query()
+                ->where('user_id', $student->user_id)
+                ->where('dedupe_key', $dedupeKey)
+                ->exists()) {
+                $skipped++;
+
+                continue;
+            }
+
+            $this->notifications->createOrUpdate(
+                $student,
+                'assignment_submission_reminder',
+                $title,
+                $body,
+                $actionUrl,
+                Assignment::class,
+                (int) $assignment->assignment_id,
+                metadata: [
+                    'course_id' => $assignment->course_id,
+                    'assignment_id' => $assignment->assignment_id,
+                ],
+                dedupeKey: $dedupeKey,
+            );
+
+            $sent++;
+        }
+
+        return back()->with('success', __('pages.assignment_reminders_sent', [
+            'sent' => $sent,
+            'skipped' => $skipped,
+        ]));
+    }
+
     public function dashboard()
     {
         $this->authorizeAssignmentManage();
@@ -335,6 +452,10 @@ class AssignmentController extends Controller
 
         if (! Auth::user()->isStudent() || $submission->user_id !== Auth::id()) {
             abort(403);
+        }
+
+        if ($submission->assignment->isOffline()) {
+            return back()->with('error', __('pages.assignment_offline_no_upload'));
         }
 
         if (! $submission->assignment->isSubmissionOpen()) {

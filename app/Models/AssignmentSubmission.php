@@ -22,12 +22,13 @@ class AssignmentSubmission extends Model
         'submitted_at',
         'points_earned',
         'feedback',
-        'submitted_at',
+        'graded_at',
         'team_submission_id',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
+        'graded_at' => 'datetime',
         'points_earned' => 'integer',
     ];
 

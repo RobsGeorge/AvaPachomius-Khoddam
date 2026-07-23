@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('user_id')
                   ->constrained('user', 'user_id')
                   ->onDelete('cascade');
-            $table->text('submission_content');
+            $table->text('submission_content')->nullable();
             $table->string('file_path')->nullable();
             $table->integer('points_earned')->nullable();
             $table->text('feedback')->nullable();

@@ -11,6 +11,7 @@ return [
         'announcements' => ['admin_announcement'],
         'academic' => [
             'assignment_deadline',
+            'assignment_submission_reminder',
             'exam_upcoming',
             'session_upcoming',
             'grade_posted',
@@ -64,6 +65,17 @@ return [
                 'email_enabled' => true,
                 'whatsapp_enabled' => false,
                 'config' => ['lead_hours' => 24],
+            ],
+        ],
+        'assignment_submission_reminder' => [
+            'label' => 'notifications.types.assignment_submission_reminder',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
             ],
         ],
         'exam_upcoming' => [

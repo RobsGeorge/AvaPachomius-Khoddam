@@ -51,6 +51,7 @@ class AssignmentController extends Controller
         $course = Course::findOrFail($assignment->course_id);
         $this->authorizeCoursePermission($user, $course, 'assignment.submit');
         abort_unless($user->isStudent(), 403);
+        abort_if($assignment->isOffline(), 422, __('pages.assignment_offline_no_upload'));
         abort_unless($assignment->isSubmissionOpen(), 422, __('pages.submission_deadline_passed'));
         abort_if(
             $assignment->submissions()->where('user_id', $user->user_id)->exists(),
@@ -90,6 +91,7 @@ class AssignmentController extends Controller
         $course = Course::findOrFail($assignment->course_id);
         $this->authorizeCoursePermission($user, $course, 'assignment.submit');
         abort_unless($user->isStudent() && (int) $submission->user_id === (int) $user->user_id, 403);
+        abort_if($assignment->isOffline(), 422, __('pages.assignment_offline_no_upload'));
         abort_unless($assignment->isSubmissionOpen(), 422, __('pages.submission_deadline_passed'));
 
         $validated = $request->validate([
@@ -129,9 +131,10 @@ class AssignmentController extends Controller
             'assignment_id' => $assignment->assignment_id,
             'course_id' => $assignment->course_id,
             'assignment_name' => $assignment->assignment_name,
+            'delivery_mode' => $assignment->delivery_mode ?? Assignment::MODE_ONLINE,
             'due_date' => $assignment->due_date?->toIso8601String(),
             'total_points' => $assignment->total_points,
-            'submission_open' => $assignment->isSubmissionOpen(),
+            'submission_open' => $assignment->isOnline() && $assignment->isSubmissionOpen(),
             'has_submission' => (bool) $submission,
         ];
 

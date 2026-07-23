@@ -56,6 +56,16 @@
                         </div>
 
                         <div class="form-group mb-3">
+                            <label class="form-label">{{ __('pages.delivery_mode') }}</label>
+                            <div>
+                                <span class="badge {{ $assignment->isOffline() ? 'bg-secondary' : 'bg-primary' }}">
+                                    {{ $assignment->isOffline() ? __('pages.mode_offline_short') : __('pages.mode_online_short') }}
+                                </span>
+                                <small class="d-block text-muted-theme mt-1">{{ __('pages.delivery_mode_locked_hint') }}</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
                             <label for="instructions">{{ __('pages.instructions') }}</label>
                             <textarea class="form-control @error('instructions') is-invalid @enderror"
                                       id="instructions" name="instructions" rows="3">{{ old('instructions', $assignment->instructions) }}</textarea>
