@@ -35,7 +35,7 @@
 
     <div class="mt-4 d-flex gap-2">
         <a href="{{ route('events.admin.check-in', $event->event_id) }}" class="btn btn-outline-success btn-sm">{{ __('events.check_in_console') }}</a>
-        <form method="POST" action="{{ route('events.admin.cancel', $event->event_id) }}" onsubmit="return confirm(@json(__('events.confirm_cancel_event')))">@csrf
+        <form method="POST" action="{{ route('events.admin.cancel', $event->event_id) }}" data-confirm="{{ __('events.confirm_cancel_event') }}">@csrf
             <button class="btn btn-outline-danger btn-sm">{{ __('events.cancel_event') }}</button>
         </form>
     </div>

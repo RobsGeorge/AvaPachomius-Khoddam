@@ -87,7 +87,7 @@
                                         <div class="d-inline-flex gap-1">
                                             @if($a->user && $accountStatus['key'] !== 'active')
                                                 <form method="POST" action="{{ route('user-course-roles.send-registration-link', $a->user->user_id) }}" class="d-inline"
-                                                      onsubmit="return confirm(@json(__('pages.confirm_send_account_setup_email')))">
+                                                      data-confirm="{{ __('pages.confirm_send_account_setup_email') }}">
                                                     @csrf
                                                     <button type="submit" class="btn btn-sm btn-outline-primary" title="{{ __('pages.send_account_setup_email') }}">
                                                         <i class="bi bi-envelope"></i>
@@ -121,7 +121,7 @@
                                         <td>{{ $role->role_name }}</td>
                                         <td class="text-end">
                                             <form method="POST" action="{{ route('superadmin.roles.destroy', $role->role_id) }}" class="d-inline"
-                                                  onsubmit="return confirm(@json(__('rbac.confirm_delete')))">
+                                                  data-confirm="{{ __('rbac.confirm_delete') }}">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('rbac.delete') }}</button>
                                             </form>

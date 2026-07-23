@@ -28,7 +28,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260722a">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260724a">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
@@ -80,7 +80,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
     {{-- Pin Alpine exactly: floating @3.x.x is a supply-chain risk (auto-pulls any new 3.x). --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260714b"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260724a"></script>
     @stack('scripts')
 </body>
 </html>

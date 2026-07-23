@@ -24,7 +24,7 @@
                     @endforeach
                 </div>
                 <form method="POST" action="{{ route('live-quiz.host.results', $session) }}" class="d-inline">@csrf<button class="btn btn-warning">{{ __('pages.live_quiz_show_results') }}</button></form>
-                <form method="POST" action="{{ route('live-quiz.host.end', $session) }}" class="d-inline ms-2" onsubmit="return confirm('{{ __('pages.confirm_end_session') }}')">@csrf<button class="btn btn-danger">{{ __('pages.end_session') }}</button></form>
+                <form method="POST" action="{{ route('live-quiz.host.end', $session) }}" class="d-inline ms-2" data-confirm="{{ __('pages.confirm_end_session') }}">@csrf<button class="btn btn-danger">{{ __('pages.end_session') }}</button></form>
             </div></div>
         </div>
         <div class="col-md-6">
