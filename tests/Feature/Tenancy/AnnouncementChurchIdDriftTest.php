@@ -34,8 +34,13 @@ class AnnouncementChurchIdDriftTest extends EventModuleTestCase
     /** Drop church_id from announcements the way a long-lived un-migrated DB has it. */
     private function simulateDrift(): void
     {
-        Schema::table('announcements', fn ($t) => $t->dropIndex('announcements_church_id_index'));
-        Schema::table('announcements', fn ($t) => $t->dropColumn('church_id'));
+        // SQLite refuses DROP COLUMN while an index still references the column,
+        // so drop the index first. Use the column-array form so Laravel resolves
+        // the index name per driver (do not hardcode announcements_church_id_index).
+        Schema::table('announcements', function ($t) {
+            $t->dropIndex(['church_id']);
+            $t->dropColumn('church_id');
+        });
         $this->assertFalse(Schema::hasColumn('announcements', 'church_id'));
     }
 
