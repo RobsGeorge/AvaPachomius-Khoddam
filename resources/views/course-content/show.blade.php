@@ -19,7 +19,7 @@
         <div class="card shadow-sm mb-4">
             {{-- Module header --}}
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2"
-                 style="background: linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff;">
+                 style="background: linear-gradient(135deg,#14746b,#0f574f); color:#fff;">
                 <span class="fw-bold fs-5">
                     <i class="bi bi-collection-fill me-2"></i>{{ $module->title }}
                 </span>

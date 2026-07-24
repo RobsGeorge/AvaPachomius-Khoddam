@@ -1,7 +1,7 @@
 /**
- * Khoddam Design System
- * Dark: navy gradient, gold titles, white text
- * Light: soft purple gradient, indigo titles
+ * Deaconia Design System — "Sacred" brand (deep teal + gold)
+ * Dark:  deep-teal gradient, gold titles, white text
+ * Light: soft teal/mist gradient, deep-teal titles, gold accents
  */
 
 :root {
@@ -21,44 +21,44 @@
 }
 
 body.theme-light {
-    --color-bg-1: #f5f0ff;
-    --color-bg-2: #ede4ff;
-    --color-bg-3: #e8efff;
+    --color-bg-1: #eef4f2;
+    --color-bg-2: #dcece7;
+    --color-bg-3: #e6f1ee;
     --gradient-bg: linear-gradient(135deg, var(--color-bg-1) 0%, var(--color-bg-2) 45%, var(--color-bg-3) 100%);
 
-    --color-surface: rgba(255, 255, 255, 0.82);
-    --color-surface-hover: rgba(255, 255, 255, 0.95);
-    --color-surface-border: rgba(124, 58, 237, 0.15);
+    --color-surface: rgba(255, 255, 255, 0.85);
+    --color-surface-hover: rgba(255, 255, 255, 0.96);
+    --color-surface-border: rgba(17, 75, 79, 0.16);
 
-    --color-title: #5b21b6;
-    --color-title-accent: #7c3aed;
-    --color-text: #334155;
-    --color-text-muted: #64748b;
-    --color-link: #6d28d9;
-    --color-link-hover: #5b21b6;
+    --color-title: #0e4a4e;
+    --color-title-accent: #147268;
+    --color-text: #22423f;
+    --color-text-muted: #5b7773;
+    --color-link: #117069;
+    --color-link-hover: #0d504b;
 
-    --color-primary: #7c3aed;
-    --color-primary-hover: #6d28d9;
+    --color-primary: #14746b;
+    --color-primary-hover: #0f574f;
     --color-primary-text: #ffffff;
 
-    --color-nav-bg: rgba(255, 255, 255, 0.88);
-    --color-nav-border: rgba(124, 58, 237, 0.12);
-    --color-nav-text: #475569;
-    --color-nav-active: #6d28d9;
+    --color-nav-bg: rgba(255, 255, 255, 0.9);
+    --color-nav-border: rgba(17, 75, 79, 0.12);
+    --color-nav-text: #45605c;
+    --color-nav-active: #0f5a53;
 
     --color-success: #059669;
     --color-danger: #dc2626;
     --color-warning: #d97706;
 
-    --shadow-sm: 0 2px 8px rgba(91, 33, 182, 0.08);
-    --shadow-md: 0 8px 24px rgba(91, 33, 182, 0.12);
-    --shadow-lg: 0 16px 40px rgba(91, 33, 182, 0.16);
-    --shadow-glow: 0 0 0 1px rgba(124, 58, 237, 0.08), 0 12px 32px rgba(124, 58, 237, 0.15);
+    --shadow-sm: 0 2px 8px rgba(15, 74, 78, 0.08);
+    --shadow-md: 0 8px 24px rgba(15, 74, 78, 0.12);
+    --shadow-lg: 0 16px 40px rgba(15, 74, 78, 0.16);
+    --shadow-glow: 0 0 0 1px rgba(20, 116, 107, 0.1), 0 12px 32px rgba(20, 116, 107, 0.16);
 
-    --color-table-head-bg: rgba(124, 58, 237, 0.08);
+    --color-table-head-bg: rgba(20, 116, 107, 0.08);
     --color-table-row-bg: transparent;
-    --color-table-hover-bg: rgba(124, 58, 237, 0.06);
-    --color-table-border: rgba(124, 58, 237, 0.12);
+    --color-table-hover-bg: rgba(20, 116, 107, 0.06);
+    --color-table-border: rgba(17, 75, 79, 0.12);
 
     --swal-surface: rgba(255, 255, 255, 0.96);
     --swal-text: var(--color-text);
@@ -72,17 +72,17 @@ body.theme-light {
 }
 
 body.theme-dark {
-    --color-bg-1: #070f1f;
-    --color-bg-2: #0f2744;
-    --color-bg-3: #1a3a5c;
+    --color-bg-1: #04201f;
+    --color-bg-2: #0a3937;
+    --color-bg-3: #10514c;
     --gradient-bg: linear-gradient(145deg, var(--color-bg-1) 0%, var(--color-bg-2) 42%, var(--color-bg-3) 100%);
 
-    --color-surface: rgba(15, 39, 68, 0.72);
-    --color-surface-hover: rgba(22, 52, 86, 0.88);
+    --color-surface: rgba(10, 46, 45, 0.72);
+    --color-surface-hover: rgba(15, 62, 59, 0.88);
     --color-surface-border: rgba(212, 175, 55, 0.18);
 
-    --color-table-head-bg: rgba(10, 28, 52, 0.95);
-    --color-table-row-bg: rgba(7, 15, 31, 0.35);
+    --color-table-head-bg: rgba(5, 34, 33, 0.95);
+    --color-table-row-bg: rgba(4, 26, 26, 0.35);
     --color-table-hover-bg: rgba(212, 175, 55, 0.1);
     --color-table-border: rgba(212, 175, 55, 0.15);
 
@@ -91,20 +91,20 @@ body.theme-dark {
     --bs-body-bg: transparent;
     --bs-emphasis-color: #f8fafc;
     --bs-secondary-color: #cbd5e1;
-    --bs-secondary-bg: rgba(15, 39, 68, 0.85);
+    --bs-secondary-bg: rgba(10, 46, 45, 0.85);
     --bs-tertiary-color: #94a3b8;
-    --bs-tertiary-bg: rgba(10, 28, 52, 0.75);
+    --bs-tertiary-bg: rgba(5, 34, 33, 0.75);
     --bs-border-color: rgba(212, 175, 55, 0.18);
-    --bs-light: #0f2744;
-    --bs-light-rgb: 15, 39, 68;
+    --bs-light: #0a3937;
+    --bs-light-rgb: 10, 46, 45;
     --bs-dark: #f8fafc;
     --bs-dark-rgb: 248, 250, 252;
-    --bs-card-bg: rgba(15, 39, 68, 0.72);
+    --bs-card-bg: rgba(10, 46, 45, 0.72);
     --bs-card-color: #f8fafc;
     --bs-table-color: #f8fafc;
     --bs-table-bg: transparent;
     --bs-table-border-color: rgba(212, 175, 55, 0.15);
-    --bs-table-striped-bg: rgba(15, 39, 68, 0.45);
+    --bs-table-striped-bg: rgba(10, 46, 45, 0.45);
     --bs-table-striped-color: #f8fafc;
     --bs-table-active-bg: rgba(212, 175, 55, 0.14);
     --bs-table-active-color: #f8fafc;
@@ -120,9 +120,9 @@ body.theme-dark {
 
     --color-primary: #d4af37;
     --color-primary-hover: #c9a227;
-    --color-primary-text: #0a1628;
+    --color-primary-text: #05221f;
 
-    --color-nav-bg: rgba(7, 15, 31, 0.92);
+    --color-nav-bg: rgba(4, 26, 26, 0.92);
     --color-nav-border: rgba(212, 175, 55, 0.2);
     --color-nav-text: #e2e8f0;
     --color-nav-active: #d4af37;
@@ -143,13 +143,13 @@ body.theme-dark {
     --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
     --reveal-distance: 8px;
 
-    --swal-surface: rgba(15, 39, 68, 0.96);
+    --swal-surface: rgba(10, 46, 45, 0.96);
     --swal-text: var(--color-text);
     --swal-title: var(--color-title);
     --swal-border: var(--color-surface-border);
     --swal-cancel-bg: rgba(71, 85, 105, 0.45);
     --swal-cancel-text: var(--color-text-muted);
-    --swal-input-bg: rgba(7, 15, 31, 0.65);
+    --swal-input-bg: rgba(4, 26, 26, 0.65);
     --swal-input-border: var(--color-surface-border);
     --swal-backdrop: transparent;
 }
@@ -181,7 +181,7 @@ body.app-body::before {
     inset: 0;
     pointer-events: none;
     background:
-        radial-gradient(circle at 10% 20%, rgba(124, 58, 237, 0.08), transparent 35%),
+        radial-gradient(circle at 10% 20%, rgba(20, 116, 107, 0.08), transparent 35%),
         radial-gradient(circle at 90% 10%, rgba(212, 175, 55, 0.06), transparent 30%);
     z-index: 0;
 }
@@ -189,7 +189,7 @@ body.app-body::before {
 body.theme-dark.app-body::before {
     background:
         radial-gradient(circle at 15% 15%, rgba(212, 175, 55, 0.08), transparent 32%),
-        radial-gradient(circle at 85% 0%, rgba(59, 130, 246, 0.08), transparent 28%);
+        radial-gradient(circle at 85% 0%, rgba(20, 116, 107, 0.08), transparent 28%);
 }
 
 .app-shell {
@@ -252,6 +252,59 @@ h1, h2, h3, .h1, .h2, .h3,
     transform: translateY(-1px);
 }
 
+/* Brand lockup: Deaconia mark + wordmark + church subtitle */
+.app-nav .brand-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.brand-mark {
+    width: 1.7rem;
+    height: 1.7rem;
+    flex: none;
+    color: var(--color-title);
+    transition: color var(--transition-fast);
+}
+
+.app-nav .brand-link:hover .brand-mark {
+    color: var(--color-title-accent);
+}
+
+.app-nav .brand-names {
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.05;
+}
+
+.app-nav .brand-subtitle {
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 575.98px) {
+    .app-nav .brand-subtitle {
+        display: none;
+    }
+}
+
+/* Auth screens: centered brand block */
+.brand-mark-lg {
+    width: 3.25rem;
+    height: 3.25rem;
+    color: var(--color-primary);
+}
+
+.brand-wordmark {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--color-title);
+}
+
 .app-nav-link {
     color: var(--color-nav-text);
     text-decoration: none;
@@ -264,7 +317,7 @@ h1, h2, h3, .h1, .h2, .h3,
 
 .app-nav-link:hover {
     color: var(--color-nav-active);
-    background: rgba(124, 58, 237, 0.08);
+    background: rgba(20, 116, 107, 0.08);
     transform: translateY(-1px);
 }
 
@@ -274,7 +327,7 @@ body.theme-dark .app-nav-link:hover {
 
 .app-nav-link.active {
     color: var(--color-nav-active);
-    background: rgba(124, 58, 237, 0.12);
+    background: rgba(20, 116, 107, 0.12);
 }
 
 body.theme-dark .app-nav-link.active {
@@ -359,14 +412,14 @@ textarea.form-control {
 body.theme-dark .form-control,
 body.theme-dark .form-select,
 body.theme-dark textarea.form-control {
-    background: rgba(7, 15, 31, 0.55);
+    background: rgba(4, 26, 26, 0.55);
     color: var(--color-text);
 }
 
 .form-control:focus,
 .form-select:focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(20, 116, 107, 0.15);
 }
 
 body.theme-dark .form-control:focus,
@@ -405,7 +458,7 @@ body.theme-dark input[type="date"].form-control::-webkit-calendar-picker-indicat
 }
 
 body.theme-dark .input-group-text {
-    background: rgba(7, 15, 31, 0.55);
+    background: rgba(4, 26, 26, 0.55);
     color: var(--color-text);
     border-color: var(--color-surface-border);
 }
@@ -541,7 +594,7 @@ body.theme-light .table-hover > tbody > tr:hover > * {
 
 .table-hover > tbody > tr:hover > * {
     --bs-table-color-state: var(--color-text);
-    --bs-table-bg-state: rgba(124, 58, 237, 0.08);
+    --bs-table-bg-state: rgba(20, 116, 107, 0.08);
 }
 
 /* Dark mode: override Bootstrap table paint (inset 9999px shadow) project-wide */
@@ -642,9 +695,9 @@ body.theme-dark .table-striped > tbody > tr:nth-of-type(odd) > *,
 
 body.theme-dark .table-striped > tbody > tr:nth-of-type(even) > *,
 [data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(even) > * {
-    --bs-table-accent-bg: rgba(7, 15, 31, 0.5);
-    box-shadow: inset 0 0 0 9999px rgba(7, 15, 31, 0.5) !important;
-    background-color: rgba(7, 15, 31, 0.5) !important;
+    --bs-table-accent-bg: rgba(4, 26, 26, 0.5);
+    box-shadow: inset 0 0 0 9999px rgba(4, 26, 26, 0.5) !important;
+    background-color: rgba(4, 26, 26, 0.5) !important;
 }
 
 body.theme-dark .app-card .table,
@@ -682,7 +735,7 @@ body.theme-dark .app-card .table-responsive,
 }
 
 .app-dropdown-link:hover {
-    background: rgba(124, 58, 237, 0.08);
+    background: rgba(20, 116, 107, 0.08);
     color: var(--color-title);
 }
 
@@ -1126,7 +1179,7 @@ i.fa,
 .profile-photo-trigger:hover,
 .profile-photo-trigger:focus {
     transform: scale(1.03);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+    box-shadow: 0 0 0 3px rgba(20, 116, 107, 0.25);
 }
 
 .student-photo-modal-image {
@@ -1187,8 +1240,8 @@ i.fa,
 }
 
 .announcement-card-unread {
-    border-color: rgba(124, 58, 237, 0.45) !important;
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02));
+    border-color: rgba(20, 116, 107, 0.45) !important;
+    background: linear-gradient(135deg, rgba(20, 116, 107, 0.08), rgba(20, 116, 107, 0.02));
 }
 
 .announcement-banner {
@@ -1196,7 +1249,7 @@ i.fa,
 }
 
 .announcement-banner-dismissible {
-    background: rgba(124, 58, 237, 0.1);
+    background: rgba(20, 116, 107, 0.1);
     color: var(--color-text);
 }
 
@@ -1218,7 +1271,7 @@ i.fa,
 }
 
 .announcement-home-card:hover {
-    background: rgba(124, 58, 237, 0.06);
+    background: rgba(20, 116, 107, 0.06);
 }
 
 /* Student-facing responsive data cards */
@@ -1294,7 +1347,7 @@ i.fa,
 }
 
 .lecture-compact-item:hover {
-    border-color: rgba(124, 58, 237, 0.25);
+    border-color: rgba(20, 116, 107, 0.25);
     box-shadow: var(--shadow-sm);
 }
 
@@ -1321,7 +1374,7 @@ body.theme-dark .lecture-compact-item:hover {
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--color-text-muted);
-    background: rgba(124, 58, 237, 0.08);
+    background: rgba(20, 116, 107, 0.08);
 }
 
 body.theme-dark .lecture-compact-index {
@@ -1606,7 +1659,7 @@ body.theme-dark .lecture-compact-index {
 
     .mobile-nav-summary:hover {
         color: var(--color-nav-active);
-        background: rgba(124, 58, 237, 0.08);
+        background: rgba(20, 116, 107, 0.08);
     }
 
     body.theme-dark .mobile-nav-summary:hover {
@@ -1773,14 +1826,14 @@ body.theme-dark .bg-light,
 body.theme-dark .bg-light-subtle,
 body.theme-dark .card-footer.bg-light,
 body.theme-dark .card-header.bg-light {
-    background-color: rgba(10, 28, 52, 0.75) !important;
+    background-color: rgba(5, 34, 33, 0.75) !important;
     color: var(--color-text) !important;
     border-color: var(--color-surface-border) !important;
 }
 
 body.theme-dark .badge.bg-light,
 body.theme-dark .badge.bg-light.text-dark {
-    background-color: rgba(22, 52, 86, 0.9) !important;
+    background-color: rgba(15, 62, 59, 0.9) !important;
     color: var(--color-text) !important;
     border-color: var(--color-surface-border) !important;
 }
@@ -1796,7 +1849,7 @@ body.theme-dark tr.bg-gray-100 td {
 }
 
 body.theme-dark .bg-gray-200 {
-    background-color: rgba(15, 39, 68, 0.65) !important;
+    background-color: rgba(10, 46, 45, 0.65) !important;
 }
 
 body.theme-dark .border-gray-100,
@@ -1819,7 +1872,7 @@ body.theme-dark .card:not(.app-card) {
 
 body.theme-dark .card:not(.app-card) .card-header,
 body.theme-dark .card:not(.app-card) .card-footer {
-    background: rgba(10, 28, 52, 0.65);
+    background: rgba(5, 34, 33, 0.65);
     border-color: var(--color-surface-border);
     color: var(--color-title);
 }
@@ -1899,7 +1952,7 @@ body.theme-dark .table .btn-link:hover {
 
 body.theme-dark select.bg-white,
 body.theme-dark .status-select {
-    background-color: rgba(7, 15, 31, 0.55) !important;
+    background-color: rgba(4, 26, 26, 0.55) !important;
     color: var(--color-text) !important;
     border-color: var(--color-surface-border) !important;
 }
@@ -1993,7 +2046,7 @@ body.theme-dark .report-summary-badge--low {
 }
 
 .report-pct--average {
-    background: rgba(124, 58, 237, 0.12);
+    background: rgba(20, 116, 107, 0.12);
     color: var(--color-title-accent);
 }
 

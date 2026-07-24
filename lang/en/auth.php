@@ -36,7 +36,7 @@ return [
     'contact_reset_info'=> 'A link to change your password will be sent to your email address.',
     'contact_support'   => 'If you have a problem, contact support directly.',
     'otp_email_title'   => 'Your verification code',
-    'otp_email_subject' => 'Verification code — Khoddam Preparation',
+    'otp_email_subject' => 'Verification code — Deaconia',
     'otp_email_greeting'=> 'Hello :name,',
     'otp_email_body'    => 'Use the code below to verify your account and set your password.',
     'otp_valid_minutes' => 'This code is valid for 10 minutes only.',

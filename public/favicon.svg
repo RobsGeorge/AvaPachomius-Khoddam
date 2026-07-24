@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Khoddam">
-  <rect width="64" height="64" rx="12" fill="#0f4c5c"/>
-  <path fill="#f7f3e9" d="M32 10c-1.2 4.8-4.8 9.2-10 12.2 5.4.6 9.8 3.8 12.2 8.6 2.4-4.8 6.8-8 12.2-8.6C36.8 19.2 33.2 14.8 32 10zm0 22.4c-6.6 0-12 5.4-12 12V52h24v-7.6c0-6.6-5.4-12-12-12z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Deaconia">
+  <rect width="64" height="64" rx="12" fill="#114b4f"/>
+  <g fill="#d4af37">
+    <polygon points="27,32 37,32 40,9 24,9"/>
+    <polygon points="27,32 37,32 40,55 24,55"/>
+    <polygon points="32,27 32,37 9,40 9,24"/>
+    <polygon points="32,27 32,37 55,40 55,24"/>
+  </g>
 </svg>
