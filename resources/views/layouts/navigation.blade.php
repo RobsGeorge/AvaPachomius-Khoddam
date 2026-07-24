@@ -217,15 +217,21 @@
                             {{ $currentCourse->localizedTitle() }}
                         </span>
                     @else
-                        <a href="{{ route('dashboard') }}" class="brand-link">
-                            <i class="bi bi-mortarboard-fill ms-1"></i>
-                            {{ __('app.name') }}
+                        <a href="{{ route('dashboard') }}" class="brand-link brand-lockup">
+                            <x-application-logo class="brand-mark" aria-hidden="true" />
+                            <span class="brand-names">
+                                <span class="brand-name">{{ __('app.name') }}</span>
+                                <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                            </span>
                         </a>
                     @endif
                 @else
-                    <a href="{{ route('login') }}" class="brand-link">
-                        <i class="bi bi-mortarboard-fill ms-1"></i>
-                        {{ __('app.name') }}
+                    <a href="{{ route('login') }}" class="brand-link brand-lockup">
+                        <x-application-logo class="brand-mark" aria-hidden="true" />
+                        <span class="brand-names">
+                            <span class="brand-name">{{ __('app.name') }}</span>
+                            <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                        </span>
                     </a>
                 @endauth
 

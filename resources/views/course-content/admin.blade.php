@@ -101,7 +101,7 @@
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold">{{ __('course_context.theme_primary') }}</label>
                     <input type="color" name="branding_primary" class="form-control form-control-color w-100"
-                           value="{{ old('branding_primary', $branding['primary'] ?? '#7c3aed') }}">
+                           value="{{ old('branding_primary', $branding['primary'] ?? '#14746b') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold">{{ __('course_context.theme_accent') }}</label>
@@ -176,7 +176,7 @@
         <div class="card shadow-sm mb-5">
             {{-- Module header --}}
             <div class="card-header d-flex justify-content-between align-items-center py-3"
-                 style="background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;">
+                 style="background:linear-gradient(135deg,#14746b,#0f574f);color:#fff;">
                 <span class="fw-bold fs-5">
                     <i class="bi bi-collection-fill me-2"></i>{{ $module->title }}
                     @if($module->description)
