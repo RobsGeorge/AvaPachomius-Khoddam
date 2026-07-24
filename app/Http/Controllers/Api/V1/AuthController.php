@@ -47,7 +47,12 @@ class AuthController extends Controller
         }
 
         $deviceName = $credentials['device_name'] ?? 'mobile';
-        $token = $user->createToken($deviceName)->plainTextToken;
+        // Scope the token to the church resolved from the login host, using the same
+        // `church:{slug}` convention ResolveTenant reads to pin API requests to a church.
+        // Tenancy disabled → an unrestricted token, unchanged production behavior.
+        $church = \App\Tenancy\TenantContext::current();
+        $abilities = (config('tenancy.enabled') && $church) ? ["church:{$church->slug}"] : ['*'];
+        $token = $user->createToken($deviceName, $abilities)->plainTextToken;
 
         return response()->json([
             'token' => $token,
