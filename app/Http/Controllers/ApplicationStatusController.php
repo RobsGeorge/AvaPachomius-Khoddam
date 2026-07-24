@@ -94,7 +94,7 @@ class ApplicationStatusController extends Controller
             'second_name' => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'third_name' => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'national_id' => ['required', 'digits:14'],
-            'email' => ['required', 'email', 'max:30'],
+            'email' => ['required', 'email', 'max:255'],
             'job' => ['required', 'string', 'max:50'],
             'date_of_birth' => ['required', 'date', 'before:today'],
             'mobile_number' => ['required', 'numeric', 'digits:10'],
