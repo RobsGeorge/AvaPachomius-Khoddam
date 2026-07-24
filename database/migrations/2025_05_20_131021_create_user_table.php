@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('profile_photo', 255);
             $table->string('national_id', 14);
             $table->string('mobile_number', 15)->unique();
-            $table->string('email', 30);
+            $table->string('email', 255);
             $table->string('job', 50);
             $table->date('date_of_birth');
             $table->string('password', 255);

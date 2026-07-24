@@ -42,6 +42,30 @@ class RegistrationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_registration_accepts_long_email_addresses(): void
+    {
+        Mail::fake();
+
+        $email = 'priest1.stmark@demo.khedma.test';
+
+        $response = $this->post(route('register.store'), [
+            'first_name' => 'محمد',
+            'second_name' => 'جرجس',
+            'third_name' => 'يوسف',
+            'national_id' => '29001011234568',
+            'email' => $email,
+            'job' => 'Priest',
+            'date_of_birth' => '1998-05-15',
+            'mobile_number' => '1012345679',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('user', [
+            'email' => $email,
+        ]);
+    }
+
     public function test_registration_rejects_non_arabic_names(): void
     {
         Mail::fake();

@@ -252,7 +252,7 @@ class RegisterController extends Controller
             'second_name'   => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'third_name'    => ['required', 'regex:/^[\p{Arabic}\s]+$/u', 'max:50'],
             'national_id'   => ['required', 'digits:14'],
-            'email'         => ['required', 'email', 'max:30'],
+            'email'         => ['required', 'email', 'max:255'],
             'job'           => ['required', 'string', 'max:50'],
             'date_of_birth' => ['required', 'date', 'before:today', 'after:'.now()->subYears(100)->format('Y-m-d')],
             'mobile_number' => ['required', 'numeric', 'digits:10'],
@@ -264,7 +264,7 @@ class RegisterController extends Controller
             'date_of_birth.before' => 'تاريخ الميلاد يجب أن يكون في الماضي.',
             'date_of_birth.after'  => 'تاريخ الميلاد غير صالح.',
             'mobile_number.digits' => 'رقم الهاتف يجب أن يكون 10 أرقام بالضبط.',
-            'email.max'                    => 'البريد الإلكتروني طويل جداً (الحد الأقصى 30 حرفًا).',
+            'email.max'                    => __('register.email_too_long'),
         ]);
     }
 

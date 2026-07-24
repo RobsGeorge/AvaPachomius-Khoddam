@@ -245,7 +245,7 @@ final class LegacySchemaSync
             'student_onboarding_completed_at' => 'TIMESTAMP NULL',
             'national_id' => "VARCHAR(14) NOT NULL DEFAULT ''",
             'mobile_number' => 'VARCHAR(15) NOT NULL',
-            'email' => "VARCHAR(30) NOT NULL DEFAULT ''",
+            'email' => "VARCHAR(255) NOT NULL DEFAULT ''",
             'job' => "VARCHAR(50) NOT NULL DEFAULT ''",
             'date_of_birth' => 'DATE NULL',
             'password' => "VARCHAR(255) NOT NULL DEFAULT ''",
@@ -318,7 +318,7 @@ final class LegacySchemaSync
         });
         MigrationSupport::addStringColumn('user', 'national_id', 14, false);
         MigrationSupport::addStringColumn('user', 'mobile_number', 15, false);
-        MigrationSupport::addStringColumn('user', 'email', 30, false);
+        MigrationSupport::addStringColumn('user', 'email', 255, false);
         MigrationSupport::addStringColumn('user', 'job', 50, false);
         MigrationSupport::addBooleanColumn('user', 'is_verified', false);
         MigrationSupport::addBooleanColumn('user', 'registration_completed', false, 'is_verified');
