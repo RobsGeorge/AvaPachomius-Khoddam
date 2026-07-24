@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\ChurchHost;
 use Illuminate\Http\Middleware\TrustHosts as Middleware;
 
 class TrustHosts extends Middleware
@@ -17,7 +18,7 @@ class TrustHosts extends Middleware
             $this->allSubdomainsOfApplicationUrl(),
         ];
 
-        $console = config('tenancy.console_host');
+        $console = ChurchHost::consoleHost();
         if (filled($console)) {
             $hosts[] = '^'.preg_quote($console, '/').'$';
         }

@@ -3,6 +3,7 @@
 namespace App\Tenancy;
 
 use App\Models\Church;
+use App\Support\ChurchHost;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -34,7 +35,7 @@ class ResolveTenant
 
         $host = $request->getHost();
 
-        if ($host === config('tenancy.console_host')) {
+        if (ChurchHost::isConsoleHost($host)) {
             TenantContext::clear();
 
             return $next($request);

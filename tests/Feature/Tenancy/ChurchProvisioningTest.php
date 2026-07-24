@@ -171,6 +171,46 @@ class ChurchProvisioningTest extends EventModuleTestCase
         $this->assertSame('custom.example.org', ChurchHost::hostFor($church));
     }
 
+    public function test_console_host_heals_admin_localhost_using_base_domain(): void
+    {
+        config([
+            'app.url' => 'https://staging.avapakhomios.com',
+            'tenancy.base_domain' => 'staging.avapakhomios.com',
+            'tenancy.console_host' => 'admin.localhost',
+        ]);
+
+        $this->assertSame('admin.staging.avapakhomios.com', ChurchHost::consoleHost());
+        $this->assertSame(
+            'https://admin.staging.avapakhomios.com/superadmin/churches',
+            ChurchHost::consoleUrl('/superadmin/churches')
+        );
+        $this->assertTrue(ChurchHost::isConsoleHost('admin.staging.avapakhomios.com'));
+        $this->assertFalse(ChurchHost::isConsoleHost('admin.localhost'));
+    }
+
+    public function test_console_host_respects_explicit_non_local_override(): void
+    {
+        config([
+            'app.url' => 'https://staging.avapakhomios.com',
+            'tenancy.base_domain' => 'staging.avapakhomios.com',
+            'tenancy.console_host' => 'console.staging.avapakhomios.com',
+        ]);
+
+        $this->assertSame('console.staging.avapakhomios.com', ChurchHost::consoleHost());
+    }
+
+    public function test_console_host_keeps_local_default_for_localhost_base(): void
+    {
+        config([
+            'app.url' => 'http://localhost',
+            'tenancy.base_domain' => 'localhost',
+            'tenancy.console_host' => 'admin.localhost',
+        ]);
+
+        $this->assertSame('admin.localhost', ChurchHost::consoleHost());
+        $this->assertSame('http://admin.localhost/superadmin/churches', ChurchHost::consoleUrl('/superadmin/churches'));
+    }
+
     public function test_login_rejects_non_member_when_tenancy_enabled_and_church_bound(): void
     {
         config(['tenancy.enabled' => true]);

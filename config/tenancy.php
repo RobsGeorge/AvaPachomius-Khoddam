@@ -25,7 +25,13 @@ return [
 
     'main_name' => env('TENANCY_MAIN_NAME', 'كنيسة الأنبا باخوميوس'),
 
-    'console_host' => env('TENANCY_CONSOLE_HOST', 'admin.localhost'),
+    // Prefer an explicit TENANCY_CONSOLE_HOST. When unset, derive admin.{TENANCY_BASE_DOMAIN}
+    // so staging/prod never silently fall back to admin.localhost from .env.example.
+    'console_host' => env('TENANCY_CONSOLE_HOST') ?: (
+        filled(env('TENANCY_BASE_DOMAIN'))
+            ? 'admin.'.ltrim((string) env('TENANCY_BASE_DOMAIN'), '.')
+            : 'admin.localhost'
+    ),
 
     // Apex / cookie parent domain (without leading dot). Used to build {slug}.{base} URLs
     // (T4 ChurchHost). Falls back to parse_url(APP_URL).host when unset.

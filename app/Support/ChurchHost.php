@@ -59,11 +59,35 @@ final class ChurchHost
         return $host;
     }
 
+    /**
+     * Effective superadmin console host.
+     *
+     * Prefer TENANCY_CONSOLE_HOST when it is a real (non-local) host. If staging/prod
+     * still has the .env.example leftover `admin.localhost` while TENANCY_BASE_DOMAIN
+     * (or APP_URL) is public, derive `admin.{base}` so nav links and ResolveTenant
+     * stay on the live console host.
+     */
+    public static function consoleHost(): string
+    {
+        $configured = trim((string) config('tenancy.console_host'));
+        $base = self::baseHost();
+
+        if ($configured !== '' && ! self::isLocalDevHost($configured)) {
+            return $configured;
+        }
+
+        if ($base !== '' && ! self::isLocalDevHost($base)) {
+            return 'admin.'.$base;
+        }
+
+        return $configured !== '' ? $configured : 'admin.localhost';
+    }
+
     public static function isConsoleHost(?string $host = null): bool
     {
         $host ??= request()->getHost();
 
-        return $host === config('tenancy.console_host');
+        return strcasecmp((string) $host, self::consoleHost()) === 0;
     }
 
     public static function consoleUrl(string $path = '/'): string
@@ -73,7 +97,18 @@ final class ChurchHost
         $portSuffix = $port ? ':'.$port : '';
         $path = '/'.ltrim($path, '/');
 
-        return $scheme.'://'.config('tenancy.console_host').$portSuffix.($path === '/' ? '/' : $path);
+        return $scheme.'://'.self::consoleHost().$portSuffix.($path === '/' ? '/' : $path);
+    }
+
+    private static function isLocalDevHost(string $host): bool
+    {
+        $host = strtolower(trim($host));
+
+        return $host === 'localhost'
+            || $host === '127.0.0.1'
+            || $host === '::1'
+            || Str::endsWith($host, '.localhost')
+            || Str::endsWith($host, '.local');
     }
 
     public static function pathPreservingUrl(Church $church): string
