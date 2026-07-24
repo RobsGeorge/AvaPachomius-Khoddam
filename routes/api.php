@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum', 'church.member'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
@@ -45,7 +45,11 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    // church.member runs AFTER auth:sanctum so the token user is resolved and the
+    // membership gate actually enforces (see Kernel `api` group note). Without it, a
+    // valid token from one church could read another church's church-wide data by
+    // hitting that church's host.
+    Route::middleware(['auth:sanctum', 'church.member'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
 
         // Profile / prefs (Wave A/B)
