@@ -30,7 +30,7 @@ class UserFactory extends Factory
             'profile_photo' => '',
             'national_id' => (string) fake()->unique()->numerify('##############'), // 14 digits
             'mobile_number' => (string) fake()->unique()->numerify('01#########'),  // 11 digits
-            'email' => fake()->unique()->numerify('user####').'@example.co',        // <= 30 chars
+            'email' => fake()->unique()->safeEmail(),
             'job' => 'Servant',
             'date_of_birth' => '2000-01-01',
             'password' => static::$password ??= Hash::make('password'),
