@@ -226,4 +226,29 @@ class NotificationDeliveryTest extends EventModuleTestCase
             ->assertOk()
             ->assertSee('9+', false);
     }
+
+    public function test_nav_bell_dropdown_shows_latest_notifications_without_leaving_page(): void
+    {
+        $user = $this->createUser([
+            'email' => 'nav-preview@example.com',
+            'application_status' => 'approved',
+            'registration_completed' => true,
+        ]);
+
+        UserNotification::create([
+            'user_id' => $user->user_id,
+            'type' => 'exam_upcoming',
+            'title' => 'Nav Preview Exam Alert',
+            'body' => 'Scheduled for tomorrow morning in the main hall',
+            'dedupe_key' => 'notif:nav-preview:1',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('nav-notifications-dropdown', false)
+            ->assertSee('nav-notification-preview-item', false)
+            ->assertSee('Nav Preview Exam Alert')
+            ->assertSee(__('notifications.view_all'));
+    }
 }

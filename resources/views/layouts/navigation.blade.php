@@ -364,12 +364,50 @@
                 </button>
 
                 @auth
-                    <a href="{{ route('notifications.index') }}" class="app-toolbar-btn position-relative text-decoration-none" aria-label="{{ __('notifications.hub_title') }}">
-                        <i class="bi bi-bell"></i>
-                        @if(!empty($unreadNotificationBadge))
-                            <span class="nav-notification-badge">{{ $unreadNotificationBadge }}</span>
-                        @endif
-                    </a>
+                    <div class="dropdown">
+                        <button type="button"
+                                class="app-toolbar-btn position-relative"
+                                data-bs-toggle="dropdown"
+                                data-bs-auto-close="outside"
+                                aria-expanded="false"
+                                aria-label="{{ __('notifications.hub_title') }}">
+                            <i class="bi bi-bell"></i>
+                            @if(!empty($unreadNotificationBadge))
+                                <span class="nav-notification-badge">{{ $unreadNotificationBadge }}</span>
+                            @endif
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end app-dropdown-panel nav-notifications-dropdown">
+                            <div class="nav-notifications-header">
+                                <span class="fw-semibold">{{ __('notifications.preview_title') }}</span>
+                                @if(!empty($unreadNotificationBadge))
+                                    <span class="badge bg-danger">{{ $unreadNotificationBadge }}</span>
+                                @endif
+                            </div>
+                            <div class="nav-notifications-list">
+                                @forelse(($navNotifications ?? collect()) as $notification)
+                                    <a href="{{ route('notifications.show', $notification) }}"
+                                       class="nav-notification-preview-item {{ $notification->isUnread() ? 'is-unread' : '' }} {{ $notification->isAnnouncement() ? 'is-announcement' : '' }}">
+                                        <div class="nav-notification-preview-title">{{ $notification->title }}</div>
+                                        @if(filled($notification->body))
+                                            <div class="nav-notification-preview-body">{{ $notification->body }}</div>
+                                        @endif
+                                        <div class="nav-notification-preview-meta">
+                                            {{ $notification->created_at?->diffForHumans() }}
+                                        </div>
+                                    </a>
+                                @empty
+                                    <div class="nav-notifications-empty text-muted-theme">
+                                        {{ __('notifications.no_notifications') }}
+                                    </div>
+                                @endforelse
+                            </div>
+                            <div class="nav-notifications-footer">
+                                <a href="{{ route('notifications.index') }}" class="nav-notifications-view-all">
+                                    {{ __('notifications.view_all') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="dropdown d-none d-md-block">
                         <button class="app-toolbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">

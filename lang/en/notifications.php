@@ -15,6 +15,8 @@ return [
     'open_settings' => 'Notification settings',
     'unread' => 'Unread',
     'no_notifications' => 'No notifications yet.',
+    'view_all' => 'View all notifications',
+    'preview_title' => 'Notifications',
     'mandatory_channel_required' => 'Admin announcements must use at least one channel (portal, email, or WhatsApp).',
     'mandatory_notice' => 'Admin announcements cannot be fully disabled. At least one delivery channel must stay on.',
     'whatsapp_not_configured' => 'WhatsApp API is not configured on this server. Portal and email still work.',
