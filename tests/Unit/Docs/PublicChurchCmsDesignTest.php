@@ -116,7 +116,8 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString('T10', $lot);
         $this->assertStringContainsString('F-20', $lot);
         $this->assertStringContainsString('migrations', $lot);
-        $this->assertStringContainsString('do not build', strtolower($lot));
+        $this->assertStringContainsString('feature code waits', strtolower($lot));
+        $this->assertStringContainsString('t8', strtolower($lot));
     }
 
     public function test_master_plan_schedules_t10_public_church_presence(): void
