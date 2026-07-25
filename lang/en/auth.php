@@ -48,4 +48,5 @@ return [
     'password_reset_success' => 'Your password has been reset successfully! You can now log in.',
     'registration_email_sent' => 'A verification code has been sent to your email. Please check your inbox.',
     'registration_email_resent' => 'A new verification code has been sent to your email.',
+    'page_expired' => 'Your session expired. Please try again — if you still see this after signing in, refresh the page or clear site cookies.',
 ];

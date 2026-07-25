@@ -20,7 +20,11 @@ class LoginController extends Controller
 
     public function showLoginForm()
     {
-        return view('auth.login');
+        // Avoid bfcache keeping a stale CSRF token after force-logout / session flush.
+        return response()
+            ->view('auth.login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     public function login(Request $request)
