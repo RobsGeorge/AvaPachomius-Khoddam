@@ -28,7 +28,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260725-deaconia">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260725-deaconia2">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">

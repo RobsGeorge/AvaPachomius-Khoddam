@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 100" role="img" aria-label="Deaconia">
   <g>
-    <circle cx="50" cy="50" r="46" fill="none" stroke="#d4af37" stroke-width="4"/>
-    <g fill="#d4af37">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#c9a227" stroke-width="4"/>
+    <g fill="#c9a227">
       <polygon points="43,50 57,50 62,14 38,14"/>
       <polygon points="43,50 57,50 62,86 38,86"/>
       <polygon points="50,43 50,57 14,62 14,38"/>
