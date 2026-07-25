@@ -524,6 +524,20 @@ return [
                 'routes' => ['church.home-visits.*'],
                 'nav' => ['church.home_visits'],
             ],
+            'church.cycle.view' => [
+                'label_en' => 'View Church Cycle Dashboard',
+                'label_ar' => 'عرض لوحة دورة الكنيسة',
+                'type' => 'both',
+                'routes' => ['church.cycle.index'],
+                'nav' => ['church.cycle'],
+            ],
+            'church.cycle.manage' => [
+                'label_en' => 'Manage church school year / promotion season',
+                'label_ar' => 'إدارة السنة الدراسية / موسم الترقية',
+                'type' => 'both',
+                'routes' => ['church.cycle.*'],
+                'nav' => ['church.cycle'],
+            ],
             'finance.payroll.view' => [
                 'label_en' => 'View payroll',
                 'label_ar' => 'عرض الرواتب',

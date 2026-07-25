@@ -203,6 +203,9 @@ class CycleProgressionWizardService
         AuditLogService::recordEvent('service.progression.applied', $audit);
         $this->notifyServiceAdmins($service, $actor, $audit);
 
+        // T9c: during a closing school year, auto-mark the service done when none remain eligible.
+        app(ChurchCycleSeasonService::class)->maybeMarkServiceDoneAfterApply($service);
+
         return [
             'moved' => count($moved),
             'skipped' => count($skipped),

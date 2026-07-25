@@ -63,6 +63,7 @@ return [
         'course_application_submitted' => 'New course application',
         'course_graduation_announced' => 'Course grades announced',
         'service_progression_applied' => 'Service End-of-Cycle applied',
+        'church_cycle_promotion_season' => 'Church promotion season started',
         'role_assigned' => 'Role assignments',
     ],
 

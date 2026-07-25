@@ -33,6 +33,7 @@ return [
     'priests'           => 'الكهنة',
     'confession'        => 'جدول الاعتراف',
     'home_visits'       => 'الزيارات المنزلية',
+    'church_cycle'      => 'دورة الكنيسة',
     'payroll'           => 'الرواتب',
     'money_in'          => 'الإيرادات',
 ];

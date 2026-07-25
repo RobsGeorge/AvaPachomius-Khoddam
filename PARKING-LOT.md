@@ -124,16 +124,18 @@ Church Cycle Dashboard (no one-button church-wide upgrade). Plan:
 **T9a (landed):** policy defaults on templates; service override columns; roster/enrollment
 status fields; resolver + create/edit UX; eligibility (inactive/hold excluded from propose).
 
-**T9b (in flight):** End-of-Cycle wizard (propose → confirm → apply); ladder edges in
+**T9b (landed / stacked):** End-of-Cycle wizard (propose → confirm → apply); ladder edges in
 `progression_config`; UCR dual-write promote; audit + admin notify; people-only still skipped.
+
+**T9c (in flight):** `church_school_year` season + Church Cycle Dashboard + Start promotion season
+(no global blind upgrade).
 
 **Still parked for later PRs:**
 
-1. **T9c** — `church_school_year` season + Church Cycle Dashboard + Start promotion season.
-2. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
-3. Optional staff-only reassign step beyond shared enrollment promote.
+1. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
+2. Optional staff-only reassign step beyond shared enrollment promote.
 
-**Resume when:** T9b merged to staging; then T9c dashboard PR.
+**Resume when:** T9c merged to staging; then people-only / staff residual as needed.
 ## Public Church Presence / Homepage CMS (parked 2026-07-25)
 
 **Requested:** After portal church config + public church details, a permission-gated

@@ -46,6 +46,7 @@ use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMer
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
+use App\Http\Controllers\Church\ChurchCycleController;
 use App\Http\Controllers\Church\PayrollController;
 use App\Http\Controllers\Church\MoneyInController;
 use App\Http\Controllers\CurriculumController;
@@ -156,6 +157,17 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/home-visits', [HomeVisitController::class, 'store'])->name('home-visits.store');
             Route::get('/home-visits/{visit}/edit', [HomeVisitController::class, 'edit'])->name('home-visits.edit');
             Route::put('/home-visits/{visit}', [HomeVisitController::class, 'update'])->name('home-visits.update');
+        });
+
+        // T9c — Church Cycle Dashboard (school year season; no global promote)
+        Route::middleware(['permission:church.cycle.view,church.cycle.manage'])->group(function () {
+            Route::get('/cycle', [ChurchCycleController::class, 'index'])->name('cycle.index');
+        });
+        Route::middleware(['permission:church.cycle.manage'])->group(function () {
+            Route::post('/cycle/years', [ChurchCycleController::class, 'storeYear'])->name('cycle.years.store');
+            Route::post('/cycle/years/{year}/start-promotion', [ChurchCycleController::class, 'startPromotion'])->name('cycle.years.start-promotion');
+            Route::post('/cycle/years/{year}/close', [ChurchCycleController::class, 'closeYear'])->name('cycle.years.close');
+            Route::post('/cycle/years/{year}/services/{service}/done', [ChurchCycleController::class, 'markServiceDone'])->name('cycle.years.services.done');
         });
 
         // T6 — finance (first cut)

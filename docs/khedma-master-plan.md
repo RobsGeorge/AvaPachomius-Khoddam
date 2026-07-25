@@ -111,8 +111,8 @@ are indicative — finalized per phase.
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
 **Current phase: T9 in progress (expand).** T0–T8 landed on staging. **T9a** landed (policy +
-roster status). **T9b** (this track): End-of-Cycle propose/confirm wizard. **T9c** (church school
-year + dashboard) follows. T8 residual (UCR contract) stays parked. Keep `MULTI_TENANT=false` in
+roster status). **T9b** End-of-Cycle wizard (stacked). **T9c** (this track): church school year +
+Church Cycle Dashboard. T8 residual (UCR contract) stays parked. Keep `MULTI_TENANT=false` in
 production until staging pilot is signed off. Polymorphic applications / public church-registration
 remain parked (§13 / §17.4).
 
@@ -150,10 +150,14 @@ Residual (UCR contract, broader slug tree) in `PARKING-LOT.md`.
 roster statuses (`active` / `inactive` / `left` / `pastoral_hold`); resolver + create/edit UX;
 eligibility helper (inactive excluded from propose). **No silent auto-promote.**
 
-**T9b (this track):** End-of-Cycle wizard — propose eligible actives via ladder edges,
+**T9b (landed / stacked):** End-of-Cycle wizard — propose eligible actives via ladder edges,
 admin confirm (promote / skip / mark inactive), transactional UCR dual-write apply, audit +
-service-admin notify. People-only placements remain parked. **T9c** (church school year +
-dashboard) follows.
+service-admin notify. People-only placements remain parked.
+
+**T9c (this track):** `church_school_year` season (planned → active → closing → closed);
+Church Cycle Dashboard (Ready / Blocked / Done / Skipped per service); **Start promotion season**
+notifies service admins — **no** one-button church-wide upgrade. Residual people-only / staff
+reassign stay parked.
 
 **T10 (do not start until T8 residual smoke-checked):** public church profile,
 branding chrome, then curated homepage CMS (`public_site.*` permissions, draft/publish

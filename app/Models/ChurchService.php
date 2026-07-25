@@ -39,6 +39,7 @@ class ChurchService extends Model
         'custom_field_defs',
         'progression_policy',
         'progression_config',
+        'church_school_year_id',
     ];
 
     protected $casts = [
