@@ -156,6 +156,7 @@ class RoleTemplateService
                 'service.view', 'service.manage',
                 'service.member.add', 'service.member.remove', 'service.member.add_cross',
                 'service.role.manage', 'service.user.assign_role',
+                'service.roster.status', 'service.progression.run',
                 'service_application.review', 'service_application.form_builder',
                 'announcement.view', 'announcement.manage', 'announcement.publish',
                 'communications.report',

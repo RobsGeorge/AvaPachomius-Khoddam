@@ -121,16 +121,19 @@ per-service progression only; people-only roster rows; church school year as sea
 Church Cycle Dashboard (no one-button church-wide upgrade). Plan:
 `.cursor/plans/service_year_progression_5fc2e925.plan.md`. Feature-gap **F-19**.
 
-**T9a (in flight):** policy defaults on templates; service override columns; roster/enrollment
+**T9a (landed):** policy defaults on templates; service override columns; roster/enrollment
 status fields; resolver + create/edit UX; eligibility (inactive/hold excluded from propose).
+
+**T9b (in flight):** End-of-Cycle wizard (propose → confirm → apply); ladder edges in
+`progression_config`; UCR dual-write promote; audit + admin notify; people-only still skipped.
 
 **Still parked for later PRs:**
 
-1. **T9b** — End-of-Cycle wizard (students/people + staff reassign); audit + admin reminders.
-2. **T9c** — `church_school_year` season + Church Cycle Dashboard + Start promotion season.
-3. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
+1. **T9c** — `church_school_year` season + Church Cycle Dashboard + Start promotion season.
+2. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
+3. Optional staff-only reassign step beyond shared enrollment promote.
 
-**Resume when:** T9a merged to staging; then T9b wizard PR.
+**Resume when:** T9b merged to staging; then T9c dashboard PR.
 ## Public Church Presence / Homepage CMS (parked 2026-07-25)
 
 **Requested:** After portal church config + public church details, a permission-gated

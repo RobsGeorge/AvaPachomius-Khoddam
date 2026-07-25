@@ -34,6 +34,16 @@ class EnrollmentDualWrite
             'user_course_role_id' => $assignment->user_course_role_id,
         ]);
 
+        // Preserve pastoral / cycle statuses set by T9a/T9b; only force active↔archived from UCR staff archive.
+        $pastoral = [
+            Enrollment::STATUS_INACTIVE,
+            Enrollment::STATUS_LEFT,
+            Enrollment::STATUS_PASTORAL_HOLD,
+        ];
+        if ($enrollment->exists && in_array($enrollment->status, $pastoral, true) && ! $assignment->staff_archived_at) {
+            $status = $enrollment->status;
+        }
+
         $enrollment->fill([
             'church_id' => $assignment->church_id,
             'user_id' => $assignment->user_id,

@@ -110,11 +110,11 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T9 in progress (expand).** T0–T8 landed on staging. **T9a** (this track):
-progression policy on templates/services, roster/enrollment statuses, resolver + create/edit UX.
-**T9b/T9c** (End-of-Cycle wizard + church school year dashboard) follow. T8 residual (UCR contract)
-stays parked. Keep `MULTI_TENANT=false` in production until staging pilot
-is signed off. Polymorphic applications / public church-registration remain parked (§13 / §17.4).
+**Current phase: T9 in progress (expand).** T0–T8 landed on staging. **T9a** landed (policy +
+roster status). **T9b** (this track): End-of-Cycle propose/confirm wizard. **T9c** (church school
+year + dashboard) follows. T8 residual (UCR contract) stays parked. Keep `MULTI_TENANT=false` in
+production until staging pilot is signed off. Polymorphic applications / public church-registration
+remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -145,11 +145,15 @@ level overrides), `service_units` dual-write from `course`, Tenant Zero default 
 attendance `lock_version` CAS; NavigationHub incremental filter via structure anchors.
 Residual (UCR contract, broader slug tree) in `PARKING-LOT.md`.
 
-**T9a (this track):** template `anchors.progression.policy` defaults; service
+**T9a (landed):** template `anchors.progression.policy` defaults; service
 `progression_policy` / `progression_config` overrides; enrollment + `user_service_role`
 roster statuses (`active` / `inactive` / `left` / `pastoral_hold`); resolver + create/edit UX;
 eligibility helper (inactive excluded from propose). **No silent auto-promote.**
-**T9b/T9c** (wizard + church school year dashboard) follow in dedicated PRs.
+
+**T9b (this track):** End-of-Cycle wizard — propose eligible actives via ladder edges,
+admin confirm (promote / skip / mark inactive), transactional UCR dual-write apply, audit +
+service-admin notify. People-only placements remain parked. **T9c** (church school year +
+dashboard) follows.
 
 **T10 (do not start until T8 residual smoke-checked):** public church profile,
 branding chrome, then curated homepage CMS (`public_site.*` permissions, draft/publish

@@ -62,6 +62,7 @@ return [
         'custom_reminder' => 'Custom reminders',
         'course_application_submitted' => 'New course application',
         'course_graduation_announced' => 'Course grades announced',
+        'service_progression_applied' => 'Service End-of-Cycle applied',
         'role_assigned' => 'Role assignments',
     ],
 

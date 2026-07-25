@@ -4,6 +4,7 @@ namespace App\Services\Structure;
 
 use App\Models\ChurchService;
 use App\Models\StructureTemplate;
+use App\Support\Structure\ProgressionLadder;
 use App\Support\Structure\ProgressionPolicy;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
@@ -107,6 +108,19 @@ class StructureAnchorResolver
         $policy = $this->progressionPolicy($service);
 
         return $policy !== null && ProgressionPolicy::usesEndOfCycleWizard($policy);
+    }
+
+    /**
+     * @return list<array{from_course_id: int, to_course_id: int}>
+     */
+    public function ladderEdges(ChurchService $service): array
+    {
+        return ProgressionLadder::courseEdges($service, $this->progressionConfig($service));
+    }
+
+    public function nextCourseId(ChurchService $service, int $fromCourseId): ?int
+    {
+        return ProgressionLadder::nextCourseId($this->ladderEdges($service), $fromCourseId);
     }
 
     /**
