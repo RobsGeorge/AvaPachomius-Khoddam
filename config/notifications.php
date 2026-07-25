@@ -20,6 +20,7 @@ return [
             'attendance_absent_streak',
             'session_unclosed',
             'course_graduation_announced',
+            'service_progression_applied',
             'role_assigned',
         ],
         'events' => [
@@ -213,6 +214,17 @@ return [
             'label' => 'notifications.types.course_graduation_announced',
             'category' => 'academic',
             'audience' => ['admin', 'instructor'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => false,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'service_progression_applied' => [
+            'label' => 'notifications.types.service_progression_applied',
+            'category' => 'academic',
+            'audience' => ['admin'],
             'defaults' => [
                 'portal_enabled' => true,
                 'email_enabled' => false,

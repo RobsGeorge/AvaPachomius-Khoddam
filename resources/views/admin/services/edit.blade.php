@@ -83,6 +83,18 @@
                 </div>
             </div>
 
+            @if($resolver->supportsEndOfCycleWizard($service))
+                <div class="app-card card shadow-sm mt-3 border-primary">
+                    <div class="card-header fw-semibold">{{ __('service.cycle_title') }}</div>
+                    <div class="card-body">
+                        <p class="text-muted-theme small mb-3">{{ __('service.cycle_edit_hint') }}</p>
+                        <a href="{{ route('admin.services.cycle.show', $service) }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-diagram-3"></i> {{ __('service.cycle_open') }}
+                        </a>
+                    </div>
+                </div>
+            @endif
+
             <div class="app-card card shadow-sm mt-3">
                 <div class="card-header fw-semibold">{{ __('rbac.section_service') }}</div>
                 <div class="card-body">

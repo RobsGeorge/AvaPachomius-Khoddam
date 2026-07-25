@@ -614,8 +614,12 @@ return [
                 'label_en' => 'Run End-of-Cycle progression wizard',
                 'label_ar' => 'تشغيل معالج ترقية نهاية الدورة',
                 'type' => 'both',
-                // Routes land in T9b; key is catalogued now for Roles Hub grants.
-                'routes' => ['admin.services.*'],
+                'routes' => [
+                    'admin.services.*',
+                    'admin.services.cycle.show',
+                    'admin.services.cycle.edges',
+                    'admin.services.cycle.confirm',
+                ],
             ],
             'service_application.review' => [
                 'label_en' => 'Review service applications',

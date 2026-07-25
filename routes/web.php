@@ -318,6 +318,9 @@ Route::middleware(['auth', 'permission:platform.service_crud'])->prefix('admin/s
     Route::put('/{service}', [ServiceManagementController::class, 'update'])->name('update');
     Route::post('/{service}/link-course', [ServiceManagementController::class, 'linkCourse'])->name('link-course');
     Route::post('/{service}/archive', [ServiceManagementController::class, 'archive'])->name('archive');
+    Route::get('/{service}/cycle', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'show'])->name('cycle.show');
+    Route::post('/{service}/cycle/edges', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'saveEdges'])->name('cycle.edges');
+    Route::post('/{service}/cycle/confirm', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'confirm'])->name('cycle.confirm');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
