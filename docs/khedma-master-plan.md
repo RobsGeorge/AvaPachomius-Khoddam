@@ -130,6 +130,7 @@ is signed off. Polymorphic applications / public church-registration remain park
 | **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
 | **T7** *(contract)* ✅ | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
 | **T8** *(expand)* | Structure templates + service wrap | template-driven levels | **T8a:** templates/anchors/`service_units`/`servants-prep`. **T8b:** slug routes, enrollments, attendance lock |
+| **T10** *(scheduled — after T8)* | Public Church Presence / Homepage CMS | public marketing homepage | Curated-section editor; `public_site` capability; BYO domain — see `PARKING-LOT.md` “Public Church Presence…” + [`docs/public-church-cms.md`](public-church-cms.md) |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
@@ -142,6 +143,15 @@ level overrides), `service_units` dual-write from `course`, Tenant Zero default 
 `enrollments` table dual-write from `user_course_role` (UCR still source of truth for reads);
 attendance `lock_version` CAS; NavigationHub incremental filter via structure anchors.
 Detail / residual in `PARKING-LOT.md`.
+
+**T10 (do not start until T8 residual smoke-checked):** public church profile,
+branding chrome, then curated homepage CMS (`public_site.*` permissions, draft/publish
+sections, media, public `/` when published). Homepage-only first; multi-page later.
+BYO custom domain via DNS/TLS (not redirect-only). Dedicated DB / white-label mobile
+are enterprise notes in the design doc — not T10 scope. Detail in `PARKING-LOT.md`
+“Public Church Presence…” and [`docs/public-church-cms.md`](public-church-cms.md).
+Feature-gap **F-20**. (Slot **T9** may be claimed by service cycle progression when
+that item is scheduled; Public Church Presence stays **T10**.)
 
 ## 8. Church management module
 
@@ -179,7 +189,8 @@ home-visit scheduling, and finance. Gated by capability (disabled ⇒ 404) and b
 Out-of-phase items captured, not built now (root [`PARKING-LOT.md`](../PARKING-LOT.md)): the full
 Church-layer request (recorded 2026-07-14); richer finance (reporting/approvals/reconciliation);
 Service application richer form builder; `course.service_id` / `church_id` `NOT NULL` contractions
-(only in the contract phase); config/security debt.
+(only in the contract phase); config/security debt; **T10 Public Church Presence / Homepage CMS**
+(after T8; design in [`docs/public-church-cms.md`](public-church-cms.md)).
 
 ## 13. Church registration & the polymorphic applications center
 
