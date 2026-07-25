@@ -131,6 +131,36 @@ status fields; resolver + create/edit UX; eligibility (inactive/hold excluded fr
 3. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
 
 **Resume when:** T9a merged to staging; then T9b wizard PR.
+## Public Church Presence / Homepage CMS (parked 2026-07-25)
+
+**Requested:** After portal church config + public church details, a permission-gated
+**curated-section homepage editor** (colors, fonts, themes, sections, images,
+responsiveness) so each church can publish a dynamic public homepage on its host /
+custom domain. Not a freeform page builder.
+
+**Design (locked):** [`docs/public-church-cms.md`](docs/public-church-cms.md) —
+homepage-first curated sections; capability `public_site` + keys
+`public_site.profile|theme|manage|publish`; draft/publish `church_site` /
+`church_site_section` / `church_media`; BYO-domain DNS cutover (Mode A); enterprise
+notes for dedicated DB (Tier 4 now / Tier 3 later) and white-label mobile (M2).
+Plan: `.cursor/plans/church_homepage_cms_4247561e.plan.md`.
+
+**Why parked:** Current phase on staging is **T8 (structure templates / service wrap)**.
+Master-plan §7 schedules Public Church Presence as **T10**. CLAUDE.md rule 10 → park;
+**no** migrations, routes, permissions catalog, or UI while T8 is in progress. T10a/b/c
+feature code waits.
+
+**Also waiting (called out in the design doc):**
+- T4 branding self-service / ThemeController wiring (prerequisite slice T10b)
+- Custom-domain TLS automation (ops; manual certs OK for pilots)
+- DB-per-tenant in the same SaaS app (Tier 3 — enterprise program; not T10)
+- White-label store apps (M2 — after mobile MVP)
+- Multi-page site (T10d after T10c)
+- Freeform builder (non-goal)
+
+**Resume when:** T8 residual smoke-checked (T8a/T8b expand track complete). Kickoff:
+T10a public profile → T10b branding → T10c homepage CMS + Roles Hub permissions +
+isolation tests. Feature-gap **F-20**.
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

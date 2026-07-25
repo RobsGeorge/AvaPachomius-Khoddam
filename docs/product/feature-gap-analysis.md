@@ -29,6 +29,7 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 | F-10 | **Notification preference completeness** (per-category, per-channel, digest) | all | Reduce noise; let users pick email vs WhatsApp vs portal per category, with a daily digest option. |
 | F-11 | **Empty states & guided onboarding/tooltips** | new users, all | Blank lists give no next action; first-run guidance improves activation. |
 | F-12 | **Exam experience hardening**: autosave, connection-loss recovery, accommodations (extra time) | Student | Timed exams with no autosave risk lost work; also the biggest test-coverage gap. |
+| F-20 | **Public Church Presence / Homepage CMS** (curated sections, theme, BYO domain) | Church Admin, public visitors | After portal setup + public details, churches need a permission-gated homepage editor on their host/custom domain — not a freeform builder. **Parked as T10** — `PARKING-LOT.md` “Public Church Presence…”; design `docs/public-church-cms.md`. Requires T8 residual complete. No product code until T10 kickoff. |
 
 ## P2 — polish / operational
 
@@ -50,3 +51,4 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 4. F-06/F-07 calendar & print; F-08/F-09 admin tooling.
 5. F-16/F-17/F-18 operational/tenancy debt alongside the multi-tenant migration.
 6. F-19 (T9) service cycle after T8; F-20 (T10) public presence after T9.
+6. F-20 public church homepage CMS only after T8 residual smoke-check (master-plan T10).
