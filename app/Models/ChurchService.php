@@ -37,6 +37,8 @@ class ChurchService extends Model
         'level_labels',
         'enabled_levels',
         'custom_field_defs',
+        'progression_policy',
+        'progression_config',
     ];
 
     protected $casts = [
@@ -44,6 +46,7 @@ class ChurchService extends Model
         'level_labels' => 'array',
         'enabled_levels' => 'array',
         'custom_field_defs' => 'array',
+        'progression_config' => 'array',
     ];
 
     protected static function booted(): void
