@@ -116,6 +116,36 @@
                             <label class="form-label small fw-semibold">{{ __('pages.description') }}</label>
                             <textarea name="description" rows="2" class="form-control form-control-sm" maxlength="2000">{{ old('description') }}</textarea>
                         </div>
+                        @if(\Illuminate\Support\Facades\Schema::hasColumn('service', 'structure_template_id'))
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">{{ __('service.field_structure_template') }}</label>
+                                <select name="structure_template_id" class="form-select form-select-sm @error('structure_template_id') is-invalid @enderror" required>
+                                    <option value="">{{ __('service.choose_structure_template') }}</option>
+                                    @foreach($structureTemplates as $template)
+                                        <option value="{{ $template->structure_template_id }}" @selected((string) old('structure_template_id') === (string) $template->structure_template_id)>
+                                            {{ $template->localizedName() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('structure_template_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text small">{{ __('service.structure_template_hint') }}</div>
+                            </div>
+                        @endif
+                        @if(\Illuminate\Support\Facades\Schema::hasColumn('service', 'progression_policy'))
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">{{ __('service.field_progression_policy') }}</label>
+                                <select name="progression_policy" class="form-select form-select-sm @error('progression_policy') is-invalid @enderror">
+                                    <option value="">{{ __('service.progression_inherit_template') }}</option>
+                                    @foreach($progressionPolicies as $policy)
+                                        <option value="{{ $policy }}" @selected(old('progression_policy') === $policy)>
+                                            {{ __('service.progression_'.$policy) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('progression_policy')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <div class="form-text small">{{ __('service.progression_policy_hint') }}</div>
+                            </div>
+                        @endif
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" name="clone_templates" value="1" id="clone_templates" checked>
                             <label class="form-check-label small" for="clone_templates">{{ __('service.clone_templates') }}</label>

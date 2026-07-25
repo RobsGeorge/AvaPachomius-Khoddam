@@ -604,6 +604,19 @@ return [
                 'type' => 'both',
                 'routes' => ['services.members.*', 'roles.hub'],
             ],
+            'service.roster.status' => [
+                'label_en' => 'Set service roster status (active/inactive/hold)',
+                'label_ar' => 'تعيين حالة قائمة الخدمة (نشط/غير نشط/إيقاف رعوي)',
+                'type' => 'both',
+                'routes' => ['admin.services.*', 'services.roster'],
+            ],
+            'service.progression.run' => [
+                'label_en' => 'Run End-of-Cycle progression wizard',
+                'label_ar' => 'تشغيل معالج ترقية نهاية الدورة',
+                'type' => 'both',
+                // Routes land in T9b; key is catalogued now for Roles Hub grants.
+                'routes' => ['admin.services.*'],
+            ],
             'service_application.review' => [
                 'label_en' => 'Review service applications',
                 'label_ar' => 'مراجعة طلبات الانضمام للخدمة',

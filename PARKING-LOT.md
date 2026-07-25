@@ -105,13 +105,32 @@ attendance `lock_version` CAS; nav filtered by structure anchors.
 2. Broader `/{service:slug}/…` route tree beyond hub + existing `/services/{slug}/…` (full product wrap).
 3. Nav registry driven *purely* from structure template (today: incremental anchor tags only).
 
-**Resume when:** T8b merged to staging and smoke-checked; contract items wait for a dedicated cutover PR.
+**Resume when:** dedicated cutover / product-wrap PRs after T9 expand track; contract items wait.
 
 ## Structure template engine + wrap as service #1 (superseded 2026-07-22)
 
 Original full request parked 2026-07-16; **T8a/T8b delivered the expand track**. Residual items
 live under **T8 residual** above. Do not re-open the old block for new work.
 
+## Service cycle progression — T9 residual (parked 2026-07-25)
+
+**Requested / locked design:** End-of-Cycle wizard (propose → admin confirm; never silent
+auto-promote); progression policy on structure template + service create override
+(`school_year_ladder` / `semester_cohort` / `continuous_open` / `course_close_only`);
+per-service progression only; people-only roster rows; church school year as season +
+Church Cycle Dashboard (no one-button church-wide upgrade). Plan:
+`.cursor/plans/service_year_progression_5fc2e925.plan.md`. Feature-gap **F-19**.
+
+**T9a (in flight):** policy defaults on templates; service override columns; roster/enrollment
+status fields; resolver + create/edit UX; eligibility (inactive/hold excluded from propose).
+
+**Still parked for later PRs:**
+
+1. **T9b** — End-of-Cycle wizard (students/people + staff reassign); audit + admin reminders.
+2. **T9c** — `church_school_year` season + Church Cycle Dashboard + Start promotion season.
+3. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
+
+**Resume when:** T9a merged to staging; then T9b wizard PR.
 ## Public Church Presence / Homepage CMS (parked 2026-07-25)
 
 **Requested:** After portal church config + public church details, a permission-gated

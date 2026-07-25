@@ -46,6 +46,38 @@
                                 <option value="archived" @selected(old('status', $service->status) === 'archived')>{{ __('service.status_archived') }}</option>
                             </select>
                         </div>
+                        @if(\Illuminate\Support\Facades\Schema::hasColumn('service', 'structure_template_id'))
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">{{ __('service.field_structure_template') }}</label>
+                                <select name="structure_template_id" class="form-select form-select-sm @error('structure_template_id') is-invalid @enderror" required>
+                                    @foreach($structureTemplates as $template)
+                                        <option value="{{ $template->structure_template_id }}"
+                                            @selected((string) old('structure_template_id', $service->structure_template_id) === (string) $template->structure_template_id)>
+                                            {{ $template->localizedName() }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('structure_template_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        @endif
+                        @if(\Illuminate\Support\Facades\Schema::hasColumn('service', 'progression_policy'))
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold">{{ __('service.field_progression_policy') }}</label>
+                                <select name="progression_policy" class="form-select form-select-sm">
+                                    <option value="">{{ __('service.progression_inherit_template') }}
+                                        @if($resolver->progressionPolicy($service) && ! $service->progression_policy)
+                                            ({{ __('service.progression_'.$resolver->progressionPolicy($service)) }})
+                                        @endif
+                                    </option>
+                                    @foreach($progressionPolicies as $policy)
+                                        <option value="{{ $policy }}" @selected(old('progression_policy', $service->progression_policy) === $policy)>
+                                            {{ __('service.progression_'.$policy) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="form-text small">{{ __('service.progression_policy_hint') }}</div>
+                            </div>
+                        @endif
                         <button type="submit" class="btn btn-primary btn-sm">{{ __('pages.save') }}</button>
                     </form>
                 </div>

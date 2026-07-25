@@ -4,6 +4,8 @@ namespace App\Services\Structure;
 
 use App\Models\ChurchService;
 use App\Models\StructureTemplate;
+use App\Support\Structure\ProgressionPolicy;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 
 /**
@@ -19,6 +21,8 @@ class StructureAnchorResolver
     public const ANCHOR_ASSIGNMENT_LEVELS = 'assignment_levels';
 
     public const ANCHOR_REPORT_ROLLUP = 'report_rollup';
+
+    public const ANCHOR_PROGRESSION = 'progression';
 
     /** @return list<string> */
     public function enabledLevelKeys(ChurchService $service): array
@@ -59,6 +63,50 @@ class StructureAnchorResolver
     public function reportRollup(ChurchService $service): ?string
     {
         return $this->anchorString($service, self::ANCHOR_REPORT_ROLLUP);
+    }
+
+    /**
+     * T9a — resolved progression policy (service override → template anchors.progression.policy).
+     */
+    public function progressionPolicy(ChurchService $service): ?string
+    {
+        if (Schema::hasColumn($service->getTable(), 'progression_policy')
+            && ProgressionPolicy::isValid($service->progression_policy)
+        ) {
+            return $service->progression_policy;
+        }
+
+        $config = $this->progressionConfigFromTemplate($service);
+        $policy = is_array($config) ? ($config['policy'] ?? null) : null;
+
+        return ProgressionPolicy::isValid(is_string($policy) ? $policy : null)
+            ? $policy
+            : ProgressionPolicy::CONTINUOUS_OPEN;
+    }
+
+    /**
+     * T9a — ladder / semester config (service.progression_config merges over template progression).
+     *
+     * @return array<string, mixed>
+     */
+    public function progressionConfig(ChurchService $service): array
+    {
+        $base = $this->progressionConfigFromTemplate($service) ?? [];
+        $override = [];
+        if (Schema::hasColumn($service->getTable(), 'progression_config')
+            && is_array($service->progression_config)
+        ) {
+            $override = $service->progression_config;
+        }
+
+        return array_replace($base, $override);
+    }
+
+    public function supportsEndOfCycleWizard(ChurchService $service): bool
+    {
+        $policy = $this->progressionPolicy($service);
+
+        return $policy !== null && ProgressionPolicy::usesEndOfCycleWizard($policy);
     }
 
     /**
@@ -134,5 +182,13 @@ class StructureAnchorResolver
         $anchors = is_array($template->anchors) ? $template->anchors : [];
 
         return $anchors[$anchor] ?? null;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function progressionConfigFromTemplate(ChurchService $service): ?array
+    {
+        $value = $this->anchorValue($service, self::ANCHOR_PROGRESSION);
+
+        return is_array($value) ? $value : null;
     }
 }

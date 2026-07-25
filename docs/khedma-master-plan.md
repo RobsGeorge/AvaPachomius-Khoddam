@@ -110,11 +110,10 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T8 in progress (expand).** T0–T7 landed. **T8a** landed: structure
-templates + anchors, `service` slug/template binding, `service_units` dual-write from courses,
-Tenant Zero service slug `servants-prep` + `educational_standard`. **T8b** (this track):
-`/{service:slug}` hub + legacy numeric 301s, `enrollments` dual-write, attendance `lock_version`,
-nav filtered by structure anchors. Keep `MULTI_TENANT=false` in production until staging pilot
+**Current phase: T9 in progress (expand).** T0–T8 landed on staging. **T9a** (this track):
+progression policy on templates/services, roster/enrollment statuses, resolver + create/edit UX.
+**T9b/T9c** (End-of-Cycle wizard + church school year dashboard) follow. T8 residual (UCR contract)
+stays parked. Keep `MULTI_TENANT=false` in production until staging pilot
 is signed off. Polymorphic applications / public church-registration remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
@@ -130,6 +129,8 @@ is signed off. Polymorphic applications / public church-registration remain park
 | **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
 | **T7** *(contract)* ✅ | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
 | **T8** *(expand)* | Structure templates + service wrap | template-driven levels | **T8a:** templates/anchors/`service_units`/`servants-prep`. **T8b:** slug routes, enrollments, attendance lock |
+| **T9** *(expand)* | Service cycle progression | End-of-Cycle wizard | **T9a:** progression policy + roster status. **T9b:** propose/confirm wizard. **T9c:** church school year + dashboard |
+| **T10** *(expand)* | Public Church Presence | public homepage CMS | Profile → branding → curated homepage (see `docs/public-church-cms.md`) |
 | **T10** *(scheduled — after T8)* | Public Church Presence / Homepage CMS | public marketing homepage | Curated-section editor; `public_site` capability; BYO domain — see `PARKING-LOT.md` “Public Church Presence…” + [`docs/public-church-cms.md`](public-church-cms.md) |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
@@ -139,10 +140,16 @@ Rule 10: anything requested that is ahead of the current phase goes to `PARKING-
 level overrides), `service_units` dual-write from `course`, Tenant Zero default service →
 `servants-prep` + educational template.
 
-**T8b (landed / landing):** slug route key + `/s/{service}` hub + numeric→slug 301s;
+**T8b (landed):** slug route key + `/s/{service}` hub + numeric→slug 301s;
 `enrollments` table dual-write from `user_course_role` (UCR still source of truth for reads);
 attendance `lock_version` CAS; NavigationHub incremental filter via structure anchors.
-Detail / residual in `PARKING-LOT.md`.
+Residual (UCR contract, broader slug tree) in `PARKING-LOT.md`.
+
+**T9a (this track):** template `anchors.progression.policy` defaults; service
+`progression_policy` / `progression_config` overrides; enrollment + `user_service_role`
+roster statuses (`active` / `inactive` / `left` / `pastoral_hold`); resolver + create/edit UX;
+eligibility helper (inactive excluded from propose). **No silent auto-promote.**
+**T9b/T9c** (wizard + church school year dashboard) follow in dedicated PRs.
 
 **T10 (do not start until T8 residual smoke-checked):** public church profile,
 branding chrome, then curated homepage CMS (`public_site.*` permissions, draft/publish
