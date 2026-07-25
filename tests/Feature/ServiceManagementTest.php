@@ -6,6 +6,7 @@ use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\StructureTemplate;
 use App\Models\UserSystemRole;
 use App\Support\NavigationHub;
 use Illuminate\Support\Facades\Schema;
@@ -41,14 +42,32 @@ class ServiceManagementTest extends EventModuleTestCase
         $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-super@example.com']);
         $orphanCourse = $this->createCourse(['title' => 'Orphan Year', 'status' => Course::STATUS_ACTIVE]);
 
+        $payload = [
+            'title' => 'Liturgy Prep',
+            'title_ar' => 'إعداد الليتورجيا',
+            'title_en' => 'Liturgy Prep',
+            'description' => 'Service panel test',
+            'clone_templates' => '1',
+        ];
+
+        // Services bind to a structure-template anchor (master-plan §15); store()
+        // requires structure_template_id once the column exists.
+        if (Schema::hasColumn('service', 'structure_template_id')) {
+            $payload['structure_template_id'] = StructureTemplate::create([
+                'key' => 'svc_mgmt_test_'.uniqid(),
+                'name_ar' => 'قالب الخدمة',
+                'name_en' => 'Service template',
+                'levels' => [
+                    ['key' => 'cohort', 'label_ar' => 'فوج', 'label_en' => 'Cohort'],
+                ],
+                'anchors' => [
+                    'enrollment_level' => 'cohort',
+                ],
+            ])->structure_template_id;
+        }
+
         $this->actingAs($super)
-            ->post(route('admin.services.store'), [
-                'title' => 'Liturgy Prep',
-                'title_ar' => 'إعداد الليتورجيا',
-                'title_en' => 'Liturgy Prep',
-                'description' => 'Service panel test',
-                'clone_templates' => '1',
-            ])
+            ->post(route('admin.services.store'), $payload)
             ->assertRedirect(route('admin.services.index'));
 
         $service = ChurchService::query()->where('title', 'Liturgy Prep')->first();
