@@ -21,6 +21,7 @@ return [
             'session_unclosed',
             'course_graduation_announced',
             'service_progression_applied',
+            'church_cycle_promotion_season',
             'role_assigned',
         ],
         'events' => [
@@ -223,6 +224,17 @@ return [
         ],
         'service_progression_applied' => [
             'label' => 'notifications.types.service_progression_applied',
+            'category' => 'academic',
+            'audience' => ['admin'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => false,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'church_cycle_promotion_season' => [
+            'label' => 'notifications.types.church_cycle_promotion_season',
             'category' => 'academic',
             'audience' => ['admin'],
             'defaults' => [

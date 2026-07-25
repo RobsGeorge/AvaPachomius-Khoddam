@@ -63,6 +63,7 @@ return [
         'course_application_submitted' => 'طلب التحاق جديد بالدورة',
         'course_graduation_announced' => 'إعلان درجات الدورة',
         'service_progression_applied' => 'تطبيق نهاية دورة الخدمة',
+        'church_cycle_promotion_season' => 'بدء موسم ترقية الكنيسة',
         'role_assigned' => 'تعيين الأدوار',
     ],
 

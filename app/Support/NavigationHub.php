@@ -284,6 +284,21 @@ class NavigationHub
 
         if ($church && (
             ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'church.cycle.view', $church)
+            || $resolver->canInChurch($user, 'church.cycle.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.cycle.index',
+                'nav.church_cycle',
+                'bi-calendar2-range',
+                ['church.cycle.*'],
+                'church.cycle.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
             || $resolver->canInChurch($user, 'finance.payroll.view', $church)
             || $resolver->canInChurch($user, 'finance.payroll.manage', $church)
         )) {
