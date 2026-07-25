@@ -8,7 +8,7 @@
         <h1 class="page-title mb-0">{{ __('announcements.edit') }}</h1>
         <div class="d-flex flex-wrap gap-2">
             <form method="POST" action="{{ route('announcements.manage.publish', $announcement) }}"
-                  onsubmit="return confirm(@json(__('announcements.publish').'?'))">
+                  data-confirm="{{ __('announcements.publish').'?' }}">
                 @csrf
                 <button type="submit" class="btn btn-success">
                     {{ $announcement->isPublished() ? __('announcements.republish') : __('announcements.publish') }}

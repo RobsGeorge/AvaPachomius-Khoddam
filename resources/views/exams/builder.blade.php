@@ -106,7 +106,7 @@
                     </div>
                 </form>
                 <form method="POST" action="{{ route('exams.questions.destroy', [$exam, $question]) }}" class="mt-2"
-                      onsubmit="return confirm(@json(__('pages.confirm_delete')))">
+                      data-confirm="{{ __('pages.confirm_delete') }}">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('pages.delete') }}</button>
                 </form>

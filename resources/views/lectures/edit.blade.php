@@ -110,7 +110,7 @@
                             </div>
                             <form method="POST"
                                   action="{{ route('lecture-materials.destroy', $mat->material_id) }}"
-                                  onsubmit="return confirm('{{ __('pages.confirm_delete_link') }}')">
+                                  data-confirm="{{ __('pages.confirm_delete_link') }}">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger py-0 px-1">
                                     <i class="bi bi-trash"></i>

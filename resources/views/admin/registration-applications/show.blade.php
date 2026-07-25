@@ -139,8 +139,7 @@
         <div class="app-card card shadow-sm border-danger">
             <div class="card-body">
                 <form method="POST" action="{{ route('admin.registration-applications.reject', $application) }}"
-                      data-confirm="{{ __('registration_review.confirm_reject_application') }}"
-                      onsubmit="return confirm(this.dataset.confirm);">
+                      data-confirm="{{ __('registration_review.confirm_reject_application') }}">
                     @csrf
                     <label for="overall_rejection_note" class="form-label">{{ __('registration_review.overall_rejection_note') }}</label>
                     <textarea id="overall_rejection_note" name="overall_rejection_note" rows="3" class="form-control mb-3" required>{{ old('overall_rejection_note') }}</textarea>
@@ -174,8 +173,7 @@
                         <p><strong>{{ __('registration_review.overall_rejection_note') }}:</strong> {{ $application->overall_rejection_note }}</p>
                     @endif
                     <form method="POST" action="{{ route('admin.registration-applications.restore', $application) }}"
-                          data-confirm="{{ __('registration_review.confirm_restore') }}"
-                          onsubmit="return confirm(this.dataset.confirm);">
+                          data-confirm="{{ __('registration_review.confirm_restore') }}">
                         @csrf
                         <input type="hidden" name="target_status" value="pending_review">
                         <button type="submit" class="btn btn-primary">{{ __('registration_review.restore_application') }}</button>

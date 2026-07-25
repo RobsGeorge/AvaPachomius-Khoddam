@@ -86,12 +86,14 @@ class AssignmentCourseContextTest extends EventModuleTestCase
                 'assignment_description' => 'Created in context',
                 'total_points' => 20,
                 'due_date' => now()->addDays(3)->format('Y-m-d\TH:i'),
+                'delivery_mode' => Assignment::MODE_ONLINE,
             ])
             ->assertRedirect(route('assignments.index'));
 
         $this->assertDatabaseHas('assignments', [
             'course_id' => $course->course_id,
             'assignment_name' => 'New scoped task',
+            'delivery_mode' => Assignment::MODE_ONLINE,
         ]);
     }
 

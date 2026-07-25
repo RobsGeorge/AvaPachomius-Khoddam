@@ -110,9 +110,11 @@ class AppLayoutComposer
     {
         try {
             $view->with('unreadNotificationBadge', $this->notifications->unreadBadgeLabel($user));
+            $view->with('navNotifications', $this->notifications->latestForPreview($user));
         } catch (\Throwable $e) {
             report($e);
             $view->with('unreadNotificationBadge', '');
+            $view->with('navNotifications', collect());
         }
     }
 

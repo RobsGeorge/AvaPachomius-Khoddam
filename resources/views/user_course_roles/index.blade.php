@@ -67,8 +67,7 @@
                                     @if($assignment->user && $accountStatus['key'] !== 'active')
                                         <form method="POST"
                                               action="{{ route('user-course-roles.send-registration-link', $assignment->user->user_id) }}"
-                                              data-confirm="{{ __('pages.confirm_send_account_setup_email') }}"
-                                              onsubmit="return confirm(this.dataset.confirm)">
+                                              data-confirm="{{ __('pages.confirm_send_account_setup_email') }}">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-primary" title="{{ __('pages.send_account_setup_email') }}">
                                                 <i class="bi bi-envelope"></i>
@@ -77,8 +76,7 @@
                                     @endif
                                     <form method="POST"
                                       action="{{ route('user-course-roles.destroy', $assignment->user_course_role_id) }}"
-                                      data-confirm="{{ __('pages.confirm_cancel_assignment') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('pages.confirm_cancel_assignment') }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
@@ -140,8 +138,7 @@
                                 <form method="POST"
                                       action="{{ route('user-course-roles.send-registration-link', $assignment->user->user_id) }}"
                                       class="w-100"
-                                      data-confirm="{{ __('pages.confirm_send_account_setup_email') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('pages.confirm_send_account_setup_email') }}">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline-primary w-100">
                                         <i class="bi bi-envelope"></i> {{ __('pages.send_account_setup_email') }}
@@ -151,8 +148,7 @@
                             <form method="POST"
                                   action="{{ route('user-course-roles.destroy', $assignment->user_course_role_id) }}"
                                   class="w-100"
-                                  data-confirm="{{ __('pages.confirm_cancel_assignment') }}"
-                                  onsubmit="return confirm(this.dataset.confirm)">
+                                  data-confirm="{{ __('pages.confirm_cancel_assignment') }}">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger w-100">

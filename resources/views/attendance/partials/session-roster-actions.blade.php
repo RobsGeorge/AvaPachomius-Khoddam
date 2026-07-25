@@ -7,7 +7,7 @@
     <div class="px-3 py-3 border-bottom d-flex flex-wrap align-items-center gap-2">
         @if(($roster['missing'] ?? 0) > 0)
             <form method="POST" action="{{ route('sessions.attendance.fill-missing', $session->session_id) }}"
-                  onsubmit="return confirm(@json(__('pages.confirm_fill_missing_attendance')))">
+                  data-confirm="{{ __('pages.confirm_fill_missing_attendance') }}">
                 @csrf
                 <input type="hidden" name="status" value="Absent">
                 <button type="submit" class="btn btn-sm btn-outline-danger">

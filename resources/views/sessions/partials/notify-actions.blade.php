@@ -18,8 +18,7 @@
         <form method="POST"
               action="{{ route('sessions.notify-students', $session->session_id) }}"
               class="d-inline"
-              data-confirm="{{ __('pages.confirm_notify_session') }}"
-              onsubmit="return confirm(this.dataset.confirm)">
+              data-confirm="{{ __('pages.confirm_notify_session') }}">
             @csrf
             <button type="submit" class="btn btn-sm btn-outline-info" title="{{ __('pages.notify_session_students') }}">
                 <i class="bi bi-send"></i>

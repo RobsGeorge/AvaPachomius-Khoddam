@@ -13,6 +13,9 @@ class NotificationFeedService
     /** Max unread rows scanned for the red badge; display becomes "9+". */
     public const UNREAD_BADGE_CAP = 9;
 
+    /** Latest inbox rows shown in the nav bell dropdown. */
+    public const NAV_PREVIEW_LIMIT = 8;
+
     public function __construct(
         private CommunicationLogService $communicationLogs,
     ) {}
@@ -54,6 +57,27 @@ class NotificationFeedService
         return $count >= self::UNREAD_BADGE_CAP
             ? self::UNREAD_BADGE_CAP.'+'
             : (string) $count;
+    }
+
+    /**
+     * Latest non-dismissed notifications for the top-nav preview dropdown.
+     *
+     * @return Collection<int, UserNotification>
+     */
+    public function latestForPreview(User $user, ?int $limit = null): Collection
+    {
+        if (! Schema::hasTable('user_notifications')) {
+            return collect();
+        }
+
+        $limit = $limit ?? self::NAV_PREVIEW_LIMIT;
+
+        return UserNotification::query()
+            ->where('user_id', $user->user_id)
+            ->whereNull('dismissed_at')
+            ->latest()
+            ->limit($limit)
+            ->get();
     }
 
     private function unreadQuery(User $user): \Illuminate\Database\Eloquent\Builder

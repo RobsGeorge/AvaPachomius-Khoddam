@@ -10,8 +10,7 @@
             <div class="d-flex flex-wrap gap-2">
                 @if(($canNotifySessions ?? false) && current_course())
                     <form method="POST" action="{{ route('sessions.notify-next') }}"
-                          data-confirm="{{ __('pages.confirm_notify_session') }}"
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          data-confirm="{{ __('pages.confirm_notify_session') }}">
                         @csrf
                         <button type="submit" class="btn btn-outline-info">
                             <i class="bi bi-bell"></i> {{ __('pages.notify_next_session') }}
@@ -59,8 +58,7 @@
                     @if($canCloseFocus)
                         <form method="POST"
                               action="{{ route('sessions.close-attendance', $focusSession->session_id) }}"
-                              data-confirm="{{ __('pages.confirm_close_attendance') }}"
-                              onsubmit="return confirm(this.dataset.confirm)">
+                              data-confirm="{{ __('pages.confirm_close_attendance') }}">
                             @csrf
                             <button type="submit" class="btn btn-success btn-sm">
                                 <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
@@ -143,8 +141,7 @@
                                     @if($canClose)
                                         <form method="POST"
                                               action="{{ route('sessions.close-attendance', $session->session_id) }}"
-                                              data-confirm="{{ __('pages.confirm_close_attendance') }}"
-                                              onsubmit="return confirm(this.dataset.confirm)">
+                                              data-confirm="{{ __('pages.confirm_close_attendance') }}">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-success" title="{{ __('pages.close_attendance') }}">
                                                 <i class="bi bi-lock"></i>
@@ -156,8 +153,7 @@
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <form method="POST" action="{{ route('sessions.destroy', $session->session_id) }}"
-                                          data-confirm="{{ __('pages.confirm_delete_session') }}"
-                                          onsubmit="return confirm(this.dataset.confirm)">
+                                          data-confirm="{{ __('pages.confirm_delete_session') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -251,8 +247,7 @@
                                     <form method="POST"
                                           action="{{ route('sessions.close-attendance', $session->session_id) }}"
                                           class="w-100"
-                                          data-confirm="{{ __('pages.confirm_close_attendance') }}"
-                                          onsubmit="return confirm(this.dataset.confirm)">
+                                          data-confirm="{{ __('pages.confirm_close_attendance') }}">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-success w-100">
                                             <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
@@ -265,8 +260,7 @@
                                 </a>
                                 <form method="POST" action="{{ route('sessions.destroy', $session->session_id) }}"
                                       class="w-100"
-                                      data-confirm="{{ __('pages.confirm_delete_session') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('pages.confirm_delete_session') }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-outline-danger w-100">

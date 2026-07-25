@@ -100,8 +100,7 @@
                                 {{ __('pages.edit') }}
                             </button>
                             <form method="POST" action="{{ route('exams.destroy', $exam->exam_id) }}" class="flex-grow-1 flex-sm-grow-0"
-                                  data-confirm="{{ __('pages.confirm_delete_exam_js') }}"
-                                  onsubmit="return confirm(this.dataset.confirm)">
+                                  data-confirm="{{ __('pages.confirm_delete_exam_js') }}">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger w-100">{{ __('pages.delete') }}</button>
                             </form>

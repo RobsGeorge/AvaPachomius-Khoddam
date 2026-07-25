@@ -59,8 +59,7 @@
                             </a>
                             <form method="POST"
                                   action="{{ route('lectures.destroy', $lecture->lecture_id) }}"
-                                  data-confirm="{{ __('pages.confirm_delete_lecture') }}"
-                                  onsubmit="return confirm(this.dataset.confirm)">
+                                  data-confirm="{{ __('pages.confirm_delete_lecture') }}">
                                 @csrf @method('DELETE')
                                 <input type="hidden" name="course_id" value="{{ $course->course_id }}">
                                 <button class="btn btn-sm btn-outline-danger py-0 px-2" title="{{ __('pages.delete') }}">
@@ -117,8 +116,7 @@
                     <form method="POST"
                           action="{{ route('lectures.destroy', $lecture->lecture_id) }}"
                           class="flex-grow-1"
-                          data-confirm="{{ __('pages.confirm_delete_lecture') }}"
-                          onsubmit="return confirm(this.dataset.confirm)">
+                          data-confirm="{{ __('pages.confirm_delete_lecture') }}">
                         @csrf @method('DELETE')
                         <input type="hidden" name="course_id" value="{{ $course->course_id }}">
                         <button class="btn btn-sm btn-outline-danger w-100">

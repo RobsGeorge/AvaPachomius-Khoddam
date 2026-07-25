@@ -90,8 +90,7 @@
                                         <td>
                                             <form method="POST"
                                                   action="{{ route('superadmin.roles.destroy', $role->role_id) }}"
-                                                  data-confirm="{{ __('pages.confirm_delete_role_super') }}"
-                                                  onsubmit="return confirm(this.dataset.confirm)">
+                                                  data-confirm="{{ __('pages.confirm_delete_role_super') }}">
                                                 @csrf @method('DELETE')
                                                 <button class="btn btn-xs btn-outline-danger py-0 px-1">
                                                     <i class="bi bi-trash"></i>
@@ -162,8 +161,7 @@
                                         <td>
                                             <form method="POST"
                                                   action="{{ route('superadmin.destroy', $a->user_course_role_id) }}"
-                                                  data-confirm="{{ __('pages.confirm_cancel_role') }}"
-                                                  onsubmit="return confirm(this.dataset.confirm)">
+                                                  data-confirm="{{ __('pages.confirm_cancel_role') }}">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
                                                     <i class="bi bi-x-circle"></i>

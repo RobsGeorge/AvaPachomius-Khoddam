@@ -58,8 +58,7 @@
                                         <i class="bi bi-pencil"></i> {{ __('pages.edit') }}
                                     </a>
                                     <form method="POST" action="{{ route('modules.destroy', $module->module_id) }}"
-                                          data-confirm="{{ __('pages.confirm_delete_module_cascade') }}"
-                                          onsubmit="return confirm(this.dataset.confirm)">
+                                          data-confirm="{{ __('pages.confirm_delete_module_cascade') }}">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash"></i>
@@ -123,8 +122,7 @@
                             </a>
                             <form method="POST" action="{{ route('modules.destroy', $module->module_id) }}"
                                   class="w-100"
-                                  data-confirm="{{ __('pages.confirm_delete_module_cascade') }}"
-                                  onsubmit="return confirm(this.dataset.confirm)">
+                                  data-confirm="{{ __('pages.confirm_delete_module_cascade') }}">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger w-100">
                                     <i class="bi bi-trash"></i> {{ __('pages.delete') }}

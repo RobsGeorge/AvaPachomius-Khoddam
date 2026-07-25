@@ -66,8 +66,7 @@
                                             </a>
                                             @if($service->status === \App\Models\ChurchService::STATUS_ACTIVE)
                                                 <form method="POST" action="{{ route('admin.services.archive', $service) }}" class="d-inline"
-                                                      data-confirm="{{ __('service.confirm_archive') }}"
-                                                      onsubmit="return confirm(this.dataset.confirm)">
+                                                      data-confirm="{{ __('service.confirm_archive') }}">
                                                     @csrf
                                                     <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1">
                                                         <i class="bi bi-archive"></i>

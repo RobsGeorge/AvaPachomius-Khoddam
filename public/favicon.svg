@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Deaconia">
   <rect width="64" height="64" rx="12" fill="#114b4f"/>
-  <g fill="#d4af37">
+  <g fill="#c9a227">
     <polygon points="27,32 37,32 40,9 24,9"/>
     <polygon points="27,32 37,32 40,55 24,55"/>
     <polygon points="32,27 32,37 9,40 9,24"/>

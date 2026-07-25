@@ -65,7 +65,7 @@
                             <td>{{ $line->fx_rate }}</td>
                             @if($run->isDraft())
                                 <td class="text-end">
-                                    <form method="POST" action="{{ route('church.finance.payroll.lines.destroy', [$run, $line]) }}" onsubmit="return confirm(@json(__('finance.confirm_delete')))">
+                                    <form method="POST" action="{{ route('church.finance.payroll.lines.destroy', [$run, $line]) }}" data-confirm="{{ __('finance.confirm_delete') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('finance.delete_line') }}</button>
@@ -87,7 +87,7 @@
                 @csrf
                 <button type="submit" class="btn btn-primary">{{ __('finance.finalize') }}</button>
             </form>
-            <form method="POST" action="{{ route('church.finance.payroll.destroy', $run) }}" onsubmit="return confirm(@json(__('finance.confirm_delete')))">
+            <form method="POST" action="{{ route('church.finance.payroll.destroy', $run) }}" data-confirm="{{ __('finance.confirm_delete') }}">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">{{ __('finance.delete_run') }}</button>

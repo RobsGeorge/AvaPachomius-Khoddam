@@ -102,7 +102,7 @@
                             <td class="text-end">
                                 @if($membership->user)
                                     <form method="POST" action="{{ route('superadmin.churches.members.destroy', [$church, $membership->user]) }}"
-                                          onsubmit="return confirm(@json(__('tenancy.confirm_remove_member')))">
+                                          data-confirm="{{ __('tenancy.confirm_remove_member') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('tenancy.remove') }}</button>

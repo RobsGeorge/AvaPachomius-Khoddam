@@ -27,8 +27,7 @@
                             <td>{{ $role->role_decription }}</td>
                             <td>
                                 <form method="POST" action="{{ route('roles.destroy', $role->role_id) }}"
-                                      data-confirm="{{ __('pages.confirm_delete_role') }}"
-                                      onsubmit="return confirm(this.dataset.confirm)">
+                                      data-confirm="{{ __('pages.confirm_delete_role') }}">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">
@@ -62,8 +61,7 @@
                         </dl>
                         <div class="data-card-actions">
                             <form method="POST" action="{{ route('roles.destroy', $role->role_id) }}"
-                                  data-confirm="{{ __('pages.confirm_delete_role') }}"
-                                  onsubmit="return confirm(this.dataset.confirm)">
+                                  data-confirm="{{ __('pages.confirm_delete_role') }}">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger w-100">

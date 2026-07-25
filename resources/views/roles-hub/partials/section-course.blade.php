@@ -84,7 +84,7 @@
                                                         <a href="{{ route('courses.roles.edit', [$course, $role]) }}" class="btn btn-sm btn-outline-primary">{{ __('rbac.permissions') }}</a>
                                                         @if($role->user_course_roles_count === 0)
                                                             <form method="POST" action="{{ route('courses.roles.destroy', [$course, $role]) }}" class="d-inline"
-                                                                  onsubmit="return confirm(@json(__('rbac.confirm_delete')))">
+                                                                  data-confirm="{{ __('rbac.confirm_delete') }}">
                                                                 @csrf @method('DELETE')
                                                                 <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('rbac.delete') }}</button>
                                                             </form>

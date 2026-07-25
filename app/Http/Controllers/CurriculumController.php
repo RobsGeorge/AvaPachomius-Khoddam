@@ -57,20 +57,29 @@ class CurriculumController extends Controller
 
         $moduleIds = $course->modules->pluck('module_id');
 
-        $openSurveys = FeedbackSurvey::query()
+        $moduleSurveys = FeedbackSurvey::query()
             ->where('course_id', $courseId)
             ->whereIn('module_id', $moduleIds)
-            ->where('status', FeedbackSurvey::STATUS_OPEN)
+            ->orderBy('survey_id')
             ->get()
             ->groupBy('module_id');
 
         $submittedSurveyIds = FeedbackSubmission::query()
             ->where('user_id', Auth::user()->user_id)
-            ->whereIn('survey_id', $openSurveys->flatten()->pluck('survey_id'))
+            ->whereIn('survey_id', $moduleSurveys->flatten()->pluck('survey_id'))
             ->pluck('survey_id')
             ->flip();
 
-        return view('course-content.show', compact('course', 'openSurveys', 'submittedSurveyIds'));
+        $canManageCurriculum = $user instanceof User && $user->canInCourse('curriculum.manage', $course);
+        $canManageFeedback = $user instanceof User && $user->canInCourse('feedback.manage', $course);
+
+        return view('course-content.show', compact(
+            'course',
+            'moduleSurveys',
+            'submittedSurveyIds',
+            'canManageCurriculum',
+            'canManageFeedback',
+        ));
     }
 
     /** Admin/instructor panel: manage modules, sessions, and lectures. */
@@ -88,7 +97,14 @@ class CurriculumController extends Controller
             ->orderBy('title')
             ->get();
 
-        return view('course-content.admin', compact('course', 'availableModules'));
+        $moduleSurveys = FeedbackSurvey::query()
+            ->where('course_id', $courseId)
+            ->whereIn('module_id', $linkedModuleIds)
+            ->orderBy('survey_id')
+            ->get()
+            ->groupBy('module_id');
+
+        return view('course-content.admin', compact('course', 'availableModules', 'moduleSurveys'));
     }
 
     public function attachModule(Request $request, string $courseId)

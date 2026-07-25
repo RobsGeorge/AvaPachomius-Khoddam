@@ -48,8 +48,7 @@
                                 <td>
                                     <form method="POST"
                                           action="{{ route('superadmin.courses.destroy', $course->course_id) }}"
-                                          data-confirm="{{ __('pages.confirm_delete_course') }}"
-                                          onsubmit="return confirm(this.dataset.confirm)">
+                                          data-confirm="{{ __('pages.confirm_delete_course') }}">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1">
                                             <i class="bi bi-trash"></i>

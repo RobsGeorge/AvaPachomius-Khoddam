@@ -299,7 +299,7 @@
                                     </a>
                                 @endif
                                 @if($isCustom)
-                                    <form method="POST" action="{{ route('superadmin.scheduled-tasks.destroy', $task['key']) }}" onsubmit="return confirm(@json(__('scheduled_tasks.delete_confirm')));">
+                                    <form method="POST" action="{{ route('superadmin.scheduled-tasks.destroy', $task['key']) }}" data-confirm="{{ __('scheduled_tasks.delete_confirm') }}">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-outline-danger btn-sm w-100">

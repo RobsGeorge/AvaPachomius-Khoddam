@@ -68,6 +68,22 @@
                         </div>
 
                         <div class="form-group mb-3">
+                            <label for="delivery_mode">{{ __('pages.delivery_mode') }} <span class="text-danger">*</span></label>
+                            <select name="delivery_mode" id="delivery_mode" class="form-select @error('delivery_mode') is-invalid @enderror" required>
+                                <option value="{{ \App\Models\Assignment::MODE_ONLINE }}" @selected(old('delivery_mode', \App\Models\Assignment::MODE_ONLINE) === \App\Models\Assignment::MODE_ONLINE)>
+                                    {{ __('pages.mode_online') }}
+                                </option>
+                                <option value="{{ \App\Models\Assignment::MODE_OFFLINE }}" @selected(old('delivery_mode') === \App\Models\Assignment::MODE_OFFLINE)>
+                                    {{ __('pages.mode_offline') }}
+                                </option>
+                            </select>
+                            <small class="form-text text-muted-theme">{{ __('pages.delivery_mode_locked_hint') }}</small>
+                            @error('delivery_mode')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group mb-3">
                             <label for="instructions">{{ __('pages.instructions') }}</label>
                             <textarea class="form-control @error('instructions') is-invalid @enderror"
                                       id="instructions" name="instructions" rows="3">{{ old('instructions') }}</textarea>

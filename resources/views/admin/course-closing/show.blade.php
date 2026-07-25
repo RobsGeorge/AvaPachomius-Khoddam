@@ -70,7 +70,7 @@
             <div class="card-body">
                 <h2 class="h6 fw-semibold">{{ __('course_graduation.lock_grading') }}</h2>
                 <p class="small text-muted mb-3">{{ __('course_graduation.lock_grading_hint') }}</p>
-                <form method="POST" action="{{ route('courses.closing.lock', $course->course_id) }}" onsubmit="return confirm(@json(__('course_graduation.lock_grading_confirm')))">
+                <form method="POST" action="{{ route('courses.closing.lock', $course->course_id) }}" data-confirm="{{ __('course_graduation.lock_grading_confirm') }}">
                     @csrf
                     <button type="submit" class="btn btn-warning">{{ __('course_graduation.lock_grading') }}</button>
                 </form>
@@ -195,7 +195,7 @@
     @if($checklist['can_announce'])
         <div class="app-card card shadow-sm mb-4 border-success">
             <div class="card-body">
-                <form method="POST" action="{{ route('courses.closing.announce', $course->course_id) }}" onsubmit="return confirm(@json(__('course_graduation.announce_confirm')))">
+                <form method="POST" action="{{ route('courses.closing.announce', $course->course_id) }}" data-confirm="{{ __('course_graduation.announce_confirm') }}">
                     @csrf
                     <button type="submit" class="btn btn-success">{{ __('course_graduation.announce_grades') }}</button>
                 </form>
@@ -206,7 +206,7 @@
     @if($checklist['can_close'])
         <div class="app-card card shadow-sm mb-4">
             <div class="card-body">
-                <form method="POST" action="{{ route('courses.closing.close', $course->course_id) }}" onsubmit="return confirm(@json(__('course_graduation.close_confirm')))">
+                <form method="POST" action="{{ route('courses.closing.close', $course->course_id) }}" data-confirm="{{ __('course_graduation.close_confirm') }}">
                     @csrf
                     <div class="form-check mb-3">
                         <input type="checkbox" name="archive_staff" value="1" class="form-check-input" id="archive_staff" checked>

@@ -16,6 +16,10 @@ class Assignment extends Model
 
     public const MAX_UPLOAD_MB = 10;
 
+    public const MODE_ONLINE = 'online';
+
+    public const MODE_OFFLINE = 'offline';
+
     protected $primaryKey = 'assignment_id';
     
     protected $fillable = [
@@ -26,6 +30,7 @@ class Assignment extends Model
         'due_date',
         'instructions',
         'resources',
+        'delivery_mode',
     ];
 
     protected $casts = [
@@ -36,6 +41,16 @@ class Assignment extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class, 'course_id', 'course_id');
+    }
+
+    public function isOnline(): bool
+    {
+        return ($this->delivery_mode ?? self::MODE_ONLINE) === self::MODE_ONLINE;
+    }
+
+    public function isOffline(): bool
+    {
+        return ($this->delivery_mode ?? self::MODE_ONLINE) === self::MODE_OFFLINE;
     }
 
     public function isSubmissionOpen(): bool
