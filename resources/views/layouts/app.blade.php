@@ -34,6 +34,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" referrerpolicy="no-referrer">
 
+    @if(!empty($churchBrandingCss))
+        <style>{!! $churchBrandingCss !!}</style>
+    @endif
     @if(!empty($courseBrandingCss))
         <style>{!! $courseBrandingCss !!}</style>
     @endif

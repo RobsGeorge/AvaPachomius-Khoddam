@@ -665,10 +665,11 @@ return [
                 'nav' => ['church.public_profile'],
             ],
             'public_site.theme' => [
-                'label_en' => 'Edit public site theme (T10b)',
-                'label_ar' => 'تعديل سمة الموقع العام (T10b)',
+                'label_en' => 'Edit church branding (logo & palette)',
+                'label_ar' => 'تعديل هوية الكنيسة (الشعار والألوان)',
                 'type' => 'both',
-                'routes' => [],
+                'routes' => ['church.branding.*'],
+                'nav' => ['church.branding'],
             ],
             'public_site.manage' => [
                 'label_en' => 'Manage homepage draft sections (T10c)',

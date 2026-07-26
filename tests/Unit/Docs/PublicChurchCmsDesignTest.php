@@ -139,14 +139,15 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString('T10', $gap);
     }
 
-    public function test_t10a_profile_allowed_but_homepage_cms_not_landed(): void
+    public function test_t10a_and_t10b_allowed_but_homepage_cms_not_landed(): void
     {
         $capabilities = (string) file_get_contents(base_path('config/capabilities.php'));
         $permissions = (string) file_get_contents(base_path('config/permissions.php'));
 
-        // T10a may register the capability and profile key.
         $this->assertStringContainsString("'public_site'", $capabilities);
         $this->assertStringContainsString('public_site.profile', $permissions);
+        $this->assertStringContainsString('public_site.theme', $permissions);
+        $this->assertFileExists(base_path('app/Support/PublicSite/ChurchBranding.php'));
 
         // T10c homepage CMS product surface must still be absent.
         $this->assertFileDoesNotExist(base_path('app/Models/ChurchSite.php'));

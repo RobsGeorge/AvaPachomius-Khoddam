@@ -35,6 +35,7 @@ return [
     'home_visits'       => 'Home visits',
     'church_cycle'      => 'Church cycle',
     'public_profile'    => 'Public profile',
+    'church_branding'   => 'Church branding',
     'payroll'           => 'Payroll',
     'money_in'          => 'Money in',
 ];

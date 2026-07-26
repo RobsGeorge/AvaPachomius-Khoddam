@@ -218,18 +218,26 @@
                         </span>
                     @else
                         <a href="{{ route('dashboard') }}" class="brand-link brand-lockup">
-                            <x-application-logo class="brand-mark" aria-hidden="true" />
+                            @if(!empty($churchLogoUrl))
+                                <img src="{{ $churchLogoUrl }}" alt="" class="brand-mark" style="object-fit:contain;">
+                            @else
+                                <x-application-logo class="brand-mark" aria-hidden="true" />
+                            @endif
                             <span class="brand-names">
-                                <span class="brand-name">{{ __('app.name') }}</span>
+                                <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
                                 <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
                             </span>
                         </a>
                     @endif
                 @else
                     <a href="{{ route('login') }}" class="brand-link brand-lockup">
-                        <x-application-logo class="brand-mark" aria-hidden="true" />
+                        @if(!empty($churchLogoUrl))
+                            <img src="{{ $churchLogoUrl }}" alt="" class="brand-mark" style="object-fit:contain;">
+                        @else
+                            <x-application-logo class="brand-mark" aria-hidden="true" />
+                        @endif
                         <span class="brand-names">
-                            <span class="brand-name">{{ __('app.name') }}</span>
+                            <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
                             <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
                         </span>
                     </a>

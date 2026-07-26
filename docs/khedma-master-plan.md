@@ -110,12 +110,11 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T10a in progress (expand).** T0–T9 landed on staging (T9a policy +
-roster; T9b End-of-Cycle wizard; T9c church school year + Cycle Dashboard). **T10a**
-public church profile is the current coding track. T8 residual (UCR contract) and T9
-people-only / staff reassign stay parked. Keep `MULTI_TENANT=false` in production until
-staging pilot is signed off. Polymorphic applications / public church-registration
-remain parked (§13 / §17.4).
+**Current phase: T10b in progress (expand).** T0–T10a landed on staging (T9 cycle
+progression; T10a public profile). **T10b** church branding is the current coding track.
+T8 residual (UCR contract) and T9 people-only / staff reassign stay parked. Keep
+`MULTI_TENANT=false` in production until staging pilot is signed off. Polymorphic
+applications / public church-registration remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -159,10 +158,13 @@ Church Cycle Dashboard (Ready / Blocked / Done / Skipped per service); **Start p
 notifies service admins — **no** one-button church-wide upgrade. Residual people-only / staff
 reassign stay parked.
 
-**T10a (this track):** public church profile in `church.settings.public`; capability
-`public_site` + `public_site.profile`; admin UI + guest `/about`. **Do not** build T10b
-branding chrome or T10c `church_site*` homepage CMS in this slice. Detail in
-`PARKING-LOT.md` “Public Church Presence…” and [`docs/public-church-cms.md`](public-church-cms.md).
+**T10a (landed):** public church profile in `church.settings.public`; capability
+`public_site` + `public_site.profile`; admin UI + guest `/about`.
+
+**T10b (this track):** church branding in `church.settings.branding` (logo + palette +
+fonts); `public_site.theme`; CSS vars on `/about` and optional portal chrome. **Do not**
+build T10c `church_site*` homepage CMS in this slice. Detail in `PARKING-LOT.md`
+“Public Church Presence…” and [`docs/public-church-cms.md`](public-church-cms.md).
 Feature-gap **F-20**.
 
 ## 8. Church management module

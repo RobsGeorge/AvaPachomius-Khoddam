@@ -313,6 +313,20 @@ class NavigationHub
 
         if ($church && (
             ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'public_site.theme', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.branding.edit',
+                'nav.church_branding',
+                'bi-palette',
+                ['church.branding.*'],
+                'public_site.theme',
+                'public_site'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
             || $resolver->canInChurch($user, 'finance.payroll.view', $church)
             || $resolver->canInChurch($user, 'finance.payroll.manage', $church)
         )) {

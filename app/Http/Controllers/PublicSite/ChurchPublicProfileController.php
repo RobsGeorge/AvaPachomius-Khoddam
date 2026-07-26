@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\PublicSite;
 
 use App\Http\Controllers\Controller;
+use App\Support\PublicSite\ChurchBranding;
 use App\Support\PublicSite\ChurchPublicProfile;
 use App\Tenancy\TenantContext;
 use App\Models\Church;
 
 /**
  * T10a — guest-readable church public details (not homepage CMS).
+ * T10b — branding CSS/logo applied on the public page.
  */
 class ChurchPublicProfileController extends Controller
 {
@@ -23,10 +25,12 @@ class ChurchPublicProfileController extends Controller
         }
 
         $profile = ChurchPublicProfile::fromSettings($church->settings);
+        $branding = ChurchBranding::fromSettings($church->settings);
 
         return view('public-site.profile', [
             'church' => $church,
             'profile' => $profile,
+            'branding' => $branding,
         ]);
     }
 }

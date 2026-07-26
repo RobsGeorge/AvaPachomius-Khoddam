@@ -15,6 +15,7 @@ use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\RegistrationApplication;
 use App\Support\ChurchHost;
+use App\Support\PublicSite\ChurchBranding;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +35,8 @@ class AppLayoutComposer
 
     public function compose(View $view): void
     {
+        $this->composeChurchBranding($view);
+
         $user = Auth::user();
 
         if (! $user) {
@@ -46,6 +49,33 @@ class AppLayoutComposer
         $this->composeNotifications($view, $user);
         $this->composeOnboarding($view, $user);
         $this->composeContextSwitchers($view, $user);
+    }
+
+    private function composeChurchBranding(View $view): void
+    {
+        try {
+            $church = TenantContext::current();
+            if (! $church && Schema::hasTable('church')) {
+                $church = Church::query()->where('slug', config('tenancy.main_slug'))->first();
+            }
+
+            if (! $church) {
+                $view->with('churchBrandingCss', null);
+                $view->with('churchLogoUrl', null);
+
+                return;
+            }
+
+            $branding = ChurchBranding::fromSettings($church->settings);
+            $view->with('churchBrandingCss', ChurchBranding::portalCss($branding));
+            $view->with('churchLogoUrl', ChurchBranding::logoUrl($branding));
+            $view->with('brandedChurchName', $church->name);
+        } catch (\Throwable $e) {
+            report($e);
+            $view->with('churchBrandingCss', null);
+            $view->with('churchLogoUrl', null);
+            $view->with('brandedChurchName', null);
+        }
     }
 
     private function composeProfilePhotoGate(View $view, $user): void

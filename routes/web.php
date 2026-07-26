@@ -47,6 +47,7 @@ use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\Church\ChurchCycleController;
+use App\Http\Controllers\Church\BrandingController;
 use App\Http\Controllers\Church\PublicProfileController;
 use App\Http\Controllers\PublicSite\ChurchPublicProfileController;
 use App\Http\Controllers\Church\PayrollController;
@@ -200,11 +201,15 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // T10a — public church profile (own capability; not under church_management)
+    // T10a/T10b — public church profile + branding (own capability; not under church_management)
     Route::middleware(['capability:public_site'])->prefix('church')->name('church.')->group(function () {
         Route::middleware(['permission:public_site.profile'])->group(function () {
             Route::get('/public-profile', [PublicProfileController::class, 'edit'])->name('public-profile.edit');
             Route::put('/public-profile', [PublicProfileController::class, 'update'])->name('public-profile.update');
+        });
+        Route::middleware(['permission:public_site.theme'])->group(function () {
+            Route::get('/branding', [BrandingController::class, 'edit'])->name('branding.edit');
+            Route::put('/branding', [BrandingController::class, 'update'])->name('branding.update');
         });
     });
 
