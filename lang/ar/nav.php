@@ -34,6 +34,7 @@ return [
     'confession'        => 'جدول الاعتراف',
     'home_visits'       => 'الزيارات المنزلية',
     'church_cycle'      => 'دورة الكنيسة',
+    'public_profile'    => 'الملف العام',
     'payroll'           => 'الرواتب',
     'money_in'          => 'الإيرادات',
 ];

@@ -119,4 +119,15 @@ return [
         ],
         'config' => [],
     ],
+
+    'public_site' => [
+        'label' => 'capabilities.public_site',
+        'permissions' => [
+            'public_site.profile',
+            'public_site.theme',
+            'public_site.manage',
+            'public_site.publish',
+        ],
+        'config' => [],
+    ],
 ];

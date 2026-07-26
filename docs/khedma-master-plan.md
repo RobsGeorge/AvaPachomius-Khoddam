@@ -110,10 +110,11 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T9 in progress (expand).** T0–T8 landed on staging. **T9a** landed (policy +
-roster status). **T9b** End-of-Cycle wizard (stacked). **T9c** (this track): church school year +
-Church Cycle Dashboard. T8 residual (UCR contract) stays parked. Keep `MULTI_TENANT=false` in
-production until staging pilot is signed off. Polymorphic applications / public church-registration
+**Current phase: T10a in progress (expand).** T0–T9 landed on staging (T9a policy +
+roster; T9b End-of-Cycle wizard; T9c church school year + Cycle Dashboard). **T10a**
+public church profile is the current coding track. T8 residual (UCR contract) and T9
+people-only / staff reassign stay parked. Keep `MULTI_TENANT=false` in production until
+staging pilot is signed off. Polymorphic applications / public church-registration
 remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
@@ -129,9 +130,8 @@ remain parked (§13 / §17.4).
 | **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
 | **T7** *(contract)* ✅ | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
 | **T8** *(expand)* | Structure templates + service wrap | template-driven levels | **T8a:** templates/anchors/`service_units`/`servants-prep`. **T8b:** slug routes, enrollments, attendance lock |
-| **T9** *(expand)* | Service cycle progression | End-of-Cycle wizard | **T9a:** progression policy + roster status. **T9b:** propose/confirm wizard. **T9c:** church school year + dashboard |
-| **T10** *(expand)* | Public Church Presence | public homepage CMS | Profile → branding → curated homepage (see `docs/public-church-cms.md`) |
-| **T10** *(scheduled — after T8)* | Public Church Presence / Homepage CMS | public marketing homepage | Curated-section editor; `public_site` capability; BYO domain — see `PARKING-LOT.md` “Public Church Presence…” + [`docs/public-church-cms.md`](public-church-cms.md) |
+| **T9** *(expand)* ✅ | Service cycle progression | End-of-Cycle wizard | **T9a:** progression policy + roster status. **T9b:** propose/confirm wizard. **T9c:** church school year + dashboard |
+| **T10** *(expand)* | Public Church Presence | public homepage CMS | **T10a:** profile. **T10b:** branding. **T10c:** curated homepage — see `docs/public-church-cms.md` |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
@@ -154,19 +154,16 @@ eligibility helper (inactive excluded from propose). **No silent auto-promote.**
 admin confirm (promote / skip / mark inactive), transactional UCR dual-write apply, audit +
 service-admin notify. People-only placements remain parked.
 
-**T9c (this track):** `church_school_year` season (planned → active → closing → closed);
+**T9c (landed):** `church_school_year` season (planned → active → closing → closed);
 Church Cycle Dashboard (Ready / Blocked / Done / Skipped per service); **Start promotion season**
 notifies service admins — **no** one-button church-wide upgrade. Residual people-only / staff
 reassign stay parked.
 
-**T10 (do not start until T8 residual smoke-checked):** public church profile,
-branding chrome, then curated homepage CMS (`public_site.*` permissions, draft/publish
-sections, media, public `/` when published). Homepage-only first; multi-page later.
-BYO custom domain via DNS/TLS (not redirect-only). Dedicated DB / white-label mobile
-are enterprise notes in the design doc — not T10 scope. Detail in `PARKING-LOT.md`
-“Public Church Presence…” and [`docs/public-church-cms.md`](public-church-cms.md).
-Feature-gap **F-20**. (Slot **T9** may be claimed by service cycle progression when
-that item is scheduled; Public Church Presence stays **T10**.)
+**T10a (this track):** public church profile in `church.settings.public`; capability
+`public_site` + `public_site.profile`; admin UI + guest `/about`. **Do not** build T10b
+branding chrome or T10c `church_site*` homepage CMS in this slice. Detail in
+`PARKING-LOT.md` “Public Church Presence…” and [`docs/public-church-cms.md`](public-church-cms.md).
+Feature-gap **F-20**.
 
 ## 8. Church management module
 
