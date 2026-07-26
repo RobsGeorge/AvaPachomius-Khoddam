@@ -32,6 +32,7 @@ return [
     'open'              => 'فتح',
     'priests'           => 'الكهنة',
     'confession'        => 'جدول الاعتراف',
+    'appointments'      => 'المواعيد الرعوية',
     'home_visits'       => 'الزيارات المنزلية',
     'church_cycle'      => 'دورة الكنيسة',
     'public_profile'    => 'الملف العام',

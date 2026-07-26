@@ -105,10 +105,14 @@ return [
         'people',
         'families',
         'relationships',
-        // Church management (T5)
+        // Church management (T5) + priest appointment calendar (PAC1)
         'priest',
+        'priest_secretary',
         'confession_slot',
         'confession_booking',
+        'appointment_type',
+        'appointment_slot',
+        'appointment_booking',
         'home_visit',
         // Finance (T6)
         'payroll_run',

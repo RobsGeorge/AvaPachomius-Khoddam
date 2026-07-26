@@ -37,6 +37,8 @@ Out-of-phase findings. Captured, deliberately NOT built now.
 - Backend slice: Sanctum token auth + `/api/v1` read APIs — see `docs/mobile/mvp.md`.
 - Design tokens: `resources/design-tokens/khoddam.tokens.json` (sync to mobile theme).
 - Deferred: push device tokens, write APIs, staff app, store release pipeline.
+- **On-device register / mobile OTP:** design locked under **Contact verification (mobile-first)** below;
+  Wave E in `docs/mobile/student-feature-matrix.md` depends on that epic (not “can stay web”).
 
 ## Product ideas (see master-plan §12 parking lot for the full list)
 - The `user` table has many NOT NULL columns with no defaults (profile_photo, 
@@ -163,6 +165,101 @@ homepage CMS** (`church_site*`) and **T10d multi-page** remain parked.
 
 **Resume when:** T10b merged + smoke-checked. Next: T10c homepage CMS + Roles Hub
 permissions + isolation tests. Feature-gap **F-20**.
+
+## Contact verification (mobile-first) (parked 2026-07-25)
+
+**Requested:** Mobile number verification (SMS/WhatsApp) for future communications; whether
+to dual-verify email+mobile; WhatsApp/Telegram preference; native-app registration path.
+
+**Design (locked):** plan `.cursor/plans/mobile_verification_design_bd654111.plan.md`
+
+- **One signup OTP per client:** web → email OTP; native app → mobile OTP (WhatsApp primary,
+  SMS fallback later). Never both mandatory in one funnel.
+- **Identity:** person = unique `national_id`; account = `user_id`; `email` / `mobile_number`
+  remain unique auth channels (no shared OTP targets for mother/sister). Family contact via
+  people/family guardian — not a second login on the same channel.
+- **App user without verified email:** account fully usable (portal + push + WhatsApp);
+  block email notifications + email password-reset until email proven; **mobile OTP password
+  reset** is in-scope for this epic.
+- **Gates:** automated WhatsApp/SMS only if `mobile_verified_at`; email channel only if
+  `email_verified_at` (web signup sets this; app proves later). Ask `whatsapp_capable`; no Telegram v1.
+- Expand-only schema when built: `mobile_verified_at`, `email_verified_at`, `whatsapp_capable`,
+  channel-aware OTP storage (today’s `otp_code` PK=`user_id` is insufficient).
+
+**Why parked:** Master-plan §7 current phase is **T8**. Not a tenancy table slot; product/auth
+epic that must not start mid-T8. CLAUDE.md rule 10 → park; **no** migrations, OTP channel
+code, or API register while T8 is in progress.
+
+**Also waiting / related:**
+- Meta WhatsApp **authentication/OTP templates** (ops + Business Manager) before production WA OTP
+- SMS provider (Twilio/local) — only after WA primary path works
+- Push device tokens (Mobile section) — daily in-app channel; pair with CV4 below
+- Optional later (separate park): passwordless login-with-mobile-OTP; Telegram
+
+### Implementation order (resume sequence)
+
+Prerequisite: **T8 residual smoke-checked** (same gate as other post-T8 product work).
+
+This epic is **independent of T10** (Public Church Presence). Prefer it **before or in parallel
+with early T10** if mobile-first daily use is the higher product priority; do **not** block T10
+on CV, and do **not** start Expo register (Wave E) before CV1–CV3 backend.
+
+| Step | Slice | Delivers | Depends on |
+|------|--------|----------|------------|
+| **CV1** | Backend expand | `mobile_verified_at` / `email_verified_at` / `whatsapp_capable`; channel-aware OTP; WhatsApp OTP send+verify; web progressive mobile verify from notification settings; dispatch + prefs gates; audit; tests | T8 smoke; WA API + OTP template configured on staging |
+| **CV2** | Recovery | Password reset via mobile OTP when email unproven; email link when email proven | CV1 |
+| **CV3** | API | `/api/v1` register + channel-aware OTP verify/resend (app signup gate = mobile OTP; sets `mobile_verified_at`) | CV1 |
+| **CV4** | Native app (Wave E) | Expo register/OTP screens + autofill; soft email-confirm nag; push token registration for daily use | CV2 + CV3; Mobile MVP auth stable |
+
+After CV4: notification preference completeness (feature-gap **F-10**) can fold verified-channel
+rules into digests; optional SMS fallback provider.
+
+**Resume when:** T8 residual smoke-checked. Kickoff PR = **CV1** only (web-usable without app).
+
+## Priest appointment calendar (Calendly-like) (parked 2026-07-26)
+
+**Requested:** Full calendar system on top of confessions + a separate pastoral-appointment
+calendar — priest/secretary open/block slots; approved church members book; edit / cancel /
+reschedule; configurable portal/email/WhatsApp notifications; ICS then Google/Outlook OAuth;
+secretary book-on-behalf and outreach for reminders/rescheduling.
+
+**Design (locked):** [`docs/priest-appointment-calendar.md`](docs/priest-appointment-calendar.md) —
+plan `.cursor/plans/priest_calendar_booking_2563fdff.plan.md`.
+
+- **Two calendars:** keep `confession_slot` / `confession_booking`; add parallel
+  `appointment_type` / `appointment_slot` / `appointment_booking` (shared PHP booking engine).
+- **Secretary:** new `secretary` role template **and** `priest_secretary` delegation; secretary
+  sees booker identity + notes; may book on behalf (`booked_by_user_id`).
+- **Who books:** any approved church member (`*.book`); not limited to role-name “servant”.
+- **Notifications:** lifecycle + reminder types; portal/email in PAC4; WhatsApp only after
+  Contact Verification CV1 gates.
+- **Integrations:** tokenized ICS in PAC5; OAuth Google/Outlook push in PAC6 (no two-way busy sync).
+
+**Why parked:** Master-plan §7 current phase is **T8**. Expands beyond shipped T5 confession
+CRUD. Does **not** claim T9 or T10. CLAUDE.md rule 10 → park; **no** migrations, permission
+catalog entries, routes, or UI while T8 is in progress.
+
+**Also waiting / related:**
+- Contact Verification (**CV1+**) before WhatsApp booking messages
+- Church timezone on `church.settings` (master-plan §17) — fold into PAC1 settings
+- Ops OAuth apps (Google + Microsoft) before PAC6
+
+### Implementation order (resume sequence)
+
+Prerequisite: **T8 residual smoke-checked**. Independent of T10. Prefer CV1 before enabling
+WhatsApp for these notification types (portal/email can ship earlier in PAC4).
+
+| Step | Slice | Delivers | Depends on |
+|------|--------|----------|------------|
+| **PAC0** | Docs | Design doc + this parking entry + feature-gap **F-21** + §9 cross-link | Done with this park |
+| **PAC1** | Backend expand | `priest_secretary`; additive booking columns; appointment tables; permission keys + `secretary` template; policies; isolation tests | **Landed** |
+| **PAC2** | Confession UX | Grid, open/block, recurrence generate, cancel/reschedule, book-on-behalf, my-bookings | **Landed** |
+| **PAC3** | Pastoral calendar | Appointment types + same UX | **Landed** |
+| **PAC4** | Notifications | Lifecycle + reminders (portal/email); WA gated on CV1 | **Landed** (WA still blocked until `mobile_verified_at` / CV1) |
+| **PAC5** | ICS | Tokenized priest/member feeds | PAC2 |
+| **PAC6** | OAuth | Google/Outlook push | PAC5; ops OAuth apps |
+
+**Resume when:** T8 residual smoke-checked. Kickoff PR = **PAC1** only.
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

@@ -98,7 +98,28 @@ class NotificationDispatchService
         }
 
         if ($pref->whatsapp_enabled && $this->whatsapp->isConfigured() && $notification) {
-            SendWhatsAppNotificationJob::dispatch($notification->id, $user->user_id);
+            if ($this->whatsappBlockedUntilContactVerification($user, $type)) {
+                // PAC4: pastoral booking WA waits on Contact Verification (mobile_verified_at).
+            } else {
+                SendWhatsAppNotificationJob::dispatch($notification->id, $user->user_id);
+            }
         }
+    }
+
+    /**
+     * Pastoral booking types never send WhatsApp until CV1 lands a verified mobile.
+     * If the column does not exist yet, WA stays off for these types.
+     */
+    private function whatsappBlockedUntilContactVerification(User $user, string $type): bool
+    {
+        if (! str_starts_with($type, 'appointment_booking_')) {
+            return false;
+        }
+
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('user', 'mobile_verified_at')) {
+            return true;
+        }
+
+        return blank($user->mobile_verified_at);
     }
 }

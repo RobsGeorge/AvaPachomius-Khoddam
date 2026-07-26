@@ -94,6 +94,54 @@ class TenantIsolationTest extends EventModuleTestCase
         $this->assertSame(2, \App\Models\Priest::whereIn('priest_id', [$priestA->priest_id, $priestB->priest_id])->count());
     }
 
+    public function test_pac1_appointment_models_are_isolated_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = Church::create(['slug' => 'stmina-pac1-iso', 'name' => 'St Mina PAC1 iso', 'status' => 'active']);
+
+        $userA = $this->createUser(['email' => 'pac1-iso-a@example.com']);
+        $userB = $this->createUser(['email' => 'pac1-iso-b@example.com']);
+
+        TenantContext::set($churchA);
+        $priestA = \App\Models\Priest::create([
+            'user_id' => $userA->user_id,
+            'status' => \App\Models\Priest::STATUS_ACTIVE,
+        ]);
+        $typeA = \App\Models\AppointmentType::create([
+            'slug' => 'meet',
+            'name_ar' => 'لقاء',
+            'status' => \App\Models\AppointmentType::STATUS_ACTIVE,
+        ]);
+        $secA = \App\Models\PriestSecretary::create([
+            'priest_id' => $priestA->priest_id,
+            'user_id' => $userA->user_id,
+            'status' => \App\Models\PriestSecretary::STATUS_ACTIVE,
+        ]);
+
+        TenantContext::set($churchB);
+        $priestB = \App\Models\Priest::create([
+            'user_id' => $userB->user_id,
+            'status' => \App\Models\Priest::STATUS_ACTIVE,
+        ]);
+        \App\Models\AppointmentType::create([
+            'slug' => 'meet',
+            'name_ar' => 'لقاء',
+            'status' => \App\Models\AppointmentType::STATUS_ACTIVE,
+        ]);
+        \App\Models\PriestSecretary::create([
+            'priest_id' => $priestB->priest_id,
+            'user_id' => $userB->user_id,
+            'status' => \App\Models\PriestSecretary::STATUS_ACTIVE,
+        ]);
+
+        $this->assertNull(\App\Models\AppointmentType::find($typeA->appointment_type_id));
+        $this->assertNull(\App\Models\PriestSecretary::find($secA->priest_secretary_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(\App\Models\AppointmentType::find($typeA->appointment_type_id));
+        $this->assertNotNull(\App\Models\PriestSecretary::find($secA->priest_secretary_id));
+    }
+
     public function test_finance_models_are_isolated_by_church(): void
     {
         $churchA = Church::main();

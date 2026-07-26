@@ -44,6 +44,7 @@ use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
+use App\Http\Controllers\Church\AppointmentController;
 use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\Church\ChurchCycleController;
@@ -138,18 +139,60 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/priests/{priest}', [PriestController::class, 'update'])->name('priests.update');
         });
 
-        Route::middleware(['permission:confession.view,confession.manage,confession.book'])->group(function () {
+        Route::middleware(['permission:confession.view,confession.manage,confession.manage_delegated,confession.book,confession.book_on_behalf'])->group(function () {
             Route::get('/confession', [ConfessionController::class, 'index'])->name('confession.index');
+            Route::get('/confession/my-bookings', [ConfessionController::class, 'myBookings'])->name('confession.my-bookings');
         });
-        Route::middleware(['permission:confession.manage'])->group(function () {
+        Route::middleware(['permission:confession.manage,confession.manage_delegated'])->group(function () {
             Route::get('/confession/slots/create', [ConfessionController::class, 'create'])->name('confession.create');
             Route::post('/confession/slots', [ConfessionController::class, 'store'])->name('confession.store');
+            Route::get('/confession/slots/generate', [ConfessionController::class, 'generateForm'])->name('confession.generate');
+            Route::post('/confession/slots/generate', [ConfessionController::class, 'generate'])->name('confession.generate.store');
             Route::get('/confession/slots/{slot}/edit', [ConfessionController::class, 'edit'])->name('confession.edit');
             Route::put('/confession/slots/{slot}', [ConfessionController::class, 'update'])->name('confession.update');
+            Route::post('/confession/slots/{slot}/status', [ConfessionController::class, 'setStatus'])->name('confession.status');
         });
-        Route::middleware(['permission:confession.book'])->group(function () {
+        Route::middleware(['permission:confession.book,confession.book_on_behalf'])->group(function () {
             Route::post('/confession/slots/{slot}/book', [ConfessionController::class, 'book'])->name('confession.book');
+            Route::get('/confession/slots/{slot}/book-on-behalf', [ConfessionController::class, 'bookOnBehalfForm'])->name('confession.book-on-behalf');
+            Route::post('/confession/slots/{slot}/book-on-behalf', [ConfessionController::class, 'bookOnBehalf'])->name('confession.book-on-behalf.store');
             Route::post('/confession/bookings/{booking}/cancel', [ConfessionController::class, 'cancelBooking'])->name('confession.bookings.cancel');
+            Route::post('/confession/bookings/{booking}/notes', [ConfessionController::class, 'updateBookingNotes'])->name('confession.bookings.notes');
+            Route::get('/confession/bookings/{booking}/reschedule', [ConfessionController::class, 'rescheduleForm'])->name('confession.bookings.reschedule');
+            Route::post('/confession/bookings/{booking}/reschedule', [ConfessionController::class, 'reschedule'])->name('confession.bookings.reschedule.store');
+        });
+        Route::middleware(['permission:priest.view,priest.manage'])->group(function () {
+            Route::get('/priests/{priest}/secretaries', [ConfessionController::class, 'secretaries'])->name('priests.secretaries');
+            Route::post('/priests/{priest}/secretaries', [ConfessionController::class, 'storeSecretary'])->name('priests.secretaries.store');
+            Route::post('/priests/{priest}/secretaries/{secretary}/remove', [ConfessionController::class, 'removeSecretary'])->name('priests.secretaries.remove');
+        });
+
+        Route::middleware(['permission:appointment.view,appointment.manage,appointment.manage_delegated,appointment.book,appointment.book_on_behalf'])->group(function () {
+            Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+            Route::get('/appointments/my-bookings', [AppointmentController::class, 'myBookings'])->name('appointments.my-bookings');
+        });
+        Route::middleware(['permission:appointment.manage,appointment.manage_delegated'])->group(function () {
+            Route::get('/appointments/types', [AppointmentController::class, 'typesIndex'])->name('appointments.types.index');
+            Route::get('/appointments/types/create', [AppointmentController::class, 'typesCreate'])->name('appointments.types.create');
+            Route::post('/appointments/types', [AppointmentController::class, 'typesStore'])->name('appointments.types.store');
+            Route::get('/appointments/types/{type}/edit', [AppointmentController::class, 'typesEdit'])->name('appointments.types.edit');
+            Route::put('/appointments/types/{type}', [AppointmentController::class, 'typesUpdate'])->name('appointments.types.update');
+            Route::get('/appointments/slots/create', [AppointmentController::class, 'create'])->name('appointments.create');
+            Route::post('/appointments/slots', [AppointmentController::class, 'store'])->name('appointments.store');
+            Route::get('/appointments/slots/generate', [AppointmentController::class, 'generateForm'])->name('appointments.generate');
+            Route::post('/appointments/slots/generate', [AppointmentController::class, 'generate'])->name('appointments.generate.store');
+            Route::get('/appointments/slots/{slot}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');
+            Route::put('/appointments/slots/{slot}', [AppointmentController::class, 'update'])->name('appointments.update');
+            Route::post('/appointments/slots/{slot}/status', [AppointmentController::class, 'setStatus'])->name('appointments.status');
+        });
+        Route::middleware(['permission:appointment.book,appointment.book_on_behalf'])->group(function () {
+            Route::post('/appointments/slots/{slot}/book', [AppointmentController::class, 'book'])->name('appointments.book');
+            Route::get('/appointments/slots/{slot}/book-on-behalf', [AppointmentController::class, 'bookOnBehalfForm'])->name('appointments.book-on-behalf');
+            Route::post('/appointments/slots/{slot}/book-on-behalf', [AppointmentController::class, 'bookOnBehalf'])->name('appointments.book-on-behalf.store');
+            Route::post('/appointments/bookings/{booking}/cancel', [AppointmentController::class, 'cancelBooking'])->name('appointments.bookings.cancel');
+            Route::post('/appointments/bookings/{booking}/notes', [AppointmentController::class, 'updateBookingNotes'])->name('appointments.bookings.notes');
+            Route::get('/appointments/bookings/{booking}/reschedule', [AppointmentController::class, 'rescheduleForm'])->name('appointments.bookings.reschedule');
+            Route::post('/appointments/bookings/{booking}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.bookings.reschedule.store');
         });
 
         Route::middleware(['permission:home_visit.view,home_visit.manage'])->group(function () {

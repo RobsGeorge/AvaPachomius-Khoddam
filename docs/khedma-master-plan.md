@@ -183,6 +183,12 @@ home-visit scheduling, and finance. Gated by capability (disabled ⇒ 404) and b
 - All slots/bookings are church-scoped; a priest in Church A is invisible to Church B.
 - Localized ar/en, RTL-first; times stored UTC, displayed in church timezone.
 
+**Parked upgrade (post-T8, does not claim T9/T10):** Calendly-like confession UX + separate
+pastoral-appointment calendar, secretary delegation, book-on-behalf, configurable notifications
+(ICS then OAuth). Design locked in [`priest-appointment-calendar.md`](priest-appointment-calendar.md);
+parking entry in root `PARKING-LOT.md`; feature-gap **F-21**. No product code until PAC1 after
+T8 residual smoke-check.
+
 ## 10. Home-visit schedules
 
 - **Priests and servants** maintain a schedule of **home visits** (`home_visit`): who, where, when,
@@ -204,7 +210,9 @@ Out-of-phase items captured, not built now (root [`PARKING-LOT.md`](../PARKING-L
 Church-layer request (recorded 2026-07-14); richer finance (reporting/approvals/reconciliation);
 Service application richer form builder; `course.service_id` / `church_id` `NOT NULL` contractions
 (only in the contract phase); config/security debt; **T10 Public Church Presence / Homepage CMS**
-(after T8; design in [`docs/public-church-cms.md`](public-church-cms.md)).
+(after T8; design in [`docs/public-church-cms.md`](public-church-cms.md)); **priest appointment
+calendar / Calendly-like upgrade** (after T8; design in
+[`docs/priest-appointment-calendar.md`](priest-appointment-calendar.md); feature-gap **F-21**).
 
 ## 13. Church registration & the polymorphic applications center
 

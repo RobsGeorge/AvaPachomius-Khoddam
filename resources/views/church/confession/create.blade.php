@@ -5,7 +5,9 @@
     <h1 class="page-title mb-3">{{ __('church_mgmt.add_slot') }}</h1>
     <form method="POST" action="{{ route('church.confession.store') }}" class="app-card card shadow-sm">
         @csrf
+        <input type="hidden" name="priest_id" value="{{ $priest->priest_id }}">
         <div class="card-body d-flex flex-column gap-3">
+            <p class="text-muted-theme mb-0">{{ $priest->displayName() }}</p>
             <div>
                 <label class="form-label" for="starts_at">{{ __('church_mgmt.starts_at') }}</label>
                 <input type="datetime-local" name="starts_at" id="starts_at" class="form-control" value="{{ old('starts_at') }}" required>

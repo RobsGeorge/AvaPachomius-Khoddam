@@ -124,6 +124,7 @@ return [
         'notifications_scan_instructor' => 'Instructor alerts',
         'notifications_scan_grades_risk' => 'Below-passing grade alerts',
         'notifications_fire_reminders' => 'Fire custom reminders',
+        'pastoral_fire_booking_reminders' => 'Fire pastoral booking reminders',
     ],
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
     'pending_registrations_purge_desc' => 'Removes expired pending registrations from the queue.',
@@ -134,4 +135,5 @@ return [
     'notifications_scan_instructor_desc' => 'Alerts instructors about unclosed sessions, absent streaks, and ungraded work.',
     'notifications_scan_grades_risk_desc' => 'Weekly scan for students below passing grade thresholds.',
     'notifications_fire_reminders_desc' => 'Dispatches due custom user reminders every five minutes.',
+    'pastoral_fire_booking_reminders_desc' => 'Sends portal/email reminders for upcoming confession and pastoral bookings.',
 ];

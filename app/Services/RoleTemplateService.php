@@ -218,7 +218,8 @@ class RoleTemplateService
             'church-admin' => [
                 'church.configure', 'church.members.manage', 'church.role.manage',
                 'priest.manage', 'priest.view',
-                'confession.manage', 'confession.view', 'confession.book',
+                'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
+                'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',
                 'home_visit.manage', 'home_visit.view',
                 'church.cycle.view', 'church.cycle.manage',
                 'public_site.profile', 'public_site.theme',
@@ -232,12 +233,21 @@ class RoleTemplateService
             'priest' => [
                 'priest.view',
                 'confession.manage', 'confession.view',
+                'appointment.manage', 'appointment.view',
                 'home_visit.manage', 'home_visit.view',
+                'announcement.view',
+                'roster.view',
+            ],
+            'secretary' => [
+                'priest.view',
+                'confession.view', 'confession.manage_delegated', 'confession.book_on_behalf',
+                'appointment.view', 'appointment.manage_delegated', 'appointment.book_on_behalf',
                 'announcement.view',
                 'roster.view',
             ],
             'servant' => [
                 'confession.view', 'confession.book',
+                'appointment.view', 'appointment.book',
                 'home_visit.manage', 'home_visit.view',
                 'announcement.view',
                 'roster.view',
@@ -259,6 +269,7 @@ class RoleTemplateService
                     'role_name' => match ($slug) {
                         'church-admin' => 'Church Admin',
                         'priest' => 'Priest',
+                        'secretary' => 'Secretary',
                         default => 'Servant',
                     },
                     'role_decription' => $slug,
@@ -287,7 +298,7 @@ class RoleTemplateService
             ->whereNull('service_id')
             ->whereNull('church_id')
             ->where('is_template', true)
-            ->whereIn('slug', ['church-admin', 'priest', 'servant'])
+            ->whereIn('slug', ['church-admin', 'priest', 'secretary', 'servant'])
             ->get();
 
         $enabledPermKeys = $this->permissionKeysForChurchCapabilities($church);

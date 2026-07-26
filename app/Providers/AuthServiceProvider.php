@@ -12,6 +12,11 @@ class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
         \App\Models\Role::class => \App\Policies\RolePermissionPolicy::class,
+        \App\Models\ConfessionSlot::class => \App\Policies\ConfessionSlotPolicy::class,
+        \App\Models\ConfessionBooking::class => \App\Policies\ConfessionBookingPolicy::class,
+        \App\Models\AppointmentSlot::class => \App\Policies\AppointmentSlotPolicy::class,
+        \App\Models\AppointmentBooking::class => \App\Policies\AppointmentBookingPolicy::class,
+        \App\Models\PriestSecretary::class => \App\Policies\PriestSecretaryPolicy::class,
     ];
 
     public function boot(): void
