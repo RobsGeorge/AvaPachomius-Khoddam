@@ -357,6 +357,120 @@ class RoleTemplateService
         return $candidate;
     }
 
+    /**
+     * Expand-only: attach any template keys missing on the church's cloned roles.
+     * Does not remove permissions already on the clone.
+     */
+    public function mergeTemplatePermissionsIntoChurchClones(Church $church): int
+    {
+        $this->ensureChurchTemplates();
+
+        $templates = Role::withoutTenancy()
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->whereNull('church_id')
+            ->where('is_template', true)
+            ->whereIn('slug', ['church-admin', 'priest', 'servant'])
+            ->get()
+            ->keyBy(fn (Role $r) => $r->effectiveSlug());
+
+        $merged = 0;
+
+        $clones = Role::withoutTenancy()
+            ->where('church_id', $church->church_id)
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->where('is_template', false)
+            ->get();
+
+        foreach ($clones as $clone) {
+            $slug = $clone->effectiveSlug();
+            // church clones may use uniqueSlugForChurch → church-admin-1; match prefix
+            $templateSlug = collect(['church-admin', 'priest', 'servant'])
+                ->first(fn (string $s) => $slug === $s || str_starts_with($slug, $s.'-'));
+            if (! $templateSlug || ! isset($templates[$templateSlug])) {
+                continue;
+            }
+
+            $template = $templates[$templateSlug];
+            $templateKeys = $template->permissions()->pluck('permissions.key');
+            $keys = $templateKeys->filter(
+                fn (string $key) => $this->resolver->permissionAllowedByCapabilities($key, $church)
+            );
+            if ($templateSlug === 'church-admin') {
+                $keys = $keys->merge($this->permissionKeysForChurchCapabilities($church))->unique();
+            }
+
+            $existing = $clone->permissions()->pluck('permissions.key');
+            $combined = $existing->merge($keys)->unique()->values();
+            if ($combined->count() === $existing->count() && $combined->diff($existing)->isEmpty()) {
+                continue;
+            }
+
+            $ids = Permission::whereIn('key', $combined)->pluck('permission_id');
+            $clone->permissions()->sync($ids);
+            $merged++;
+        }
+
+        if ($merged > 0) {
+            $this->resolver->bumpChurchPermissionsVersion($church);
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Expand-only: merge service-admin / service-member template keys onto service clones.
+     */
+    public function mergeTemplatePermissionsIntoServiceClones(): int
+    {
+        $this->ensureServiceTemplates();
+
+        $templates = Role::query()
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->where('is_template', true)
+            ->whereIn('slug', ['service-admin', 'service-member'])
+            ->get()
+            ->keyBy('slug');
+
+        $merged = 0;
+        $clones = Role::query()
+            ->whereNotNull('service_id')
+            ->where('is_template', false)
+            ->get()
+            ->filter(function (Role $clone) {
+                $slug = $clone->effectiveSlug();
+
+                return $slug === 'service-admin'
+                    || $slug === 'service-member'
+                    || str_starts_with($slug, 'service-admin-')
+                    || str_starts_with($slug, 'service-member-');
+            });
+
+        foreach ($clones as $clone) {
+            $slug = $clone->effectiveSlug();
+            $templateSlug = str_starts_with($slug, 'service-admin') ? 'service-admin' : 'service-member';
+            if (! isset($templates[$templateSlug])) {
+                continue;
+            }
+
+            $templateKeys = $templates[$templateSlug]->permissions()->pluck('permissions.key');
+            $existing = $clone->permissions()->pluck('permissions.key');
+            $missing = $templateKeys->diff($existing);
+            if ($missing->isEmpty()) {
+                continue;
+            }
+
+            $combined = $existing->merge($templateKeys)->unique()->values();
+            $ids = Permission::whereIn('key', $combined)->pluck('permission_id');
+            $clone->permissions()->sync($ids);
+            $merged++;
+        }
+
+        return $merged;
+    }
+
     private function permissionKeysForChurchCapabilities(Church $church): Collection
     {
         $keys = collect();
