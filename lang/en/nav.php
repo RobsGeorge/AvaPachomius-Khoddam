@@ -32,6 +32,7 @@ return [
     'open'              => 'Open',
     'priests'           => 'Priests',
     'confession'        => 'Confession calendar',
+    'appointments'      => 'Pastoral appointments',
     'home_visits'       => 'Home visits',
     'church_cycle'      => 'Church cycle',
     'public_profile'    => 'Public profile',

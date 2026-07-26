@@ -124,6 +124,7 @@ return [
         'notifications_scan_instructor' => 'تنبيهات المُدرّسين',
         'notifications_scan_grades_risk' => 'تنبيهات الدرجات المنخفضة',
         'notifications_fire_reminders' => 'إرسال التذكيرات المخصصة',
+        'pastoral_fire_booking_reminders' => 'إرسال تذكيرات حجوزات المواعيد',
     ],
     'attendance_mark_absent_desc' => 'إغلاق الحضور وتسجيل الغياب عند منتصف الليل عند تفعيل الإغلاق التلقائي.',
     'pending_registrations_purge_desc' => 'يزيل التسجيلات المعلّقة المنتهية من قائمة الانتظار.',
@@ -134,4 +135,5 @@ return [
     'notifications_scan_instructor_desc' => 'يُنبّه المُدرّسين بالجلسات غير المغلقة وسلاسل الغياب والواجبات غير المصححة.',
     'notifications_scan_grades_risk_desc' => 'فحص أسبوعي للطلاب دون حد النجاح.',
     'notifications_fire_reminders_desc' => 'يرسل التذكيرات المخصصة المستحقة كل خمس دقائق.',
+    'pastoral_fire_booking_reminders_desc' => 'يرسل تذكيرات البوابة/البريد للاعتراف والمواعيد الرعوية القادمة.',
 ];

@@ -130,7 +130,8 @@ class ChurchManagementTest extends EventModuleTestCase
 
         $this->actingAs($other)
             ->post(route('church.confession.book', $slot))
-            ->assertStatus(422);
+            ->assertRedirect()
+            ->assertSessionHasErrors('slot');
     }
 
     public function test_home_visit_assignee_sees_own_rows_admin_sees_all(): void

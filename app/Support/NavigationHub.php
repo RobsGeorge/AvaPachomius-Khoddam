@@ -255,7 +255,9 @@ class NavigationHub
             ($user->is_superadmin ?? false)
             || $resolver->canInChurch($user, 'confession.view', $church)
             || $resolver->canInChurch($user, 'confession.manage', $church)
+            || $resolver->canInChurch($user, 'confession.manage_delegated', $church)
             || $resolver->canInChurch($user, 'confession.book', $church)
+            || $resolver->canInChurch($user, 'confession.book_on_behalf', $church)
         )) {
             $churchLinks[] = array_merge(self::link(
                 'church.confession.index',
@@ -263,6 +265,24 @@ class NavigationHub
                 'bi-calendar2-heart',
                 ['church.confession.*'],
                 'confession.view',
+                'church_management'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'appointment.view', $church)
+            || $resolver->canInChurch($user, 'appointment.manage', $church)
+            || $resolver->canInChurch($user, 'appointment.manage_delegated', $church)
+            || $resolver->canInChurch($user, 'appointment.book', $church)
+            || $resolver->canInChurch($user, 'appointment.book_on_behalf', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.appointments.index',
+                'nav.appointments',
+                'bi-calendar-check',
+                ['church.appointments.*'],
+                'appointment.view',
                 'church_management'
             ), ['category' => 'church']);
         }
@@ -560,7 +580,7 @@ class NavigationHub
             return false;
         }
 
-        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.home-visits.*', 'church.finance.*')) {
+        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.appointments.*', 'church.home-visits.*', 'church.finance.*')) {
             return true;
         }
 

@@ -111,7 +111,8 @@ return [
         'permissions' => [
             'church.configure', 'church.members.manage', 'church.role.manage',
             'priest.manage', 'priest.view',
-            'confession.manage', 'confession.view', 'confession.book',
+            'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
+            'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',
             'home_visit.manage', 'home_visit.view',
             'church.cycle.view', 'church.cycle.manage',
             'finance.payroll.manage', 'finance.payroll.view',

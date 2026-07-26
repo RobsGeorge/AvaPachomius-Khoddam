@@ -1,9 +1,9 @@
 @extends('layouts.app')
 @section('title', __('church_mgmt.edit_slot'))
 @section('content')
-<div class="container py-4" style="max-width:560px;">
+<div class="container py-4" style="max-width:640px;">
     <h1 class="page-title mb-3">{{ __('church_mgmt.edit_slot') }}</h1>
-    <form method="POST" action="{{ route('church.confession.update', $slot) }}" class="app-card card shadow-sm">
+    <form method="POST" action="{{ route('church.confession.update', $slot) }}" class="app-card card shadow-sm mb-3">
         @csrf
         @method('PUT')
         <div class="card-body d-flex flex-column gap-3">
@@ -26,7 +26,7 @@
                 <input type="text" name="location" id="location" class="form-control" value="{{ old('location', $slot->location) }}">
             </div>
             <div>
-                <label class="form-label" for="status">{{ __('church_mgmt.priest_status') }}</label>
+                <label class="form-label" for="status">{{ __('church_mgmt.slot_status') }}</label>
                 <select name="status" id="status" class="form-select">
                     <option value="open" @selected(old('status', $slot->status) === 'open')>{{ __('church_mgmt.status_open') }}</option>
                     <option value="closed" @selected(old('status', $slot->status) === 'closed')>{{ __('church_mgmt.status_closed') }}</option>
@@ -43,5 +43,23 @@
             <button class="btn btn-primary" type="submit">{{ __('church_mgmt.save') }}</button>
         </div>
     </form>
+
+    @if($slot->confirmedBookings->isNotEmpty())
+        <div class="app-card card shadow-sm">
+            <div class="card-header">{{ __('church_mgmt.bookings_list') }}</div>
+            <ul class="list-group list-group-flush">
+                @foreach($slot->confirmedBookings as $booking)
+                    <li class="list-group-item">
+                        <div class="fw-semibold">{{ trim(($booking->user->first_name ?? '').' '.($booking->user->second_name ?? '')) ?: $booking->user->email }}</div>
+                        @if($booking->notes)<div class="small text-muted-theme">{{ $booking->notes }}</div>@endif
+                        <form method="POST" action="{{ route('church.confession.bookings.cancel', $booking) }}" class="mt-2" onsubmit="return confirm(@json(__('church_mgmt.confirm_cancel')))">
+                            @csrf
+                            <button class="btn btn-sm btn-outline-danger" type="submit">{{ __('church_mgmt.cancel_booking') }}</button>
+                        </form>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 </div>
 @endsection

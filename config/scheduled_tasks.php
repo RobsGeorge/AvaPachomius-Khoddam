@@ -100,5 +100,12 @@ return [
             'command' => 'notifications:fire-reminders',
             'schedule' => ['frequency' => 'every_five_minutes'],
         ],
+        'pastoral.fire_booking_reminders' => [
+            'label' => 'scheduled_tasks.tasks.pastoral_fire_booking_reminders',
+            'description' => 'scheduled_tasks.pastoral_fire_booking_reminders_desc',
+            'type' => 'command',
+            'command' => 'pastoral:fire-booking-reminders',
+            'schedule' => ['frequency' => 'every_five_minutes'],
+        ],
     ],
 ];
