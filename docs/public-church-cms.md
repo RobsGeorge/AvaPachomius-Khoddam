@@ -1,8 +1,9 @@
-# Public Church Presence — Homepage CMS (T10 — parked)
+# Public Church Presence — Homepage CMS (T10)
 
-**Status:** Design locked; **not implemented.** Staging current phase is **T8 (expand)**.  
-**Do not build** migrations, routes, Blade UI, or permission catalog entries until a **T10 kickoff PR** after **T8** residual smoke-check.  
-**Roadmap slot:** **T10** in [`khedma-master-plan.md`](khedma-master-plan.md) §7. (T9 is reserved for service cycle progression when that item is scheduled.)
+**Status:** Design locked. **T10a (public profile) in flight** — product code for profile
+settings + guest `/about` only. **T10b/T10c/T10d remain parked** (no homepage CMS schema/editor).  
+**Do not build** `church_site*` tables, freeform builder, or publish-gate `/` until T10c kickoff.  
+**Roadmap slot:** **T10** in [`khedma-master-plan.md`](khedma-master-plan.md) §7.
 
 **Source plan:** `.cursor/plans/church_homepage_cms_4247561e.plan.md`  
 **Parking entry:** root [`PARKING-LOT.md`](../PARKING-LOT.md) — “Public Church Presence / Homepage CMS”.
@@ -13,8 +14,8 @@
 
 | Work | Wait for | Why |
 |------|----------|-----|
-| Public profile fields + admin UI (T10a) | T8 residual smoke-checked | Out of phase; finish structure-template expand first |
-| Branding self-service wired to chrome (T10b) | Same + overlaps parked T4 branding | Logo/palette already deferred from T4 |
+| Public profile fields + admin UI (T10a) | T9 smoke-checked | **In flight / landing** — `church.settings.public` + `/about` |
+| Branding self-service wired to chrome (T10b) | T10a landed + overlaps parked T4 branding | Logo/palette already deferred from T4 |
 | Homepage CMS schema/editor/renderer (T10c) | T10a + T10b | Editor needs profile + branding |
 | Multi-page site (T10d) | T10c | Homepage-only first |
 | Custom-domain TLS automation | Ops demand | Manual DNS/TLS per domain is enough for early pilots |
@@ -22,7 +23,8 @@
 | White-label mobile store apps (M2) | Mobile MVP M1 | Separate product track |
 | Freeform page builder | Never in v1 | Explicit non-goal |
 
-**This PR / phase-safe deliverable:** this design doc + parking-lot + master-plan T10 row + invariant tests that the design remains complete. **No product code.**
+**Phase-safe deliverable for T10a:** capability `public_site`, permission `public_site.profile`,
+admin edit UI, guest profile page. **Not** homepage CMS product code (T10c).
 
 ---
 
@@ -291,8 +293,8 @@ Separate store listing does **not** require a separate database.
 
 ## 17. Delivery slices
 
-1. **Docs only (phase-safe — this deliverable):** parking-lot + this doc + master-plan T10 + invariant tests.
-2. **T10a:** public profile settings.
+1. **Docs (landed):** parking-lot + this doc + master-plan T10 + invariant tests.
+2. **T10a (in flight):** public profile settings + guest `/about` + `public_site.profile`.
 3. **T10b:** branding wired to public + portal chrome.
 4. **T10c:** schema + permissions + editor + public renderer + isolation tests.
 5. **T10d:** multi-page expansion.

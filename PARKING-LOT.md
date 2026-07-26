@@ -136,7 +136,7 @@ status fields; resolver + create/edit UX; eligibility (inactive/hold excluded fr
 2. Optional staff-only reassign step beyond shared enrollment promote.
 
 **Resume when:** T9c merged to staging; then people-only / staff residual as needed.
-## Public Church Presence / Homepage CMS (parked 2026-07-25)
+## Public Church Presence / Homepage CMS (T10a in flight; T10b–d parked)
 
 **Requested:** After portal church config + public church details, a permission-gated
 **curated-section homepage editor** (colors, fonts, themes, sections, images,
@@ -150,10 +150,10 @@ homepage-first curated sections; capability `public_site` + keys
 notes for dedicated DB (Tier 4 now / Tier 3 later) and white-label mobile (M2).
 Plan: `.cursor/plans/church_homepage_cms_4247561e.plan.md`.
 
-**Why parked:** Current phase on staging is **T8 (structure templates / service wrap)**.
-Master-plan §7 schedules Public Church Presence as **T10**. CLAUDE.md rule 10 → park;
-**no** migrations, routes, permissions catalog, or UI while T8 is in progress. T10a/b/c
-feature code waits.
+**Status:** **T10a** (public profile under `church.settings.public`, admin UI,
+guest `/about`) is the current expand slice after T9. **T10b branding**, **T10c
+homepage CMS** (`church_site*`), and **T10d multi-page** remain parked — no CMS
+feature code until those kickoffs.
 
 **Also waiting (called out in the design doc):**
 - T4 branding self-service / ThemeController wiring (prerequisite slice T10b)
@@ -163,9 +163,8 @@ feature code waits.
 - Multi-page site (T10d after T10c)
 - Freeform builder (non-goal)
 
-**Resume when:** T8 residual smoke-checked (T8a/T8b expand track complete). Kickoff:
-T10a public profile → T10b branding → T10c homepage CMS + Roles Hub permissions +
-isolation tests. Feature-gap **F-20**.
+**Resume when:** T10a merged + smoke-checked. Next: T10b branding → T10c homepage
+CMS + Roles Hub permissions + isolation tests. Feature-gap **F-20**.
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

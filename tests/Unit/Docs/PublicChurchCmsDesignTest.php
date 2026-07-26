@@ -5,9 +5,8 @@ namespace Tests\Unit\Docs;
 use Tests\TestCase;
 
 /**
- * Invariants for the parked T10 Public Church Presence design.
- * Ensures the design doc and parking pointers stay complete until a T10 kickoff
- * ships product code — no CMS feature implementation in T7.
+ * Invariants for the T10 Public Church Presence design.
+ * T10a may ship profile product code; T10c CMS tables/models stay forbidden until kickoff.
  */
 class PublicChurchCmsDesignTest extends TestCase
 {
@@ -35,15 +34,14 @@ class PublicChurchCmsDesignTest extends TestCase
         return (string) file_get_contents($path);
     }
 
-    public function test_design_doc_declares_parked_t10_and_no_product_code(): void
+    public function test_design_doc_declares_t10_and_guards_cms(): void
     {
         $doc = $this->designDoc();
 
         $this->assertStringContainsString('T10', $doc);
-        $this->assertStringContainsString('not implemented', strtolower($doc));
         $this->assertStringContainsString('Do not build', $doc);
-        $this->assertStringContainsString('T8', $doc);
         $this->assertStringContainsString('What waits', $doc);
+        $this->assertStringContainsString('T10a', $doc);
     }
 
     public function test_design_doc_locks_curated_homepage_not_freeform(): void
@@ -115,9 +113,8 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString('docs/public-church-cms.md', $lot);
         $this->assertStringContainsString('T10', $lot);
         $this->assertStringContainsString('F-20', $lot);
-        $this->assertStringContainsString('migrations', $lot);
-        $this->assertStringContainsString('feature code waits', strtolower($lot));
-        $this->assertStringContainsString('t8', strtolower($lot));
+        $this->assertStringContainsString('T10b', $lot);
+        $this->assertStringContainsString('T10c', $lot);
     }
 
     public function test_master_plan_schedules_t10_public_church_presence(): void
@@ -128,6 +125,7 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString('Public Church Presence', $plan);
         $this->assertStringContainsString('public-church-cms.md', $plan);
         $this->assertStringContainsString('F-20', $plan);
+        $this->assertStringContainsString('T10a', $plan);
     }
 
     public function test_feature_gap_lists_f20(): void
@@ -141,15 +139,23 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString('T10', $gap);
     }
 
-    public function test_no_public_site_product_code_landed_yet(): void
+    public function test_t10a_profile_allowed_but_homepage_cms_not_landed(): void
     {
-        // Guard: T7 must not silently ship capability/permission catalog entries.
         $capabilities = (string) file_get_contents(base_path('config/capabilities.php'));
         $permissions = (string) file_get_contents(base_path('config/permissions.php'));
 
-        $this->assertStringNotContainsString("'public_site'", $capabilities);
-        $this->assertStringNotContainsString('public_site.manage', $permissions);
+        // T10a may register the capability and profile key.
+        $this->assertStringContainsString("'public_site'", $capabilities);
+        $this->assertStringContainsString('public_site.profile', $permissions);
+
+        // T10c homepage CMS product surface must still be absent.
         $this->assertFileDoesNotExist(base_path('app/Models/ChurchSite.php'));
-        $this->assertDirectoryDoesNotExist(base_path('resources/views/public-site'));
+        $this->assertFileDoesNotExist(base_path('app/Models/ChurchSiteSection.php'));
+        $this->assertDirectoryDoesNotExist(base_path('resources/views/public-site/home'));
+        $this->assertSame(
+            [],
+            glob(base_path('database/migrations/*church_site*')) ?: [],
+            'No church_site* migrations until T10c'
+        );
     }
 }

@@ -47,6 +47,8 @@ use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\Church\ChurchCycleController;
+use App\Http\Controllers\Church\PublicProfileController;
+use App\Http\Controllers\PublicSite\ChurchPublicProfileController;
 use App\Http\Controllers\Church\PayrollController;
 use App\Http\Controllers\Church\MoneyInController;
 use App\Http\Controllers\CurriculumController;
@@ -198,6 +200,14 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
+    // T10a — public church profile (own capability; not under church_management)
+    Route::middleware(['capability:public_site'])->prefix('church')->name('church.')->group(function () {
+        Route::middleware(['permission:public_site.profile'])->group(function () {
+            Route::get('/public-profile', [PublicProfileController::class, 'edit'])->name('public-profile.edit');
+            Route::put('/public-profile', [PublicProfileController::class, 'update'])->name('public-profile.update');
+        });
+    });
+
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
@@ -225,6 +235,7 @@ Route::post('password/reset', [NewPasswordController::class, 'store'])->name('pa
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login']);
 
 Route::get('/verify-otp', [OTPController::class, 'showForm'])->name('otp.verify');

@@ -651,6 +651,40 @@ return [
         ],
     ],
 
+    'public_site' => [
+        'scope' => 'system',
+        'label_en' => 'Public Church Presence',
+        'label_ar' => 'الحضور العام للكنيسة',
+        'sort' => 145,
+        'permissions' => [
+            'public_site.profile' => [
+                'label_en' => 'Edit public church profile',
+                'label_ar' => 'تعديل الملف العام للكنيسة',
+                'type' => 'both',
+                'routes' => ['church.public-profile.*'],
+                'nav' => ['church.public_profile'],
+            ],
+            'public_site.theme' => [
+                'label_en' => 'Edit public site theme (T10b)',
+                'label_ar' => 'تعديل سمة الموقع العام (T10b)',
+                'type' => 'both',
+                'routes' => [],
+            ],
+            'public_site.manage' => [
+                'label_en' => 'Manage homepage draft sections (T10c)',
+                'label_ar' => 'إدارة مسودة أقسام الصفحة الرئيسية (T10c)',
+                'type' => 'both',
+                'routes' => [],
+            ],
+            'public_site.publish' => [
+                'label_en' => 'Publish public homepage (T10c)',
+                'label_ar' => 'نشر الصفحة الرئيسية العامة (T10c)',
+                'type' => 'both',
+                'routes' => [],
+            ],
+        ],
+    ],
+
     'user_lifecycle' => [
         'scope' => 'system',
         'label_en' => 'User Lifecycle',

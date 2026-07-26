@@ -13,4 +13,5 @@ return [
     'announcements' => 'Announcements',
     'reporting' => 'Reporting',
     'church_management' => 'Church management',
+    'public_site' => 'Public church presence',
 ];
