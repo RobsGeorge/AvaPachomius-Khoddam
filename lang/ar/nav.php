@@ -35,6 +35,7 @@ return [
     'home_visits'       => 'الزيارات المنزلية',
     'church_cycle'      => 'دورة الكنيسة',
     'public_profile'    => 'الملف العام',
+    'church_branding'   => 'هوية الكنيسة',
     'payroll'           => 'الرواتب',
     'money_in'          => 'الإيرادات',
 ];

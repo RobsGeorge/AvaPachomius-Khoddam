@@ -1,7 +1,8 @@
 # Public Church Presence — Homepage CMS (T10)
 
-**Status:** Design locked. **T10a (public profile) in flight** — product code for profile
-settings + guest `/about` only. **T10b/T10c/T10d remain parked** (no homepage CMS schema/editor).  
+**Status:** Design locked. **T10a landed**; **T10b (branding) in flight** — logo + palette under
+`church.settings.branding`, portal chrome + guest `/about` theme hooks. **T10c/T10d remain parked**
+(no homepage CMS schema/editor).  
 **Do not build** `church_site*` tables, freeform builder, or publish-gate `/` until T10c kickoff.  
 **Roadmap slot:** **T10** in [`khedma-master-plan.md`](khedma-master-plan.md) §7.
 
@@ -14,8 +15,8 @@ settings + guest `/about` only. **T10b/T10c/T10d remain parked** (no homepage CM
 
 | Work | Wait for | Why |
 |------|----------|-----|
-| Public profile fields + admin UI (T10a) | T9 smoke-checked | **In flight / landing** — `church.settings.public` + `/about` |
-| Branding self-service wired to chrome (T10b) | T10a landed + overlaps parked T4 branding | Logo/palette already deferred from T4 |
+| Public profile fields + admin UI (T10a) | T9 smoke-checked | **Landed** — `church.settings.public` + `/about` |
+| Branding self-service wired to chrome (T10b) | T10a landed | **In flight** — `church.settings.branding` + `public_site.theme` |
 | Homepage CMS schema/editor/renderer (T10c) | T10a + T10b | Editor needs profile + branding |
 | Multi-page site (T10d) | T10c | Homepage-only first |
 | Custom-domain TLS automation | Ops demand | Manual DNS/TLS per domain is enough for early pilots |
@@ -23,8 +24,8 @@ settings + guest `/about` only. **T10b/T10c/T10d remain parked** (no homepage CM
 | White-label mobile store apps (M2) | Mobile MVP M1 | Separate product track |
 | Freeform page builder | Never in v1 | Explicit non-goal |
 
-**Phase-safe deliverable for T10a:** capability `public_site`, permission `public_site.profile`,
-admin edit UI, guest profile page. **Not** homepage CMS product code (T10c).
+**Phase-safe deliverable for T10b:** capability `public_site`, permission `public_site.theme`,
+branding admin UI, CSS vars on `/about` + optional portal chrome. **Not** homepage CMS (T10c).
 
 ---
 
@@ -294,8 +295,8 @@ Separate store listing does **not** require a separate database.
 ## 17. Delivery slices
 
 1. **Docs (landed):** parking-lot + this doc + master-plan T10 + invariant tests.
-2. **T10a (in flight):** public profile settings + guest `/about` + `public_site.profile`.
-3. **T10b:** branding wired to public + portal chrome.
+2. **T10a (landed):** public profile settings + guest `/about` + `public_site.profile`.
+3. **T10b (in flight):** branding wired to public + portal chrome (`public_site.theme`).
 4. **T10c:** schema + permissions + editor + public renderer + isolation tests.
 5. **T10d:** multi-page expansion.
 

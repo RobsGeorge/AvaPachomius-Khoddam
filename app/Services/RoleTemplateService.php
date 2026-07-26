@@ -221,7 +221,7 @@ class RoleTemplateService
                 'confession.manage', 'confession.view', 'confession.book',
                 'home_visit.manage', 'home_visit.view',
                 'church.cycle.view', 'church.cycle.manage',
-                'public_site.profile',
+                'public_site.profile', 'public_site.theme',
                 'finance.payroll.manage', 'finance.payroll.view',
                 'finance.money_in.manage', 'finance.money_in.view',
                 'role.manage', 'user.assign_role',

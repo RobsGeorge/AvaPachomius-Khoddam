@@ -136,7 +136,7 @@ status fields; resolver + create/edit UX; eligibility (inactive/hold excluded fr
 2. Optional staff-only reassign step beyond shared enrollment promote.
 
 **Resume when:** T9c merged to staging; then people-only / staff residual as needed.
-## Public Church Presence / Homepage CMS (T10a in flight; T10b–d parked)
+## Public Church Presence / Homepage CMS (T10b in flight; T10c–d parked)
 
 **Requested:** After portal church config + public church details, a permission-gated
 **curated-section homepage editor** (colors, fonts, themes, sections, images,
@@ -150,21 +150,19 @@ homepage-first curated sections; capability `public_site` + keys
 notes for dedicated DB (Tier 4 now / Tier 3 later) and white-label mobile (M2).
 Plan: `.cursor/plans/church_homepage_cms_4247561e.plan.md`.
 
-**Status:** **T10a** (public profile under `church.settings.public`, admin UI,
-guest `/about`) is the current expand slice after T9. **T10b branding**, **T10c
-homepage CMS** (`church_site*`), and **T10d multi-page** remain parked — no CMS
-feature code until those kickoffs.
+**Status:** **T10a landed.** **T10b** (branding under `church.settings.branding`,
+`public_site.theme`, portal + `/about` chrome) is the current expand slice. **T10c
+homepage CMS** (`church_site*`) and **T10d multi-page** remain parked.
 
 **Also waiting (called out in the design doc):**
-- T4 branding self-service / ThemeController wiring (prerequisite slice T10b)
 - Custom-domain TLS automation (ops; manual certs OK for pilots)
 - DB-per-tenant in the same SaaS app (Tier 3 — enterprise program; not T10)
 - White-label store apps (M2 — after mobile MVP)
 - Multi-page site (T10d after T10c)
 - Freeform builder (non-goal)
 
-**Resume when:** T10a merged + smoke-checked. Next: T10b branding → T10c homepage
-CMS + Roles Hub permissions + isolation tests. Feature-gap **F-20**.
+**Resume when:** T10b merged + smoke-checked. Next: T10c homepage CMS + Roles Hub
+permissions + isolation tests. Feature-gap **F-20**.
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
