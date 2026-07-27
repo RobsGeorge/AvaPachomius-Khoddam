@@ -39,6 +39,11 @@ sudo chmod -R ug+rwx /var/www/khedma-staging/storage /var/www/khedma-staging/boo
 ```
 
 Deploy scripts reclaim `storage/` + `bootstrap/cache/` ownership **before** `git reset --hard`,
+because PHP-FPM (`www-data`) creates cache/session files that otherwise block git with
+`unable to unlink old 'storage/...': Permission denied`.
+
+If a deploy fails on git sync with that error, run the chown above once as root (or as a
+sudoer), then re-run the failed GitHub Actions deploy job.
 because PHP-FPM often creates cache/session files as `www-data`, which otherwise yields
 `unable to unlink old 'storage/...': Permission denied`.
 

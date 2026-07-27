@@ -53,6 +53,9 @@ jobs:
             fi
 
             step "reclaim storage for git"
+            # PHP-FPM (www-data) creates cache/session files at runtime. Without
+            # reclaiming ownership first, `git reset --hard` fails with:
+            #   unable to unlink old 'storage/framework/cache/...': Permission denied
             # PHP-FPM may own runtime cache/session files; reclaim before git reset.
             if sudo -n true 2>/dev/null; then
               sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
@@ -87,6 +90,9 @@ jobs:
 
             step "optimize"
             $PHP_BIN artisan optimize:clear
+            # optimize:clear flushes file-cache hash dirs; recreate the root so the
+            # first post-deploy request cannot race a missing data/ path.
+            mkdir -p storage/framework/cache/data
             $PHP_BIN artisan config:cache
             $PHP_BIN artisan route:cache
             $PHP_BIN artisan view:cache
