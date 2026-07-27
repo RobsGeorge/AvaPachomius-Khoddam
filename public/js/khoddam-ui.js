@@ -476,12 +476,38 @@
     }
 
     /**
-     * Intentionally empty: mutating animationDelay after CSS animation start
-     * restarted fadeInUp on every full navigation (login/logout/locale) and
-     * caused widgets to flicker then rise from the bottom. Kept as a named
-     * no-op so any leftover callers stay safe.
+     * Animate widgets only on first arrival at a path. Same-URL reloads
+     * (locale switch, F5) stay static. Delays must be set BEFORE adding
+     * body.js-page-reveal so the animation starts once (no restart flicker).
      */
-    function initReveal() {}
+    function initReveal() {
+        const storageKey = 'khoddam.revealPath';
+        const path = window.location.pathname + window.location.search;
+        let last = null;
+        try {
+            last = sessionStorage.getItem(storageKey);
+            sessionStorage.setItem(storageKey, path);
+        } catch (e) {
+            // Private mode / blocked storage — still allow a one-shot reveal.
+        }
+
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        if (last === path) {
+            return;
+        }
+
+        document.querySelectorAll('.app-card, .app-tile, .hub-tile, .hub-link-tile, .animate-in').forEach((el, index) => {
+            el.style.animationDelay = `${Math.min(index * 0.12, 0.84)}s`;
+        });
+        document.querySelectorAll('.accordion-item, .roles-hub-panel').forEach((el, index) => {
+            el.style.animationDelay = `${Math.min(index * 0.1, 0.7)}s`;
+        });
+
+        document.body.classList.add('js-page-reveal');
+    }
 
     function initHoverMotion() {
         document.querySelectorAll('.btn, .nav-link, .hub-link-tile, .hub-tile, .app-tile, .announcement-home-card').forEach((el) => {
@@ -697,6 +723,7 @@
         initTheme();
         initFlashMessages();
         initConfirmInterceptors();
+        initReveal();
         initHoverMotion();
         initIconAccent();
         initDropdownPanelScroll();
