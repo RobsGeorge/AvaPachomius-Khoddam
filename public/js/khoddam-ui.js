@@ -624,6 +624,78 @@
         }
     }
 
+    /**
+     * Dropdown panels sometimes overflow the viewport; in those cases users try to
+     * scroll but the page behind it scrolls instead. We dynamically clamp max-height
+     * to the remaining viewport height and ensure the panel scrolls internally.
+     */
+    function initDropdownPanelScroll() {
+        const panels = new Set();
+
+        function resolvePanel(toggle) {
+            const dropdown = toggle?.closest?.('.dropdown, .dropup, .dropend, .dropstart');
+            if (!dropdown) {
+                return null;
+            }
+
+            return dropdown.querySelector?.('.dropdown-menu.app-dropdown-panel');
+        }
+
+        function apply(panel) {
+            if (!panel || !(panel instanceof HTMLElement)) {
+                return;
+            }
+
+            const rect = panel.getBoundingClientRect();
+            const padding = 12; // small breathing room from the viewport edge
+            const available = Math.floor(window.innerHeight - rect.top - padding);
+
+            // If the menu is fully offscreen, let CSS defaults handle it.
+            if (available <= 0) {
+                panel.style.maxHeight = '';
+                return;
+            }
+
+            panel.style.overflowY = 'auto';
+            panel.style.overflowX = 'hidden';
+            panel.style.overscrollBehaviorY = 'contain';
+            panel.style.maxHeight = `${available}px`;
+        }
+
+        function clear(panel) {
+            if (!panel || !(panel instanceof HTMLElement)) {
+                return;
+            }
+
+            panel.style.maxHeight = '';
+        }
+
+        document.addEventListener('shown.bs.dropdown', (event) => {
+            const toggle = event.target;
+            const panel = resolvePanel(toggle);
+            if (!panel) {
+                return;
+            }
+
+            panels.add(panel);
+            apply(panel);
+        });
+
+        document.addEventListener('hidden.bs.dropdown', (event) => {
+            const toggle = event.target;
+            const panel = resolvePanel(toggle);
+            if (!panel) {
+                return;
+            }
+
+            clear(panel);
+        });
+
+        window.addEventListener('resize', () => {
+            panels.forEach((panel) => apply(panel));
+        }, { passive: true });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initTheme();
         initFlashMessages();
@@ -631,6 +703,7 @@
         initReveal();
         initHoverMotion();
         initIconAccent();
+        initDropdownPanelScroll();
     });
 
     window.KhoddamUI = {
