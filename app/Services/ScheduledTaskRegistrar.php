@@ -8,7 +8,6 @@ use App\Models\ScheduledTaskSetting;
 use App\Models\User;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +21,9 @@ class ScheduledTaskRegistrar
     public function register(Schedule $schedule): void
     {
         foreach ($this->taskDefinitions() as $key => $definition) {
-            if ($this->schemaReady() && ! $this->isEnabled($key)) {
+            $alwaysEnabled = (bool) ($definition['always_enabled'] ?? false);
+
+            if ($this->schemaReady() && ! $alwaysEnabled && ! $this->isEnabled($key)) {
                 continue;
             }
 
@@ -41,17 +42,21 @@ class ScheduledTaskRegistrar
                 $event->when(fn () => (bool) config($whenConfig));
             }
 
-            if ($this->schemaReady()) {
+            $recordRuns = ($definition['record_runs'] ?? true) !== false;
+
+            if ($this->schemaReady() && $recordRuns) {
+                // Finish by task_key (not instance state) so before/onSuccess
+                // work across separate container resolutions of ScheduledTaskRunner.
                 $event->before(function () use ($key) {
                     app(ScheduledTaskRunner::class)->beginScheduledRun($key);
                 });
 
-                $event->onSuccess(function () {
-                    app(ScheduledTaskRunner::class)->finishCurrentRun(true);
+                $event->onSuccess(function () use ($key) {
+                    app(ScheduledTaskRunner::class)->finishScheduledRun($key, true);
                 });
 
-                $event->onFailure(function () {
-                    app(ScheduledTaskRunner::class)->finishCurrentRun(false);
+                $event->onFailure(function () use ($key) {
+                    app(ScheduledTaskRunner::class)->finishScheduledRun($key, false);
                 });
             }
         }
@@ -110,12 +115,16 @@ class ScheduledTaskRegistrar
 
         return array_merge($definition, [
             'key' => $key,
-            'enabled' => $setting?->enabled ?? true,
+            'enabled' => ($definition['always_enabled'] ?? false)
+                ? true
+                : ($setting?->enabled ?? true),
             'cron_expression' => $setting?->cron_expression,
             'when_config' => $definition['when_config'] ?? null,
             'when_active' => $this->whenConfigActive($definition),
             'is_custom' => false,
             'command_display' => $definition['command'] ?? null,
+            'always_enabled' => (bool) ($definition['always_enabled'] ?? false),
+            'record_runs' => ($definition['record_runs'] ?? true) !== false,
         ]);
     }
 
@@ -416,8 +425,10 @@ class ScheduledTaskRegistrar
         } elseif (($definition['type'] ?? null) === 'callback') {
             $callback = $definition['callback'];
             $event = $schedule->call(function () use ($callback) {
-                if (is_array($callback)) {
-                    App::call($callback);
+                if (is_array($callback) && is_string($callback[0] ?? null) && isset($callback[1])) {
+                    // Resolve the class from the container; App::call([Class::class, 'method'])
+                    // tries a static call on PHP 8.1 and breaks instance methods.
+                    app($callback[0])->{$callback[1]}();
                 } elseif (is_callable($callback)) {
                     $callback();
                 }
@@ -464,6 +475,7 @@ class ScheduledTaskRegistrar
         $frequency = $schedule['frequency'] ?? 'daily';
 
         match ($frequency) {
+            'every_minute' => $event->everyMinute(),
             'daily_at' => $event->dailyAt((string) ($schedule['time'] ?? '00:00')),
             'hourly' => $event->hourly(),
             'every_five_minutes' => $event->everyFiveMinutes(),

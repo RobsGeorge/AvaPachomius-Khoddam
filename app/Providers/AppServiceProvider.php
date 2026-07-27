@@ -32,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(\App\Tenancy\TenantContext::class, fn () => new \App\Tenancy\TenantContext());
+        $this->app->singleton(\App\Services\ScheduledTaskRunner::class);
+        $this->app->singleton(\App\Services\SchedulerHealthService::class);
 
         // Override before any cache store is resolved (production CACHE_DRIVER=file).
         $this->app->booting(function () {
