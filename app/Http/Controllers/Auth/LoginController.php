@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Observability\ObservabilityRecorder;
 use App\Services\AuditLogService;
 use App\Services\CourseContextService;
 use App\Services\RegistrationApplicationService;
@@ -76,6 +77,17 @@ class LoginController extends Controller
             'success'        => $loginSucceeded,
             'failure_reason' => $failureReason,
         ]);
+
+        if ($failureReason !== null) {
+            try {
+                app(ObservabilityRecorder::class)->record('auth', 'warning', 'Login failure: '.$failureReason, [
+                    'failure_reason' => $failureReason,
+                    'email' => $credentials['email'] ?? null,
+                ]);
+            } catch (\Throwable) {
+                //
+            }
+        }
 
         if ($loginSucceeded) {
             $params = $this->applications->redirectParamsFor($user);

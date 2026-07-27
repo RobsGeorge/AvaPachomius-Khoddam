@@ -42,6 +42,7 @@ return [
     */
     'tenant_tables_nullable_church_id' => [
         'roles',
+        'observability_events',
     ],
 
     /*
@@ -81,6 +82,7 @@ return [
         'lecture_materials',
         // Ops / audit
         'activity_logs',
+        'observability_events',
         // Service layer
         'service',
         'service_units',

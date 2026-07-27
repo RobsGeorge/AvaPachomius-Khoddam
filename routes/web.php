@@ -702,6 +702,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
 
+    Route::get('/observability', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'index'])->name('observability.index');
+    Route::get('/observability/export', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'export'])->name('observability.export');
+
     // T4 — church tenant provisioning (also reachable on the console host).
     Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
     Route::get('/churches/create', [SuperAdminChurchController::class, 'create'])->name('churches.create');

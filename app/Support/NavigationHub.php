@@ -496,6 +496,7 @@ class NavigationHub
             self::hubLink('superadmin.event-admins', 'events.event_admins_title', 'events.event_admins_hint', 'bi-calendar-event', ['superadmin.event-admins', 'superadmin.event-admins.*'], true),
             self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate', 'superadmin.role-preview'], true),
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
+            self::hubLink('superadmin.observability.index', 'nav.observability', 'pages.superadmin_observability_desc', 'bi-activity', ['superadmin.observability.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
             self::hubLink('superadmin.system-tests.index', 'nav.system_tests', 'pages.superadmin_system_tests_desc', 'bi-clipboard2-check', ['superadmin.system-tests.*'], true),
             self::hubLink('superadmin.scheduled-tasks.index', 'nav.scheduled_tasks', 'pages.superadmin_scheduled_tasks_desc', 'bi-clock-history', ['superadmin.scheduled-tasks.*'], true),

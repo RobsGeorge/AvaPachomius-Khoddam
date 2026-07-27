@@ -38,12 +38,16 @@ class ObservabilityRecorderTest extends TestCase
     public function test_fingerprint_stable_for_same_exception_shape(): void
     {
         $recorder = new ObservabilityRecorder(new NullErrorSink());
-        $a = new RuntimeException('User 12 failed');
-        $b = new RuntimeException('User 99 failed');
 
         $this->assertSame(
-            $recorder->fingerprint('exception', $a->getMessage(), $a),
-            $recorder->fingerprint('exception', $b->getMessage(), $b)
+            $recorder->fingerprint('exception', 'User 12 failed'),
+            $recorder->fingerprint('exception', 'User 99 failed')
+        );
+
+        $exception = new RuntimeException('User 12 failed');
+        $this->assertSame(
+            $recorder->fingerprint('exception', 'User 12 failed', $exception),
+            $recorder->fingerprint('exception', 'User 99 failed', $exception)
         );
     }
 

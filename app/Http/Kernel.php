@@ -36,6 +36,7 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\AssignRequestId::class,
             \App\Http\Middleware\PreventSessionPageCache::class,
             \App\Http\Middleware\RedirectNumericServiceToSlug::class,
             \App\Http\Middleware\SetLocale::class,
@@ -57,6 +58,7 @@ class Kernel extends HttpKernel
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\AssignRequestId::class,
             \App\Tenancy\ResolveTenant::class,
             // NOTE: the church-membership gate must run AFTER authentication. On the API,
             // auth is `auth:sanctum` route middleware (runs after this group), so a bearer

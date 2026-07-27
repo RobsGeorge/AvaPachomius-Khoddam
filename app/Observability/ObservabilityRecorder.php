@@ -2,13 +2,18 @@
 
 namespace App\Observability;
 
+use App\Http\Middleware\AssignRequestId;
+use App\Models\ObservabilityEvent;
 use App\Observability\Contracts\ErrorSink;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Throwable;
 
 /**
- * Central write API for ops events. W0: sink-only (no DB). Later waves persist.
+ * Central write API for ops events. Persists to observability_events when available.
  */
 class ObservabilityRecorder
 {
@@ -50,6 +55,19 @@ class ObservabilityRecorder
 
         $safeContext = $this->redact($context);
         $fingerprint = $this->fingerprint($category, $message, $exception);
+        $request = function_exists('request') ? request() : null;
+
+        $requestId = $safeContext['request_id']
+            ?? ($request?->attributes->get(AssignRequestId::ATTRIBUTE))
+            ?? null;
+
+        $userId = $safeContext['user_id']
+            ?? Auth::id()
+            ?? null;
+
+        $churchId = $safeContext['church_id']
+            ?? TenantContext::id()
+            ?? null;
 
         $payload = [
             'severity' => $severity,
@@ -57,12 +75,20 @@ class ObservabilityRecorder
             'fingerprint' => $fingerprint,
             'message' => Str::limit($message, 2000, ''),
             'exception_class' => $exception ? $exception::class : ($safeContext['exception_class'] ?? null),
-            'stack_excerpt' => $exception ? $this->stackExcerpt($exception) : null,
+            'stack_excerpt' => $exception ? $this->stackExcerpt($exception) : ($safeContext['stack_excerpt'] ?? null),
             'context' => $safeContext,
-            'request_id' => $safeContext['request_id'] ?? null,
-            'user_id' => isset($safeContext['user_id']) ? (int) $safeContext['user_id'] : null,
-            'church_id' => isset($safeContext['church_id']) ? (int) $safeContext['church_id'] : null,
+            'request_id' => $requestId,
+            'user_id' => $userId !== null ? (int) $userId : null,
+            'church_id' => $churchId !== null ? (int) $churchId : null,
+            'http_status' => isset($safeContext['http_status']) ? (int) $safeContext['http_status'] : null,
+            'url' => isset($safeContext['url']) ? Str::limit((string) $safeContext['url'], 2000, '') : ($request?->fullUrl()),
+            'method' => $safeContext['method'] ?? $request?->method(),
+            'route_name' => $safeContext['route_name'] ?? $request?->route()?->getName(),
+            'service_id' => isset($safeContext['service_id']) ? (int) $safeContext['service_id'] : null,
+            'session_id' => $safeContext['session_id'] ?? ($request?->hasSession() ? hash('sha256', (string) $request->session()->getId()) : null),
         ];
+
+        $this->persist($payload);
 
         try {
             $this->errorSink->send($payload);
@@ -79,10 +105,13 @@ class ObservabilityRecorder
      */
     public function exception(Throwable $e, array $context = []): void
     {
-        $category = $this->categoryForException($e);
-        $severity = $this->severityForException($e);
-
-        $this->record($category, $severity, $e->getMessage() ?: $e::class, $context, $e);
+        $this->record(
+            $this->categoryForException($e),
+            $this->severityForException($e),
+            $e->getMessage() ?: $e::class,
+            $context,
+            $e
+        );
     }
 
     /**
@@ -126,12 +155,47 @@ class ObservabilityRecorder
         ];
 
         if ($exception !== null) {
-            $file = $exception->getFile();
-            $line = $exception->getLine();
-            $parts[] = basename($file).':'.$line;
+            $parts[] = basename($exception->getFile()).':'.$exception->getLine();
         }
 
         return hash('sha256', implode('|', $parts));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function persist(array $payload): void
+    {
+        try {
+            if (! Schema::hasTable('observability_events')) {
+                return;
+            }
+
+            ObservabilityEvent::withoutTenancy()->create([
+                'occurred_at' => now(),
+                'severity' => $payload['severity'],
+                'category' => $payload['category'],
+                'fingerprint' => $payload['fingerprint'],
+                'message' => $payload['message'],
+                'exception_class' => $payload['exception_class'],
+                'stack_excerpt' => $payload['stack_excerpt'],
+                'http_status' => $payload['http_status'],
+                'url' => $payload['url'],
+                'method' => $payload['method'],
+                'route_name' => $payload['route_name'],
+                'user_id' => $payload['user_id'],
+                'church_id' => $payload['church_id'],
+                'service_id' => $payload['service_id'],
+                'session_id' => $payload['session_id'],
+                'request_id' => $payload['request_id'],
+                'context' => $payload['context'],
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('observability.persist_failed', [
+                'error' => $e->getMessage(),
+                'fingerprint' => $payload['fingerprint'] ?? null,
+            ]);
+        }
     }
 
     private function stackExcerpt(Throwable $e): string

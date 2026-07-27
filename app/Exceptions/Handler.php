@@ -2,11 +2,14 @@
 
 namespace App\Exceptions;
 
+use App\Observability\ObservabilityRecorder;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -28,8 +31,31 @@ class Handler extends ExceptionHandler
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
-            //
+            if ($this->shouldSkipObservability($e)) {
+                return;
+            }
+
+            try {
+                app(ObservabilityRecorder::class)->exception($e, [
+                    'http_status' => $e instanceof HttpExceptionInterface ? $e->getStatusCode() : 500,
+                ]);
+            } catch (Throwable) {
+                // Never break exception reporting if observability itself fails.
+            }
         });
+    }
+
+    private function shouldSkipObservability(Throwable $e): bool
+    {
+        if ($e instanceof ValidationException || $e instanceof TokenMismatchException) {
+            return true;
+        }
+
+        if ($e instanceof HttpExceptionInterface && $e->getStatusCode() < 500) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

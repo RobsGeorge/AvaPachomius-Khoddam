@@ -898,6 +898,21 @@ return [
                 'nav' => ['system.audit'],
                 'system_only' => true,
             ],
+            'platform.observability.view' => [
+                'label_en' => 'View platform observability',
+                'label_ar' => 'عرض مراقبة المنصة',
+                'type' => 'both',
+                'routes' => ['superadmin.observability.index'],
+                'nav' => ['system.observability'],
+                'system_only' => true,
+            ],
+            'platform.observability.export' => [
+                'label_en' => 'Export platform observability',
+                'label_ar' => 'تصدير مراقبة المنصة',
+                'type' => 'endpoint',
+                'routes' => ['superadmin.observability.export'],
+                'system_only' => true,
+            ],
             'platform.impersonate' => [
                 'label_en' => 'Impersonate users',
                 'label_ar' => 'انتحال هوية المستخدمين',
