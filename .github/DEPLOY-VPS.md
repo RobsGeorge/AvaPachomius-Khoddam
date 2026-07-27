@@ -34,6 +34,13 @@ sudo chown -R deploy:www-data /var/www/avapakhomios
 sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
 ```
 
+Deploy scripts reclaim `storage/` + `bootstrap/cache/` ownership **before** `git reset --hard`,
+because PHP-FPM (`www-data`) creates cache/session files that otherwise block git with
+`unable to unlink old 'storage/...': Permission denied`.
+
+If a deploy fails on git sync with that error, run the chown above once as root (or as a
+sudoer), then re-run the failed GitHub Actions deploy job.
+
 Add deploy to the `www-data` group if needed:
 
 ```bash
