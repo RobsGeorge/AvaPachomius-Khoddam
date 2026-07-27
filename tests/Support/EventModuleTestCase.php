@@ -5,7 +5,6 @@ namespace Tests\Support;
 use App\Models\Course;
 use App\Models\Event;
 use App\Models\EventAdmin;
-use App\Models\Church;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
@@ -67,27 +66,6 @@ abstract class EventModuleTestCase extends TestCase
         }
 
         return $role;
-    }
-
-    /**
-     * Create a church and link a numerically aligned organizations row.
-     * Tenant `church_id` FKs target organizations.organization_id (P1.1); bare
-     * Church::create leaves orphans that fail under MySQL foreign keys.
-     */
-    protected function createChurch(array $overrides = []): Church
-    {
-        static $churchCounter = 0;
-        $churchCounter++;
-
-        $church = Church::create(array_merge([
-            'slug' => 'test-church-'.$churchCounter,
-            'name' => 'Test Church '.$churchCounter,
-            'status' => 'active',
-        ], $overrides));
-
-        app(\App\Services\ChurchProvisioningService::class)->ensureOrganizationLinked($church->fresh());
-
-        return $church->fresh();
     }
 
     protected function createCourse(array $overrides = []): Course

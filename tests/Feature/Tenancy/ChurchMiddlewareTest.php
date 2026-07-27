@@ -94,7 +94,7 @@ class ChurchMiddlewareTest extends EventModuleTestCase
     public function test_church_switcher_query_excludes_inactive_memberships(): void
     {
         $main = Church::main();
-        $other = $this->createChurch(['slug' => 'inactive-member-church', 'name' => 'Inactive Member', 'status' => 'active']);
+        $other = Church::create(['slug' => 'inactive-member-church', 'name' => 'Inactive Member', 'status' => 'active']);
         $user = $this->createUser(['email' => 'switcher-member@example.com']);
 
         ChurchUser::create([

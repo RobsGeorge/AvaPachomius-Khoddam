@@ -34,7 +34,7 @@ class ChurchCapabilityTest extends EventModuleTestCase
 
     public function test_a_fresh_church_has_no_capabilities(): void
     {
-        $church = $this->createChurch(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
+        $church = Church::create(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
 
         $this->assertFalse($church->hasCapability('exams'));
         $this->assertFalse($church->hasCapability('attendance'));
@@ -42,7 +42,7 @@ class ChurchCapabilityTest extends EventModuleTestCase
 
     public function test_unknown_capability_key_is_fail_open(): void
     {
-        $church = $this->createChurch(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
+        $church = Church::create(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
 
         $this->assertTrue($church->hasCapability('feature_not_in_catalog'));
     }
@@ -51,7 +51,7 @@ class ChurchCapabilityTest extends EventModuleTestCase
     {
         $this->assertSame(75, Church::main()->capabilityConfig('attendance')['min_percentage']);
 
-        $church = $this->createChurch(['slug' => 'lenient', 'name' => 'Lenient', 'status' => 'active']);
+        $church = Church::create(['slug' => 'lenient', 'name' => 'Lenient', 'status' => 'active']);
         ChurchCapability::create([
             'church_id' => $church->church_id,
             'capability_key' => 'attendance',
@@ -69,7 +69,7 @@ class ChurchCapabilityTest extends EventModuleTestCase
     {
         $middleware = new RequireCapability();
         $main = Church::main();
-        $noExams = $this->createChurch(['slug' => 'noexams', 'name' => 'No Exams', 'status' => 'active']);
+        $noExams = Church::create(['slug' => 'noexams', 'name' => 'No Exams', 'status' => 'active']);
 
         // Bound church that has the capability → passes.
         TenantContext::set($main);
