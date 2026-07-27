@@ -45,8 +45,8 @@ class NavigationEntryPointsTest extends EventModuleTestCase
         $this->actingAs($user)
             ->get(route('hubs.academic'))
             ->assertOk()
-            ->assertDontSee(__('notifications.dashboard_tile'), false)
-            ->assertSee(__('nav.hub_section_learning'), false);
+            ->assertSee(__('nav.hub_section_learning'), false)
+            ->assertSee(__('nav.hub_section_community'), false);
     }
 
     public function test_service_hub_renders_all_non_empty_section_headers(): void
