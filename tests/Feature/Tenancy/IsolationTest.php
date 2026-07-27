@@ -74,7 +74,7 @@ class IsolationTest extends EventModuleTestCase
     {
         config(['tenancy.enabled' => true, 'tenancy.base_domain' => 'example.test']);
 
-        $church = Church::create(['slug' => 'api-claim-church', 'name' => 'API Claim', 'status' => 'active']);
+        $church = $this->createChurch(['slug' => 'api-claim-church', 'name' => 'API Claim', 'status' => 'active']);
         $user = $this->createUser(['email' => 'api-claim@example.com']);
         ChurchUser::create([
             'church_id' => $church->church_id,
@@ -103,11 +103,12 @@ class IsolationTest extends EventModuleTestCase
         $this->assertTrue(trait_exists(BelongsToChurch::class));
 
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'isol-b', 'name' => 'Isolation B', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'isol-b', 'name' => 'Isolation B', 'status' => 'active']);
 
+        // course.title is varchar(30) — keep markers short (MySQL enforces length).
         TenantContext::set($churchA);
         $courseA = Course::create([
-            'title' => 'ISOLATION_MARKER_A_'.uniqid(),
+            'title' => 'ISO_A_'.substr(uniqid(), -8),
             'description' => 'x',
             'year' => 2026,
         ]);
@@ -115,7 +116,7 @@ class IsolationTest extends EventModuleTestCase
 
         TenantContext::set($churchB);
         $courseB = Course::create([
-            'title' => 'ISOLATION_MARKER_B_'.uniqid(),
+            'title' => 'ISO_B_'.substr(uniqid(), -8),
             'description' => 'x',
             'year' => 2026,
         ]);
@@ -132,9 +133,9 @@ class IsolationTest extends EventModuleTestCase
         config(['tenancy.enabled' => true, 'tenancy.base_domain' => 'example.test']);
 
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'isol-web-b', 'name' => 'Web B', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'isol-web-b', 'name' => 'Web B', 'status' => 'active']);
 
-        $markerB = 'ISOLATION_ENDPOINT_MARKER_B_'.uniqid();
+        $markerB = 'ISO_EP_B_'.substr(uniqid(), -8);
 
         TenantContext::set($churchB);
         Course::create(['title' => $markerB, 'description' => 'secret-b', 'year' => 2026]);

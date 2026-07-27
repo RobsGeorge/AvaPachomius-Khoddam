@@ -151,8 +151,11 @@ class SystemTestRunner
      */
     private function safeTestEnv(): array
     {
+        // Overwrite staging/prod shell exports (also set $_SERVER via CreatesApplication).
         return [
             'APP_ENV' => 'testing',
+            'APP_URL' => 'http://localhost',
+            'MULTI_TENANT' => 'false',
             'DB_CONNECTION' => 'sqlite',
             'DB_DATABASE' => ':memory:',
             'CACHE_DRIVER' => 'array',
@@ -162,6 +165,7 @@ class SystemTestRunner
             'MAIL_MAILER' => 'array',
             'PULSE_ENABLED' => 'false',
             'TELESCOPE_ENABLED' => 'false',
+            'APP_CONFIG_CACHE' => 'bootstrap/cache/config.testing-disabled.php',
         ];
     }
 

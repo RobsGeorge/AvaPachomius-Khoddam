@@ -27,19 +27,21 @@ php artisan test --testsuite=Smoke
 php artisan test --testsuite=Notifications
 ```
 
-### Local runner note (dev box)
+### Local / staging runner note
 
-On a dev box whose `.env` enables Pulse/Telescope, the console bootstrap of
-`php artisan test` can hang. Run with the testing env forced:
+`phpunit.xml` sets `force="true"` on `APP_ENV`, `APP_URL`, `DB_*`, `MULTI_TENANT`,
+and related drivers so a staging/prod shell (or cached `.env` exports) cannot leak
+TrustHosts / live MySQL / `MULTI_TENANT=true` into the suite.
+
+On a box whose `.env` enables Pulse/Telescope, you can still run:
 
 ```bash
-APP_ENV=testing PULSE_ENABLED=false TELESCOPE_ENABLED=false \
-DB_CONNECTION=sqlite DB_DATABASE=":memory:" \
-CACHE_DRIVER=array SESSION_DRIVER=array QUEUE_CONNECTION=sync MAIL_MAILER=array \
+php vendor/bin/phpunit --testsuite=Smoke
+# or
 php artisan test --testsuite=Smoke
 ```
 
-CI adds `PULSE_ENABLED=false` / `TELESCOPE_ENABLED=false` to `.env` for the same reason.
+CI and `SystemTestRunner` also force the same safe env onto the subprocess.
 
 ## 2. CI deploy gate
 
