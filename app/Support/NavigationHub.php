@@ -347,6 +347,20 @@ class NavigationHub
 
         if ($church && (
             ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'public_site.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'site.homepage.edit',
+                'nav.homepage_cms',
+                'bi-house-door',
+                ['site.homepage.*', 'site.preview', 'site.media.*'],
+                'public_site.manage',
+                'public_site'
+            ), ['category' => 'church']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
             || $resolver->canInChurch($user, 'finance.payroll.view', $church)
             || $resolver->canInChurch($user, 'finance.payroll.manage', $church)
         )) {
@@ -580,7 +594,7 @@ class NavigationHub
             return false;
         }
 
-        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.appointments.*', 'church.home-visits.*', 'church.finance.*')) {
+        if (request()->routeIs('hubs.service', 'services.select', 'services.select.*', 'services.roster', 'services.apply', 'services.apply.store', 'services.application.status', 'admin.service-applications.*', 'admin.services.*', 'church.priests.*', 'church.confession.*', 'church.appointments.*', 'church.home-visits.*', 'church.finance.*', 'church.public-profile.*', 'church.branding.*', 'site.homepage.*', 'site.preview', 'site.media.*')) {
             return true;
         }
 

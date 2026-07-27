@@ -139,7 +139,7 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString('T10', $gap);
     }
 
-    public function test_t10a_and_t10b_allowed_but_homepage_cms_not_landed(): void
+    public function test_t10c_homepage_cms_landed(): void
     {
         $capabilities = (string) file_get_contents(base_path('config/capabilities.php'));
         $permissions = (string) file_get_contents(base_path('config/permissions.php'));
@@ -147,16 +147,15 @@ class PublicChurchCmsDesignTest extends TestCase
         $this->assertStringContainsString("'public_site'", $capabilities);
         $this->assertStringContainsString('public_site.profile', $permissions);
         $this->assertStringContainsString('public_site.theme', $permissions);
+        $this->assertStringContainsString('public_site.manage', $permissions);
+        $this->assertStringContainsString('public_site.publish', $permissions);
         $this->assertFileExists(base_path('app/Support/PublicSite/ChurchBranding.php'));
 
-        // T10c homepage CMS product surface must still be absent.
-        $this->assertFileDoesNotExist(base_path('app/Models/ChurchSite.php'));
-        $this->assertFileDoesNotExist(base_path('app/Models/ChurchSiteSection.php'));
-        $this->assertDirectoryDoesNotExist(base_path('resources/views/public-site/home'));
-        $this->assertSame(
-            [],
-            glob(base_path('database/migrations/*church_site*')) ?: [],
-            'No church_site* migrations until T10c'
-        );
+        // T10c homepage CMS product surface is present.
+        $this->assertFileExists(base_path('app/Models/ChurchSite.php'));
+        $this->assertFileExists(base_path('app/Models/ChurchSiteSection.php'));
+        $this->assertFileExists(base_path('resources/views/public-site/home.blade.php'));
+        $migrations = glob(base_path('database/migrations/*church_site*')) ?: [];
+        $this->assertNotEmpty($migrations, 'church_site migration should exist for T10c');
     }
 }

@@ -37,6 +37,7 @@ return [
     'church_cycle'      => 'دورة الكنيسة',
     'public_profile'    => 'الملف العام',
     'church_branding'   => 'هوية الكنيسة',
+    'homepage_cms'      => 'محرر الصفحة الرئيسية',
     'payroll'           => 'الرواتب',
     'money_in'          => 'الإيرادات',
 ];
