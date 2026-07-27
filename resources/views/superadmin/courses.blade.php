@@ -1,10 +1,32 @@
 @extends('layouts.app')
 
-@section('title', __('pages.manage_courses'))
+@section('title', __('pages.manage_services_and_courses'))
 
 @section('content')
 <div class="container py-4 animate-in">
-    @include('superadmin.partials.header', ['title' => __('pages.manage_courses')])
+    @include('superadmin.partials.header', ['title' => __('pages.manage_services_and_courses')])
+
+    <h2 class="h5 mb-3 mt-2">
+        <i class="fas fa-church me-1"></i> {{ __('pages.manage_services_section') }}
+    </h2>
+    <p class="text-muted-theme small mb-3">
+        {{ ($requiresChurch ?? false) ? __('service.manage_intro_console') : __('service.manage_intro') }}
+    </p>
+
+    @include('admin.services.partials.panel', [
+        'groupedServices' => $groupedServices,
+        'churches' => $churches,
+        'requiresChurch' => $requiresChurch ?? false,
+        'structureTemplates' => $structureTemplates ?? collect(),
+        'progressionPolicies' => $progressionPolicies ?? [],
+        'embedFrom' => 'courses',
+    ])
+
+    <hr class="my-4">
+
+    <h2 class="h5 mb-3">
+        <i class="bi bi-journal-bookmark-fill me-1"></i> {{ __('pages.manage_courses_section') }}
+    </h2>
 
     @if($courses->isEmpty())
         <div class="alert alert-warning d-flex gap-3 align-items-start mb-4">
@@ -30,9 +52,9 @@
                 <table class="table table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            @unless($requiresChurch ?? false)
+                            @if($showChurchColumn ?? false)
                                 <th>{{ __('tenancy.col_name') }}</th>
-                            @endunless
+                            @endif
                             <th>{{ __('pages.course_title') }}</th>
                             <th>{{ __('service.label') }}</th>
                             <th>{{ __('pages.year') }}</th>
@@ -63,17 +85,31 @@
                                         </td>
                                     </tr>
                                     @foreach($serviceCourses as $course)
-                                        @include('superadmin.partials.course-row', ['course' => $course, 'requiresChurch' => true])
+                                        @include('superadmin.partials.course-row', [
+                                            'course' => $course,
+                                            'requiresChurch' => true,
+                                            'showChurchColumn' => $showChurchColumn ?? false,
+                                            'supportsLocalizedFields' => $supportsLocalizedFields ?? false,
+                                            'services' => $services,
+                                            'churches' => $churches,
+                                        ])
                                     @endforeach
                                 @endforeach
                             @else
                                 @foreach($churchCourses as $course)
-                                    @include('superadmin.partials.course-row', ['course' => $course, 'requiresChurch' => false])
+                                    @include('superadmin.partials.course-row', [
+                                        'course' => $course,
+                                        'requiresChurch' => false,
+                                        'showChurchColumn' => $showChurchColumn ?? false,
+                                        'supportsLocalizedFields' => $supportsLocalizedFields ?? false,
+                                        'services' => $services,
+                                        'churches' => $churches,
+                                    ])
                                 @endforeach
                             @endif
                         @empty
                             <tr>
-                                <td colspan="{{ ($requiresChurch ?? false) ? 4 : 5 }}" class="text-center text-muted-theme py-3">
+                                <td colspan="{{ (($requiresChurch ?? false) ? 4 : (($showChurchColumn ?? false) ? 5 : 4)) }}" class="text-center text-muted-theme py-3">
                                     {{ __('pages.no_courses_yet') }}
                                 </td>
                             </tr>

@@ -118,9 +118,22 @@ class ServiceManagementController extends Controller
             app(RoleTemplateService::class)->cloneTemplatesIntoService($service);
         }
 
-        return redirect()
-            ->route('admin.services.index')
+        return $this->redirectAfterMutation($request)
             ->with('success', __('service.created'));
+    }
+
+    /**
+     * Superadmins reach service management embedded in the combined
+     * "Manage services & courses" page; keep them there after a mutation.
+     * The target is safelisted to avoid open redirects.
+     */
+    protected function redirectAfterMutation(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        if ($request->input('from') === 'courses') {
+            return redirect()->route('superadmin.courses');
+        }
+
+        return redirect()->route('admin.services.index');
     }
 
     public function edit(ChurchService $service)
@@ -209,7 +222,7 @@ class ServiceManagementController extends Controller
             ->with('success', __('service.course_linked'));
     }
 
-    public function archive(ChurchService $service)
+    public function archive(Request $request, ChurchService $service)
     {
         abort_unless(ChurchService::tableReady(), 404);
 
@@ -222,8 +235,7 @@ class ServiceManagementController extends Controller
         $service->status = ChurchService::STATUS_ARCHIVED;
         $service->save();
 
-        return redirect()
-            ->route('admin.services.index')
+        return $this->redirectAfterMutation($request)
             ->with('success', __('service.archived'));
     }
 }

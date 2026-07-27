@@ -916,11 +916,11 @@ return [
                 'system_only' => true,
             ],
             'platform.course_crud' => [
-                'label_en' => 'Create/delete courses',
-                'label_ar' => 'إنشاء/حذف الدورات',
+                'label_en' => 'Create/edit/delete courses',
+                'label_ar' => 'إنشاء/تعديل/حذف الدورات',
                 'type' => 'endpoint',
                 'routes' => [
-                    'superadmin.courses.store', 'superadmin.courses.destroy', 'superadmin.courses',
+                    'superadmin.courses.store', 'superadmin.courses.update', 'superadmin.courses.destroy', 'superadmin.courses',
                     'courses.create', 'courses.store', 'courses.edit', 'courses.update', 'courses.destroy',
                 ],
                 'system_only' => true,

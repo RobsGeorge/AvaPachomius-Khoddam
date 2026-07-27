@@ -126,6 +126,11 @@ class ServiceManagementTest extends EventModuleTestCase
         $service = $this->createService(['title' => 'Parent Service']);
 
         $this->actingAs($super)
+            ->get(route('superadmin.courses'))
+            ->assertOk()
+            ->assertSee(__('pages.manage_courses'), false);
+
+        $this->actingAs($super)
             ->post(route('superadmin.courses.store'), [
                 'title' => 'Year One',
                 'description' => 'Linked course',
@@ -138,6 +143,48 @@ class ServiceManagementTest extends EventModuleTestCase
         $course = Course::query()->where('title', 'Year One')->first();
         $this->assertNotNull($course);
         $this->assertSame($service->service_id, (int) $course->service_id);
+    }
+
+    public function test_superadmin_can_update_course_from_manage_page(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-course-edit@example.com']);
+        $service = $this->createService(['title' => 'Edit Parent Service']);
+        $course = $this->createCourse([
+            'title' => 'Original Title',
+            'description' => 'Original description',
+            'year' => 2025,
+            'service_id' => $service->service_id,
+            'default_session_start_time' => '09:00:00',
+        ]);
+
+        $this->actingAs($super)
+            ->get(route('superadmin.courses'))
+            ->assertOk()
+            ->assertSee(__('pages.edit_course'), false)
+            ->assertSee('Original Title', false);
+
+        $this->actingAs($super)
+            ->put(route('superadmin.courses.update', $course->course_id), [
+                'title' => 'Updated Title',
+                'title_ar' => 'عنوان محدث',
+                'title_en' => 'Updated EN',
+                'description' => 'Updated description',
+                'description_ar' => 'وصف محدث',
+                'description_en' => 'Updated EN description',
+                'year' => 2026,
+                'default_session_start_time' => '10:30',
+                'service_id' => $service->service_id,
+            ])
+            ->assertRedirect(route('superadmin.courses'))
+            ->assertSessionHas('success');
+
+        $course->refresh();
+        $this->assertSame('Updated Title', $course->title);
+        $this->assertSame('عنوان محدث', $course->title_ar);
+        $this->assertSame('Updated EN', $course->title_en);
+        $this->assertSame('Updated description', $course->description);
+        $this->assertSame(2026, (int) $course->year);
+        $this->assertSame('10:30:00', $course->default_session_start_time);
     }
 
     protected function grantSystemPermission(\App\Models\User $user, string $permissionKey): void

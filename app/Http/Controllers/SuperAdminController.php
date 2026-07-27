@@ -6,6 +6,7 @@ use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Role;
+use App\Models\StructureTemplate;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\AuditLogService;
@@ -18,8 +19,10 @@ use App\Services\RolePreviewService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use App\Support\NavigationHub;
+use App\Support\Structure\ProgressionPolicy;
 use App\Support\SuperadminWorkspace;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -36,35 +39,101 @@ class SuperAdminController extends Controller
     public function courses()
     {
         $requiresChurch = SuperadminWorkspace::requiresExplicitChurchScope();
+        $hasCourseChurch = Schema::hasColumn('course', 'church_id');
+        $hasServiceChurch = ChurchService::tableReady() && Schema::hasColumn('service', 'church_id');
+        $showChurchColumn = Schema::hasTable('church') && ($hasCourseChurch || $hasServiceChurch);
 
-        $courses = Course::query()
-            ->with(['service.church', 'church'])
-            ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
-            ->orderBy('church_id')
-            ->orderBy('service_id')
+        $courseWith = ['service'];
+        if ($hasServiceChurch) {
+            $courseWith[] = 'service.church';
+        }
+        if ($hasCourseChurch && Schema::hasTable('church')) {
+            $courseWith[] = 'church';
+        }
+
+        $courseQuery = Course::query()
+            ->with($courseWith)
+            ->when($requiresChurch, fn ($q) => $q->withoutTenancy());
+
+        if ($hasCourseChurch) {
+            $courseQuery->orderBy('church_id');
+        }
+        if (Schema::hasColumn('course', 'service_id')) {
+            $courseQuery->orderBy('service_id');
+        }
+
+        $courses = $courseQuery
             ->orderBy('year', 'desc')
             ->orderBy('title')
             ->get();
 
-        $groupedCourses = $courses->groupBy(function (Course $course) {
-            return (int) ($course->church_id ?? $course->service?->church_id ?? 0);
-        });
+        $groupedCourses = ($hasCourseChurch || $hasServiceChurch)
+            ? $courses->groupBy(function (Course $course) use ($hasCourseChurch) {
+                if ($hasCourseChurch && $course->church_id) {
+                    return (int) $course->church_id;
+                }
+
+                return (int) ($course->service?->church_id ?? 0);
+            })
+            : collect([0 => $courses]);
 
         $services = ChurchService::tableReady()
-            ? ChurchService::query()
-                ->with('church')
-                ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
-                ->where('status', ChurchService::STATUS_ACTIVE)
-                ->orderBy('church_id')
-                ->orderBy('title')
-                ->get()
+            ? tap(
+                ChurchService::query()
+                    ->when($hasServiceChurch, fn ($q) => $q->with('church'))
+                    ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
+                    ->where('status', ChurchService::STATUS_ACTIVE),
+                function ($query) use ($hasServiceChurch) {
+                    if ($hasServiceChurch) {
+                        $query->orderBy('church_id');
+                    }
+                    $query->orderBy('title');
+                }
+            )->get()
             : collect();
+
+        // Services management panel: all statuses, with counts, grouped by church.
+        $manageServices = ChurchService::tableReady()
+            ? tap(
+                ChurchService::query()
+                    ->when($hasServiceChurch, fn ($q) => $q->with('church'))
+                    ->withCount(['courses', 'userServiceRoles'])
+                    ->when($requiresChurch, fn ($q) => $q->withoutTenancy()),
+                function ($query) use ($hasServiceChurch) {
+                    if ($hasServiceChurch) {
+                        $query->orderBy('church_id');
+                    }
+                    $query->orderBy('title');
+                }
+            )->get()
+            : collect();
+
+        $groupedServices = $manageServices->groupBy(
+            fn (ChurchService $service) => (int) ($service->church_id ?? 0)
+        );
 
         $churches = $requiresChurch
             ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
             : collect();
 
-        return view('superadmin.courses', compact('courses', 'services', 'groupedCourses', 'churches', 'requiresChurch'));
+        $supportsLocalizedFields = Schema::hasColumn('course', 'title_ar')
+            && Schema::hasColumn('course', 'title_en');
+
+        $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
+        $progressionPolicies = ProgressionPolicy::all();
+
+        return view('superadmin.courses', compact(
+            'courses',
+            'services',
+            'groupedCourses',
+            'groupedServices',
+            'churches',
+            'requiresChurch',
+            'showChurchColumn',
+            'supportsLocalizedFields',
+            'structureTemplates',
+            'progressionPolicies',
+        ));
     }
 
     public function courseRoles()
@@ -219,7 +288,7 @@ class SuperAdminController extends Controller
 
         $course = Course::create($payload);
 
-        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+        if (SuperadminWorkspace::requiresExplicitChurchScope() && Schema::hasColumn('course', 'church_id')) {
             $course->church_id = (int) $request->input('church_id');
             $course->save();
         }
@@ -235,6 +304,72 @@ class SuperAdminController extends Controller
         }
 
         return redirect()->route('superadmin.courses')->with('success', __('pages.course_created'));
+    }
+
+    public function updateCourse(Request $request, string $id)
+    {
+        $course = Course::query()
+            ->when(SuperadminWorkspace::requiresExplicitChurchScope(), fn ($q) => $q->withoutTenancy())
+            ->findOrFail($id);
+
+        $rules = [
+            'title' => 'required|string|max:30',
+            'description' => 'required|string|max:255',
+            'year' => 'required|integer|min:2000|max:2100',
+            'default_session_start_time' => 'required|date_format:H:i',
+            'title_ar' => 'nullable|string|max:120',
+            'title_en' => 'nullable|string|max:120',
+            'description_ar' => 'nullable|string|max:2000',
+            'description_en' => 'nullable|string|max:2000',
+        ];
+
+        if (ChurchService::tableReady()) {
+            $rules['service_id'] = 'required|exists:service,service_id';
+        }
+
+        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $rules['church_id'] = 'required|integer|exists:church,church_id';
+        }
+
+        $request->validate($rules);
+
+        if (ChurchService::tableReady() && SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $service = ChurchService::query()->withoutTenancy()->findOrFail((int) $request->input('service_id'));
+            if ((int) $service->church_id !== (int) $request->input('church_id')) {
+                throw ValidationException::withMessages([
+                    'service_id' => [__('pages.course_service_church_mismatch')],
+                ]);
+            }
+        }
+
+        $payload = [
+            'title' => $request->input('title'),
+            'description' => $request->input('description'),
+            'year' => $request->input('year'),
+            'default_session_start_time' => $request->input('default_session_start_time').':00',
+        ];
+
+        if (Schema::hasColumn('course', 'title_ar')) {
+            $payload['title_ar'] = $request->input('title_ar');
+            $payload['title_en'] = $request->input('title_en');
+            $payload['description_ar'] = $request->input('description_ar');
+            $payload['description_en'] = $request->input('description_en');
+        }
+
+        if (ChurchService::tableReady()) {
+            $payload['service_id'] = (int) $request->input('service_id');
+        }
+
+        $course->update($payload);
+
+        if (SuperadminWorkspace::requiresExplicitChurchScope() && Schema::hasColumn('course', 'church_id')) {
+            $course->church_id = (int) $request->input('church_id');
+            $course->save();
+        }
+
+        return redirect()
+            ->route('superadmin.courses')
+            ->with('success', __('pages.course_updated'));
     }
 
     public function destroyCourse(string $id)
