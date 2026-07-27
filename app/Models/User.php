@@ -301,7 +301,8 @@ class User extends Authenticatable
                     && (int) $courseId === (int) session(RolePreviewService::SESSION_COURSE_ID);
             }
 
-            return $slug === 'admin' || $this->canInSystem('system.role.manage');
+            return in_array($slug, ['admin', 'church-admin'], true)
+                || $this->canInSystem('system.role.manage');
         }
 
         $resolver = app(CoursePermissionResolver::class);

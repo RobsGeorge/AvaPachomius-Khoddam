@@ -65,4 +65,14 @@ final class SuperadminWorkspace
 
         return ! self::inTenantWorkflow() || ChurchHost::isConsoleHost();
     }
+
+    /**
+     * Console host with no tenant bound: structure CRUD must name a church explicitly.
+     */
+    public static function requiresExplicitChurchScope(): bool
+    {
+        return config('tenancy.enabled')
+            && ChurchHost::isConsoleHost()
+            && ! TenantContext::enforced();
+    }
 }

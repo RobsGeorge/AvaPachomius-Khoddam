@@ -45,20 +45,16 @@
                             <td>{{ $church->members_count }}</td>
                             <td class="text-nowrap">
                                 @if($tenancyEnabled && $church->status === 'active')
-                                    <form method="POST" action="{{ route('superadmin.churches.view-as', $church) }}" class="d-inline"
-                                          data-confirm="{{ __('pages.role_preview_confirm') }}">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-info">
-                                            {{ __('workspace.view_as_church') }}
-                                        </button>
-                                    </form>
-                                    <form method="POST" action="{{ route('superadmin.churches.platform-enter', $church) }}" class="d-inline"
-                                          data-confirm="{{ __('workspace.platform_enter') }}?">
-                                        @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                            {{ __('workspace.platform_enter') }}
-                                        </button>
-                                    </form>
+                                    <a href="{{ \App\Support\ChurchHost::temporarySignedRoute($church, 'superadmin.churches.view-as.start', $church) }}"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="{{ __('workspace.view_as_church_hint') }}">
+                                        {{ __('workspace.view_as_church') }}
+                                    </a>
+                                    <a href="{{ \App\Support\ChurchHost::temporarySignedRoute($church, 'superadmin.churches.platform-enter.start', $church) }}"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       title="{{ __('workspace.platform_enter_hint') }}">
+                                        {{ __('workspace.platform_enter') }}
+                                    </a>
                                 @endif
                             </td>
                             <td class="text-end">

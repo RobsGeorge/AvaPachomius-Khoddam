@@ -18,7 +18,7 @@ class RolesHubService
 
     public function canAccess(User $user): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -40,28 +40,28 @@ class RolesHubService
 
     public function canManageEmailTemplates(User $user): bool
     {
-        return ($user->is_superadmin ?? false)
+        return RolePreviewService::superadminBypassesPermissions($user)
             || $user->canInSystem('system.role.manage');
     }
 
     public function canManageTemplates(User $user): bool
     {
-        return (bool) ($user->is_superadmin ?? false);
+        return RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function canManageSystemRoles(User $user): bool
     {
-        return (bool) ($user->is_superadmin ?? false);
+        return RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function canManageGroupVisibility(User $user): bool
     {
-        return (bool) ($user->is_superadmin ?? false);
+        return RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function canViewAllAssignments(User $user): bool
     {
-        return ($user->is_superadmin ?? false)
+        return RolePreviewService::superadminBypassesPermissions($user)
             || $user->isAdmin()
             || $user->canInSystem('system.role.manage')
             || $user->canInSystem('user.assign_role');
@@ -95,7 +95,7 @@ class RolesHubService
             return collect();
         }
 
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return ChurchService::query()->orderBy('title')->get();
         }
 
@@ -113,7 +113,7 @@ class RolesHubService
     /** @return Collection<int, Course> */
     public function manageableCourses(User $user, ?ChurchService $withinService = null): Collection
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             $query = Course::query()->orderByDesc('year')->orderBy('title');
             if ($withinService) {
                 $query->where('service_id', $withinService->service_id);
@@ -160,7 +160,7 @@ class RolesHubService
             return null;
         }
 
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return $course;
         }
 

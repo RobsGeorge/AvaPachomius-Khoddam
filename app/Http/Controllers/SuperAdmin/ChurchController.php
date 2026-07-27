@@ -131,6 +131,17 @@ class ChurchController extends Controller
             ->with('success', __('workspace.platform_access_started', ['church' => $church->name]));
     }
 
+    public function platformEnterSigned(Request $request, Church $church)
+    {
+        abort_unless($request->user()?->is_superadmin, 403);
+
+        PlatformAccessService::start($church, $request->user(), $request);
+
+        return redirect()
+            ->route('dashboard')
+            ->with('success', __('workspace.platform_access_started', ['church' => $church->name]));
+    }
+
     public function viewAsChurch(Request $request, Church $church)
     {
         $superadmin = $request->user();
@@ -139,6 +150,18 @@ class ChurchController extends Controller
         RolePreviewService::startChurchAdminRole($superadmin, $church, $request);
 
         return redirect(ChurchHost::url($church, '/dashboard'))
+            ->with('success', __('workspace.view_as_church_started', ['church' => $church->name]));
+    }
+
+    public function viewAsChurchSigned(Request $request, Church $church)
+    {
+        $superadmin = $request->user();
+        abort_unless($superadmin?->is_superadmin, 403);
+
+        RolePreviewService::startChurchAdminRole($superadmin, $church, $request);
+
+        return redirect()
+            ->route('dashboard')
             ->with('success', __('workspace.view_as_church_started', ['church' => $church->name]));
     }
 

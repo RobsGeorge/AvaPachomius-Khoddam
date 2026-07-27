@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Church;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\URL;
 
 /**
  * Build absolute URLs for a church host (custom domain or {slug}.{base}).
@@ -121,5 +122,27 @@ final class ChurchHost
         }
 
         return self::url($church, $path);
+    }
+
+    /**
+     * Signed route on the church host so session keys are written on the tenant subdomain.
+     */
+    public static function temporarySignedRoute(
+        Church $church,
+        string $routeName,
+        mixed $parameters = [],
+        ?\DateTimeInterface $expiration = null,
+    ): string {
+        $expiration ??= now()->addMinutes(5);
+        $params = is_array($parameters) ? $parameters : ['church' => $parameters];
+        $signed = URL::temporarySignedRoute($routeName, $expiration, $params);
+        $parts = parse_url($signed) ?: [];
+        $path = $parts['path'] ?? '/';
+        $query = $parts['query'] ?? '';
+        $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
+        $port = parse_url((string) config('app.url'), PHP_URL_PORT);
+        $portSuffix = $port ? ':'.$port : '';
+
+        return $scheme.'://'.self::hostFor($church).$portSuffix.$path.($query !== '' ? '?'.$query : '');
     }
 }

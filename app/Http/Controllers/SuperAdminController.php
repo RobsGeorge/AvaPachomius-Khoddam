@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Role;
@@ -17,8 +18,10 @@ use App\Services\RolePreviewService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use App\Support\NavigationHub;
+use App\Support\SuperadminWorkspace;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class SuperAdminController extends Controller
 {
@@ -32,12 +35,36 @@ class SuperAdminController extends Controller
 
     public function courses()
     {
-        $courses = Course::with('service')->orderBy('year', 'desc')->orderBy('title')->get();
+        $requiresChurch = SuperadminWorkspace::requiresExplicitChurchScope();
+
+        $courses = Course::query()
+            ->with(['service.church', 'church'])
+            ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
+            ->orderBy('church_id')
+            ->orderBy('service_id')
+            ->orderBy('year', 'desc')
+            ->orderBy('title')
+            ->get();
+
+        $groupedCourses = $courses->groupBy(function (Course $course) {
+            return (int) ($course->church_id ?? $course->service?->church_id ?? 0);
+        });
+
         $services = ChurchService::tableReady()
-            ? ChurchService::query()->where('status', ChurchService::STATUS_ACTIVE)->orderBy('title')->get()
+            ? ChurchService::query()
+                ->with('church')
+                ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
+                ->where('status', ChurchService::STATUS_ACTIVE)
+                ->orderBy('church_id')
+                ->orderBy('title')
+                ->get()
             : collect();
 
-        return view('superadmin.courses', compact('courses', 'services'));
+        $churches = $requiresChurch
+            ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
+            : collect();
+
+        return view('superadmin.courses', compact('courses', 'services', 'groupedCourses', 'churches', 'requiresChurch'));
     }
 
     public function courseRoles()
@@ -164,7 +191,20 @@ class SuperAdminController extends Controller
             $rules['service_id'] = 'required|exists:service,service_id';
         }
 
+        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $rules['church_id'] = 'required|integer|exists:church,church_id';
+        }
+
         $request->validate($rules);
+
+        if (ChurchService::tableReady() && SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $service = ChurchService::query()->withoutTenancy()->findOrFail((int) $request->input('service_id'));
+            if ((int) $service->church_id !== (int) $request->input('church_id')) {
+                throw ValidationException::withMessages([
+                    'service_id' => [__('pages.course_service_church_mismatch')],
+                ]);
+            }
+        }
 
         $payload = [
             'title' => $request->input('title'),
@@ -178,6 +218,11 @@ class SuperAdminController extends Controller
         }
 
         $course = Course::create($payload);
+
+        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $course->church_id = (int) $request->input('church_id');
+            $course->save();
+        }
 
         $templates = app(RoleTemplateService::class);
         if ($request->boolean('clone_templates', true)) {

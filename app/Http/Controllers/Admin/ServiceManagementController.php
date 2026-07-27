@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\StructureTemplate;
 use App\Services\RoleTemplateService;
 use App\Services\Structure\StructureAnchorResolver;
 use App\Support\Structure\ProgressionPolicy;
+use App\Support\SuperadminWorkspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ServiceManagementController extends Controller
 {
@@ -19,11 +22,21 @@ class ServiceManagementController extends Controller
     {
         abort_unless(ChurchService::tableReady(), 404);
 
+        $requiresChurch = SuperadminWorkspace::requiresExplicitChurchScope();
+
         $services = ChurchService::query()
-            ->with(['structureTemplate'])
+            ->with(['church', 'structureTemplate'])
             ->withCount(['courses', 'userServiceRoles'])
+            ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
+            ->orderBy('church_id')
             ->orderBy('title')
             ->get();
+
+        $groupedServices = $services->groupBy(fn (ChurchService $service) => (int) ($service->church_id ?? 0));
+
+        $churches = $requiresChurch
+            ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
+            : collect();
 
         $structureTemplates = StructureTemplate::query()
             ->orderBy('name_en')
@@ -34,6 +47,9 @@ class ServiceManagementController extends Controller
 
         return view('admin.services.index', compact(
             'services',
+            'groupedServices',
+            'churches',
+            'requiresChurch',
             'structureTemplates',
             'progressionPolicies',
             'resolver',
@@ -44,6 +60,8 @@ class ServiceManagementController extends Controller
     {
         abort_unless(ChurchService::tableReady(), 404);
 
+        $requiresChurch = SuperadminWorkspace::requiresExplicitChurchScope();
+
         $rules = [
             'title' => 'required|string|max:120',
             'title_ar' => 'nullable|string|max:120',
@@ -51,6 +69,10 @@ class ServiceManagementController extends Controller
             'description' => 'nullable|string|max:2000',
             'clone_templates' => 'boolean',
         ];
+
+        if ($requiresChurch) {
+            $rules['church_id'] = 'required|integer|exists:church,church_id';
+        }
 
         if (Schema::hasColumn('service', 'structure_template_id')) {
             $rules['structure_template_id'] = [
@@ -84,7 +106,13 @@ class ServiceManagementController extends Controller
             $payload['progression_policy'] = ProgressionPolicy::isValid($policy) ? $policy : null;
         }
 
-        $service = ChurchService::create($payload);
+        $service = new ChurchService($payload);
+
+        if ($requiresChurch) {
+            $service->church_id = (int) $validated['church_id'];
+        }
+
+        $service->save();
 
         if ($request->boolean('clone_templates', true)) {
             app(RoleTemplateService::class)->cloneTemplatesIntoService($service);
@@ -99,7 +127,12 @@ class ServiceManagementController extends Controller
     {
         abort_unless(ChurchService::tableReady(), 404);
 
-        $courses = Course::query()->orderByDesc('year')->orderBy('title')->get();
+        $courses = Course::query()
+            ->when($service->church_id, fn ($q) => $q->where('church_id', $service->church_id))
+            ->orderByDesc('year')
+            ->orderBy('title')
+            ->get();
+
         $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
         $progressionPolicies = ProgressionPolicy::all();
         $resolver = app(StructureAnchorResolver::class);
@@ -160,6 +193,14 @@ class ServiceManagementController extends Controller
         ]);
 
         $course = Course::findOrFail($validated['course_id']);
+
+        if ($service->church_id && $course->church_id
+            && (int) $service->church_id !== (int) $course->church_id) {
+            throw ValidationException::withMessages([
+                'course_id' => [__('service.course_church_mismatch')],
+            ]);
+        }
+
         $course->service_id = $service->service_id;
         $course->save();
 
