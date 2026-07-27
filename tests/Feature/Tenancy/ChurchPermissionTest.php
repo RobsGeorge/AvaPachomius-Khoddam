@@ -65,7 +65,7 @@ class ChurchPermissionTest extends EventModuleTestCase
     public function test_different_roles_in_different_churches_resolve_independently(): void
     {
         $main = Church::main();
-        $other = Church::create(['slug' => 'stmark-rbac', 'name' => 'St Mark', 'status' => 'active']);
+        $other = $this->createChurch(['slug' => 'stmark-rbac', 'name' => 'St Mark', 'status' => 'active']);
         foreach (['announcements', 'reporting', 'church_management'] as $key) {
             ChurchCapability::create([
                 'church_id' => $other->church_id,
@@ -108,7 +108,7 @@ class ChurchPermissionTest extends EventModuleTestCase
 
     public function test_capability_ceiling_blocks_permission_when_feature_disabled(): void
     {
-        $church = Church::create(['slug' => 'no-exams-rbac', 'name' => 'No Exams', 'status' => 'active']);
+        $church = $this->createChurch(['slug' => 'no-exams-rbac', 'name' => 'No Exams', 'status' => 'active']);
         ChurchCapability::create([
             'church_id' => $church->church_id,
             'capability_key' => 'announcements',
@@ -169,7 +169,7 @@ class ChurchPermissionTest extends EventModuleTestCase
             $this->assertNull($role->course_id);
         }
 
-        $sparse = Church::create(['slug' => 'sparse-rbac', 'name' => 'Sparse', 'status' => 'active']);
+        $sparse = $this->createChurch(['slug' => 'sparse-rbac', 'name' => 'Sparse', 'status' => 'active']);
         ChurchCapability::create([
             'church_id' => $sparse->church_id,
             'capability_key' => 'church_management',
