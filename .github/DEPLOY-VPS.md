@@ -32,6 +32,10 @@ The deploy user should own the project (or at least `storage/` and `bootstrap/ca
 ```bash
 sudo chown -R deploy:www-data /var/www/avapakhomios
 sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+
+# Staging (same pattern):
+sudo chown -R deploy:www-data /var/www/khedma-staging/storage /var/www/khedma-staging/bootstrap/cache
+sudo chmod -R ug+rwx /var/www/khedma-staging/storage /var/www/khedma-staging/bootstrap/cache
 ```
 
 Deploy scripts reclaim `storage/` + `bootstrap/cache/` ownership **before** `git reset --hard`,
@@ -40,6 +44,11 @@ because PHP-FPM (`www-data`) creates cache/session files that otherwise block gi
 
 If a deploy fails on git sync with that error, run the chown above once as root (or as a
 sudoer), then re-run the failed GitHub Actions deploy job.
+because PHP-FPM often creates cache/session files as `www-data`, which otherwise yields
+`unable to unlink old 'storage/...': Permission denied`.
+
+If a deploy fails on git sync with that error, run the chown above once as root (or as a
+user with passwordless `sudo chown`/`chmod`), then re-run the deploy.
 
 Add deploy to the `www-data` group if needed:
 
