@@ -56,7 +56,14 @@ class DemoDataSeeder extends Seeder
     public function run(): void
     {
         if (DemoData::exists()) {
-            $this->command?->warn('Demo data already present — skipping. Run `php artisan demo:wipe` first to reseed.');
+            $this->command?->warn('Demo data already present — repairing church role permissions from templates, then skipping seed.');
+            Artisan::call('permissions:sync');
+            $this->roleTemplates = app(RoleTemplateService::class);
+            $this->roleTemplates->ensureChurchTemplates();
+            foreach (Church::query()->where('slug', 'like', DemoData::churchSlugPrefix().'%')->get() as $church) {
+                $merged = $this->roleTemplates->mergeTemplatePermissionsIntoChurchClones($church);
+                $this->command?->info("Merged {$merged} permission grants into {$church->slug}.");
+            }
 
             return;
         }
@@ -326,13 +333,19 @@ class DemoDataSeeder extends Seeder
 
     private function provisionChurch(string $slug, string $name, User $admin): Church
     {
-        return $this->provisioning->create([
+        $church = $this->provisioning->create([
             'slug' => DemoData::slug($slug),
             'name' => $name,
             'status' => 'active',
             'settings' => ['demo' => true],
             'capabilities' => array_keys((array) config('capabilities')),
         ], [$admin->user_id]);
+
+        // Ensure PAC confession/appointment keys land even if the clone was created
+        // before those permissions existed on the platform templates.
+        $this->roleTemplates->mergeTemplatePermissionsIntoChurchClones($church);
+
+        return $church;
     }
 
     private function churchRole(Church $church, string $slug): ?Role

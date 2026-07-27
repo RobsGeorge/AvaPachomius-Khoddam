@@ -41,6 +41,7 @@ class Kernel extends HttpKernel
             \App\Tenancy\ResolveTenant::class,
             \App\Tenancy\EnsureChurchMember::class,
             \App\Http\Middleware\RedirectSuperadminWithoutTenantWorkflow::class,
+            \App\Http\Middleware\RedirectChurchUserFromConsole::class,
             \App\Http\Middleware\LogUserActivity::class,
             \App\Http\Middleware\RequireMandatoryFeedback::class,
             \App\Http\Middleware\RequireProfilePhoto::class,

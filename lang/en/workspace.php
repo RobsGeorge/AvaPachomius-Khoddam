@@ -22,5 +22,6 @@ return [
     'platform_access_while_impersonating' => 'Stop viewing as user before opening platform access.',
 
     'superadmin_console_required' => 'Use View as or Open with platform access from the church registry.',
+    'use_church_portal' => 'Church accounts use your church portal, not the platform console.',
     'col_actions' => 'Actions',
 ];

@@ -22,5 +22,6 @@ return [
     'platform_access_while_impersonating' => 'أنهِ عرض المستخدم قبل فتح وصول المنصة.',
 
     'superadmin_console_required' => 'استخدم «عرض كمشرف كنيسة» أو «فتح بوصول المنصة» من سجل الكنائس.',
+    'use_church_portal' => 'حسابات الكنيسة تستخدم بوابة كنيستك، وليس لوحة المنصة.',
     'col_actions' => 'إجراءات',
 ];

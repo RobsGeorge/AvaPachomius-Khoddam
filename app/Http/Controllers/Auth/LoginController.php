@@ -80,6 +80,33 @@ class LoginController extends Controller
         if ($loginSucceeded) {
             $params = $this->applications->redirectParamsFor($user);
 
+            // Console host is platform-superadmin only. Church users (admin, priest,
+            // servant, …) land on their church subdomain after login.
+            if (config('tenancy.enabled')
+                && ChurchHost::isConsoleHost()
+                && ! ($user->is_superadmin ?? false)
+            ) {
+                $church = $user->churches()
+                    ->where('church.status', 'active')
+                    ->wherePivot('status', 'active')
+                    ->orderBy('church.name')
+                    ->first();
+
+                if (! $church) {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    return back()->withErrors(['email' => __('auth.not_a_church_member')]);
+                }
+
+                $path = parse_url(route($redirectRoute, $params, false), PHP_URL_PATH) ?: '/dashboard';
+
+                return redirect(ChurchHost::url($church, $path))
+                    ->with('success', __('auth.login_success'))
+                    ->with('info', __('workspace.use_church_portal'));
+            }
+
             return redirect()->route($redirectRoute, $params)->with('success', __('auth.login_success'));
         }
 

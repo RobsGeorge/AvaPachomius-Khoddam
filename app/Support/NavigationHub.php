@@ -229,10 +229,12 @@ class NavigationHub
             }
         }
 
-        $church = \App\Tenancy\TenantContext::current()
-            ?? (\Illuminate\Support\Facades\Schema::hasTable('church')
-                ? \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first()
-                : null);
+        // Bound tenant only when MULTI_TENANT=true (console host stays unbound).
+        // Fall back to Tenant Zero only while tenancy is dormant (production until cutover).
+        $church = \App\Tenancy\TenantContext::current();
+        if (! $church && ! config('tenancy.enabled') && \Illuminate\Support\Facades\Schema::hasTable('church')) {
+            $church = \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first();
+        }
         $resolver = app(CoursePermissionResolver::class);
         $churchLinks = [];
 
