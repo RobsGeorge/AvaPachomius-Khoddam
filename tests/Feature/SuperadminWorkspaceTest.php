@@ -72,12 +72,38 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
         $this->actingAs($super);
         $this->assertFalse(RolePreviewService::superadminBypassesPermissions($super));
         $this->assertTrue(RolePreviewService::isChurchAdminMode());
+        $this->assertFalse(\App\Support\NavigationHub::hasSuperadmin($super));
         $this->get(route('admin.translations.index'))->assertForbidden();
+    }
+
+    public function test_view_as_church_hides_superadmin_nav_on_dashboard(): void
+    {
+        config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test', 'tenancy.base_domain' => 'test']);
+
+        $church = Church::main();
+        TenantContext::set($church);
+
+        $super = $this->createUser([
+            'is_superadmin' => true,
+            'email' => 'workspace-view-nav@example.com',
+            'registration_completed' => true,
+        ]);
+
+        RolePreviewService::startChurchAdminRole($super, $church, request());
+
+        $host = ChurchHost::hostFor($church);
+
+        $this->withServerVariables(['HTTP_HOST' => $host])
+            ->actingAs($super)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee(__('workspace.view_as_banner_title'), false)
+            ->assertDontSee(__('nav.superadmin'), false);
     }
 
     public function test_platform_enter_shows_member_chrome(): void
     {
-        config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test']);
+        config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test', 'tenancy.base_domain' => 'test']);
 
         $church = Church::main();
         $super = $this->createUser([
@@ -86,18 +112,23 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
             'registration_completed' => true,
         ]);
 
-        $this->actingAs($super)
-            ->post(route('superadmin.churches.platform-enter', $church))
-            ->assertRedirect(ChurchHost::url($church, '/dashboard'));
+        $url = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.platform-enter.start', $church);
+        $host = ChurchHost::hostFor($church);
+
+        $this->withServerVariables(['HTTP_HOST' => $host])
+            ->actingAs($super)
+            ->get($url)
+            ->assertRedirect(route('dashboard'));
 
         $this->assertTrue(\App\Services\PlatformAccessService::isActive());
         $this->assertTrue(RolePreviewService::superadminBypassesPermissions($super));
         $this->assertTrue(SuperadminWorkspace::showsMemberChrome($super));
+        $this->assertTrue(\App\Support\NavigationHub::hasSuperadmin($super));
     }
 
     public function test_church_registry_view_as_starts_preview(): void
     {
-        config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test']);
+        config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test', 'tenancy.base_domain' => 'test']);
 
         $church = Church::main();
         $super = $this->createUser([
@@ -106,10 +137,13 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
             'registration_completed' => true,
         ]);
 
-        $this->withServerVariables(['HTTP_HOST' => 'admin.test'])
+        $url = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.view-as.start', $church);
+        $host = ChurchHost::hostFor($church);
+
+        $this->withServerVariables(['HTTP_HOST' => $host])
             ->actingAs($super)
-            ->post(route('superadmin.churches.view-as', $church))
-            ->assertRedirect(ChurchHost::url($church, '/dashboard'));
+            ->get($url)
+            ->assertRedirect(route('dashboard'));
 
         $this->assertTrue(RolePreviewService::isChurchAdminMode());
     }

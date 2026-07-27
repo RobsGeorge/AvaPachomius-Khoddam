@@ -20,14 +20,14 @@ class ServiceContextService
             return false;
         }
 
-        return ! ($user->is_superadmin ?? false);
+        return ! RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function supportsOptionalServiceContext(?User $user): bool
     {
         return $user instanceof User
             && ChurchService::tableReady()
-            && ($user->is_superadmin ?? false);
+            && RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function currentService(?User $user = null): ?ChurchService
@@ -101,7 +101,7 @@ class ServiceContextService
 
     public function userCanSelectService(User $user, ChurchService $service): bool
     {
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return true;
         }
 
@@ -122,11 +122,24 @@ class ServiceContextService
             return collect();
         }
 
-        if ($user->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
             return ChurchService::query()
                 ->where('status', ChurchService::STATUS_ACTIVE)
                 ->orderBy('title')
                 ->get();
+        }
+
+        if (RolePreviewService::isChurchAdminMode() && ($user->is_superadmin ?? false)) {
+            $church = RolePreviewService::previewChurch();
+            if ($church) {
+                return ChurchService::query()
+                    ->where('church_id', $church->church_id)
+                    ->where('status', ChurchService::STATUS_ACTIVE)
+                    ->orderBy('title')
+                    ->get();
+            }
+
+            return collect();
         }
 
         if (! Schema::hasTable('user_service_role')) {

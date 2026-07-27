@@ -21,12 +21,12 @@ class CourseContextService
             return false;
         }
 
-        return ! ($user->is_superadmin ?? false);
+        return ! RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function supportsOptionalCourseContext(?User $user): bool
     {
-        return $user instanceof User && ($user->is_superadmin ?? false);
+        return $user instanceof User && RolePreviewService::superadminBypassesPermissions($user);
     }
 
     public function isSystemWideMode(?User $user = null): bool
@@ -50,7 +50,7 @@ class CourseContextService
             ? app(ServiceContextService::class)->currentService($user)
             : null;
 
-        if ($serviceReady && ! $withinService && ! ($user->is_superadmin ?? false)) {
+        if ($serviceReady && ! $withinService && ! RolePreviewService::superadminBypassesPermissions($user)) {
             return collect();
         }
 

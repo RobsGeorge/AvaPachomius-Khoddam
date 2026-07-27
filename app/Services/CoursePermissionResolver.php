@@ -144,6 +144,21 @@ class CoursePermissionResolver
             return $this->courseRbacReady() ? Permission::pluck('key') : collect();
         }
 
+        if (RolePreviewService::isChurchAdminMode() && ($user->is_superadmin ?? false)) {
+            $previewChurch = RolePreviewService::previewChurch();
+            if ($previewChurch && (int) $service->church_id === (int) $previewChurch->church_id) {
+                $role = RolePreviewService::previewRole();
+                if (! $role) {
+                    return collect();
+                }
+
+                return $this->permissionsForRole($role, null)
+                    ->filter(fn (string $key) => str_starts_with($key, 'service.'));
+            }
+
+            return collect();
+        }
+
         if (! Schema::hasTable('user_service_role') || ! Schema::hasColumn('roles', 'service_id')) {
             return collect();
         }
@@ -191,6 +206,17 @@ class CoursePermissionResolver
     {
         if (RolePreviewService::superadminBypassesPermissions($user)) {
             return $this->courseRbacReady() ? Permission::pluck('key') : collect();
+        }
+
+        if (RolePreviewService::isChurchAdminMode() && ($user->is_superadmin ?? false)) {
+            $previewChurch = RolePreviewService::previewChurch();
+            if ($previewChurch && (int) $previewChurch->church_id === (int) $church->church_id) {
+                $role = RolePreviewService::previewRole();
+
+                return $role ? $this->permissionsForRole($role, null) : collect();
+            }
+
+            return collect();
         }
 
         if (! $this->courseRbacReady()) {

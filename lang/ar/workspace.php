@@ -7,11 +7,13 @@ return [
     'view_as_exit' => 'إنهاء العرض',
 
     'view_as_church' => 'عرض كمشرف كنيسة',
+    'view_as_church_hint' => 'عرض البوابة بصلاحيات مشرف الكنيسة فقط (بدون أدوات المنصة).',
     'view_as_church_started' => 'تعرض الآن :church كمشرف كنيسة.',
     'view_as_church_label' => 'مشرف كنيسة — :church',
     'view_as_church_missing_role' => 'لا يوجد دور مشرف كنيسة لهذه الكنيسة بعد.',
 
     'platform_enter' => 'فتح بوصول المنصة',
+    'platform_enter_hint' => 'وصول طوارئ: صلاحيات المشرف العام الكاملة على هذه الكنيسة.',
     'platform_access_started' => 'وصول المنصة إلى :church — صلاحيات المشرف العام كاملة.',
     'platform_access_stopped' => 'تمت العودة إلى لوحة المنصة.',
     'platform_access_banner_title' => 'وصول المنصة:',

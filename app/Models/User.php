@@ -301,7 +301,8 @@ class User extends Authenticatable
                     && (int) $courseId === (int) session(RolePreviewService::SESSION_COURSE_ID);
             }
 
-            return $slug === 'admin' || $this->canInSystem('system.role.manage');
+            return in_array($slug, ['admin', 'church-admin'], true)
+                || $this->canInSystem('system.role.manage');
         }
 
         $resolver = app(CoursePermissionResolver::class);
@@ -361,7 +362,7 @@ class User extends Authenticatable
      */
     public function canAccessAdminCourseApplications(?Course $course = null): bool
     {
-        if ($this->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
             return true;
         }
 
@@ -382,7 +383,7 @@ class User extends Authenticatable
     /** Build / edit course application forms (course or system grant). */
     public function canAccessAdminCourseApplicationForms(?Course $course = null): bool
     {
-        if ($this->is_superadmin ?? false) {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
             return true;
         }
 

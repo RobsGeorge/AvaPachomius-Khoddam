@@ -387,7 +387,7 @@ class NavigationHub
     /** @return array<int, array{title: string, links: array<int, array<string, mixed>>}> */
     public static function superadminSections(?User $user): array
     {
-        if (! $user?->is_superadmin) {
+        if (! self::hasSuperadmin($user)) {
             return [];
         }
 
@@ -436,7 +436,12 @@ class NavigationHub
 
     public static function hasSuperadmin(?User $user): bool
     {
-        return $user instanceof User && ($user->is_superadmin ?? false);
+        if (! $user instanceof User || ! ($user->is_superadmin ?? false)) {
+            return false;
+        }
+
+        // View-as masks platform nav; platform-enter keeps full superadmin chrome.
+        return ! RolePreviewService::isActive();
     }
 
     public static function isSuperadminActive(?User $user): bool

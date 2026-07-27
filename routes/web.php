@@ -609,7 +609,13 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
     Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
     Route::post('/churches/{church}/platform-enter', [SuperAdminChurchController::class, 'platformEnter'])->name('churches.platform-enter');
+    Route::get('/churches/{church}/platform-enter/start', [SuperAdminChurchController::class, 'platformEnterSigned'])
+        ->middleware('signed')
+        ->name('churches.platform-enter.start');
     Route::post('/churches/{church}/view-as', [SuperAdminChurchController::class, 'viewAsChurch'])->name('churches.view-as');
+    Route::get('/churches/{church}/view-as/start', [SuperAdminChurchController::class, 'viewAsChurchSigned'])
+        ->middleware('signed')
+        ->name('churches.view-as.start');
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
