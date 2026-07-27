@@ -37,6 +37,7 @@ return [
     'church_cycle'      => 'Church cycle',
     'public_profile'    => 'Public profile',
     'church_branding'   => 'Church branding',
+    'event_theme'       => 'Event mode',
     'payroll'           => 'Payroll',
     'money_in'          => 'Money in',
 ];

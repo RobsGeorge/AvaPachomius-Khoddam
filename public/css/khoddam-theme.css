@@ -154,6 +154,53 @@ body.theme-dark {
     --swal-backdrop: transparent;
 }
 
+/* ── Event mode — "Liturgical" sub-theme (burgundy + gold) for special church events.
+   Toggled by the `event-liturgical` body class (see App\Support\EventTheme). Overrides the
+   Sacred (teal) tokens; layers over both the light and dark base themes. ── */
+body.event-liturgical.theme-light {
+    --color-bg-1: #f7efe9;
+    --color-bg-2: #efdfda;
+    --color-bg-3: #f3e7e2;
+    --color-surface-border: rgba(110, 31, 42, 0.16);
+    --color-title: #6e1f2a;
+    --color-title-accent: #8a2b34;
+    --color-link: #6e1f2a;
+    --color-link-hover: #501019;
+    --color-primary: #6e1f2a;
+    --color-primary-hover: #501019;
+    --color-nav-border: rgba(110, 31, 42, 0.12);
+    --color-nav-active: #6e1f2a;
+    --shadow-glow: 0 0 0 1px rgba(110, 31, 42, 0.1), 0 12px 32px rgba(110, 31, 42, 0.18);
+    --color-table-head-bg: rgba(110, 31, 42, 0.08);
+    --color-table-hover-bg: rgba(110, 31, 42, 0.06);
+    --color-table-border: rgba(110, 31, 42, 0.12);
+}
+
+body.event-liturgical.theme-dark {
+    --color-bg-1: #1e0e11;
+    --color-bg-2: #3a1a1e;
+    --color-bg-3: #4a2228;
+    --color-surface: rgba(58, 26, 30, 0.72);
+    --color-surface-hover: rgba(74, 34, 40, 0.88);
+    --color-surface-border: rgba(198, 161, 91, 0.2);
+    --color-title: #d8b46a;
+    --color-title-accent: #ecd08a;
+    --color-link: #d8b46a;
+    --color-link-hover: #f2e0a4;
+    --color-primary: #c6a15b;
+    --color-primary-hover: #a9843f;
+    --color-primary-text: #200a0e;
+    --color-nav-bg: rgba(20, 8, 10, 0.92);
+    --color-nav-border: rgba(198, 161, 91, 0.2);
+    --color-nav-active: #d8b46a;
+    --color-table-head-bg: rgba(30, 12, 15, 0.95);
+    --color-table-row-bg: rgba(20, 8, 10, 0.35);
+    --color-table-hover-bg: rgba(198, 161, 91, 0.1);
+    --bs-secondary-bg: rgba(58, 26, 30, 0.85);
+    --bs-tertiary-bg: rgba(30, 12, 15, 0.75);
+    --bs-card-bg: rgba(58, 26, 30, 0.72);
+}
+
 * {
     box-sizing: border-box;
 }
@@ -303,6 +350,40 @@ h1, h2, h3, .h1, .h2, .h3,
     font-weight: 700;
     letter-spacing: 0.01em;
     color: var(--color-title);
+}
+
+/* Deaconia geometric wordmark (hand-built vector logotype) */
+.brand-logotype {
+    height: 1.5rem;
+    width: auto;
+    color: var(--color-title);
+    transition: color var(--transition-fast);
+}
+
+.app-nav .brand-link:hover .brand-logotype {
+    color: var(--color-title-accent);
+}
+
+.brand-logotype-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1;
+    gap: 3px;
+}
+
+.brand-logotype-lg {
+    height: 2.7rem;
+    width: auto;
+    color: var(--color-primary);
+}
+
+.brand-wordmark-ar {
+    font-family: var(--font-sans);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-title-accent);
+    direction: rtl;
 }
 
 .app-nav-link {

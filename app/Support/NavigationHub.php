@@ -343,6 +343,15 @@ class NavigationHub
                 'public_site.theme',
                 'public_site'
             ), ['category' => 'church']);
+
+            $churchLinks[] = array_merge(self::link(
+                'church.event-theme.edit',
+                'nav.event_theme',
+                'bi-calendar-heart',
+                ['church.event-theme.*'],
+                'public_site.theme',
+                'public_site'
+            ), ['category' => 'church']);
         }
 
         if ($church && (

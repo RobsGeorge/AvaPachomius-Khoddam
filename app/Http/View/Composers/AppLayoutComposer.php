@@ -15,6 +15,7 @@ use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\RegistrationApplication;
 use App\Support\ChurchHost;
+use App\Support\EventTheme;
 use App\Support\PublicSite\ChurchBranding;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Schema;
@@ -62,6 +63,7 @@ class AppLayoutComposer
             if (! $church) {
                 $view->with('churchBrandingCss', null);
                 $view->with('churchLogoUrl', null);
+                $view->with('eventThemeActive', false);
 
                 return;
             }
@@ -70,11 +72,13 @@ class AppLayoutComposer
             $view->with('churchBrandingCss', ChurchBranding::portalCss($branding));
             $view->with('churchLogoUrl', ChurchBranding::logoUrl($branding));
             $view->with('brandedChurchName', $church->name);
+            $view->with('eventThemeActive', EventTheme::isActive(EventTheme::fromSettings($church->settings)));
         } catch (\Throwable $e) {
             report($e);
             $view->with('churchBrandingCss', null);
             $view->with('churchLogoUrl', null);
             $view->with('brandedChurchName', null);
+            $view->with('eventThemeActive', false);
         }
     }
 

@@ -28,7 +28,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260725-deaconia2">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260727-eventmode">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
@@ -44,7 +44,7 @@
     @stack('styles')
 </head>
 
-<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column"
+<body class="app-body theme-{{ $theme }} @if($eventThemeActive ?? false) event-liturgical @endif min-vh-100 d-flex flex-column"
       x-data="{ navOpen: false, navScrollY: 0 }"
       x-effect="if (navOpen && window.matchMedia('(max-width: 767.98px)').matches) {
           navScrollY = window.scrollY;
