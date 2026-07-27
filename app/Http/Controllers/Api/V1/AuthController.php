@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Observability\ObservabilityRecorder;
 use App\Services\RegistrationApplicationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private RegistrationApplicationService $applications,
+        private ObservabilityRecorder $observability,
     ) {}
 
     public function login(Request $request): JsonResponse
@@ -29,18 +31,21 @@ class AuthController extends Controller
         $user = User::query()->where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            $this->recordAuthFailure('Invalid credentials', $credentials['email'] ?? null);
             throw ValidationException::withMessages([
                 'email' => [__('auth.credentials_mismatch')],
             ]);
         }
 
         if (! $user->registration_completed || ! $user->is_verified) {
+            $this->recordAuthFailure('Account not verified', $credentials['email'] ?? null, $user->user_id);
             throw ValidationException::withMessages([
                 'email' => [__('auth.account_not_verified')],
             ]);
         }
 
         if (Schema::hasColumn('user', 'application_status') && ! $this->applications->isApproved($user)) {
+            $this->recordAuthFailure('Account not verified', $credentials['email'] ?? null, $user->user_id);
             throw ValidationException::withMessages([
                 'email' => [__('auth.account_not_verified')],
             ]);
@@ -86,5 +91,19 @@ class AuthController extends Controller
             'communication_locale' => $user->communication_locale ?? null,
             'locale' => app()->getLocale(),
         ];
+    }
+
+    private function recordAuthFailure(string $reason, ?string $email, ?int $userId = null): void
+    {
+        try {
+            $this->observability->record('auth', 'warning', 'API login failure: '.$reason, [
+                'failure_reason' => $reason,
+                'email' => $email,
+                'user_id' => $userId,
+                'channel' => 'api',
+            ]);
+        } catch (\Throwable) {
+            //
+        }
     }
 }

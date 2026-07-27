@@ -22,6 +22,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Observability Log Channel Alias
+    |--------------------------------------------------------------------------
+    |
+    | LogErrorSink reads this key to choose which Monolog channel to write to.
+    | Defaults to the app stack so ops events stay with laravel.log until a
+    | dedicated channel is preferred.
+    |
+    */
+
+    'observability_channel' => env('OBSERVABILITY_LOG_CHANNEL', 'stack'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Deprecations Log Channel
     |--------------------------------------------------------------------------
     |
