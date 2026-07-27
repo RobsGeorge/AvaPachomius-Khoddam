@@ -475,16 +475,13 @@
         });
     }
 
-    function initReveal() {
-        const nodes = document.querySelectorAll('.app-card, .app-tile, .hub-tile, .hub-link-tile, .animate-in');
-        nodes.forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.12, 0.84)}s`;
-        });
-
-        document.querySelectorAll('.accordion-item, .roles-hub-panel').forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.1, 0.7)}s`;
-        });
-    }
+    /**
+     * Intentionally empty: mutating animationDelay after CSS animation start
+     * restarted fadeInUp on every full navigation (login/logout/locale) and
+     * caused widgets to flicker then rise from the bottom. Kept as a named
+     * no-op so any leftover callers stay safe.
+     */
+    function initReveal() {}
 
     function initHoverMotion() {
         document.querySelectorAll('.btn, .nav-link, .hub-link-tile, .hub-tile, .app-tile, .announcement-home-card').forEach((el) => {
@@ -700,7 +697,6 @@
         initTheme();
         initFlashMessages();
         initConfirmInterceptors();
-        initReveal();
         initHoverMotion();
         initIconAccent();
         initDropdownPanelScroll();
