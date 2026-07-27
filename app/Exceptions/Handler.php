@@ -62,12 +62,21 @@ class Handler extends ExceptionHandler
 
     private function redirectAfterTokenMismatch(Request $request): Response
     {
+        if ($request->hasSession()) {
+            $request->session()->regenerateToken();
+        }
+
+        $freshToken = $request->hasSession() ? (string) $request->session()->token() : null;
+
         if ($request->expectsJson()) {
-            return response()->json(['message' => __('auth.page_expired')], 419);
+            return response()->json([
+                'message' => __('auth.page_expired'),
+                'csrf_token' => $freshToken,
+            ], 419);
         }
 
         $fallback = Auth::check() ? route('profile') : route('login');
-        $target = $this->safeSameHostUrl(
+        $target = $this->safeGetRecoveryUrl(
             $request->headers->get('referer') ?: url()->previous(),
             $request->fullUrl(),
             $fallback
@@ -77,6 +86,20 @@ class Handler extends ExceptionHandler
             ->to($target)
             ->withInput($request->except('_token', 'password', 'password_confirmation', 'profile_photo'))
             ->with('warning', __('auth.page_expired'));
+    }
+
+    /**
+     * Only recover to a same-host GET page — never bounce back to the failed POST URL.
+     */
+    private function safeGetRecoveryUrl(?string $candidate, string $currentUrl, string $fallback): string
+    {
+        $url = $this->safeSameHostUrl($candidate, $currentUrl, $fallback);
+
+        if ($url === $currentUrl) {
+            return $fallback;
+        }
+
+        return $url;
     }
 
     private function safeSameHostUrl(?string $candidate, string $currentUrl, string $fallback): string
