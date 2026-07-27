@@ -107,6 +107,11 @@ class ServiceManagementTest extends EventModuleTestCase
         $service = $this->createService(['title' => 'Parent Service']);
 
         $this->actingAs($super)
+            ->get(route('superadmin.courses'))
+            ->assertOk()
+            ->assertSee(__('pages.manage_courses'), false);
+
+        $this->actingAs($super)
             ->post(route('superadmin.courses.store'), [
                 'title' => 'Year One',
                 'description' => 'Linked course',

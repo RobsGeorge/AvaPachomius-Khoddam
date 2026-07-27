@@ -1,13 +1,15 @@
 @php
-    $colspan = ($requiresChurch ?? false) ? 4 : 5;
+    $colspan = ($requiresChurch ?? false)
+        ? 4
+        : (($showChurchColumn ?? false) ? 5 : 4);
     $isEditing = (string) old('edit_course_id') === (string) $course->course_id;
 @endphp
 <tr>
-    @unless($requiresChurch)
+    @if($showChurchColumn ?? false)
         <td class="text-muted-theme small">
             {{ $course->church?->name ?? $course->service?->church?->name ?? '—' }}
         </td>
-    @endunless
+    @endif
     <td @if($requiresChurch) class="ps-5" @endif>
         <div class="fw-semibold">{{ $course->localizedTitle() }}</div>
         <div class="text-muted-theme small text-truncate" style="max-width:240px;" title="{{ $course->description }}">
@@ -70,6 +72,7 @@
                            value="{{ $isEditing ? old('title', $course->title) : $course->title }}" maxlength="30" required>
                     @if($isEditing)@error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
                 </div>
+                @if($supportsLocalizedFields ?? false)
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold mb-1">{{ __('course_context.title_ar') }}</label>
                     <input type="text" name="title_ar"
@@ -84,6 +87,7 @@
                            value="{{ $isEditing ? old('title_en', $course->title_en) : $course->title_en }}" maxlength="120">
                     @if($isEditing)@error('title_en')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
                 </div>
+                @endif
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold mb-1">{{ __('pages.year') }}</label>
                     <input type="number" name="year"
@@ -105,6 +109,7 @@
                               maxlength="255" required>{{ $isEditing ? old('description', $course->description) : $course->description }}</textarea>
                     @if($isEditing)@error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
                 </div>
+                @if($supportsLocalizedFields ?? false)
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold mb-1">{{ __('course_context.description_ar') }}</label>
                     <textarea name="description_ar" rows="2"
@@ -117,6 +122,7 @@
                               class="form-control form-control-sm @if($isEditing && $errors->has('description_en')) is-invalid @endif">{{ $isEditing ? old('description_en', $course->description_en) : $course->description_en }}</textarea>
                     @if($isEditing)@error('description_en')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
                 </div>
+                @endif
                 @if(($services ?? collect())->isNotEmpty())
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold mb-1">{{ __('service.label') }}</label>

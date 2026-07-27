@@ -20,6 +20,7 @@ use App\Services\RolesHubService;
 use App\Support\NavigationHub;
 use App\Support\SuperadminWorkspace;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -36,35 +37,75 @@ class SuperAdminController extends Controller
     public function courses()
     {
         $requiresChurch = SuperadminWorkspace::requiresExplicitChurchScope();
+        $hasCourseChurch = Schema::hasColumn('course', 'church_id');
+        $hasServiceChurch = ChurchService::tableReady() && Schema::hasColumn('service', 'church_id');
+        $showChurchColumn = Schema::hasTable('church') && ($hasCourseChurch || $hasServiceChurch);
 
-        $courses = Course::query()
-            ->with(['service.church', 'church'])
-            ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
-            ->orderBy('church_id')
-            ->orderBy('service_id')
+        $courseWith = ['service'];
+        if ($hasServiceChurch) {
+            $courseWith[] = 'service.church';
+        }
+        if ($hasCourseChurch && Schema::hasTable('church')) {
+            $courseWith[] = 'church';
+        }
+
+        $courseQuery = Course::query()
+            ->with($courseWith)
+            ->when($requiresChurch, fn ($q) => $q->withoutTenancy());
+
+        if ($hasCourseChurch) {
+            $courseQuery->orderBy('church_id');
+        }
+        if (Schema::hasColumn('course', 'service_id')) {
+            $courseQuery->orderBy('service_id');
+        }
+
+        $courses = $courseQuery
             ->orderBy('year', 'desc')
             ->orderBy('title')
             ->get();
 
-        $groupedCourses = $courses->groupBy(function (Course $course) {
-            return (int) ($course->church_id ?? $course->service?->church_id ?? 0);
-        });
+        $groupedCourses = ($hasCourseChurch || $hasServiceChurch)
+            ? $courses->groupBy(function (Course $course) use ($hasCourseChurch) {
+                if ($hasCourseChurch && $course->church_id) {
+                    return (int) $course->church_id;
+                }
+
+                return (int) ($course->service?->church_id ?? 0);
+            })
+            : collect([0 => $courses]);
 
         $services = ChurchService::tableReady()
-            ? ChurchService::query()
-                ->with('church')
-                ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
-                ->where('status', ChurchService::STATUS_ACTIVE)
-                ->orderBy('church_id')
-                ->orderBy('title')
-                ->get()
+            ? tap(
+                ChurchService::query()
+                    ->when($hasServiceChurch, fn ($q) => $q->with('church'))
+                    ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
+                    ->where('status', ChurchService::STATUS_ACTIVE),
+                function ($query) use ($hasServiceChurch) {
+                    if ($hasServiceChurch) {
+                        $query->orderBy('church_id');
+                    }
+                    $query->orderBy('title');
+                }
+            )->get()
             : collect();
 
         $churches = $requiresChurch
             ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
             : collect();
 
-        return view('superadmin.courses', compact('courses', 'services', 'groupedCourses', 'churches', 'requiresChurch'));
+        $supportsLocalizedFields = Schema::hasColumn('course', 'title_ar')
+            && Schema::hasColumn('course', 'title_en');
+
+        return view('superadmin.courses', compact(
+            'courses',
+            'services',
+            'groupedCourses',
+            'churches',
+            'requiresChurch',
+            'showChurchColumn',
+            'supportsLocalizedFields',
+        ));
     }
 
     public function courseRoles()
@@ -219,7 +260,7 @@ class SuperAdminController extends Controller
 
         $course = Course::create($payload);
 
-        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+        if (SuperadminWorkspace::requiresExplicitChurchScope() && Schema::hasColumn('course', 'church_id')) {
             $course->church_id = (int) $request->input('church_id');
             $course->save();
         }
@@ -278,11 +319,14 @@ class SuperAdminController extends Controller
             'description' => $request->input('description'),
             'year' => $request->input('year'),
             'default_session_start_time' => $request->input('default_session_start_time').':00',
-            'title_ar' => $request->input('title_ar'),
-            'title_en' => $request->input('title_en'),
-            'description_ar' => $request->input('description_ar'),
-            'description_en' => $request->input('description_en'),
         ];
+
+        if (Schema::hasColumn('course', 'title_ar')) {
+            $payload['title_ar'] = $request->input('title_ar');
+            $payload['title_en'] = $request->input('title_en');
+            $payload['description_ar'] = $request->input('description_ar');
+            $payload['description_en'] = $request->input('description_en');
+        }
 
         if (ChurchService::tableReady()) {
             $payload['service_id'] = (int) $request->input('service_id');
@@ -290,7 +334,7 @@ class SuperAdminController extends Controller
 
         $course->update($payload);
 
-        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+        if (SuperadminWorkspace::requiresExplicitChurchScope() && Schema::hasColumn('course', 'church_id')) {
             $course->church_id = (int) $request->input('church_id');
             $course->save();
         }
