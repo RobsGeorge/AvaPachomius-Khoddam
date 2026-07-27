@@ -4,6 +4,8 @@
 /public/hot
 /public/storage
 /storage/*.key
+/storage/app/qa-course-testers-credentials.md
+/storage/app/_qa_*.php
 /vendor
 .env
 .env.backup
