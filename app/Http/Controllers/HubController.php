@@ -3,17 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Support\NavigationHub;
-use App\Services\NotificationFeedService;
 
 class HubController extends Controller
 {
-    public function academic(NotificationFeedService $notificationFeed)
+    public function academic()
     {
         $user = auth()->user();
         $links = NavigationHub::academicLinks($user);
-        $unreadNotificationBadge = $user ? $notificationFeed->unreadBadgeLabel($user) : '';
 
-        return view('hubs.academic', compact('links', 'unreadNotificationBadge'));
+        return view('hubs.academic', compact('links'));
     }
 
     public function service()

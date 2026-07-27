@@ -3,21 +3,20 @@
 @section('title', __('nav.system_settings'))
 
 @section('content')
+@php
+    use App\Support\NavigationHub;
+    $sections = NavigationHub::groupedSections($links, NavigationHub::systemSectionDefinitions());
+@endphp
 <div class="container py-4 animate-in hub-page" style="max-width:920px;">
     <h1 class="page-title mb-2">{{ __('nav.system_settings') }}</h1>
     <p class="text-muted-theme mb-4">{{ __('nav.system_settings_desc') }}</p>
 
-    <div class="row g-3">
-        @foreach($links as $link)
-            <div class="col-sm-6">
-                <a href="{{ $link['url'] }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none {{ $link['active'] ? 'hub-tile-active' : '' }}">
-                    <h3 class="h5 mb-0">
-                        <i class="bi {{ $link['icon'] }}"></i>
-                        {{ $link['label'] }}
-                    </h3>
-                </a>
-            </div>
-        @endforeach
-    </div>
+    @if(empty($sections))
+        <div class="app-tile text-center text-muted-theme py-5">
+            {{ __('nav.hub_empty') }}
+        </div>
+    @else
+        @include('partials.hub-link-sections', ['sections' => $sections])
+    @endif
 </div>
 @endsection
