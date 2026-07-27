@@ -127,6 +127,7 @@ return [
         'pastoral_fire_booking_reminders' => 'إرسال تذكيرات حجوزات المواعيد',
         'observability_flush_usage' => 'تفريغ ملخصات استخدام المراقبة',
         'observability_sample_infra' => 'عيّنة مقاييس البنية التحتية للمضيف',
+        'observability_prune' => 'تنظيف بيانات المراقبة القديمة',
     ],
     'attendance_mark_absent_desc' => 'إغلاق الحضور وتسجيل الغياب عند منتصف الليل عند تفعيل الإغلاق التلقائي.',
     'pending_registrations_purge_desc' => 'يزيل التسجيلات المعلّقة المنتهية من قائمة الانتظار.',
@@ -140,4 +141,5 @@ return [
     'pastoral_fire_booking_reminders_desc' => 'يرسل تذكيرات البوابة/البريد للاعتراف والمواعيد الرعوية القادمة.',
     'observability_flush_usage_desc' => 'يكتب عدّادات الطلبات/المستخدمين/الجلسات المخزّنة إلى usage_rollups.',
     'observability_sample_infra_desc' => 'يجمع عينات الحمل/الذاكرة/القرص عبر محوّل البنية التحتية المضبوط.',
+    'observability_prune_desc' => 'يحذف سجلات المراقبة وعينات البنية وملخصات الاستخدام القديمة.',
 ];

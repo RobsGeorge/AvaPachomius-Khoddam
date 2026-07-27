@@ -32,6 +32,7 @@ class ObservabilityRecorder
 
     public function __construct(
         private readonly ErrorSink $errorSink,
+        private readonly ?AlertNotifier $alerts = null,
     ) {}
 
     public function enabled(): bool
@@ -94,6 +95,15 @@ class ObservabilityRecorder
             $this->errorSink->send($payload);
         } catch (Throwable $e) {
             Log::warning('observability.sink_failed', [
+                'error' => $e->getMessage(),
+                'fingerprint' => $fingerprint,
+            ]);
+        }
+
+        try {
+            $this->alerts?->maybeNotify($payload);
+        } catch (Throwable $e) {
+            Log::warning('observability.alert_failed', [
                 'error' => $e->getMessage(),
                 'fingerprint' => $fingerprint,
             ]);

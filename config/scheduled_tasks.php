@@ -123,5 +123,16 @@ return [
             'schedule' => ['frequency' => 'every_five_minutes'],
             'when_config' => 'observability.enabled',
         ],
+        'observability.prune' => [
+            'label' => 'scheduled_tasks.tasks.observability_prune',
+            'description' => 'scheduled_tasks.observability_prune_desc',
+            'type' => 'command',
+            'command' => 'observability:prune',
+            'schedule' => [
+                'frequency' => 'daily_at',
+                'time' => '03:15',
+            ],
+            'when_config' => 'observability.enabled',
+        ],
     ],
 ];

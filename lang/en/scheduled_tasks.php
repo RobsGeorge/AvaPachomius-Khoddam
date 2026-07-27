@@ -127,6 +127,7 @@ return [
         'pastoral_fire_booking_reminders' => 'Fire pastoral booking reminders',
         'observability_flush_usage' => 'Flush observability usage rollups',
         'observability_sample_infra' => 'Sample host infrastructure metrics',
+        'observability_prune' => 'Prune old observability data',
     ],
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
     'pending_registrations_purge_desc' => 'Removes expired pending registrations from the queue.',
@@ -140,4 +141,5 @@ return [
     'pastoral_fire_booking_reminders_desc' => 'Sends portal/email reminders for upcoming confession and pastoral bookings.',
     'observability_flush_usage_desc' => 'Writes cached request/user/session counters into usage_rollups.',
     'observability_sample_infra_desc' => 'Collects load/memory/disk samples via the configured infra adapter.',
+    'observability_prune_desc' => 'Deletes aged observability_events, infra_samples, and usage_rollups.',
 ];

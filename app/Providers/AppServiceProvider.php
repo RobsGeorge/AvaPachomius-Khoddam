@@ -8,11 +8,13 @@ use App\Database\SafeSQLiteConnection;
 use App\Http\View\Composers\AppLayoutComposer;
 use App\Observability\Adapters\LocalProcFsAdapter;
 use App\Observability\Adapters\NullInfraMetricsAdapter;
+use App\Observability\AlertNotifier;
 use App\Observability\Contracts\ErrorSink;
 use App\Observability\Contracts\InfraMetricsAdapter;
 use App\Observability\ObservabilityRecorder;
 use App\Observability\Sinks\LogErrorSink;
 use App\Observability\Sinks\NullErrorSink;
+use App\Observability\Sinks\SentryErrorSink;
 use App\Tenancy\TenantContext;
 use App\Validation\SafeValidator;
 use Illuminate\Database\Connection;
@@ -41,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ErrorSink::class, function () {
             return match (config('observability.error_sink', 'log')) {
                 'null' => new NullErrorSink(),
+                'sentry' => new SentryErrorSink(),
                 default => new LogErrorSink(),
             };
         });
@@ -52,8 +55,13 @@ class AppServiceProvider extends ServiceProvider
             };
         });
 
+        $this->app->singleton(AlertNotifier::class, fn () => new AlertNotifier());
+
         $this->app->singleton(ObservabilityRecorder::class, function ($app) {
-            return new ObservabilityRecorder($app->make(ErrorSink::class));
+            return new ObservabilityRecorder(
+                $app->make(ErrorSink::class),
+                $app->make(AlertNotifier::class),
+            );
         });
     }
 
