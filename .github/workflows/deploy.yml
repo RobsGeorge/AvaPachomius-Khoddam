@@ -52,6 +52,18 @@ jobs:
               echo "Install with: sudo apt install -y php8.2-sqlite3 && sudo systemctl restart php8.2-fpm"
             fi
 
+            step "reclaim storage for git"
+            # PHP-FPM (www-data) creates cache/session files at runtime. Without
+            # reclaiming ownership first, `git reset --hard` fails with:
+            #   unable to unlink old 'storage/framework/cache/...': Permission denied
+            if sudo -n true 2>/dev/null; then
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n chmod -R ug+rwx storage bootstrap/cache
+            else
+              chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
+              echo "WARN: passwordless sudo not configured — git sync may fail if www-data owns storage files"
+            fi
+
             step "git sync"
             git fetch origin main
             git reset --hard origin/main
