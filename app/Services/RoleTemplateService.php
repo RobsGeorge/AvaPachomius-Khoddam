@@ -223,6 +223,7 @@ class RoleTemplateService
                 'home_visit.manage', 'home_visit.view',
                 'church.cycle.view', 'church.cycle.manage',
                 'public_site.profile', 'public_site.theme',
+                'public_site.manage', 'public_site.publish',
                 'finance.payroll.manage', 'finance.payroll.view',
                 'finance.money_in.manage', 'finance.money_in.view',
                 'role.manage', 'user.assign_role',

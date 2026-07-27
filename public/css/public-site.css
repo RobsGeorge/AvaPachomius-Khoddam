@@ -1,0 +1,161 @@
+/* T10c — public homepage (mobile-first, light, RTL-safe) */
+body.public-site {
+    margin: 0;
+    background: var(--ps-bg);
+    color: var(--ps-text);
+    font-family: var(--ps-font-body);
+    line-height: 1.6;
+}
+
+body.public-site h1,
+body.public-site h2,
+body.public-site h3 {
+    font-family: var(--ps-font-display);
+    color: var(--ps-primary);
+}
+
+.ps-header {
+    background: var(--ps-surface);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    padding: 0.75rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.ps-header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.ps-logo {
+    max-height: 56px;
+    width: auto;
+    border-radius: var(--ps-radius);
+}
+
+.ps-church-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.ps-header-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.ps-header-nav a {
+    color: var(--ps-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.ps-section {
+    padding: 2.5rem 0;
+}
+
+.ps-section-alt {
+    background: var(--ps-surface);
+}
+
+.ps-hero {
+    position: relative;
+    min-height: 52vh;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    background: var(--ps-primary);
+    overflow: hidden;
+}
+
+.ps-hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+}
+
+.ps-hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--ps-hero-overlay, rgba(17, 75, 79, 0.62));
+}
+
+.ps-hero-inner {
+    position: relative;
+    z-index: 1;
+    padding: 3rem 0;
+}
+
+.ps-hero h1 {
+    color: #fff;
+    font-size: clamp(1.75rem, 5vw, 2.75rem);
+    margin-bottom: 0.75rem;
+}
+
+.ps-hero p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    max-width: 40rem;
+}
+
+.btn-ps-primary {
+    background: var(--ps-primary);
+    color: var(--ps-primary-text);
+    border: none;
+    border-radius: var(--ps-radius);
+    padding: 0.6rem 1.25rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.ps-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+}
+
+.ps-gallery-grid img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: var(--ps-radius);
+}
+
+.ps-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.ps-card {
+    background: var(--ps-surface);
+    border-radius: var(--ps-radius);
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.ps-quote {
+    border-inline-start: 4px solid var(--ps-accent);
+    padding-inline-start: 1rem;
+    font-style: italic;
+    color: var(--ps-muted);
+}
+
+.ps-footer {
+    padding: 2rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 768px) {
+    .ps-section {
+        padding: 3.5rem 0;
+    }
+}

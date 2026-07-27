@@ -50,7 +50,10 @@ use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\Church\ChurchCycleController;
 use App\Http\Controllers\Church\BrandingController;
 use App\Http\Controllers\Church\PublicProfileController;
+use App\Http\Controllers\Church\HomepageEditorController;
+use App\Http\Controllers\Church\ChurchMediaController;
 use App\Http\Controllers\PublicSite\ChurchPublicProfileController;
+use App\Http\Controllers\PublicSite\HomepageController;
 use App\Http\Controllers\Church\PayrollController;
 use App\Http\Controllers\Church\MoneyInController;
 use App\Http\Controllers\CurriculumController;
@@ -256,6 +259,24 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
+    // T10c — homepage CMS editor (capability public_site)
+    Route::middleware(['capability:public_site'])->prefix('site')->name('site.')->group(function () {
+        Route::middleware(['permission:public_site.manage'])->group(function () {
+            Route::get('/homepage', [HomepageEditorController::class, 'edit'])->name('homepage.edit');
+            Route::post('/homepage/sections', [HomepageEditorController::class, 'storeSection'])->name('homepage.sections.store');
+            Route::put('/homepage/sections/{section}', [HomepageEditorController::class, 'updateSection'])->name('homepage.sections.update');
+            Route::delete('/homepage/sections/{section}', [HomepageEditorController::class, 'destroySection'])->name('homepage.sections.destroy');
+            Route::post('/homepage/sections/reorder', [HomepageEditorController::class, 'reorder'])->name('homepage.sections.reorder');
+            Route::get('/preview', [HomepageEditorController::class, 'preview'])->name('preview');
+            Route::post('/media', [ChurchMediaController::class, 'store'])->name('media.store');
+            Route::delete('/media/{media}', [ChurchMediaController::class, 'destroy'])->name('media.destroy');
+        });
+        Route::middleware(['permission:public_site.publish'])->group(function () {
+            Route::post('/homepage/publish', [HomepageEditorController::class, 'publish'])->name('homepage.publish');
+            Route::post('/homepage/unpublish', [HomepageEditorController::class, 'unpublish'])->name('homepage.unpublish');
+        });
+    });
+
     Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
@@ -283,6 +304,7 @@ Route::post('password/reset', [NewPasswordController::class, 'store'])->name('pa
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login']);
 
@@ -372,7 +394,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/courses/{course}/application/edit', [StudentCourseApplicationController::class, 'edit'])->name('courses.application.edit');
     Route::put('/courses/{course}/application', [StudentCourseApplicationController::class, 'update'])->name('courses.application.update');
     Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
-    Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 
     // View attendance records for a specific user
