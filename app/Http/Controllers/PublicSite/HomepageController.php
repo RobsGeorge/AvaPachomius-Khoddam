@@ -4,10 +4,12 @@ namespace App\Http\Controllers\PublicSite;
 
 use App\Http\Controllers\Controller;
 use App\Models\Church;
+use App\Models\ChurchSite;
 use App\Services\PublicSite\ChurchSiteService;
 use App\Support\PublicSite\ChurchBranding;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * T10c — guest homepage at GET / when published.
@@ -25,9 +27,13 @@ class HomepageController extends Controller
             return $this->fallbackHome();
         }
 
-        $site = $this->siteService->ensureSiteForChurch($church);
+        // Read-only: never create a site row on a public GET /.
+        if (! Schema::hasTable('church_site')) {
+            return $this->fallbackHome();
+        }
 
-        if (! $site->isPublished()) {
+        $site = ChurchSite::query()->where('church_id', $church->church_id)->first();
+        if (! $site || ! $site->isPublished()) {
             return $this->fallbackHome();
         }
 
