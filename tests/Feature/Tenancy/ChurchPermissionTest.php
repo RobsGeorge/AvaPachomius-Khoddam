@@ -157,7 +157,12 @@ class ChurchPermissionTest extends EventModuleTestCase
     public function test_church_templates_are_platform_null_and_clone_respects_capabilities(): void
     {
         $templates = app(RoleTemplateService::class)->ensureChurchTemplates();
-        $this->assertCount(3, $templates);
+        // PAC1 added platform `secretary` alongside church-admin / priest / servant.
+        $this->assertCount(4, $templates);
+        $this->assertEqualsCanonicalizing(
+            ['church-admin', 'priest', 'secretary', 'servant'],
+            $templates->pluck('slug')->all()
+        );
         foreach ($templates as $role) {
             $this->assertTrue((bool) $role->is_template);
             $this->assertNull($role->church_id);
@@ -173,6 +178,7 @@ class ChurchPermissionTest extends EventModuleTestCase
 
         $cloned = app(RoleTemplateService::class)->cloneTemplatesIntoChurch($sparse);
         $this->assertArrayHasKey('church-admin', $cloned);
+        $this->assertArrayHasKey('secretary', $cloned);
         $this->assertEquals($sparse->church_id, $cloned['church-admin']->church_id);
 
         // church-admin still gets church.* keys; announcement.* only if capability enabled.

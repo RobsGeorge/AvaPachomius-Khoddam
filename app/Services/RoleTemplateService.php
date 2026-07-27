@@ -382,7 +382,7 @@ class RoleTemplateService
             ->whereNull('service_id')
             ->whereNull('church_id')
             ->where('is_template', true)
-            ->whereIn('slug', ['church-admin', 'priest', 'servant'])
+            ->whereIn('slug', ['church-admin', 'priest', 'secretary', 'servant'])
             ->get()
             ->keyBy(fn (Role $r) => $r->effectiveSlug());
 
@@ -398,7 +398,7 @@ class RoleTemplateService
         foreach ($clones as $clone) {
             $slug = $clone->effectiveSlug();
             // church clones may use uniqueSlugForChurch → church-admin-1; match prefix
-            $templateSlug = collect(['church-admin', 'priest', 'servant'])
+            $templateSlug = collect(['church-admin', 'priest', 'secretary', 'servant'])
                 ->first(fn (string $s) => $slug === $s || str_starts_with($slug, $s.'-'));
             if (! $templateSlug || ! isset($templates[$templateSlug])) {
                 continue;
