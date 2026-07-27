@@ -60,6 +60,16 @@ jobs:
               echo "WARN: PHP SQLite extension missing; some test dashboards require pdo_sqlite."
             fi
 
+            step "reclaim storage for git"
+            # PHP-FPM may own runtime cache/session files; reclaim before git reset.
+            if sudo -n true 2>/dev/null; then
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n chmod -R ug+rwx storage bootstrap/cache
+            else
+              chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
+              echo "WARN: passwordless sudo not configured — git sync may fail if www-data owns storage files"
+            fi
+
             step "git sync"
             git fetch origin staging
             git reset --hard origin/staging
