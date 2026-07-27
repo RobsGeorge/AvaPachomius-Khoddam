@@ -75,6 +75,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AnnouncementManageController;
 use App\Http\Controllers\CommunicationReportController;
 use App\Http\Controllers\ThemeController;
+use App\Http\Controllers\CsrfTokenController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
@@ -102,6 +103,7 @@ use App\Http\Controllers\FaviconController;
 
 Route::get('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::post('/theme', [ThemeController::class, 'update'])->name('theme.update');
+Route::get('/csrf-token', [CsrfTokenController::class, 'show'])->name('csrf.token');
 Route::get('/favicon/{icon}.svg', [FaviconController::class, 'show'])->name('favicon.show');
 
 require __DIR__.'/auth.php';

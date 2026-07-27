@@ -151,6 +151,7 @@ class ProfilePhotoGatePathTest extends EventModuleTestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(route('login'), $response->headers->get('Location'));
         $this->assertSame(__('auth.page_expired'), $session->get('warning'));
+        $this->assertNotSame('stale-token-after-force-logout', $session->token());
     }
 
     public function test_token_mismatch_on_photo_upload_redirects_to_profile_referer(): void
