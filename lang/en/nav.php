@@ -26,7 +26,7 @@ return [
     'academic'          => 'Academic',
     'academic_desc'     => 'Curriculum, sessions, assignments, exams, feedback, and more.',
     'service'           => 'Service',
-    'service_desc'      => 'Service membership, switching, roles, and (for authorized admins) service creation.',
+    'service_desc'      => 'Service membership and roles, plus pastoral care and finance tools for your church.',
     'system_settings'   => 'System settings',
     'system_settings_desc' => 'Roles, translations, graduation criteria, and admin tools.',
     'hub_empty'         => 'No tools are available for your role here.',
