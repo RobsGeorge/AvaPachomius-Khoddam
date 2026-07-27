@@ -8,8 +8,13 @@
     const saveUrl = root.dataset.saveUrl;
     const timerUrl = root.dataset.timerUrl;
     const proctorUrl = root.dataset.proctorUrl;
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
     const interval = parseInt(root.dataset.autosaveInterval || '30', 10) * 1000;
+
+    function csrfToken() {
+        return window.KhoddamCsrf?.token?.()
+            || document.querySelector('meta[name="csrf-token"]')?.content
+            || '';
+    }
 
     const timerEl = document.getElementById('examFloatingTimer');
     const timerDisplay = document.getElementById('examTimerDisplay');
@@ -89,7 +94,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
+                    'X-CSRF-TOKEN': csrfToken(),
                     Accept: 'application/json',
                 },
                 body: JSON.stringify({ answers: collectAnswers() }),
@@ -136,7 +141,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrf,
+                    'X-CSRF-TOKEN': csrfToken(),
                     Accept: 'application/json',
                 },
                 body: JSON.stringify({ event_type: eventType, details: details || '' }),
