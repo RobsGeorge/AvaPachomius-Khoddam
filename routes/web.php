@@ -313,6 +313,10 @@ Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login']);
 
+Route::post('/observability/client-errors', [\App\Http\Controllers\ClientErrorController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('observability.client-errors');
+
 Route::get('/verify-otp', [OTPController::class, 'showForm'])->name('otp.verify');
 Route::post('/verify-otp', [OTPController::class, 'verify']);
 Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend');
