@@ -400,6 +400,20 @@ class NavigationHub
             ), ['category' => 'finance']);
         }
 
+        if ($church && (
+            ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'church.observability.view', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'admin.observability.index',
+                'nav.observability',
+                'bi-activity',
+                ['admin.observability.*'],
+                'church.observability.view',
+                'church_management'
+            ), ['category' => 'config']);
+        }
+
         return array_merge($links, self::filterByCapability($churchLinks));
     }
 

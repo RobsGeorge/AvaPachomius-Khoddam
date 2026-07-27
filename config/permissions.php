@@ -476,6 +476,19 @@ return [
                 'type' => 'both',
                 'routes' => [],
             ],
+            'church.observability.view' => [
+                'label_en' => 'View church observability',
+                'label_ar' => 'عرض مراقبة الكنيسة',
+                'type' => 'both',
+                'routes' => ['admin.observability.index'],
+                'nav' => ['church.observability'],
+            ],
+            'church.observability.export' => [
+                'label_en' => 'Export church observability',
+                'label_ar' => 'تصدير مراقبة الكنيسة',
+                'type' => 'endpoint',
+                'routes' => ['admin.observability.export'],
+            ],
             'priest.view' => [
                 'label_en' => 'View priests',
                 'label_ar' => 'عرض الكهنة',

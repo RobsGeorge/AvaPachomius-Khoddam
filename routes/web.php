@@ -424,6 +424,16 @@ Route::middleware(['auth', 'permission:platform.service_crud'])->prefix('admin/s
     Route::post('/{service}/cycle/confirm', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'confirm'])->name('cycle.confirm');
 });
 
+// Church-scoped observability at /admin/observability (permission-gated; not AdminMiddleware).
+Route::middleware(['auth', 'capability:church_management'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/observability', [\App\Http\Controllers\Admin\ObservabilityController::class, 'index'])
+        ->middleware('permission:church.observability.view')
+        ->name('observability.index');
+    Route::get('/observability/export', [\App\Http\Controllers\Admin\ObservabilityController::class, 'export'])
+        ->middleware('permission:church.observability.export')
+        ->name('observability.export');
+});
+
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/users/unverified', [UserManagementController::class, 'index'])->name('users.unverified');
     Route::post('/users/{id}/approve', [UserManagementController::class, 'approve'])->name('users.approve');

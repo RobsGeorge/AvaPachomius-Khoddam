@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\SuperAdmin;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Church;
 use App\Observability\ObservabilityReportService;
 use App\Observability\ObservabilityScope;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -17,36 +17,36 @@ class ObservabilityController extends Controller
 
     public function index(Request $request)
     {
+        $churchId = TenantContext::id();
+        abort_unless($churchId !== null || ! config('tenancy.enabled'), 404);
+
         $tab = $request->query('tab', 'incidents');
-        $scope = ObservabilityScope::Platform;
+        $scope = ObservabilityScope::Church;
+        // When tenancy is dormant, still scope to Tenant Zero if available.
+        $effectiveChurchId = $churchId ?? 1;
 
         $incidents = $tab === 'incidents'
-            ? $this->reports->groupedIncidents($request, $scope)
+            ? $this->reports->groupedIncidents($request, $scope, $effectiveChurchId)
             : null;
 
         $authFailures = $tab === 'auth'
-            ? $this->reports->authFailures($request, $scope)
+            ? $this->reports->authFailures($request, $scope, $effectiveChurchId)
             : null;
 
         $usageSeries = $tab === 'usage'
-            ? $this->reports->usageSeries($request, $scope)
+            ? $this->reports->usageSeries($request, $scope, $effectiveChurchId)
             : null;
 
         $usageByChurch = $tab === 'usage'
-            ? $this->reports->usageByChurch($request, $scope)
+            ? $this->reports->usageByChurch($request, $scope, $effectiveChurchId)
             : null;
-
-        $infraSeries = $tab === 'load'
-            ? $this->reports->infraSeries($request)
-            : null;
-
-        $churches = Church::query()->orderBy('name')->get(['church_id', 'name', 'slug']);
 
         $affectedUsers = null;
         if ($tab === 'incidents' && $request->filled('fingerprint')) {
             $affectedUsers = $this->reports->affectedUsersForFingerprint(
                 (string) $request->input('fingerprint'),
-                $scope
+                $scope,
+                $effectiveChurchId
             );
         }
 
@@ -57,32 +57,33 @@ class ObservabilityController extends Controller
             'authFailures' => $authFailures,
             'usageSeries' => $usageSeries,
             'usageByChurch' => $usageByChurch,
-            'infraSeries' => $infraSeries,
-            'churches' => $churches,
+            'infraSeries' => null,
+            'churches' => collect(),
             'affectedUsers' => $affectedUsers,
-            'showLoad' => true,
+            'showLoad' => false,
             'showUsage' => true,
-            'indexRoute' => 'superadmin.observability.index',
-            'exportRoute' => 'superadmin.observability.export',
-            'backRoute' => 'superadmin.index',
-            'showChurchFilter' => true,
+            'indexRoute' => 'admin.observability.index',
+            'exportRoute' => 'admin.observability.export',
+            'backRoute' => 'dashboard',
+            'showChurchFilter' => false,
         ]);
     }
 
     public function export(Request $request): StreamedResponse
     {
-        $filename = 'observability-events-'.now()->format('Ymd-His').'.csv';
+        $churchId = TenantContext::id() ?? 1;
+        $filename = 'church-observability-'.now()->format('Ymd-His').'.csv';
         $columns = [
             'occurred_at', 'severity', 'category', 'fingerprint', 'message',
-            'exception_class', 'user_id', 'church_id', 'url', 'route_name', 'request_id',
+            'exception_class', 'user_id', 'url', 'route_name', 'request_id',
         ];
 
-        return response()->stream(function () use ($request, $columns) {
+        return response()->stream(function () use ($request, $columns, $churchId) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, $columns);
 
-            $this->reports->eventsQuery($request, ObservabilityScope::Platform)
+            $this->reports->eventsQuery($request, ObservabilityScope::Church, $churchId)
                 ->orderByDesc('occurred_at')
                 ->chunk(500, function ($rows) use ($out) {
                     foreach ($rows as $event) {
@@ -94,7 +95,6 @@ class ObservabilityController extends Controller
                             $event->message,
                             $event->exception_class,
                             $event->user_id,
-                            $event->church_id,
                             $event->url,
                             $event->route_name,
                             $event->request_id,
