@@ -6,6 +6,7 @@ use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
 use App\Http\View\Composers\AppLayoutComposer;
+use App\Observability\Adapters\LocalProcFsAdapter;
 use App\Observability\Adapters\NullInfraMetricsAdapter;
 use App\Observability\Contracts\ErrorSink;
 use App\Observability\Contracts\InfraMetricsAdapter;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(InfraMetricsAdapter::class, function () {
             return match (config('observability.infra_adapter', 'null')) {
+                'local_proc' => new LocalProcFsAdapter(),
                 default => new NullInfraMetricsAdapter(),
             };
         });
