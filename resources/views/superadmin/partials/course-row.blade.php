@@ -10,7 +10,7 @@
             {{ $course->church?->name ?? $course->service?->church?->name ?? '—' }}
         </td>
     @endif
-    <td @if($requiresChurch) class="ps-5" @endif>
+    <td @if($requiresChurch ?? false) class="ps-5" @endif>
         <div class="fw-semibold">{{ $course->localizedTitle() }}</div>
         <div class="text-muted-theme small text-truncate" style="max-width:240px;" title="{{ $course->description }}">
             {{ $course->description }}
@@ -32,7 +32,8 @@
             <form method="POST"
                   action="{{ route('superadmin.courses.destroy', $course->course_id) }}"
                   data-confirm="{{ __('pages.confirm_delete_course') }}">
-                @csrf @method('DELETE')
+                @csrf
+                @method('DELETE')
                 <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1" title="{{ __('pages.delete') }}">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -40,7 +41,7 @@
         </div>
     </td>
 </tr>
-<tr class="collapse @if($isEditing) show @endif" id="edit-course-{{ $course->course_id }}">
+<tr @class(['collapse', 'show' => $isEditing]) id="edit-course-{{ $course->course_id }}">
     <td colspan="{{ $colspan }}" class="bg-light border-top-0 pt-0">
         <form method="POST" action="{{ route('superadmin.courses.update', $course->course_id) }}" class="p-3 border rounded bg-white">
             @csrf
@@ -53,7 +54,7 @@
                 @if($requiresChurch ?? false)
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold mb-1">{{ __('tenancy.col_name') }}</label>
-                        <select name="church_id" class="form-select form-select-sm @if($isEditing && $errors->has('church_id')) is-invalid @endif" required>
+                        <select name="church_id" @class(['form-select', 'form-select-sm', 'is-invalid' => $isEditing && $errors->has('church_id')]) required>
                             <option value="">{{ __('service.choose_church') }}</option>
                             @foreach($churches ?? [] as $church)
                                 <option value="{{ $church->church_id }}"
@@ -62,71 +63,107 @@
                                 </option>
                             @endforeach
                         </select>
-                        @if($isEditing)@error('church_id')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
+                        @if($isEditing)
+                            @error('church_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        @endif
                     </div>
                 @endif
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold mb-1">{{ __('pages.course_title') }}</label>
                     <input type="text" name="title"
-                           class="form-control form-control-sm @if($isEditing && $errors->has('title')) is-invalid @endif"
+                           @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('title')])
                            value="{{ $isEditing ? old('title', $course->title) : $course->title }}" maxlength="30" required>
-                    @if($isEditing)@error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
+                    @if($isEditing)
+                        @error('title')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    @endif
                 </div>
                 @if($supportsLocalizedFields ?? false)
-                <div class="col-md-6">
-                    <label class="form-label small fw-semibold mb-1">{{ __('course_context.title_ar') }}</label>
-                    <input type="text" name="title_ar"
-                           class="form-control form-control-sm @if($isEditing && $errors->has('title_ar')) is-invalid @endif"
-                           value="{{ $isEditing ? old('title_ar', $course->title_ar) : $course->title_ar }}" maxlength="120">
-                    @if($isEditing)@error('title_ar')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label small fw-semibold mb-1">{{ __('course_context.title_en') }}</label>
-                    <input type="text" name="title_en"
-                           class="form-control form-control-sm @if($isEditing && $errors->has('title_en')) is-invalid @endif"
-                           value="{{ $isEditing ? old('title_en', $course->title_en) : $course->title_en }}" maxlength="120">
-                    @if($isEditing)@error('title_en')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
-                </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">{{ __('course_context.title_ar') }}</label>
+                        <input type="text" name="title_ar"
+                               @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('title_ar')])
+                               value="{{ $isEditing ? old('title_ar', $course->title_ar) : $course->title_ar }}" maxlength="120">
+                        @if($isEditing)
+                            @error('title_ar')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        @endif
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">{{ __('course_context.title_en') }}</label>
+                        <input type="text" name="title_en"
+                               @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('title_en')])
+                               value="{{ $isEditing ? old('title_en', $course->title_en) : $course->title_en }}" maxlength="120">
+                        @if($isEditing)
+                            @error('title_en')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        @endif
+                    </div>
                 @endif
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold mb-1">{{ __('pages.year') }}</label>
                     <input type="number" name="year"
-                           class="form-control form-control-sm @if($isEditing && $errors->has('year')) is-invalid @endif"
+                           @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('year')])
                            value="{{ $isEditing ? old('year', $course->year) : $course->year }}" min="2000" max="2100" required>
-                    @if($isEditing)@error('year')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
+                    @if($isEditing)
+                        @error('year')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    @endif
                 </div>
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold mb-1">{{ __('pages.default_session_start_time') }}</label>
                     <input type="time" name="default_session_start_time"
-                           class="form-control form-control-sm @if($isEditing && $errors->has('default_session_start_time')) is-invalid @endif"
+                           @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('default_session_start_time')])
                            value="{{ $isEditing ? old('default_session_start_time', $course->formattedDefaultSessionStartTime()) : $course->formattedDefaultSessionStartTime() }}" required>
-                    @if($isEditing)@error('default_session_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
+                    @if($isEditing)
+                        @error('default_session_start_time')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    @endif
                 </div>
                 <div class="col-12">
                     <label class="form-label small fw-semibold mb-1">{{ __('pages.description') }}</label>
                     <textarea name="description" rows="2"
-                              class="form-control form-control-sm @if($isEditing && $errors->has('description')) is-invalid @endif"
+                              @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('description')])
                               maxlength="255" required>{{ $isEditing ? old('description', $course->description) : $course->description }}</textarea>
-                    @if($isEditing)@error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
+                    @if($isEditing)
+                        @error('description')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    @endif
                 </div>
                 @if($supportsLocalizedFields ?? false)
-                <div class="col-md-6">
-                    <label class="form-label small fw-semibold mb-1">{{ __('course_context.description_ar') }}</label>
-                    <textarea name="description_ar" rows="2"
-                              class="form-control form-control-sm @if($isEditing && $errors->has('description_ar')) is-invalid @endif">{{ $isEditing ? old('description_ar', $course->description_ar) : $course->description_ar }}</textarea>
-                    @if($isEditing)@error('description_ar')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label small fw-semibold mb-1">{{ __('course_context.description_en') }}</label>
-                    <textarea name="description_en" rows="2"
-                              class="form-control form-control-sm @if($isEditing && $errors->has('description_en')) is-invalid @endif">{{ $isEditing ? old('description_en', $course->description_en) : $course->description_en }}</textarea>
-                    @if($isEditing)@error('description_en')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
-                </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">{{ __('course_context.description_ar') }}</label>
+                        <textarea name="description_ar" rows="2"
+                                  @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('description_ar')])>{{ $isEditing ? old('description_ar', $course->description_ar) : $course->description_ar }}</textarea>
+                        @if($isEditing)
+                            @error('description_ar')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        @endif
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">{{ __('course_context.description_en') }}</label>
+                        <textarea name="description_en" rows="2"
+                                  @class(['form-control', 'form-control-sm', 'is-invalid' => $isEditing && $errors->has('description_en')])>{{ $isEditing ? old('description_en', $course->description_en) : $course->description_en }}</textarea>
+                        @if($isEditing)
+                            @error('description_en')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        @endif
+                    </div>
                 @endif
                 @if(($services ?? collect())->isNotEmpty())
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold mb-1">{{ __('service.label') }}</label>
-                        <select name="service_id" class="form-select form-select-sm @if($isEditing && $errors->has('service_id')) is-invalid @endif" required>
+                        <select name="service_id" @class(['form-select', 'form-select-sm', 'is-invalid' => $isEditing && $errors->has('service_id')]) required>
                             <option value="">{{ __('service.choose_service') }}</option>
                             @foreach($services as $service)
                                 <option value="{{ $service->service_id }}"
@@ -140,7 +177,11 @@
                                 </option>
                             @endforeach
                         </select>
-                        @if($isEditing)@error('service_id')<div class="invalid-feedback">{{ $message }}</div>@enderror@endif
+                        @if($isEditing)
+                            @error('service_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        @endif
                     </div>
                 @endif
                 <div class="col-12 d-flex gap-2 justify-content-end">
