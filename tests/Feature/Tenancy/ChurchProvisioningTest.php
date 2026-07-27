@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserChurchRole;
 use App\Services\ChurchProvisioningService;
+use App\Services\PlatformAccessService;
 use App\Support\ChurchHost;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
@@ -213,12 +214,39 @@ class ChurchProvisioningTest extends EventModuleTestCase
             'joined_at' => now(),
         ]);
 
-        $this->actingAs($user)->get('/dashboard');
-        // Composer shares supportsChurchSwitcher=false when tenancy off — no exception is enough;
-        // assert view data via a second render with tenancy on.
+        $this->actingAs($user)->get('/dashboard')->assertOk();
+    }
+
+    public function test_church_switcher_visible_when_multi_tenant_on_and_user_has_multiple_churches(): void
+    {
         config(['tenancy.enabled' => true]);
+        $other = Church::create(['slug' => 'other-sw', 'name' => 'Other', 'status' => 'active']);
+        $user = $this->createUser(['email' => 'switcher-member@example.com']);
+        foreach ([Church::main(), $other] as $church) {
+            ChurchUser::create([
+                'church_id' => $church->church_id,
+                'user_id' => $user->user_id,
+                'status' => 'active',
+                'joined_at' => now(),
+            ]);
+        }
+
+        TenantContext::set(Church::main());
+
+        $html = $this->actingAs($user)->get('/dashboard')->assertOk()->getContent();
+        $this->assertStringContainsString(__('tenancy.switch_church'), $html);
+    }
+
+    public function test_superadmin_sees_church_switcher_after_platform_enter(): void
+    {
+        config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test']);
         Church::create(['slug' => 'other-sw', 'name' => 'Other', 'status' => 'active']);
+        $church = Church::main();
         $super = $this->createUser(['email' => 'switcher-super@example.com', 'is_superadmin' => true]);
+
+        TenantContext::set($church);
+        PlatformAccessService::start($church, $super, request());
+
         $html = $this->actingAs($super)->get('/dashboard')->assertOk()->getContent();
         $this->assertStringContainsString(__('tenancy.switch_church'), $html);
     }
