@@ -38,6 +38,7 @@ return [
     'public_profile'    => 'Public profile',
     'church_branding'   => 'Church branding',
     'homepage_cms'      => 'Homepage editor',
+    'event_theme'       => 'Event mode',
     'payroll'           => 'Payroll',
     'money_in'          => 'Money in',
 ];

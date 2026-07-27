@@ -7,9 +7,9 @@
 
     <div class="text-center mb-4">
         <a href="{{ url('/') }}" class="d-inline-flex flex-column align-items-center text-decoration-none mb-3">
-            <x-application-logo class="brand-mark-lg" aria-hidden="true" />
-            <span class="brand-wordmark mt-2">{{ __('app.name') }}</span>
-            <span class="text-muted-theme small">{{ __('app.institute_name') }}</span>
+            <x-deaconia-logotype class="brand-logotype-lg" aria-hidden="true" />
+            <span class="brand-wordmark-ar mt-2">دياكونيا</span>
+            <span class="text-muted-theme small mt-1">{{ __('app.institute_name') }}</span>
         </a>
         <h2 class="page-title mb-1">{{ __('auth.login_title') }}</h2>
         <p class="text-muted-theme small">{{ __('app.tagline') }}</p>

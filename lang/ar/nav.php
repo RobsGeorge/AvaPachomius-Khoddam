@@ -38,6 +38,7 @@ return [
     'public_profile'    => 'الملف العام',
     'church_branding'   => 'هوية الكنيسة',
     'homepage_cms'      => 'محرر الصفحة الرئيسية',
+    'event_theme'       => 'وضع المناسبات',
     'payroll'           => 'الرواتب',
     'money_in'          => 'الإيرادات',
 ];

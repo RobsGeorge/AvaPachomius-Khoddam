@@ -223,13 +223,16 @@
                         <a href="{{ route('dashboard') }}" class="brand-link brand-lockup">
                             @if(!empty($churchLogoUrl))
                                 <img src="{{ $churchLogoUrl }}" alt="" class="brand-mark" style="object-fit:contain;">
+                                <span class="brand-names">
+                                    <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
+                                    <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                                </span>
                             @else
-                                <x-application-logo class="brand-mark" aria-hidden="true" />
+                                <span class="brand-logotype-wrap">
+                                    <x-deaconia-logotype class="brand-logotype" aria-hidden="true" />
+                                    <span class="brand-subtitle">{{ $brandedChurchName ?? __('app.institute_name') }}</span>
+                                </span>
                             @endif
-                            <span class="brand-names">
-                                <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
-                                <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
-                            </span>
                         </a>
                     @endif
                     @elseif(($navUser->is_superadmin ?? false) && !empty($isConsoleHost))
@@ -248,13 +251,16 @@
                     <a href="{{ route('login') }}" class="brand-link brand-lockup">
                         @if(!empty($churchLogoUrl))
                             <img src="{{ $churchLogoUrl }}" alt="" class="brand-mark" style="object-fit:contain;">
+                            <span class="brand-names">
+                                <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
+                                <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                            </span>
                         @else
-                            <x-application-logo class="brand-mark" aria-hidden="true" />
+                            <span class="brand-logotype-wrap">
+                                <x-deaconia-logotype class="brand-logotype" aria-hidden="true" />
+                                <span class="brand-subtitle">{{ $brandedChurchName ?? __('app.institute_name') }}</span>
+                            </span>
                         @endif
-                        <span class="brand-names">
-                            <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
-                            <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
-                        </span>
                     </a>
                 @endauth
 

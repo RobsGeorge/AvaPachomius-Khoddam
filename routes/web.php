@@ -49,6 +49,7 @@ use App\Http\Controllers\Church\ConfessionController;
 use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\Church\ChurchCycleController;
 use App\Http\Controllers\Church\BrandingController;
+use App\Http\Controllers\Church\EventThemeController;
 use App\Http\Controllers\Church\PublicProfileController;
 use App\Http\Controllers\Church\HomepageEditorController;
 use App\Http\Controllers\Church\ChurchMediaController;
@@ -256,6 +257,8 @@ Route::middleware(['auth'])->group(function () {
         Route::middleware(['permission:public_site.theme'])->group(function () {
             Route::get('/branding', [BrandingController::class, 'edit'])->name('branding.edit');
             Route::put('/branding', [BrandingController::class, 'update'])->name('branding.update');
+            Route::get('/event-theme', [EventThemeController::class, 'edit'])->name('event-theme.edit');
+            Route::put('/event-theme', [EventThemeController::class, 'update'])->name('event-theme.update');
         });
     });
 

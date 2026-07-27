@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 4 330 82" width="660" height="164" role="img" aria-label="Deaconia">
+  <g fill="none" stroke="#C9A227" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <!-- D -->
+    <path d="M24,18 L24,72"/>
+    <path d="M24,18 A30,27 0 0 1 24,72"/>
+    <!-- e -->
+    <path d="M66,54 L102,54"/>
+    <path d="M102,54 A18,18 0 1 0 98.7,64.3"/>
+    <!-- a -->
+    <circle cx="128" cy="54" r="18"/>
+    <path d="M146,36 L146,72"/>
+    <!-- c -->
+    <path d="M185.8,42.4 A18,18 0 1 0 185.8,65.6"/>
+    <!-- o : the mark (ring) -->
+    <circle cx="214" cy="54" r="18"/>
+    <!-- n -->
+    <path d="M240,72 L240,51 A15,15 0 0 1 270,51 L270,72"/>
+    <!-- i -->
+    <path d="M282,36 L282,72"/>
+    <!-- a -->
+    <circle cx="310" cy="54" r="18"/>
+    <path d="M328,36 L328,72"/>
+  </g>
+  <g fill="#C9A227" stroke="none">
+    <circle cx="282" cy="24" r="5"/>
+    <polygon points="211,54 217,54 219,42 209,42"/>
+    <polygon points="211,54 217,54 219,66 209,66"/>
+    <polygon points="214,51 214,57 202,59 202,49"/>
+    <polygon points="214,51 214,57 226,59 226,49"/>
+  </g>
+</svg>
