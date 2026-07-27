@@ -253,6 +253,31 @@ WhatsApp for these notification types (portal/email can ship earlier in PAC4).
 
 **Resume when:** T8 residual smoke-checked. Kickoff PR = **PAC1** only.
 
+## Platform observability — ops + usage + infra (in progress 2026-07-28)
+
+**Requested:** Full logging/reporting for system errors, crashes, DB errors, login
+failures, frontend errors (with affected users), active users per time slot,
+server load, and church/service usage windows — portable across cloud providers.
+
+**Design (locked):** plan `.cursor/plans/observability_architecture_7057ba8f.plan.md`
+
+- **Own first-party core** (structured events + rollups + infra samples). Do **not**
+  make Hostinger APIs or raw nginx/log scraping the source of truth.
+- **Adapters:** `ErrorSink` (null/log/sentry) + `InfraMetricsAdapter` (null/local_proc;
+  vendor adapters optional later). Config via `OBSERVABILITY_*` / optional `SENTRY_DSN`.
+- **Dual UI:** platform master `/superadmin/observability` (console host) + church
+  `/admin/observability` (tenant-scoped; no Load/infra). Permissions
+  `platform.observability.*` / `church.observability.*`.
+- **Waves:** W0 contracts → W1 events/UI → W2 beacon → W3 usage → W4 infra →
+  W5 church portal → W6 sinks/alerts/retention.
+
+**Status:** Implementation on `feat/observability-platform` (explicitly prioritized
+despite earlier “post-T7” note). Keep additive schema; tenant isolation tests required.
+
+**Resume / follow-ups after merge:** Hostinger (or other) infra adapter only if needed;
+church-admin stack sanitization polish; plaintext `login_trials` passwords remain
+separate security debt (observability must never store secrets).
+
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
   GHSA-crmm-hgp2-wgrp (temporary signed URL path confusion). Patches require

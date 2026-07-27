@@ -86,6 +86,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
     <script src="{{ asset('js/csrf-heal.js') }}?v=20260727a"></script>
     <script src="{{ asset('js/khoddam-ui.js') }}?v=20260727a"></script>
+    <script src="{{ asset('js/observability-beacon.js') }}?v=20260728a"></script>
     @stack('scripts')
 </body>
 </html>

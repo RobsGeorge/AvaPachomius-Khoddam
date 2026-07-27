@@ -313,6 +313,10 @@ Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login']);
 
+Route::post('/observability/client-errors', [\App\Http\Controllers\ClientErrorController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('observability.client-errors');
+
 Route::get('/verify-otp', [OTPController::class, 'showForm'])->name('otp.verify');
 Route::post('/verify-otp', [OTPController::class, 'verify']);
 Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend');
@@ -418,6 +422,16 @@ Route::middleware(['auth', 'permission:platform.service_crud'])->prefix('admin/s
     Route::get('/{service}/cycle', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'show'])->name('cycle.show');
     Route::post('/{service}/cycle/edges', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'saveEdges'])->name('cycle.edges');
     Route::post('/{service}/cycle/confirm', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'confirm'])->name('cycle.confirm');
+});
+
+// Church-scoped observability at /admin/observability (permission-gated; not AdminMiddleware).
+Route::middleware(['auth', 'capability:church_management'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/observability', [\App\Http\Controllers\Admin\ObservabilityController::class, 'index'])
+        ->middleware('permission:church.observability.view')
+        ->name('observability.index');
+    Route::get('/observability/export', [\App\Http\Controllers\Admin\ObservabilityController::class, 'export'])
+        ->middleware('permission:church.observability.export')
+        ->name('observability.export');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -701,6 +715,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
+
+    Route::get('/observability', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'index'])->name('observability.index');
+    Route::get('/observability/export', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'export'])->name('observability.export');
 
     // T4 — church tenant provisioning (also reachable on the console host).
     Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');

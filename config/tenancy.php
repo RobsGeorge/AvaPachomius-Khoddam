@@ -42,6 +42,8 @@ return [
     */
     'tenant_tables_nullable_church_id' => [
         'roles',
+        'observability_events',
+        'usage_rollups',
     ],
 
     /*
@@ -81,6 +83,8 @@ return [
         'lecture_materials',
         // Ops / audit
         'activity_logs',
+        'observability_events',
+        'usage_rollups',
         // Service layer
         'service',
         'service_units',

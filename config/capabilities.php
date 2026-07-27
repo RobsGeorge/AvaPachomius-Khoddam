@@ -110,6 +110,7 @@ return [
         'label' => 'capabilities.church_management',
         'permissions' => [
             'church.configure', 'church.members.manage', 'church.role.manage',
+            'church.observability.view', 'church.observability.export',
             'priest.manage', 'priest.view',
             'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
             'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',

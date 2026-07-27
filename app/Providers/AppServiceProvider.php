@@ -6,6 +6,15 @@ use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
 use App\Http\View\Composers\AppLayoutComposer;
+use App\Observability\Adapters\LocalProcFsAdapter;
+use App\Observability\Adapters\NullInfraMetricsAdapter;
+use App\Observability\AlertNotifier;
+use App\Observability\Contracts\ErrorSink;
+use App\Observability\Contracts\InfraMetricsAdapter;
+use App\Observability\ObservabilityRecorder;
+use App\Observability\Sinks\LogErrorSink;
+use App\Observability\Sinks\NullErrorSink;
+use App\Observability\Sinks\SentryErrorSink;
 use App\Tenancy\TenantContext;
 use App\Validation\SafeValidator;
 use Illuminate\Database\Connection;
@@ -30,6 +39,30 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->singleton(\App\Tenancy\TenantContext::class, fn () => new \App\Tenancy\TenantContext());
+
+        $this->app->singleton(ErrorSink::class, function () {
+            return match (config('observability.error_sink', 'log')) {
+                'null' => new NullErrorSink(),
+                'sentry' => new SentryErrorSink(),
+                default => new LogErrorSink(),
+            };
+        });
+
+        $this->app->singleton(InfraMetricsAdapter::class, function () {
+            return match (config('observability.infra_adapter', 'null')) {
+                'local_proc' => new LocalProcFsAdapter(),
+                default => new NullInfraMetricsAdapter(),
+            };
+        });
+
+        $this->app->singleton(AlertNotifier::class, fn () => new AlertNotifier());
+
+        $this->app->singleton(ObservabilityRecorder::class, function ($app) {
+            return new ObservabilityRecorder(
+                $app->make(ErrorSink::class),
+                $app->make(AlertNotifier::class),
+            );
+        });
     }
 
     public function boot(): void
