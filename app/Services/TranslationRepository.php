@@ -23,17 +23,31 @@ class TranslationRepository
                 ->all();
         });
 
+        /** @var \Illuminate\Translation\Translator $translator */
+        $translator = Lang::getFacadeRoot();
+
         foreach ($lines as $group => $groupLines) {
-            if (! is_array($groupLines)) {
+            if (! is_array($groupLines) || $groupLines === []) {
                 continue;
             }
+
+            // addLines() marks the group as loaded. Without loading the file first,
+            // keys that have no DB row never resolve and __() returns the raw key.
+            $translator->load('*', (string) $group, $locale);
 
             $dottedLines = [];
 
             foreach ($groupLines as $key => $value) {
-                if (is_string($value)) {
-                    $dottedLines["{$group}.{$key}"] = $value;
+                if (! is_string($value) || $value === '') {
+                    continue;
                 }
+
+                // Skip overrides saved when the runtime lookup failed (value = "group.key").
+                if ($value === "{$group}.{$key}") {
+                    continue;
+                }
+
+                $dottedLines["{$group}.{$key}"] = $value;
             }
 
             if ($dottedLines !== []) {
