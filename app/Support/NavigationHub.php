@@ -391,9 +391,6 @@ class NavigationHub
             return [];
         }
 
-        $currentCourse = current_course();
-        $hub = app(RolesHubService::class);
-
         $exclusiveLinks = [
             self::hubLink('superadmin.index', 'nav.superadmin', 'pages.superadmin_hub_desc', 'bi-shield-lock-fill', ['superadmin.index'], true),
             self::hubLink('superadmin.churches.index', 'tenancy.nav_churches', 'tenancy.nav_churches_desc', 'bi-building', ['superadmin.churches.*'], true),
@@ -410,54 +407,17 @@ class NavigationHub
                 'superadmin.group-visibility.*',
             ], true),
             self::hubLink('superadmin.event-admins', 'events.event_admins_title', 'events.event_admins_hint', 'bi-calendar-event', ['superadmin.event-admins', 'superadmin.event-admins.*'], true),
-            self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate'], true),
+            self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate', 'superadmin.role-preview'], true),
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
             self::hubLink('superadmin.system-tests.index', 'nav.system_tests', 'pages.superadmin_system_tests_desc', 'bi-clipboard2-check', ['superadmin.system-tests.*'], true),
             self::hubLink('superadmin.scheduled-tasks.index', 'nav.scheduled_tasks', 'pages.superadmin_scheduled_tasks_desc', 'bi-clock-history', ['superadmin.scheduled-tasks.*'], true),
         ];
 
-        $sharedLinks = [];
-        if ($currentCourse) {
-            $sharedLinks[] = [
-                'url' => route('curriculum.show', $currentCourse->course_id),
-                'label' => __('nav.curriculum').' — '.$currentCourse->localizedTitle(),
-                'description' => __('pages.superadmin_course_curriculum_desc'),
-                'icon' => 'bi-journal-bookmark',
-                'active' => request()->routeIs('curriculum.show', 'curriculum.admin'),
-                'superadmin_only' => false,
-            ];
-            $sharedLinks[] = [
-                'url' => $hub->hubUrl($currentCourse, 'course'),
-                'label' => __('rbac.hub_title').' — '.$currentCourse->localizedTitle(),
-                'description' => __('pages.superadmin_course_roles_desc'),
-                'icon' => 'bi-shield-check',
-                'active' => request()->routeIs('roles.hub', 'courses.roles.*'),
-                'superadmin_only' => false,
-            ];
-            $sharedLinks[] = [
-                'url' => route('graduation.show', $currentCourse->course_id),
-                'label' => __('pages.graduation_title').' — '.$currentCourse->localizedTitle(),
-                'description' => __('pages.superadmin_course_graduation_desc'),
-                'icon' => 'bi-mortarboard',
-                'active' => request()->routeIs('graduation.show', 'graduation.export'),
-                'superadmin_only' => false,
-            ];
-        }
-
-        $sharedLinks[] = self::hubLink('hubs.academic', 'nav.academic', 'nav.academic_desc', 'bi-mortarboard', ['hubs.academic'], false);
-        $sharedLinks[] = self::hubLink('hubs.service', 'nav.service', 'nav.service_desc', 'fas fa-church', ['hubs.service', 'services.select', 'services.roster', 'admin.services.*'], false);
-        $sharedLinks[] = self::hubLink('hubs.system', 'nav.system_settings', 'nav.system_settings_desc', 'bi-gear', ['hubs.system'], false);
-        $sharedLinks[] = self::hubLink('courses.select', 'course_context.switch_course', 'pages.superadmin_course_picker_desc', 'bi-grid', ['courses.select'], false);
-
         return [
             [
                 'title' => __('pages.superadmin_section_exclusive'),
                 'links' => $exclusiveLinks,
-            ],
-            [
-                'title' => __('pages.superadmin_section_shared'),
-                'links' => $sharedLinks,
             ],
         ];
     }

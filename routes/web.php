@@ -583,6 +583,10 @@ Route::post('/superadmin/role-preview/stop', [SuperAdminController::class, 'stop
     ->middleware(['auth', 'superadmin'])
     ->name('superadmin.role-preview.stop');
 
+Route::post('/superadmin/platform-access/stop', [SuperAdminController::class, 'stopPlatformAccess'])
+    ->middleware(['auth', 'superadmin'])
+    ->name('superadmin.platform-access.stop');
+
 // Superadmin routes — accessible only by users with is_superadmin = true
 Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/',                          [SuperAdminController::class, 'index'])->name('index');
@@ -604,6 +608,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/churches/{church}/activate', [SuperAdminChurchController::class, 'activate'])->name('churches.activate');
     Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
     Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
+    Route::post('/churches/{church}/platform-enter', [SuperAdminChurchController::class, 'platformEnter'])->name('churches.platform-enter');
+    Route::post('/churches/{church}/view-as', [SuperAdminChurchController::class, 'viewAsChurch'])->name('churches.view-as');
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');

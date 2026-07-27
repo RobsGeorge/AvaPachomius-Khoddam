@@ -15,6 +15,7 @@ use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\RegistrationApplication;
 use App\Support\ChurchHost;
+use App\Support\SuperadminWorkspace;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Auth;
@@ -150,11 +151,12 @@ class AppLayoutComposer
                 : collect();
 
             $isSuper = (bool) ($user->is_superadmin ?? false);
-            $supportsServiceSwitcher = $serviceCapability && (
+            $showsMemberChrome = SuperadminWorkspace::showsMemberChrome($user);
+            $supportsServiceSwitcher = $showsMemberChrome && $serviceCapability && (
                 $selectableServices->count() > 1
                 || ($isSuper && $selectableServices->isNotEmpty() && ! $currentService)
             );
-            $showServiceContextLabel = (bool) $currentService && ! $supportsServiceSwitcher;
+            $showServiceContextLabel = $showsMemberChrome && (bool) $currentService && ! $supportsServiceSwitcher;
 
             $tenancyOn = (bool) config('tenancy.enabled');
             $currentChurch = TenantContext::current();
@@ -168,11 +170,11 @@ class AppLayoutComposer
                         ->orderBy('church.name')
                         ->get();
             }
-            $supportsChurchSwitcher = $tenancyOn && (
+            $supportsChurchSwitcher = $showsMemberChrome && $tenancyOn && (
                 $selectableChurches->count() > 1
                 || ($isSuper && $selectableChurches->isNotEmpty())
             );
-            $showChurchContextLabel = $tenancyOn && (bool) $currentChurch && ! $supportsChurchSwitcher;
+            $showChurchContextLabel = $showsMemberChrome && $tenancyOn && (bool) $currentChurch && ! $supportsChurchSwitcher;
 
             $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
             $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
@@ -182,11 +184,13 @@ class AppLayoutComposer
                 ? $this->courseContext->selectableCourses($user)
                 : collect();
 
-            $supportsCourseSwitcher = $courseCapability && (
+            $supportsCourseSwitcher = $showsMemberChrome && $courseCapability && (
                 $selectableCourses->count() > 1
                 || ($isSuper && $selectableCourses->isNotEmpty() && ! $currentCourse)
             );
-            $showCourseContextLabel = (bool) $currentCourse && ! $supportsCourseSwitcher;
+            $showCourseContextLabel = $showsMemberChrome && (bool) $currentCourse && ! $supportsCourseSwitcher;
+
+            $view->with('showsMemberChrome', $showsMemberChrome);
 
             $view->with('currentService', $currentService);
             $view->with('requiresServiceContext', $requiresServiceContext);
@@ -210,6 +214,7 @@ class AppLayoutComposer
             $view->with('courseBrandingCss', $this->courseContext->brandingCss($currentCourse));
         } catch (\Throwable $e) {
             report($e);
+            $view->with('showsMemberChrome', false);
             $view->with('currentService', null);
             $view->with('requiresServiceContext', false);
             $view->with('supportsServiceSwitcher', false);

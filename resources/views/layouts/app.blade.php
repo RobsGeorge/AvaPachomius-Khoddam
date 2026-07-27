@@ -64,6 +64,7 @@
 
         @include('layouts.impersonation-banner')
         @include('layouts.role-preview-banner')
+        @include('layouts.platform-access-banner')
 
         <main id="app-main" tabindex="-1" class="app-main flex-grow-1">
             @include('layouts.partials.flash-toast')

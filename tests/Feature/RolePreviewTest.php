@@ -30,7 +30,7 @@ class RolePreviewTest extends EventModuleTestCase
 
         $this->get(route('dashboard'))
             ->assertOk()
-            ->assertSee(__('pages.role_preview_banner_title'), false);
+            ->assertSee(__('workspace.view_as_banner_title'), false);
     }
 
     public function test_course_role_preview_restricts_permissions_and_admin_routes(): void

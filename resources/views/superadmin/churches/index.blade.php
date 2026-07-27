@@ -28,7 +28,7 @@
                         <th>{{ __('tenancy.col_host') }}</th>
                         <th>{{ __('tenancy.col_status') }}</th>
                         <th>{{ __('tenancy.col_members') }}</th>
-                        <th></th>
+                        <th>{{ __('workspace.col_actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,6 +43,24 @@
                                 </span>
                             </td>
                             <td>{{ $church->members_count }}</td>
+                            <td class="text-nowrap">
+                                @if($tenancyEnabled && $church->status === 'active')
+                                    <form method="POST" action="{{ route('superadmin.churches.view-as', $church) }}" class="d-inline"
+                                          data-confirm="{{ __('pages.role_preview_confirm') }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-info">
+                                            {{ __('workspace.view_as_church') }}
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('superadmin.churches.platform-enter', $church) }}" class="d-inline"
+                                          data-confirm="{{ __('workspace.platform_enter') }}?">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                            {{ __('workspace.platform_enter') }}
+                                        </button>
+                                    </form>
+                                @endif
+                            </td>
                             <td class="text-end">
                                 <a href="{{ route('superadmin.churches.show', $church) }}" class="btn btn-sm btn-outline-primary">
                                     {{ __('tenancy.manage') }}
@@ -51,7 +69,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-muted-theme text-center py-4">{{ __('tenancy.no_churches') }}</td>
+                            <td colspan="7" class="text-muted-theme text-center py-4">{{ __('tenancy.no_churches') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

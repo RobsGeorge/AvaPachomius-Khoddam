@@ -14,6 +14,16 @@
             </p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
+            @if(config('tenancy.enabled') && $church->status === 'active')
+                <form method="POST" action="{{ route('superadmin.churches.view-as', $church) }}" data-confirm="{{ __('pages.role_preview_confirm') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-info btn-sm">{{ __('workspace.view_as_church') }}</button>
+                </form>
+                <form method="POST" action="{{ route('superadmin.churches.platform-enter', $church) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">{{ __('workspace.platform_enter') }}</button>
+                </form>
+            @endif
             <a href="{{ route('superadmin.churches.edit', $church) }}" class="btn btn-outline-primary btn-sm">{{ __('tenancy.edit') }}</a>
             @if($church->status === 'active' && $church->slug !== config('tenancy.main_slug'))
                 <form method="POST" action="{{ route('superadmin.churches.suspend', $church) }}">

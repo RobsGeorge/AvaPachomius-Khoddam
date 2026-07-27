@@ -7,6 +7,8 @@ use App\Models\Church;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\ChurchProvisioningService;
+use App\Services\PlatformAccessService;
+use App\Services\RolePreviewService;
 use App\Support\ChurchHost;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -117,6 +119,27 @@ class ChurchController extends Controller
         return redirect()
             ->route('superadmin.churches.show', $church)
             ->with('success', __('tenancy.church_updated'));
+    }
+
+    public function platformEnter(Request $request, Church $church)
+    {
+        abort_unless($request->user()?->is_superadmin, 403);
+
+        PlatformAccessService::start($church, $request->user(), $request);
+
+        return redirect(ChurchHost::url($church, '/dashboard'))
+            ->with('success', __('workspace.platform_access_started', ['church' => $church->name]));
+    }
+
+    public function viewAsChurch(Request $request, Church $church)
+    {
+        $superadmin = $request->user();
+        abort_unless($superadmin?->is_superadmin, 403);
+
+        RolePreviewService::startChurchAdminRole($superadmin, $church, $request);
+
+        return redirect(ChurchHost::url($church, '/dashboard'))
+            ->with('success', __('workspace.view_as_church_started', ['church' => $church->name]));
     }
 
     public function suspend(Church $church)

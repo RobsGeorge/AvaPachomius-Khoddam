@@ -1,6 +1,8 @@
 @php
     use App\Support\NavigationHub;
+    use App\Support\SuperadminWorkspace;
     $navUser = auth()->user();
+    $showsMemberChrome = $showsMemberChrome ?? SuperadminWorkspace::showsMemberChrome($navUser);
     $academicLinks = NavigationHub::academicLinks($navUser);
     $serviceLinks = NavigationHub::serviceLinks($navUser);
     $systemLinks = NavigationHub::systemLinks($navUser);
@@ -18,7 +20,8 @@
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 @auth
-                    {{-- Church → Service → Course (host-based church switch when MULTI_TENANT). --}}
+                    @if($showsMemberChrome)
+                    {{-- Workspace: Church → Service → Course --}}
                     @if(!empty($supportsChurchSwitcher))
                         <div class="dropdown">
                             <button type="button"
@@ -222,6 +225,18 @@
                             {{ __('app.name') }}
                         </a>
                     @endif
+                    @elseif(($navUser->is_superadmin ?? false) && !empty($isConsoleHost))
+                        <a href="{{ route('superadmin.index') }}" class="brand-link" title="{{ __('tenancy.console') }}">
+                            <i class="bi bi-shield-lock-fill ms-1"></i>
+                            {{ __('tenancy.console') }}
+                        </a>
+                    @else
+                        <a href="{{ route('dashboard') }}" class="brand-link">
+                            <i class="bi bi-mortarboard-fill ms-1"></i>
+                            {{ __('app.name') }}
+                        </a>
+                    @endif
+
                 @else
                     <a href="{{ route('login') }}" class="brand-link">
                         <i class="bi bi-mortarboard-fill ms-1"></i>
@@ -231,6 +246,7 @@
 
                 @auth
                     <div class="d-none d-md-flex align-items-center gap-1 nav-links">
+                        @if($showsMemberChrome)
                         <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                             {{ __('nav.home') }}
                         </a>
@@ -309,6 +325,7 @@
                                     @endforeach
                                 </ul>
                             </div>
+                        @endif
                         @endif
 
                         @if($hasSuperadmin)
@@ -440,6 +457,7 @@
         @auth
             <div class="d-md-none nav-links mobile-nav-panel mt-2 pb-2" x-show="navOpen" x-transition x-cloak>
                 <div class="d-flex flex-column gap-1">
+                    @if($showsMemberChrome)
                     <a href="{{ route('dashboard') }}" class="app-nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" @click="navOpen = false">{{ __('nav.home') }}</a>
 
                     <details class="mobile-nav-group" @if($academicActive) open @endif>
@@ -495,6 +513,7 @@
                                 @endforeach
                             </div>
                         </details>
+                    @endif
                     @endif
 
                     @if($hasSuperadmin)
