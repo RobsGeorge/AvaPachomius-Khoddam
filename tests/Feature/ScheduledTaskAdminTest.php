@@ -8,7 +8,9 @@ use App\Models\ScheduledTaskSetting;
 use App\Models\User;
 use App\Services\ScheduledTaskRegistrar;
 use App\Services\ScheduledTaskReportService;
+use App\Services\SchedulerHealthService;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Cache;
 use Tests\Support\EventModuleTestCase;
 
 class ScheduledTaskAdminTest extends EventModuleTestCase
@@ -53,14 +55,29 @@ class ScheduledTaskAdminTest extends EventModuleTestCase
 
     public function test_superadmin_can_view_scheduled_tasks_dashboard(): void
     {
+        Cache::flush();
+
         $this->actingAs($this->superadmin())
             ->get(route('superadmin.scheduled-tasks.index'))
             ->assertOk()
             ->assertSee(__('scheduled_tasks.dashboard'), false)
             ->assertSee(__('scheduled_tasks.tasks.birthdays_notify_daily'), false)
+            ->assertSee(__('scheduled_tasks.tasks.scheduler_heartbeat'), false)
             ->assertSee(__('scheduled_tasks.run_now'), false)
             ->assertSee(__('scheduled_tasks.create_custom'), false)
-            ->assertSee(__('scheduled_tasks.execution_report'), false);
+            ->assertSee(__('scheduled_tasks.execution_report'), false)
+            ->assertSee(__('scheduled_tasks.health_stale_title'), false);
+    }
+
+    public function test_dashboard_shows_healthy_banner_after_heartbeat(): void
+    {
+        app(SchedulerHealthService::class)->recordHeartbeat();
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.scheduled-tasks.index'))
+            ->assertOk()
+            ->assertSee(__('scheduled_tasks.health_ok_title'), false)
+            ->assertDontSee(__('scheduled_tasks.health_stale_title'), false);
     }
 
     public function test_non_superadmin_cannot_access_scheduled_tasks_dashboard(): void

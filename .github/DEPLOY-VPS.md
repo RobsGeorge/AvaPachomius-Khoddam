@@ -102,26 +102,32 @@ If `migrate:deploy` fails with a lock error, wait for traffic to drop or run the
 
 ## Laravel scheduler (cron)
 
-Daily birthday emails and portal notifications for course staff depend on the scheduler.
-Without a system cron entry, `birthdays:notify-daily` never runs even though it is registered
-in `app/Console/Kernel.php` (daily at `00:05` in the attendance timezone).
+Daily birthday emails, reminders, and other automatic jobs depend on the scheduler.
+Without a system cron entry, tasks never run even though they are registered in
+`app/Console/Kernel.php`.
 
-On the VPS as root (or via `sudo crontab -u deploy -e`):
+Deploy workflows call `php8.2 artisan scheduler:ensure-cron` so the crontab line is
+installed (or verified) on every production and staging deploy.
+
+Manual install / repair on the VPS:
 
 ```bash
-* * * * * cd /var/www/avapakhomios && php8.2 artisan schedule:run >> /dev/null 2>&1
+cd /var/www/avapakhomios   # or /var/www/khedma-staging
+php8.2 artisan scheduler:ensure-cron --php=php8.2
+crontab -l | grep schedule:run
 ```
 
-For staging:
+Expected line (paths vary by environment):
 
 ```bash
-* * * * * cd /var/www/khedma-staging && php8.2 artisan schedule:run >> /dev/null 2>&1
+* * * * * cd '/var/www/avapakhomios' && 'php8.2' artisan schedule:run >> '/var/www/avapakhomios/storage/logs/scheduler-cron.log' 2>&1
 ```
 
 Verify:
 
 ```bash
 cd /var/www/avapakhomios
-php8.2 artisan schedule:list | grep birthdays
-php8.2 artisan birthdays:notify-daily --date=$(date +%F)
+php8.2 artisan schedule:list | grep -E 'heartbeat|birthdays'
+php8.2 artisan schedule:run
+# Superadmin → Scheduled tasks should show a healthy heartbeat within 1–2 minutes.
 ```

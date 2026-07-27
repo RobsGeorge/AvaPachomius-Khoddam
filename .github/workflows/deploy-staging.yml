@@ -122,6 +122,9 @@ jobs:
               echo "WARN: could not reload php-fpm without password — configure NOPASSWD"
             fi
 
+            step "ensure scheduler cron"
+            $PHP_BIN artisan scheduler:ensure-cron --php=$PHP_BIN || echo "WARN: could not ensure scheduler cron"
+
             step "live"
             $PHP_BIN artisan up || true
 
