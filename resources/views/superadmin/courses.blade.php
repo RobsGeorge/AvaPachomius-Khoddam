@@ -16,7 +16,9 @@
             </div>
         </div>
     @else
-        <p class="text-muted-theme small mb-4">{{ __('pages.setup_order_hint') }}</p>
+        <p class="text-muted-theme small mb-4">
+            {{ ($requiresChurch ?? false) ? __('pages.manage_courses_intro_console') : __('pages.setup_order_hint') }}
+        </p>
     @endif
 
     <div class="app-card card shadow-sm border-primary">
@@ -28,6 +30,9 @@
                 <table class="table table-sm mb-0">
                     <thead class="table-light">
                         <tr>
+                            @unless($requiresChurch ?? false)
+                                <th>{{ __('tenancy.col_name') }}</th>
+                            @endunless
                             <th>{{ __('pages.course_title') }}</th>
                             <th>{{ __('service.label') }}</th>
                             <th>{{ __('pages.year') }}</th>
@@ -35,30 +40,40 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($courses as $course)
-                            <tr>
-                                <td>
-                                    <div class="fw-semibold">{{ $course->title }}</div>
-                                    <div class="text-muted-theme small text-truncate" style="max-width:240px;" title="{{ $course->description }}">
-                                        {{ $course->description }}
-                                    </div>
-                                </td>
-                                <td>{{ $course->service?->localizedTitle() ?? '—' }}</td>
-                                <td>{{ $course->year }}</td>
-                                <td>
-                                    <form method="POST"
-                                          action="{{ route('superadmin.courses.destroy', $course->course_id) }}"
-                                          data-confirm="{{ __('pages.confirm_delete_course') }}">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-xs btn-outline-danger py-0 px-1">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
+                        @forelse($groupedCourses ?? $courses->groupBy(fn ($c) => 0) as $churchId => $churchCourses)
+                            @if($requiresChurch ?? false)
+                                @php
+                                    $church = $churchCourses->first()?->church
+                                        ?? $churchCourses->first()?->service?->church
+                                        ?? ($churches ?? collect())->firstWhere('church_id', (int) $churchId);
+                                    $byService = $churchCourses->groupBy(fn ($course) => (int) ($course->service_id ?? 0));
+                                @endphp
+                                <tr class="table-secondary">
+                                    <td colspan="4" class="fw-semibold">
+                                        <i class="bi bi-building me-1"></i>
+                                        {{ $church?->name ?? __('service.unknown_church') }}
+                                    </td>
+                                </tr>
+                                @foreach($byService as $serviceId => $serviceCourses)
+                                    @php $service = $serviceCourses->first()?->service; @endphp
+                                    <tr class="table-light">
+                                        <td colspan="4" class="ps-4 text-muted-theme small fw-semibold">
+                                            <i class="fas fa-church me-1"></i>
+                                            {{ $service?->localizedTitle() ?? __('service.label') }}
+                                        </td>
+                                    </tr>
+                                    @foreach($serviceCourses as $course)
+                                        @include('superadmin.partials.course-row', ['course' => $course, 'requiresChurch' => true])
+                                    @endforeach
+                                @endforeach
+                            @else
+                                @foreach($churchCourses as $course)
+                                    @include('superadmin.partials.course-row', ['course' => $course, 'requiresChurch' => false])
+                                @endforeach
+                            @endif
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted-theme py-3">
+                                <td colspan="{{ ($requiresChurch ?? false) ? 4 : 5 }}" class="text-center text-muted-theme py-3">
                                     {{ __('pages.no_courses_yet') }}
                                 </td>
                             </tr>
@@ -77,6 +92,20 @@
             <form method="POST" action="{{ route('superadmin.courses.store') }}">
                 @csrf
                 <div class="row g-2">
+                    @if($requiresChurch ?? false)
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold mb-1">{{ __('tenancy.col_name') }}</label>
+                            <select name="church_id" class="form-select form-select-sm @error('church_id') is-invalid @enderror" required>
+                                <option value="">{{ __('service.choose_church') }}</option>
+                                @foreach($churches ?? [] as $church)
+                                    <option value="{{ $church->church_id }}" @selected((string) old('church_id') === (string) $church->church_id)>
+                                        {{ $church->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('church_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                    @endif
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold mb-1">{{ __('pages.course_title') }}</label>
                         <input type="text" name="title" class="form-control form-control-sm @error('title') is-invalid @enderror"
@@ -101,8 +130,14 @@
                         <select name="service_id" class="form-select form-select-sm @error('service_id') is-invalid @enderror" required>
                             <option value="">{{ __('service.choose_service') }}</option>
                             @foreach($services ?? [] as $service)
-                                <option value="{{ $service->service_id }}" @selected((string) old('service_id') === (string) $service->service_id)>
-                                    {{ $service->localizedTitle() }}
+                                <option value="{{ $service->service_id }}"
+                                        data-church-id="{{ $service->church_id }}"
+                                        @selected((string) old('service_id') === (string) $service->service_id)>
+                                    @if($requiresChurch ?? false)
+                                        {{ $service->church?->name }} — {{ $service->localizedTitle() }}
+                                    @else
+                                        {{ $service->localizedTitle() }}
+                                    @endif
                                 </option>
                             @endforeach
                         </select>
