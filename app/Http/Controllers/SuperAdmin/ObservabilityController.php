@@ -28,6 +28,18 @@ class ObservabilityController extends Controller
             ? $this->reports->authFailures($request, $scope)
             : null;
 
+        $usageSeries = $tab === 'usage'
+            ? $this->reports->usageSeries($request, $scope)
+            : null;
+
+        $usageByChurch = $tab === 'usage'
+            ? $this->reports->usageByChurch($request, $scope)
+            : null;
+
+        $infraSeries = $tab === 'load'
+            ? $this->reports->infraSeries($request)
+            : null;
+
         $churches = Church::query()->orderBy('name')->get(['church_id', 'name', 'slug']);
 
         $affectedUsers = null;
@@ -43,10 +55,13 @@ class ObservabilityController extends Controller
             'tab' => $tab,
             'incidents' => $incidents,
             'authFailures' => $authFailures,
+            'usageSeries' => $usageSeries,
+            'usageByChurch' => $usageByChurch,
+            'infraSeries' => $infraSeries,
             'churches' => $churches,
             'affectedUsers' => $affectedUsers,
-            'showLoad' => false,
-            'showUsage' => false,
+            'showLoad' => true,
+            'showUsage' => true,
         ]);
     }
 

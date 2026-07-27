@@ -125,6 +125,8 @@ return [
         'notifications_scan_grades_risk' => 'Below-passing grade alerts',
         'notifications_fire_reminders' => 'Fire custom reminders',
         'pastoral_fire_booking_reminders' => 'Fire pastoral booking reminders',
+        'observability_flush_usage' => 'Flush observability usage rollups',
+        'observability_sample_infra' => 'Sample host infrastructure metrics',
     ],
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
     'pending_registrations_purge_desc' => 'Removes expired pending registrations from the queue.',
@@ -136,4 +138,6 @@ return [
     'notifications_scan_grades_risk_desc' => 'Weekly scan for students below passing grade thresholds.',
     'notifications_fire_reminders_desc' => 'Dispatches due custom user reminders every five minutes.',
     'pastoral_fire_booking_reminders_desc' => 'Sends portal/email reminders for upcoming confession and pastoral bookings.',
+    'observability_flush_usage_desc' => 'Writes cached request/user/session counters into usage_rollups.',
+    'observability_sample_infra_desc' => 'Collects load/memory/disk samples via the configured infra adapter.',
 ];

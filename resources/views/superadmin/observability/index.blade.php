@@ -72,15 +72,15 @@
             <input type="text" name="severity" value="{{ request('severity') }}" class="form-control form-control-sm">
         </div>
         <div class="col-md-2">
-            <label class="form-label">{{ __('From') }}</label>
+            <label class="form-label">{{ __('pages.observability_from') }}</label>
             <input type="date" name="from" value="{{ request('from') }}" class="form-control form-control-sm">
         </div>
         <div class="col-md-2">
-            <label class="form-label">{{ __('To') }}</label>
+            <label class="form-label">{{ __('pages.observability_to') }}</label>
             <input type="date" name="to" value="{{ request('to') }}" class="form-control form-control-sm">
         </div>
         <div class="col-md-1 d-flex align-items-end">
-            <button class="btn btn-primary btn-sm w-100" type="submit">{{ __('Filter') }}</button>
+            <button class="btn btn-primary btn-sm w-100" type="submit">{{ __('pages.observability_filter') }}</button>
         </div>
     </form>
 
@@ -93,9 +93,9 @@
                     <thead>
                         <tr>
                             <th>{{ __('pages.observability_last_seen') }}</th>
-                            <th>{{ __('Severity') }}</th>
-                            <th>{{ __('Category') }}</th>
-                            <th>{{ __('Message') }}</th>
+                            <th>{{ __('pages.observability_filter_severity') }}</th>
+                            <th>{{ __('pages.observability_filter_category') }}</th>
+                            <th>{{ __('pages.observability_message') }}</th>
                             <th>{{ __('pages.observability_count') }}</th>
                             <th>{{ __('pages.observability_affected_users') }}</th>
                             <th>{{ __('pages.observability_affected_churches') }}</th>
@@ -148,11 +148,11 @@
                 <table class="table table-sm table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>{{ __('When') }}</th>
-                            <th>{{ __('Message') }}</th>
-                            <th>{{ __('Email') }}</th>
-                            <th>{{ __('Church') }}</th>
-                            <th>{{ __('IP') }}</th>
+                            <th>{{ __('pages.observability_when') }}</th>
+                            <th>{{ __('pages.observability_message') }}</th>
+                            <th>{{ __('pages.observability_email') }}</th>
+                            <th>{{ __('pages.observability_filter_church') }}</th>
+                            <th>IP</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -169,6 +169,99 @@
                 </table>
             </div>
             {{ $authFailures->links() }}
+        @endif
+    @elseif($tab === 'usage')
+        <h2 class="h5">{{ __('pages.observability_tab_usage') }}</h2>
+        @if(empty($usageByChurch) || $usageByChurch->isEmpty())
+            <div class="alert alert-light border">{{ __('pages.observability_no_usage') }}</div>
+        @else
+            <div class="table-responsive mb-4">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>{{ __('pages.observability_filter_church') }}</th>
+                            <th>{{ __('pages.observability_active_users') }}</th>
+                            <th>{{ __('pages.observability_requests') }}</th>
+                            <th>{{ __('pages.observability_sessions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($usageByChurch as $row)
+                            <tr>
+                                <td>{{ $row->church_id ?? '—' }}</td>
+                                <td>{{ $row->active_users }}</td>
+                                <td>{{ $row->request_count }}</td>
+                                <td>{{ $row->unique_sessions }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            @if(!empty($usageSeries) && $usageSeries->isNotEmpty())
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>{{ __('pages.observability_bucket') }}</th>
+                                <th>{{ __('pages.observability_filter_church') }}</th>
+                                <th>{{ __('pages.observability_service') }}</th>
+                                <th>{{ __('pages.observability_active_users') }}</th>
+                                <th>{{ __('pages.observability_requests') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($usageSeries as $row)
+                                <tr>
+                                    <td class="text-nowrap">{{ optional($row->bucket_start)->toDateTimeString() }}</td>
+                                    <td>{{ $row->church_id ?? '—' }}</td>
+                                    <td>{{ $row->service_id ?? '—' }}</td>
+                                    <td>{{ $row->active_users }}</td>
+                                    <td>{{ $row->request_count }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        @endif
+    @elseif($tab === 'load')
+        @if(empty($infraSeries) || $infraSeries->isEmpty())
+            <div class="alert alert-light border">{{ __('pages.observability_no_load') }}</div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>{{ __('pages.observability_when') }}</th>
+                            <th>{{ __('pages.observability_host') }}</th>
+                            <th>load1</th>
+                            <th>load5</th>
+                            <th>{{ __('pages.observability_mem') }}</th>
+                            <th>{{ __('pages.observability_disk') }}</th>
+                            <th>{{ __('pages.observability_source') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($infraSeries as $row)
+                            <tr>
+                                <td class="text-nowrap">{{ optional($row->sampled_at)->toDateTimeString() }}</td>
+                                <td>{{ $row->host }}</td>
+                                <td>{{ $row->load_1 }}</td>
+                                <td>{{ $row->load_5 }}</td>
+                                <td>
+                                    @if($row->mem_used_mb !== null && $row->mem_total_mb)
+                                        {{ round($row->mem_used_mb) }}/{{ round($row->mem_total_mb) }} MB
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td>{{ $row->disk_used_pct !== null ? $row->disk_used_pct.'%' : '—' }}</td>
+                                <td>{{ $row->source }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         @endif
     @else
         <div class="alert alert-light border">{{ __('pages.observability_coming_soon') }}</div>

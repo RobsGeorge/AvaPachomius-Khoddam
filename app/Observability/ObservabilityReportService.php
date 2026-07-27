@@ -79,6 +79,69 @@ class ObservabilityReportService
     }
 
     /**
+     * @return Collection<int, object>
+     */
+    public function usageSeries(Request $request, ObservabilityScope $scope, ?int $churchId = null): Collection
+    {
+        $query = $scope === ObservabilityScope::Platform
+            // Cross-tenant platform console: intentional withoutTenancy for master view.
+            ? \App\Models\UsageRollup::withoutTenancy()
+            : \App\Models\UsageRollup::query();
+
+        if ($scope === ObservabilityScope::Church && $churchId !== null) {
+            $query->where('church_id', $churchId);
+        }
+
+        return $query
+            ->when($request->filled('church_id') && $scope === ObservabilityScope::Platform,
+                fn ($q) => $q->where('church_id', (int) $request->input('church_id')))
+            ->when($request->filled('service_id'), fn ($q) => $q->where('service_id', (int) $request->input('service_id')))
+            ->when($request->filled('from'), fn ($q) => $q->where('bucket_start', '>=', $request->input('from')))
+            ->when($request->filled('to'), fn ($q) => $q->where('bucket_start', '<=', $request->input('to').' 23:59:59'))
+            ->orderBy('bucket_start')
+            ->limit(500)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, object>
+     */
+    public function usageByChurch(Request $request, ObservabilityScope $scope, ?int $churchId = null): Collection
+    {
+        $query = $scope === ObservabilityScope::Platform
+            // Cross-tenant platform console: intentional withoutTenancy for master view.
+            ? \App\Models\UsageRollup::withoutTenancy()
+            : \App\Models\UsageRollup::query();
+
+        if ($scope === ObservabilityScope::Church && $churchId !== null) {
+            $query->where('church_id', $churchId);
+        }
+
+        return $query
+            ->when($request->filled('from'), fn ($q) => $q->where('bucket_start', '>=', $request->input('from')))
+            ->when($request->filled('to'), fn ($q) => $q->where('bucket_start', '<=', $request->input('to').' 23:59:59'))
+            ->selectRaw('church_id, SUM(active_users) as active_users, SUM(request_count) as request_count, SUM(unique_sessions) as unique_sessions')
+            ->groupBy('church_id')
+            ->orderByDesc('request_count')
+            ->limit(100)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, \App\Models\InfraSample>
+     */
+    public function infraSeries(Request $request): Collection
+    {
+        return \App\Models\InfraSample::query()
+            ->when($request->filled('host'), fn ($q) => $q->where('host', $request->input('host')))
+            ->when($request->filled('from'), fn ($q) => $q->where('sampled_at', '>=', $request->input('from')))
+            ->when($request->filled('to'), fn ($q) => $q->where('sampled_at', '<=', $request->input('to').' 23:59:59'))
+            ->orderByDesc('sampled_at')
+            ->limit(300)
+            ->get();
+    }
+
+    /**
      * @return Collection<int, ObservabilityEvent>
      */
     public function affectedUsersForFingerprint(string $fingerprint, ObservabilityScope $scope, ?int $churchId = null, int $limit = 50): Collection

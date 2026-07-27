@@ -107,5 +107,21 @@ return [
             'command' => 'pastoral:fire-booking-reminders',
             'schedule' => ['frequency' => 'every_five_minutes'],
         ],
+        'observability.flush_usage' => [
+            'label' => 'scheduled_tasks.tasks.observability_flush_usage',
+            'description' => 'scheduled_tasks.observability_flush_usage_desc',
+            'type' => 'command',
+            'command' => 'observability:flush-usage',
+            'schedule' => ['frequency' => 'every_five_minutes'],
+            'when_config' => 'observability.enabled',
+        ],
+        'observability.sample_infra' => [
+            'label' => 'scheduled_tasks.tasks.observability_sample_infra',
+            'description' => 'scheduled_tasks.observability_sample_infra_desc',
+            'type' => 'command',
+            'command' => 'observability:sample-infra',
+            'schedule' => ['frequency' => 'every_five_minutes'],
+            'when_config' => 'observability.enabled',
+        ],
     ],
 ];
