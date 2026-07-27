@@ -1,10 +1,30 @@
 @extends('layouts.app')
 
-@section('title', __('pages.manage_courses'))
+@section('title', __('pages.manage_services_and_courses'))
 
 @section('content')
 <div class="container py-4 animate-in">
-    @include('superadmin.partials.header', ['title' => __('pages.manage_courses')])
+    @include('superadmin.partials.header', ['title' => __('pages.manage_services_and_courses')])
+
+    <h2 class="h5 mb-3 mt-2">
+        <i class="fas fa-church me-1"></i> {{ __('pages.manage_services_section') }}
+    </h2>
+    <p class="text-muted-theme small mb-3">
+        {{ ($requiresChurch ?? false) ? __('service.manage_intro_console') : __('service.manage_intro') }}
+    </p>
+
+    @include('admin.services.partials.panel', [
+        'groupedServices' => $groupedServices,
+        'churches' => $churches,
+        'requiresChurch' => $requiresChurch ?? false,
+        'embedFrom' => 'courses',
+    ])
+
+    <hr class="my-4">
+
+    <h2 class="h5 mb-3">
+        <i class="bi bi-journal-bookmark-fill me-1"></i> {{ __('pages.manage_courses_section') }}
+    </h2>
 
     @if($courses->isEmpty())
         <div class="alert alert-warning d-flex gap-3 align-items-start mb-4">

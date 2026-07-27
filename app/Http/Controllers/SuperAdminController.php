@@ -90,6 +90,26 @@ class SuperAdminController extends Controller
             )->get()
             : collect();
 
+        // Services management panel: all statuses, with counts, grouped by church.
+        $manageServices = ChurchService::tableReady()
+            ? tap(
+                ChurchService::query()
+                    ->when($hasServiceChurch, fn ($q) => $q->with('church'))
+                    ->withCount(['courses', 'userServiceRoles'])
+                    ->when($requiresChurch, fn ($q) => $q->withoutTenancy()),
+                function ($query) use ($hasServiceChurch) {
+                    if ($hasServiceChurch) {
+                        $query->orderBy('church_id');
+                    }
+                    $query->orderBy('title');
+                }
+            )->get()
+            : collect();
+
+        $groupedServices = $manageServices->groupBy(
+            fn (ChurchService $service) => (int) ($service->church_id ?? 0)
+        );
+
         $churches = $requiresChurch
             ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
             : collect();
@@ -101,6 +121,7 @@ class SuperAdminController extends Controller
             'courses',
             'services',
             'groupedCourses',
+            'groupedServices',
             'churches',
             'requiresChurch',
             'showChurchColumn',
