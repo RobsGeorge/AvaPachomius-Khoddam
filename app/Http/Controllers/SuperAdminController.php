@@ -12,6 +12,7 @@ use App\Services\CourseRoleAssignmentService;
 use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
 use App\Services\ImpersonationService;
+use App\Services\PlatformAccessService;
 use App\Services\RolePreviewService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
@@ -306,8 +307,7 @@ class SuperAdminController extends Controller
 
         ImpersonationService::start($request->user(), $user, $request);
 
-        return redirect()
-            ->route('dashboard')
+        return redirect(ImpersonationService::landingUrlFor($user))
             ->with('success', __('pages.impersonate_started', [
                 'name' => User::fullNameFromParts($user->first_name, $user->second_name, $user->third_name),
             ]));
@@ -317,8 +317,11 @@ class SuperAdminController extends Controller
     {
         ImpersonationService::stop($request);
 
-        return redirect()
-            ->route('superadmin.index')
+        $redirect = config('tenancy.enabled')
+            ? \App\Support\ChurchHost::consoleUrl('/superadmin/security')
+            : route('superadmin.security');
+
+        return redirect($redirect)
             ->with('success', __('pages.impersonate_stopped'));
     }
 
@@ -372,10 +375,24 @@ class SuperAdminController extends Controller
 
     public function stopRolePreview(Request $request)
     {
+        $wasChurchAdmin = RolePreviewService::isChurchAdminMode();
         RolePreviewService::stop($request);
 
-        return redirect()
-            ->route('superadmin.security')
+        $redirect = ($wasChurchAdmin && config('tenancy.enabled'))
+            ? \App\Support\ChurchHost::consoleUrl('/superadmin/churches')
+            : route('superadmin.security');
+
+        return redirect($redirect)
             ->with('success', __('pages.role_preview_stopped'));
+    }
+
+    public function stopPlatformAccess(Request $request)
+    {
+        abort_unless($request->user()?->is_superadmin, 403);
+
+        PlatformAccessService::stop($request);
+
+        return redirect(PlatformAccessService::consoleExitUrl())
+            ->with('success', __('workspace.platform_access_stopped'));
     }
 }

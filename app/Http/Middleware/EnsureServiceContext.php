@@ -19,6 +19,8 @@ class EnsureServiceContext
         'locale.switch',
         'theme.update',
         'profile',
+        // Hard-blocked students must upload a photo before picking service context.
+        'profile.picture.update',
         // courses.select* intentionally NOT excepted: service must be chosen before course.
     ];
 

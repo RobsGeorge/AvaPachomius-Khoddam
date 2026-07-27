@@ -8,8 +8,8 @@
             <div class="d-flex align-items-start gap-2 small">
                 <i class="bi bi-eye-fill fs-5 flex-shrink-0"></i>
                 <div>
-                    <strong>{{ __('pages.impersonate_banner_title') }}</strong>
-                    <span>{{ __('pages.impersonate_banner_body', [
+                    <strong>{{ __('workspace.view_as_banner_title') }}</strong>
+                    <span>{{ __('workspace.view_as_user_banner_body', [
                         'name' => $viewingAs->displayName(),
                         'roles' => $roleSummary !== '' ? $roleSummary : __('pages.no_roles_yet'),
                     ]) }}</span>
@@ -18,7 +18,7 @@
             <form method="POST" action="{{ route('superadmin.impersonate.stop') }}" class="m-0">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-dark">
-                    <i class="bi bi-box-arrow-left"></i> {{ __('pages.impersonate_exit') }}
+                    <i class="bi bi-box-arrow-left"></i> {{ __('workspace.view_as_exit') }}
                 </button>
             </form>
         </div>

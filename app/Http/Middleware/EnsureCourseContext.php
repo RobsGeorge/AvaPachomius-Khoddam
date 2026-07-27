@@ -18,6 +18,8 @@ class EnsureCourseContext
         'locale.switch',
         'theme.update',
         'profile',
+        // Hard-blocked students must upload a photo before picking course context.
+        'profile.picture.update',
         'notifications.index',
         'notifications.show',
         'notifications.settings',

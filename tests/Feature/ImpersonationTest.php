@@ -27,14 +27,14 @@ class ImpersonationTest extends EventModuleTestCase
 
         $this->actingAs($super)
             ->post(route('superadmin.impersonate'), ['user_id' => $target->user_id])
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(ImpersonationService::landingUrlFor($target));
 
         $this->assertSame($target->user_id, auth()->id());
         $this->assertSame($super->user_id, session(ImpersonationService::SESSION_KEY));
 
         $this->get(route('dashboard'))
             ->assertOk()
-            ->assertSee(__('pages.impersonate_banner_title'), false);
+            ->assertSee(__('workspace.view_as_banner_title'), false);
     }
 
     public function test_impersonation_works_under_multi_tenant_without_church_membership(): void
@@ -54,7 +54,7 @@ class ImpersonationTest extends EventModuleTestCase
 
         $this->actingAs($super)
             ->post(route('superadmin.impersonate'), ['user_id' => $target->user_id])
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(ImpersonationService::landingUrlFor($target));
 
         $this->get(route('dashboard'))->assertOk();
     }

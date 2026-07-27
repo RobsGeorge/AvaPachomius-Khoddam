@@ -3,6 +3,8 @@
 namespace App\Tenancy;
 
 use App\Services\ImpersonationService;
+use App\Services\PlatformAccessService;
+use App\Services\RolePreviewService;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -24,9 +26,16 @@ class EnsureChurchMember
         $user = $request->user();
         $church = TenantContext::current();
 
-        // Impersonation swaps Auth to the target; the acting superadmin must still
-        // be able to preview users who lack church_user (legacy / incomplete membership).
+        // Impersonation / View-as: acting superadmin may lack church_user on this host.
         if ($user && ImpersonationService::isActive() && ImpersonationService::impersonator()) {
+            return $next($request);
+        }
+
+        if ($user && ($user->is_superadmin ?? false) && RolePreviewService::isActive()) {
+            return $next($request);
+        }
+
+        if ($user && ($user->is_superadmin ?? false) && PlatformAccessService::isActive()) {
             return $next($request);
         }
 

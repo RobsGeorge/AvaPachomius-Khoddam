@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AuditLogService;
 use App\Services\CourseContextService;
 use App\Services\RegistrationApplicationService;
+use App\Support\ChurchHost;
 use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,7 +21,11 @@ class LoginController extends Controller
 
     public function showLoginForm()
     {
-        return view('auth.login');
+        // Avoid bfcache keeping a stale CSRF token after force-logout / session flush.
+        return response()
+            ->view('auth.login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     public function login(Request $request)
@@ -57,7 +62,11 @@ class LoginController extends Controller
                 Auth::logout();
             } else {
                 $loginSucceeded = true;
-                $redirectRoute = $this->courseContext->resolvePostLoginRoute($user);
+                if (($user->is_superadmin ?? false) && config('tenancy.enabled') && ChurchHost::isConsoleHost()) {
+                    $redirectRoute = 'superadmin.index';
+                } else {
+                    $redirectRoute = $this->courseContext->resolvePostLoginRoute($user);
+                }
             }
         } else {
             $failureReason = 'Invalid credentials';

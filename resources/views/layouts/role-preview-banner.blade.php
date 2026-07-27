@@ -4,14 +4,14 @@
             <div class="d-flex align-items-start gap-2 small">
                 <i class="bi bi-person-badge-fill fs-5 flex-shrink-0"></i>
                 <div>
-                    <strong>{{ __('pages.role_preview_banner_title') }}</strong>
-                    <span>{{ __('pages.role_preview_banner_body', ['label' => \App\Services\RolePreviewService::label()]) }}</span>
+                    <strong>{{ __('workspace.view_as_banner_title') }}</strong>
+                    <span>{{ __('workspace.view_as_role_banner_body', ['label' => \App\Services\RolePreviewService::label()]) }}</span>
                 </div>
             </div>
             <form method="POST" action="{{ route('superadmin.role-preview.stop') }}" class="m-0">
                 @csrf
                 <button type="submit" class="btn btn-sm btn-dark">
-                    <i class="bi bi-box-arrow-left"></i> {{ __('pages.role_preview_exit') }}
+                    <i class="bi bi-box-arrow-left"></i> {{ __('workspace.view_as_exit') }}
                 </button>
             </form>
         </div>

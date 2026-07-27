@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Church;
 use App\Models\User;
+use App\Support\ChurchHost;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -49,6 +52,10 @@ class ImpersonationService
             throw ValidationException::withMessages([
                 'user' => [__('pages.impersonate_while_role_preview')],
             ]);
+        }
+
+        if (PlatformAccessService::isActive()) {
+            PlatformAccessService::stop($request);
         }
 
         if ((int) $impersonator->user_id === (int) $target->user_id) {
@@ -120,5 +127,29 @@ class ImpersonationService
         }
 
         return array_values(array_unique($summary));
+    }
+
+    public static function landingUrlFor(User $target): string
+    {
+        if (! config('tenancy.enabled')) {
+            return route('dashboard');
+        }
+
+        $current = TenantContext::current();
+        if ($current && $target->belongsToChurch($current->church_id)) {
+            return ChurchHost::url($current, '/dashboard');
+        }
+
+        $church = $target->churches()
+            ->where('church.status', 'active')
+            ->wherePivot('status', 'active')
+            ->orderBy('church.name')
+            ->first();
+
+        if ($church) {
+            return ChurchHost::url($church, '/dashboard');
+        }
+
+        return route('dashboard');
     }
 }

@@ -30,23 +30,27 @@ class ProfileController extends Controller
 
         $attendanceUrl = route('attendance.sessions', ['user_id' => $user->user_id], true);
 
-        return view('profile.show', [
-            'user' => $user,
-            'attendanceUrl' => $attendanceUrl,
-            'fullName' => $fullName,
-            'photoGateBlocked' => $this->photoGate->isHardBlocked($user),
-            'photoDeadline' => $this->photoGate->deadlineFor($user),
-            'photoDaysRemaining' => $this->photoGate->daysRemaining($user),
-            'photoPendingReview' => $this->photoGate->shouldShowPendingBanner($user),
-            'photoRejected' => $this->photoGate->shouldShowRejectedBanner($user),
-            'photoRejectionNote' => $user->profile_photo_rejection_note,
-        ]);
+        return response()
+            ->view('profile.show', [
+                'user' => $user,
+                'attendanceUrl' => $attendanceUrl,
+                'fullName' => $fullName,
+                'photoGateBlocked' => $this->photoGate->isHardBlocked($user),
+                'photoDeadline' => $this->photoGate->deadlineFor($user),
+                'photoDaysRemaining' => $this->photoGate->daysRemaining($user),
+                'photoPendingReview' => $this->photoGate->shouldShowPendingBanner($user),
+                'photoRejected' => $this->photoGate->shouldShowRejectedBanner($user),
+                'photoRejectionNote' => $user->profile_photo_rejection_note,
+            ])
+            // Avoid bfcache keeping a stale CSRF token on the upload form.
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0')
+            ->header('Pragma', 'no-cache');
     }
 
     public function updatePicture(Request $request)
     {
         $request->validate([
-            'profile_photo' => 'image|max:2048',
+            'profile_photo' => 'required|image|max:2048',
         ]);
 
         $user = Auth::user();
