@@ -147,4 +147,43 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
 
         $this->assertTrue(RolePreviewService::isChurchAdminMode());
     }
+
+    public function test_signed_church_workflow_links_validate_when_generated_on_console_host(): void
+    {
+        config([
+            'app.url' => 'https://admin.staging.example',
+            'tenancy.enabled' => true,
+            'tenancy.console_host' => 'admin.staging.example',
+            'tenancy.base_domain' => 'staging.example',
+        ]);
+
+        $church = Church::main();
+        $super = $this->createUser([
+            'is_superadmin' => true,
+            'email' => 'workspace-signed-console@example.com',
+            'registration_completed' => true,
+        ]);
+
+        $churchHost = ChurchHost::hostFor($church);
+
+        $this->withServerVariables(['HTTP_HOST' => 'admin.staging.example']);
+
+        $viewAsUrl = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.view-as.start', $church);
+        $platformUrl = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.platform-enter.start', $church);
+
+        $this->assertStringStartsWith('https://'.$churchHost, $viewAsUrl);
+        $this->assertStringStartsWith('https://'.$churchHost, $platformUrl);
+
+        $this->withServerVariables(['HTTP_HOST' => $churchHost])
+            ->actingAs($super)
+            ->get($viewAsUrl)
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('success');
+
+        $this->withServerVariables(['HTTP_HOST' => $churchHost])
+            ->actingAs($super)
+            ->get($platformUrl)
+            ->assertRedirect(route('dashboard'))
+            ->assertSessionHas('success');
+    }
 }

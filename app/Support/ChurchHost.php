@@ -135,14 +135,16 @@ final class ChurchHost
     ): string {
         $expiration ??= now()->addMinutes(5);
         $params = is_array($parameters) ? $parameters : ['church' => $parameters];
-        $signed = URL::temporarySignedRoute($routeName, $expiration, $params);
-        $parts = parse_url($signed) ?: [];
-        $path = $parts['path'] ?? '/';
-        $query = $parts['query'] ?? '';
-        $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
-        $port = parse_url((string) config('app.url'), PHP_URL_PORT);
-        $portSuffix = $port ? ':'.$port : '';
 
-        return $scheme.'://'.self::hostFor($church).$portSuffix.$path.($query !== '' ? '?'.$query : '');
+        // Sign against the church host — Laravel validates the full URL, not just path/query.
+        $churchRoot = rtrim(self::url($church), '/');
+        $appRoot = rtrim((string) config('app.url'), '/');
+
+        URL::forceRootUrl($churchRoot);
+        try {
+            return URL::temporarySignedRoute($routeName, $expiration, $params);
+        } finally {
+            URL::forceRootUrl($appRoot !== '' ? $appRoot : null);
+        }
     }
 }
