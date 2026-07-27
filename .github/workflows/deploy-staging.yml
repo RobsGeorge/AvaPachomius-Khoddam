@@ -90,6 +90,7 @@ jobs:
             # Staging does NOT cache config/routes/views — you want .env edits to take
             # effect immediately while developing.
             $PHP_BIN artisan optimize:clear
+            mkdir -p storage/framework/cache/data
 
             step "storage link"
             if [ ! -L public/storage ]; then
