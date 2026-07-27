@@ -58,7 +58,7 @@ class ChurchFoundationTest extends EventModuleTestCase
     public function test_membership_governs_belongs_to_church(): void
     {
         $main = Church::main();
-        $other = Church::create(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
+        $other = $this->createChurch(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
         $user = $this->createUser(['email' => 'church-member@example.com']);
 
         ChurchUser::create([

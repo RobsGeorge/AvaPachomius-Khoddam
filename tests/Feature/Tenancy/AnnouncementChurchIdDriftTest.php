@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Tenancy;
 
+use App\Database\MigrationSupport;
 use App\Models\Announcement;
 use App\Models\Church;
 use App\Models\UserNotification;
 use App\Services\AnnouncementService;
+use App\Tenancy\EnforceChurchIdNotNull;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -34,11 +36,23 @@ class AnnouncementChurchIdDriftTest extends EventModuleTestCase
     /** Drop church_id from announcements the way a long-lived un-migrated DB has it. */
     private function simulateDrift(): void
     {
+        // MySQL: the index backs the FK — drop the FK first (error 1553 otherwise).
+        if (Schema::getConnection()->getDriverName() === 'mysql'
+            && MigrationSupport::foreignKeyExists('announcements', 'announcements_church_id_foreign')) {
+            Schema::table('announcements', function ($t) {
+                $t->dropForeign(['church_id']);
+            });
+        }
+
         // SQLite refuses DROP COLUMN while an index still references the column,
         // so drop the index first. Use the column-array form so Laravel resolves
         // the index name per driver (do not hardcode announcements_church_id_index).
         Schema::table('announcements', function ($t) {
-            $t->dropIndex(['church_id']);
+            try {
+                $t->dropIndex(['church_id']);
+            } catch (\Throwable) {
+                // MySQL may have removed the index with the FK.
+            }
             $t->dropColumn('church_id');
         });
         $this->assertFalse(Schema::hasColumn('announcements', 'church_id'));
@@ -86,6 +100,9 @@ class AnnouncementChurchIdDriftTest extends EventModuleTestCase
     public function test_reconcile_backfills_null_church_id_so_enforced_tenancy_sees_legacy_rows(): void
     {
         $author = $this->createUser(['email' => 'legacy-author@example.com']);
+
+        // T7 made church_id NOT NULL on MySQL; relax so we can plant a legacy NULL row.
+        EnforceChurchIdNotNull::relaxNotNullOnMysql();
 
         // A legacy row left with NULL church_id (created before the column/backfill existed).
         DB::table('announcements')->insert([

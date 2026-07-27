@@ -30,7 +30,7 @@ class TenantIsolationTest extends EventModuleTestCase
         $this->assertTrue(trait_exists(\App\Tenancy\BelongsToChurch::class));
 
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
 
         // Write: each row is auto-stamped with the church active at creation time.
         TenantContext::set($churchA);
@@ -62,7 +62,7 @@ class TenantIsolationTest extends EventModuleTestCase
     public function test_church_management_models_are_isolated_by_church(): void
     {
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stmina-t5', 'name' => 'St Mina', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stmina-t5', 'name' => 'St Mina', 'status' => 'active']);
 
         $userA = $this->createUser(['email' => 'priest-a@example.com']);
         $userB = $this->createUser(['email' => 'priest-b@example.com']);
@@ -97,7 +97,7 @@ class TenantIsolationTest extends EventModuleTestCase
     public function test_finance_models_are_isolated_by_church(): void
     {
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stmark-t6', 'name' => 'St Mark T6', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stmark-t6', 'name' => 'St Mark T6', 'status' => 'active']);
 
         TenantContext::set($churchA);
         $runA = \App\Models\PayrollRun::create([
@@ -128,7 +128,7 @@ class TenantIsolationTest extends EventModuleTestCase
     public function test_a_foreign_church_id_cannot_be_mass_assigned(): void
     {
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
 
         // church_id is not mass-assignable; passing another church's id is ignored and the
         // row is stamped to the active church, so a write can never land in another tenant.
