@@ -752,10 +752,10 @@ return [
                 'system_only' => true,
             ],
             'platform.course_crud' => [
-                'label_en' => 'Create/delete courses',
-                'label_ar' => 'إنشاء/حذف الدورات',
+                'label_en' => 'Create/edit/delete courses',
+                'label_ar' => 'إنشاء/تعديل/حذف الدورات',
                 'type' => 'endpoint',
-                'routes' => ['superadmin.courses.store', 'superadmin.courses.destroy', 'superadmin.courses'],
+                'routes' => ['superadmin.courses.store', 'superadmin.courses.update', 'superadmin.courses.destroy', 'superadmin.courses'],
                 'system_only' => true,
             ],
             'platform.service_crud' => [

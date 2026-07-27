@@ -63,12 +63,22 @@
                                         </td>
                                     </tr>
                                     @foreach($serviceCourses as $course)
-                                        @include('superadmin.partials.course-row', ['course' => $course, 'requiresChurch' => true])
+                                        @include('superadmin.partials.course-row', [
+                                            'course' => $course,
+                                            'requiresChurch' => true,
+                                            'services' => $services,
+                                            'churches' => $churches,
+                                        ])
                                     @endforeach
                                 @endforeach
                             @else
                                 @foreach($churchCourses as $course)
-                                    @include('superadmin.partials.course-row', ['course' => $course, 'requiresChurch' => false])
+                                    @include('superadmin.partials.course-row', [
+                                        'course' => $course,
+                                        'requiresChurch' => false,
+                                        'services' => $services,
+                                        'churches' => $churches,
+                                    ])
                                 @endforeach
                             @endif
                         @empty

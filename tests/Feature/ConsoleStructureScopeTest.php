@@ -117,6 +117,78 @@ class ConsoleStructureScopeTest extends EventModuleTestCase
         $this->assertSame((int) $service->service_id, (int) $course->service_id);
     }
 
+    public function test_console_course_update_requires_matching_church_and_service(): void
+    {
+        config([
+            'tenancy.enabled' => true,
+            'tenancy.console_host' => 'admin.test',
+            'tenancy.base_domain' => 'test',
+        ]);
+
+        $church = Church::main();
+        $otherChurch = Church::query()->where('church_id', '!=', $church->church_id)->first();
+        if (! $otherChurch) {
+            $otherChurch = Church::query()->create([
+                'slug' => 'console-scope-update-other',
+                'name' => 'Other Update Church',
+                'status' => 'active',
+            ]);
+        }
+
+        $service = $this->createService(['title' => 'Update Scope Service']);
+        $service->church_id = $church->church_id;
+        $service->save();
+
+        $otherService = $this->createService(['title' => 'Other Update Service']);
+        $otherService->church_id = $otherChurch->church_id;
+        $otherService->save();
+
+        $course = $this->createCourse([
+            'title' => 'Console Editable Course',
+            'description' => 'Before',
+            'year' => 2026,
+            'service_id' => $service->service_id,
+            'default_session_start_time' => '09:00:00',
+        ]);
+        $course->church_id = $church->church_id;
+        $course->save();
+
+        $super = $this->createUser([
+            'is_superadmin' => true,
+            'email' => 'console-course-update@example.com',
+            'registration_completed' => true,
+        ]);
+
+        $this->withServerVariables(['HTTP_HOST' => 'admin.test'])
+            ->actingAs($super)
+            ->put(route('superadmin.courses.update', $course->course_id), [
+                'title' => 'Console Editable Course',
+                'description' => 'After',
+                'year' => 2026,
+                'default_session_start_time' => '09:00',
+                'church_id' => $church->church_id,
+                'service_id' => $otherService->service_id,
+            ])
+            ->assertSessionHasErrors('service_id');
+
+        $this->withServerVariables(['HTTP_HOST' => 'admin.test'])
+            ->actingAs($super)
+            ->put(route('superadmin.courses.update', $course->course_id), [
+                'title' => 'Console Updated Course',
+                'description' => 'After',
+                'year' => 2027,
+                'default_session_start_time' => '11:00',
+                'church_id' => $church->church_id,
+                'service_id' => $service->service_id,
+            ])
+            ->assertRedirect(route('superadmin.courses'));
+
+        $course->refresh();
+        $this->assertSame('Console Updated Course', $course->title);
+        $this->assertSame('After', $course->description);
+        $this->assertSame(2027, (int) $course->year);
+    }
+
     public function test_console_services_index_groups_by_church(): void
     {
         config([

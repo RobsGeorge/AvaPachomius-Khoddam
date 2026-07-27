@@ -237,6 +237,69 @@ class SuperAdminController extends Controller
         return redirect()->route('superadmin.courses')->with('success', __('pages.course_created'));
     }
 
+    public function updateCourse(Request $request, string $id)
+    {
+        $course = Course::query()
+            ->when(SuperadminWorkspace::requiresExplicitChurchScope(), fn ($q) => $q->withoutTenancy())
+            ->findOrFail($id);
+
+        $rules = [
+            'title' => 'required|string|max:30',
+            'description' => 'required|string|max:255',
+            'year' => 'required|integer|min:2000|max:2100',
+            'default_session_start_time' => 'required|date_format:H:i',
+            'title_ar' => 'nullable|string|max:120',
+            'title_en' => 'nullable|string|max:120',
+            'description_ar' => 'nullable|string|max:2000',
+            'description_en' => 'nullable|string|max:2000',
+        ];
+
+        if (ChurchService::tableReady()) {
+            $rules['service_id'] = 'required|exists:service,service_id';
+        }
+
+        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $rules['church_id'] = 'required|integer|exists:church,church_id';
+        }
+
+        $request->validate($rules);
+
+        if (ChurchService::tableReady() && SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $service = ChurchService::query()->withoutTenancy()->findOrFail((int) $request->input('service_id'));
+            if ((int) $service->church_id !== (int) $request->input('church_id')) {
+                throw ValidationException::withMessages([
+                    'service_id' => [__('pages.course_service_church_mismatch')],
+                ]);
+            }
+        }
+
+        $payload = [
+            'title' => $request->input('title'),
+            'description' => $request->input('description'),
+            'year' => $request->input('year'),
+            'default_session_start_time' => $request->input('default_session_start_time').':00',
+            'title_ar' => $request->input('title_ar'),
+            'title_en' => $request->input('title_en'),
+            'description_ar' => $request->input('description_ar'),
+            'description_en' => $request->input('description_en'),
+        ];
+
+        if (ChurchService::tableReady()) {
+            $payload['service_id'] = (int) $request->input('service_id');
+        }
+
+        $course->update($payload);
+
+        if (SuperadminWorkspace::requiresExplicitChurchScope()) {
+            $course->church_id = (int) $request->input('church_id');
+            $course->save();
+        }
+
+        return redirect()
+            ->route('superadmin.courses')
+            ->with('success', __('pages.course_updated'));
+    }
+
     public function destroyCourse(string $id)
     {
         $course = Course::findOrFail($id);
