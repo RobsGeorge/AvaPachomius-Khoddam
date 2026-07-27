@@ -41,10 +41,16 @@
     </div>
 </div>
 
+<script src="{{ asset('js/csrf-heal.js') }}?v=20260727a"></script>
 <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.16.1/dist/echo.iife.js"></script>
 <script>
 window.Pusher = Pusher;
+function liveCsrfToken() {
+    return window.KhoddamCsrf?.token?.()
+        || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || '';
+}
 window.Echo = new Echo({
     broadcaster: 'reverb',
     key: @json(config('broadcasting.connections.reverb.key')),
@@ -56,9 +62,18 @@ window.Echo = new Echo({
     authEndpoint: @json(url('/broadcasting/auth')),
     auth: {
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-CSRF-TOKEN': liveCsrfToken(),
         },
     },
+});
+window.addEventListener('csrf:refreshed', (event) => {
+    const token = event.detail?.token || liveCsrfToken();
+    if (window.Echo?.options?.auth?.headers) {
+        window.Echo.options.auth.headers['X-CSRF-TOKEN'] = token;
+    }
+    if (window.Echo?.connector?.pusher?.config?.auth?.headers) {
+        window.Echo.connector.pusher.config.auth.headers['X-CSRF-TOKEN'] = token;
+    }
 });
 let timerInterval = null;
 function renderPayload(p) {
