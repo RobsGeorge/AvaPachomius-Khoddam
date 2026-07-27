@@ -8,7 +8,6 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserChurchRole;
 use App\Services\ChurchProvisioningService;
-use App\Services\PlatformAccessService;
 use App\Support\ChurchHost;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
@@ -285,7 +284,10 @@ class ChurchProvisioningTest extends EventModuleTestCase
         $super = $this->createUser(['email' => 'switcher-super@example.com', 'is_superadmin' => true]);
 
         TenantContext::set($church);
-        PlatformAccessService::start($church, $super, request());
+
+        $this->actingAs($super)
+            ->post(route('superadmin.churches.platform-enter', $church))
+            ->assertRedirect(ChurchHost::url($church, '/dashboard'));
 
         $html = $this->actingAs($super)->get('/dashboard')->assertOk()->getContent();
         $this->assertStringContainsString(__('tenancy.switch_church'), $html);

@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Church;
 use App\Models\User;
-use App\Services\PlatformAccessService;
 use App\Services\RolePreviewService;
 use App\Support\ChurchHost;
 use App\Support\SuperadminWorkspace;
@@ -87,10 +86,11 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
             'registration_completed' => true,
         ]);
 
-        PlatformAccessService::start($church, $super, request());
-        $this->actingAs($super);
+        $this->actingAs($super)
+            ->post(route('superadmin.churches.platform-enter', $church))
+            ->assertRedirect(ChurchHost::url($church, '/dashboard'));
 
-        $this->assertTrue(PlatformAccessService::isActive());
+        $this->assertTrue(\App\Services\PlatformAccessService::isActive());
         $this->assertTrue(RolePreviewService::superadminBypassesPermissions($super));
         $this->assertTrue(SuperadminWorkspace::showsMemberChrome($super));
     }
