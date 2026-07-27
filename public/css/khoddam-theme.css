@@ -855,8 +855,8 @@ body.theme-dark .app-dropdown-link:hover {
     margin-bottom: 0.5rem;
 }
 
-/* Keyframes kept for rare opt-in use; structural widgets must NOT auto-run them
-   (login/logout/locale full reloads were restarting fadeInUp from translateY → flicker). */
+/* Entrance motion is gated: widgets stay visible by default. JS adds
+   body.js-page-reveal only on first arrival at a path (not same-URL reload). */
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(var(--reveal-distance, 8px)); }
     to   { opacity: 1; transform: translateY(0); }
@@ -872,7 +872,21 @@ body.theme-dark .app-dropdown-link:hover {
     100% { background-position: 200% 0; }
 }
 
-/* .animate-in / .animate-delay-* remain valid Blade class markers with no motion. */
+body.js-page-reveal .app-card,
+body.js-page-reveal .card.app-card,
+body.js-page-reveal .app-tile,
+body.js-page-reveal .hub-tile,
+body.js-page-reveal .hub-link-tile,
+body.js-page-reveal .animate-in {
+    animation: fadeInUp var(--reveal-duration, 1.5s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+body.js-page-reveal .accordion-item,
+body.js-page-reveal .roles-hub-panel {
+    animation: khoddamFadeIn calc(var(--reveal-duration, 1.5s) * 0.9) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* .animate-delay-* remain valid Blade class markers (delays set by initReveal when gated). */
 
 /* Roles hub — theme-aware panels and accordion */
 .roles-hub .accordion-button {
