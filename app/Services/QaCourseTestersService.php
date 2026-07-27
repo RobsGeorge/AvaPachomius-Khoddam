@@ -267,6 +267,12 @@ class QaCourseTestersService
             $courseIds = [$courseId];
         }
 
+        if ($password !== null && strlen($password) < 8) {
+            throw ValidationException::withMessages([
+                'password' => 'Password must be at least 8 characters when provided.',
+            ]);
+        }
+
         $courses = $this->resolveCourses($courseIds);
         $plan = $this->buildMatrixPlan($courses, $admins, $instructors, $students);
         $plain = $password ?: ('QaTesters-'.Str::password(10, symbols: false).'!');

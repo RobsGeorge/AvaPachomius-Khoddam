@@ -154,8 +154,97 @@ class ResilientFileStoreTest extends TestCase
         }
     }
 
+    public function test_non_missing_path_errors_are_not_swallowed(): void
+    {
+        $files = new class extends Filesystem
+        {
+            public function put($path, $contents, $lock = false)
+            {
+                throw new \ErrorException('Permission denied');
+            }
+        };
+
+        $directory = storage_path('framework/cache/resilient-perm-'.uniqid('', true));
+        $files->makeDirectory($directory, 0777, true, true);
+        $store = new ResilientFileStore($files, $directory);
+
+        try {
+            $this->expectException(\ErrorException::class);
+            $this->expectExceptionMessage('Permission denied');
+            $store->put('denied-key', 'x', 60);
+        } finally {
+            if (is_dir($directory)) {
+                (new Filesystem)->deleteDirectory($directory);
+            }
+        }
+    }
+
+    public function test_non_error_exception_throwables_are_not_swallowed(): void
+    {
+        $files = new class extends Filesystem
+        {
+            public function put($path, $contents, $lock = false)
+            {
+                throw new \RuntimeException('disk exploded');
+            }
+        };
+
+        $directory = storage_path('framework/cache/resilient-runtime-'.uniqid('', true));
+        $files->makeDirectory($directory, 0777, true, true);
+        $store = new ResilientFileStore($files, $directory);
+
+        try {
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('disk exploded');
+            $store->put('boom-key', 'x', 60);
+        } finally {
+            if (is_dir($directory)) {
+                (new Filesystem)->deleteDirectory($directory);
+            }
+        }
+    }
+
+    public function test_add_does_not_overwrite_existing_key_after_recovery(): void
+    {
+        $this->assertTrue($this->store->add('once-key', 'first', 60));
+        $this->wipeHashDirectories();
+
+        // Key payload is gone with the hash dirs; add should recreate and succeed.
+        $this->assertTrue($this->store->add('once-key', 'second', 60));
+        $this->assertSame('second', $this->store->get('once-key'));
+
+        // With directory intact, add must refuse overwrite.
+        $this->assertFalse($this->store->add('once-key', 'third', 60));
+        $this->assertSame('second', $this->store->get('once-key'));
+    }
+
+    public function test_put_handles_keys_with_colons_and_unicode(): void
+    {
+        $key = 'tenant:كنيسة:rate-limit:42';
+        $this->wipeHashDirectories();
+        $this->assertTrue($this->store->put($key, ['ok' => true], 60));
+        $this->assertSame(['ok' => true], $this->store->get($key));
+    }
+
+    public function test_repeated_flush_and_put_cycles_do_not_throw(): void
+    {
+        for ($i = 0; $i < 5; $i++) {
+            $this->assertTrue($this->store->put('cycle-'.$i, 'v'.$i, 30));
+            $this->wipeHashDirectories();
+            if ($i % 2 === 0) {
+                $this->files->deleteDirectory($this->directory);
+            }
+            $this->assertTrue($this->store->put('cycle-'.$i, 'v'.$i.'-b', 30));
+            $this->assertSame('v'.$i.'-b', $this->store->get('cycle-'.$i));
+        }
+    }
+
     private function wipeHashDirectories(): void
     {
+        if (! is_dir($this->directory)) {
+            return;
+        }
+
         foreach ($this->files->directories($this->directory) as $directory) {
             $this->files->deleteDirectory($directory);
         }
