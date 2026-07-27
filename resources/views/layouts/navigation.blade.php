@@ -6,6 +6,9 @@
     $academicLinks = NavigationHub::academicLinks($navUser);
     $serviceLinks = NavigationHub::serviceLinks($navUser);
     $systemLinks = NavigationHub::systemLinks($navUser);
+    $academicSections = NavigationHub::groupedSections($academicLinks, NavigationHub::academicSectionDefinitions());
+    $serviceSections = NavigationHub::groupedSections($serviceLinks, NavigationHub::serviceSectionDefinitions());
+    $systemSections = NavigationHub::groupedSections($systemLinks, NavigationHub::systemSectionDefinitions());
     $superadminSections = NavigationHub::superadminSections($navUser);
     $hasService = NavigationHub::hasService($navUser);
     $hasSystem = NavigationHub::hasSystem($navUser);
@@ -264,14 +267,7 @@
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
-                                @foreach($academicLinks as $link)
-                                    <li>
-                                        <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
-                                           href="{{ $link['url'] }}">
-                                            @include('partials.icon', ['icon' => $link['icon'], 'class' => 'me-2']){{ $link['label'] }}
-                                        </a>
-                                    </li>
-                                @endforeach
+                                @include('partials.nav-link-sections', ['sections' => $academicSections])
                             </ul>
                         </div>
 
@@ -289,14 +285,7 @@
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    @foreach($serviceLinks as $link)
-                                        <li>
-                                            <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
-                                               href="{{ $link['url'] }}">
-                                                @include('partials.icon', ['icon' => $link['icon'], 'class' => 'me-2']){{ $link['label'] }}
-                                            </a>
-                                        </li>
-                                    @endforeach
+                                    @include('partials.nav-link-sections', ['sections' => $serviceSections])
                                 </ul>
                             </div>
                         @endif
@@ -315,14 +304,7 @@
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
-                                    @foreach($systemLinks as $link)
-                                        <li>
-                                            <a class="dropdown-item app-dropdown-link {{ $link['active'] ? 'active fw-semibold' : '' }}"
-                                               href="{{ $link['url'] }}">
-                                                @include('partials.icon', ['icon' => $link['icon'], 'class' => 'me-2']){{ $link['label'] }}
-                                            </a>
-                                        </li>
-                                    @endforeach
+                                    @include('partials.nav-link-sections', ['sections' => $systemSections])
                                 </ul>
                             </div>
                         @endif
@@ -469,11 +451,7 @@
                             <a href="{{ route('hubs.academic') }}" class="app-nav-link small {{ request()->routeIs('hubs.academic') ? 'active' : '' }}" @click="navOpen = false">
                                 <i class="bi bi-grid me-1"></i>{{ __('nav.academic') }}
                             </a>
-                            @foreach($academicLinks as $link)
-                                <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
-                                    @include('partials.icon', ['icon' => $link['icon'], 'class' => 'me-1']){{ $link['label'] }}
-                                </a>
-                            @endforeach
+                            @include('partials.nav-link-sections', ['sections' => $academicSections, 'mobile' => true])
                         </div>
                     </details>
 
@@ -487,11 +465,7 @@
                                 <a href="{{ route('hubs.service') }}" class="app-nav-link small {{ request()->routeIs('hubs.service') ? 'active' : '' }}" @click="navOpen = false">
                                     <i class="fas fa-church me-1"></i>{{ __('nav.service') }}
                                 </a>
-                                @foreach($serviceLinks as $link)
-                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
-                                        @include('partials.icon', ['icon' => $link['icon'], 'class' => 'me-1']){{ $link['label'] }}
-                                    </a>
-                                @endforeach
+                                @include('partials.nav-link-sections', ['sections' => $serviceSections, 'mobile' => true])
                             </div>
                         </details>
                     @endif
@@ -506,11 +480,7 @@
                                 <a href="{{ route('hubs.system') }}" class="app-nav-link small {{ request()->routeIs('hubs.system') ? 'active' : '' }}" @click="navOpen = false">
                                     <i class="bi bi-gear me-1"></i>{{ __('nav.system_settings') }}
                                 </a>
-                                @foreach($systemLinks as $link)
-                                    <a href="{{ $link['url'] }}" class="app-nav-link small {{ $link['active'] ? 'active' : '' }}" @click="navOpen = false">
-                                        @include('partials.icon', ['icon' => $link['icon'], 'class' => 'me-1']){{ $link['label'] }}
-                                    </a>
-                                @endforeach
+                                @include('partials.nav-link-sections', ['sections' => $systemSections, 'mobile' => true])
                             </div>
                         </details>
                     @endif

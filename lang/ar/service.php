@@ -85,5 +85,7 @@ return [
     'open_roles' => 'فتح أدوار الخدمة',
     'hub_section_ops' => 'العضوية والتبديل',
     'hub_section_admin' => 'الإدارة',
+    'hub_section_pastoral' => 'الرعاية الرعوية',
+    'hub_section_finance' => 'المالية',
     'courses_count' => 'الدورات',
 ];

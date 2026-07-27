@@ -85,5 +85,7 @@ return [
     'open_roles' => 'Open service roles',
     'hub_section_ops' => 'Membership & switching',
     'hub_section_admin' => 'Administration',
+    'hub_section_pastoral' => 'Pastoral care',
+    'hub_section_finance' => 'Finance',
     'courses_count' => 'Courses',
 ];
