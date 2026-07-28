@@ -1,4 +1,4 @@
-# Staging acceptance checklist — T7 + T8
+# Staging acceptance checklist — T7 + T8 + T10c
 
 One-page runbook for **staging sign-off** before production `MULTI_TENANT=true`.
 See also: [`tenancy-cutover.md`](tenancy-cutover.md), [`architecture/multi-subsidiary/P6-pilot.md`](architecture/multi-subsidiary/P6-pilot.md).
@@ -9,7 +9,7 @@ See also: [`tenancy-cutover.md`](tenancy-cutover.md), [`architecture/multi-subsi
 cd /var/www/khedma-staging
 php8.2 artisan migrate:deploy --force
 php8.2 artisan tenancy:acceptance-check --expect-multi-tenant --repair-orgs
-php8.2 vendor/bin/phpunit tests/Feature/Tenancy tests/Feature/Structure
+php8.2 vendor/bin/phpunit tests/Feature/Tenancy tests/Feature/Structure tests/Feature/PublicSite
 ```
 
 ---
@@ -134,6 +134,55 @@ Parked in `PARKING-LOT.md` — do **not** block T7/T8 acceptance on these:
 
 ---
 
+## Part C — T10c public homepage CMS
+
+Run **after** T10c migrations are on staging (can parallel with T7/T8 smoke).
+
+### C1. Deploy & automated gate
+
+```bash
+php8.2 artisan migrate:deploy --force
+php8.2 artisan permissions:sync
+php8.2 artisan tenancy:acceptance-check --t10c
+php8.2 vendor/bin/phpunit tests/Feature/PublicSite
+```
+
+| Automated check | Pass |
+|-----------------|------|
+| `church_site`, `church_site_section`, `church_media` tables | Present |
+| `public_site` capability + `public_site.*` permissions | In config + DB after sync |
+| Routes `site.homepage.edit`, `site.homepage.publish`, `site.homepage.unpublish` | Registered |
+| `HomepageEditorController` + `ChurchSiteService` | Present |
+
+### C2. Manual smoke
+
+| # | Check | Pass |
+|---|--------|------|
+| 1 | Church admin opens `/site/homepage` | Editor loads |
+| 2 | Add hero section, save draft | Section visible in editor |
+| 3 | Publish homepage | `published_at` set; guest `GET /` shows public homepage (not login) |
+| 4 | Unpublish | Guest `GET /` redirects to login |
+| 5 | Upload gallery image | `church_media` row + storage path |
+| 6 | Church B admin cannot edit Church A sections | Tenant isolation |
+| 7 | Servant without `public_site.manage` | 403 on editor |
+| 8 | Publish/unpublish writes `audit_log` | Event visible |
+
+### C3. T10 residual (not required for sign-off)
+
+Parked in `PARKING-LOT.md` — do **not** block T10c acceptance on these:
+
+- **T10d** multi-page (`church_site_page`)
+- Custom-domain TLS automation (manual DNS for pilots)
+- DB-per-tenant / white-label mobile (enterprise tracks)
+
+### T10c sign-off
+
+- [ ] `tenancy:acceptance-check --t10c` passes on staging
+- [ ] `tests/Feature/PublicSite` green
+- [ ] Manual table (C2) spot-checked
+
+---
+
 ## Rollback
 
 | Action | Effect |
@@ -152,4 +201,5 @@ Parked in `PARKING-LOT.md` — do **not** block T7/T8 acceptance on these:
 | Staging deploy SHA | |
 | T7 approved by | |
 | T8 approved by | |
+| T10c approved by | |
 | Notes | |

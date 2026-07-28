@@ -110,12 +110,12 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T10c in progress (expand).** T0–T10b landed on staging (T9 cycle
-progression; T10a public profile; T10b branding). **T10c** curated homepage CMS is the
-current coding track.
-T8 residual (UCR contract) and T9 people-only / staff reassign stay parked. Keep
-`MULTI_TENANT=false` in production until staging pilot is signed off. Polymorphic
-applications / public church-registration remain parked (§13 / §17.4).
+**Current phase: post-T10c ops sign-off.** T0–T10c landed on staging (structure templates,
+service cycles, public profile/branding/homepage CMS, observability W0–W6). **Next:** complete
+[`staging-acceptance-checklist.md`](staging-acceptance-checklist.md) (T7 + T8 + T10c) before
+production `MULTI_TENANT=true`. T8 residual (UCR contract), T9 people-only / staff reassign,
+and **T10d** multi-page stay parked. Polymorphic applications / public church-registration
+remain parked (§13 / §17.4).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -131,7 +131,7 @@ applications / public church-registration remain parked (§13 / §17.4).
 | **T7** *(contract)* ✅ | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
 | **T8** *(expand)* | Structure templates + service wrap | template-driven levels | **T8a:** templates/anchors/`service_units`/`servants-prep`. **T8b:** slug routes, enrollments, attendance lock |
 | **T9** *(expand)* ✅ | Service cycle progression | End-of-Cycle wizard | **T9a:** progression policy + roster status. **T9b:** propose/confirm wizard. **T9c:** church school year + dashboard |
-| **T10** *(expand)* | Public Church Presence | public homepage CMS | **T10a:** profile. **T10b:** branding ✅. **T10c:** curated homepage — see `docs/public-church-cms.md` |
+| **T10** *(expand)* ✅ | Public Church Presence | public homepage CMS | **T10a:** profile. **T10b:** branding. **T10c:** curated homepage — see `docs/public-church-cms.md` |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
@@ -165,9 +165,9 @@ reassign stay parked.
 **T10b (landed):** church branding in `church.settings.branding` (logo + palette +
 fonts); `public_site.theme`; CSS vars on `/about` and optional portal chrome.
 
-**T10c (this track):** curated homepage CMS — `church_site*` tables, draft/publish editor,
+**T10c (landed):** curated homepage CMS — `church_site*` tables, draft/publish editor,
 publish-gate `GET /`. Detail in [`docs/public-church-cms.md`](public-church-cms.md).
-Feature-gap **F-20**. Do not build T10d multi-page in this slice.
+Feature-gap **F-20**. **T10d** multi-page remains parked.
 
 ## 8. Church management module
 

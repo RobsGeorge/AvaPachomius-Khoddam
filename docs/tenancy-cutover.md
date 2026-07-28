@@ -31,8 +31,9 @@ Contract phase for Khedma multi-church (master-plan §7 T7 / P6 pilot).
 5. Smoke: main slug, pilot slug, console host; isolation suite green;
    church switcher + login membership gate.
 
-**Checklist:** [`staging-acceptance-checklist.md`](staging-acceptance-checklist.md)  
-**Automated gate:** `php artisan tenancy:acceptance-check --expect-multi-tenant --repair-orgs`
+**Checklist:** [`staging-acceptance-checklist.md`](staging-acceptance-checklist.md) (T7 + T8 + T10c)  
+**Automated gate:** `php artisan tenancy:acceptance-check --expect-multi-tenant --repair-orgs`  
+**T10c only:** `php artisan tenancy:acceptance-check --t10c` after `permissions:sync`
 
 ## Production
 

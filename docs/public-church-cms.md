@@ -1,7 +1,6 @@
 # Public Church Presence — Homepage CMS (T10)
 
-**Status:** Design locked. **T10a + T10b landed**; **T10c (homepage CMS) in flight** on branch
-`feat/t10c-homepage-cms`. **T10d multi-page** remains parked.  
+**Status:** Design locked. **T10a + T10b + T10c landed** on staging. **T10d multi-page** remains parked.  
 **Do not build** freeform builder or `church_site_page` until T10d kickoff.  
 **Roadmap slot:** **T10** in [`khedma-master-plan.md`](khedma-master-plan.md) §7.
 
@@ -16,8 +15,8 @@
 |------|----------|-----|
 | Public profile fields + admin UI (T10a) | T9 smoke-checked | **Landed** — `church.settings.public` + `/about` |
 | Branding self-service wired to chrome (T10b) | T10a landed | **Landed** — `church.settings.branding` + `public_site.theme` |
-| Homepage CMS schema/editor/renderer (T10c) | T10a + T10b | **In flight** — `church_site*` + curated editor + publish-gate `/` |
-| Multi-page site (T10d) | T10c merged + smoke | Homepage-only first |
+| Homepage CMS schema/editor/renderer (T10c) | T10a + T10b | **Landed** — `church_site*` + curated editor + publish-gate `/` |
+| Multi-page site (T10d) | T10c sign-off | Homepage-only first |
 | Custom-domain TLS automation | Ops demand | Manual DNS/TLS per domain is enough for early pilots |
 | DB-per-tenant (Tier 3) in same SaaS app | Enterprise program | Not built; use Tier 4 dedicated deploy if needed now |
 | White-label mobile store apps (M2) | Mobile MVP M1 | Separate product track |

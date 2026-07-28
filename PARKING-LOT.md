@@ -129,7 +129,7 @@ status fields; resolver + create/edit UX; eligibility (inactive/hold excluded fr
 **T9b (landed / stacked):** End-of-Cycle wizard (propose → confirm → apply); ladder edges in
 `progression_config`; UCR dual-write promote; audit + admin notify; people-only still skipped.
 
-**T9c (in flight):** `church_school_year` season + Church Cycle Dashboard + Start promotion season
+**T9c (landed):** `church_school_year` season + Church Cycle Dashboard + Start promotion season
 (no global blind upgrade).
 
 **Still parked for later PRs:**
@@ -138,7 +138,7 @@ status fields; resolver + create/edit UX; eligibility (inactive/hold excluded fr
 2. Optional staff-only reassign step beyond shared enrollment promote.
 
 **Resume when:** T9c merged to staging; then people-only / staff residual as needed.
-## Public Church Presence / Homepage CMS (T10b landed; T10c in flight; T10d parked)
+## Public Church Presence / Homepage CMS (T10a–T10c landed; T10d parked)
 
 **Requested:** After portal church config + public church details, a permission-gated
 **curated-section homepage editor** (colors, fonts, themes, sections, images,
@@ -152,11 +152,12 @@ homepage-first curated sections; capability `public_site` + keys
 notes for dedicated DB (Tier 4 now / Tier 3 later) and white-label mobile (M2).
 Plan: `.cursor/plans/church_homepage_cms_4247561e.plan.md`.
 
-**Status:** **T10a + T10b landed.** **T10c** (homepage CMS — `church_site*`, curated editor,
-publish-gate `/`) is the current expand slice. **T10d multi-page** remains parked.
+**Status:** **T10a + T10b + T10c landed** on staging. Sign-off:
+`docs/staging-acceptance-checklist.md` Part C + `php artisan tenancy:acceptance-check --t10c`.
+**T10d multi-page** remains parked.
 
-**Resume when:** T10c merged + smoke-checked. Next: T10d multi-page (optional) or ops polish.
-Feature-gap **F-20**.
+**Resume when:** T10c signed off. Next: T10d multi-page (optional) or ops polish.
+Feature-gap **F-20** (delivered for homepage v1).
 
 ## Contact verification (mobile-first) (parked 2026-07-25)
 
@@ -271,12 +272,8 @@ server load, and church/service usage windows — portable across cloud provider
 - **Waves:** W0 contracts → W1 events/UI → W2 beacon → W3 usage → W4 infra →
   W5 church portal → W6 sinks/alerts/retention.
 
-**Status:** Implementation on `feat/observability-platform` (explicitly prioritized
-despite earlier “post-T7” note). Keep additive schema; tenant isolation tests required.
-
-**Resume / follow-ups after merge:** Hostinger (or other) infra adapter only if needed;
-church-admin stack sanitization polish; plaintext `login_trials` passwords remain
-separate security debt (observability must never store secrets).
+**Status:** **Landed** on staging (PR #91). Follow-ups: optional Hostinger infra adapter;
+church-admin stack sanitization polish; `login_trials` plaintext password debt (separate).
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

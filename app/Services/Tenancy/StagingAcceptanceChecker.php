@@ -8,10 +8,11 @@ use App\Models\Organization;
 use App\Models\StructureTemplate;
 use App\Services\ChurchProvisioningService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Automated checks for docs/staging-acceptance-checklist.md (T7 + T8).
+ * Automated checks for docs/staging-acceptance-checklist.md (T7 + T8 + T10c).
  */
 class StagingAcceptanceChecker
 {
@@ -184,6 +185,88 @@ class StagingAcceptanceChecker
             $results[] = $this->pass('attendance_lock', 'attendance.lock_version column present.');
         } elseif (Schema::hasTable('attendance')) {
             $results[] = $this->fail('attendance_lock', 'attendance.lock_version missing — run T8b migrations.');
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return list<array{name: string, status: string, message: string}>
+     */
+    public function runT10c(): array
+    {
+        $results = [];
+
+        foreach (['church_site', 'church_site_section', 'church_media'] as $table) {
+            if (Schema::hasTable($table)) {
+                $results[] = $this->pass("t10c_table_{$table}", "Table `{$table}` present.");
+            } else {
+                $results[] = $this->fail("t10c_table_{$table}", "Table `{$table}` missing — run T10c migrations.");
+            }
+        }
+
+        if (Schema::hasTable('church_site')) {
+            foreach (['church_id', 'theme_draft', 'theme_published', 'published_at'] as $col) {
+                if (Schema::hasColumn('church_site', $col)) {
+                    $results[] = $this->pass("church_site_column_{$col}", "church_site.{$col} present.");
+                } else {
+                    $results[] = $this->fail("church_site_column_{$col}", "church_site.{$col} missing.");
+                }
+            }
+        }
+
+        if (Schema::hasTable('church_site_section')) {
+            foreach (['church_id', 'church_site_id', 'type', 'content_draft', 'content_published'] as $col) {
+                if (Schema::hasColumn('church_site_section', $col)) {
+                    $results[] = $this->pass("church_site_section_column_{$col}", "church_site_section.{$col} present.");
+                } else {
+                    $results[] = $this->fail("church_site_section_column_{$col}", "church_site_section.{$col} missing.");
+                }
+            }
+        }
+
+        $capabilityKeys = array_keys((array) config('capabilities', []));
+        if (in_array('public_site', $capabilityKeys, true)) {
+            $results[] = $this->pass('t10c_capability', 'public_site capability defined in config/capabilities.php.');
+        } else {
+            $results[] = $this->fail('t10c_capability', 'public_site capability missing from config/capabilities.php.');
+        }
+
+        $permissionCatalog = (array) config('permissions.public_site.permissions', []);
+        foreach (['public_site.profile', 'public_site.theme', 'public_site.manage', 'public_site.publish'] as $key) {
+            if (array_key_exists($key, $permissionCatalog)) {
+                $results[] = $this->pass("t10c_permission_{$key}", "Permission [{$key}] in catalog.");
+            } else {
+                $results[] = $this->fail("t10c_permission_{$key}", "Permission [{$key}] missing from config/permissions.php.");
+            }
+
+            if (Schema::hasTable('permissions')) {
+                if (DB::table('permissions')->where('key', $key)->exists()) {
+                    $results[] = $this->pass("t10c_permission_synced_{$key}", "Permission [{$key}] synced to DB.");
+                } else {
+                    $results[] = $this->warn("t10c_permission_synced_{$key}", "Permission [{$key}] not in DB — run permissions:sync.");
+                }
+            }
+        }
+
+        foreach (['site.homepage.edit', 'site.homepage.publish', 'site.homepage.unpublish'] as $routeName) {
+            if (Route::has($routeName)) {
+                $results[] = $this->pass("t10c_route_{$routeName}", "Route [{$routeName}] registered.");
+            } else {
+                $results[] = $this->fail("t10c_route_{$routeName}", "Route [{$routeName}] missing — T10c routes not loaded.");
+            }
+        }
+
+        if (class_exists(\App\Http\Controllers\Church\HomepageEditorController::class)) {
+            $results[] = $this->pass('t10c_editor_controller', 'HomepageEditorController present.');
+        } else {
+            $results[] = $this->fail('t10c_editor_controller', 'HomepageEditorController missing.');
+        }
+
+        if (class_exists(\App\Services\PublicSite\ChurchSiteService::class)) {
+            $results[] = $this->pass('t10c_site_service', 'ChurchSiteService present.');
+        } else {
+            $results[] = $this->fail('t10c_site_service', 'ChurchSiteService missing.');
         }
 
         return $results;
