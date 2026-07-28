@@ -468,6 +468,10 @@ class NavigationHub
             $links[] = self::categorized(self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*'], 'registration.review'), 'reviews');
         }
 
+        if ($user->canInSystem('people.view') || $user->canInSystem('church.members.manage')) {
+            $links[] = self::categorized(self::link('people.index', 'people_onboarding.nav', 'bi-people', ['people.*'], 'people.view'), 'people');
+        }
+
         if ($user->canAccessAdminCourseApplicationForms()) {
             $links[] = self::categorized(self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*'], 'course_application.form_builder'), 'reviews');
         }

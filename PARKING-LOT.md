@@ -89,8 +89,10 @@ Still parked:
 - Polymorphic applications center (Church | Service | Course).
 - Church-admin self-service screens on `{slug}` (members/branding within guardrails) —
   superadmin console covers provisioning for now.
-- Invite-by-email onboarding that creates unverified users (add-member requires
-  existing email today).
+- ~~Invite-by-email onboarding~~ → delivered under **People Onboarding** epic
+  (`person_placements`, `invitations`, CSV import + bulk invite email/WhatsApp).
+  Church `addMember` still requires an existing email for already-active users;
+  new people use the People hub invite path.
 - Per-church branding resolution wired into ThemeController / locale defaults.
 - Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
   enables MULTI_TENANT).
@@ -134,10 +136,11 @@ status fields; resolver + create/edit UX; eligibility (inactive/hold excluded fr
 
 **Still parked for later PRs:**
 
-1. People-only placement table beyond enrollment/USR if needed for Sunday-school children.
+1. ~~People-only placement table~~ → delivered as `person_placements` in People Onboarding.
+   End-of-Cycle wizard still skips people-only rows until a follow-up wires placements into propose/apply.
 2. Optional staff-only reassign step beyond shared enrollment promote.
 
-**Resume when:** T9c merged to staging; then people-only / staff residual as needed.
+**Resume when:** wire people-only placements into End-of-Cycle propose/apply; staff residual as needed.
 ## Public Church Presence / Homepage CMS (T10a–T10c landed; T10d parked)
 
 **Requested:** After portal church config + public church details, a permission-gated
@@ -178,6 +181,8 @@ to dual-verify email+mobile; WhatsApp/Telegram preference; native-app registrati
   `email_verified_at` (web signup sets this; app proves later). Ask `whatsapp_capable`; no Telegram v1.
 - Expand-only schema when built: `mobile_verified_at`, `email_verified_at`, `whatsapp_capable`,
   channel-aware OTP storage (today’s `otp_code` PK=`user_id` is insufficient).
+  **Note (People Onboarding):** the three stamp columns landed additively on `user`; full
+  channel-aware OTP + WA OTP verify (CV1) remains parked.
 
 **Why parked:** Master-plan §7 current phase is **T8**. Not a tenancy table slot; product/auth
 epic that must not start mid-T8. CLAUDE.md rule 10 → park; **no** migrations, OTP channel

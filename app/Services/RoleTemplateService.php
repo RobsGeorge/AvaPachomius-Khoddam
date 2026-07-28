@@ -158,6 +158,7 @@ class RoleTemplateService
                 'service.role.manage', 'service.user.assign_role',
                 'service.roster.status', 'service.progression.run',
                 'service_application.review', 'service_application.form_builder',
+                'people.view', 'people.create', 'people.import', 'people.invite', 'people.invite_bulk', 'people.place',
                 'announcement.view', 'announcement.manage', 'announcement.publish',
                 'communications.report',
                 'roster.view',
@@ -217,6 +218,8 @@ class RoleTemplateService
         $templates = [
             'church-admin' => [
                 'church.configure', 'church.members.manage', 'church.role.manage',
+                'people.view', 'people.create', 'people.update', 'people.import',
+                'people.invite', 'people.invite_bulk', 'people.place',
                 'priest.manage', 'priest.view',
                 'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
                 'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',

@@ -111,6 +111,9 @@ use App\Http\Controllers\LiveQuizPlayController;
 use App\Http\Controllers\CourseRoleController;
 use App\Http\Controllers\SystemRoleController;
 use App\Http\Controllers\FaviconController;
+use App\Http\Controllers\People\PeopleHubController;
+use App\Http\Controllers\People\PeopleImportController;
+use App\Http\Controllers\People\InvitationClaimController;
 
 
 
@@ -121,6 +124,9 @@ Route::get('/favicon/{icon}.svg', [FaviconController::class, 'show'])->name('fav
 
 require __DIR__.'/auth.php';
 
+Route::get('/invitations/{token}', [InvitationClaimController::class, 'show'])->name('invitations.claim');
+Route::post('/invitations/{token}/verify-otp', [InvitationClaimController::class, 'verifyOtp'])->name('invitations.verify-otp');
+Route::post('/invitations/{token}/accept', [InvitationClaimController::class, 'accept'])->name('invitations.accept');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/courses/select', [CourseContextController::class, 'show'])->name('courses.select');
@@ -131,6 +137,28 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/services/select', [ServiceContextController::class, 'store'])->name('services.select.store');
     Route::post('/services/select/clear', [ServiceContextController::class, 'clear'])->name('services.select.clear');
     Route::get('/services/roster', [ServiceRosterController::class, 'index'])->name('services.roster');
+
+    Route::middleware(['permission:people.view,people.create,people.import,church.members.manage'])->prefix('people')->name('people.')->group(function () {
+        Route::get('/', [PeopleHubController::class, 'index'])->name('index');
+        Route::get('/export-roster', [PeopleImportController::class, 'exportRoster'])->name('export-roster');
+        Route::middleware(['permission:people.create,church.members.manage'])->group(function () {
+            Route::get('/create', [PeopleHubController::class, 'create'])->name('create');
+            Route::post('/', [PeopleHubController::class, 'store'])->name('store');
+        });
+        Route::middleware(['permission:people.import,church.members.manage'])->group(function () {
+            Route::get('/import/template', [PeopleImportController::class, 'template'])->name('import.template');
+            Route::get('/import', [PeopleImportController::class, 'create'])->name('import.create');
+            Route::post('/import', [PeopleImportController::class, 'store'])->name('import.store');
+            Route::get('/import/{batch}', [PeopleImportController::class, 'show'])->name('import.show');
+            Route::post('/import/{batch}/commit', [PeopleImportController::class, 'commit'])->name('import.commit');
+        });
+        Route::middleware(['permission:people.invite,people.invite_bulk,church.members.manage'])->group(function () {
+            Route::post('/import/{batch}/bulk-invite', [PeopleImportController::class, 'bulkInvite'])->name('import.bulk-invite');
+            Route::post('/{person}/invite', [PeopleHubController::class, 'invite'])->name('invite');
+        });
+        Route::get('/{person}', [PeopleHubController::class, 'show'])->name('show');
+    });
+
     // T8b — canonical slug hub (+ legacy numeric /services/{id}/… 301 via middleware).
     Route::get('/s/{service}', [ServiceContextController::class, 'hub'])->name('services.hub');
     Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
