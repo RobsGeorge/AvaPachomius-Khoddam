@@ -61,6 +61,41 @@ class Church extends Model
         return $this->hasMany(Role::class, 'church_id', 'church_id');
     }
 
+    public function subscription(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ChurchSubscription::class, 'church_id', 'church_id');
+    }
+
+    public function entitlementSnapshot(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ChurchEntitlementSnapshot::class, 'church_id', 'church_id');
+    }
+
+    public function entitlementOverrides(): HasMany
+    {
+        return $this->hasMany(ChurchEntitlementOverride::class, 'church_id', 'church_id');
+    }
+
+    public function isSubscriptionManaged(): bool
+    {
+        $subscription = $this->subscription;
+        if (! $subscription) {
+            return false;
+        }
+
+        return $subscription->isSubscriptionManaged();
+    }
+
+    public function entitlementValue(string $featureKey): mixed
+    {
+        return app(\App\Billing\EntitlementResolver::class)->value($this, $featureKey);
+    }
+
+    public function hasEntitlement(string $featureKey): bool
+    {
+        return (bool) app(\App\Billing\EntitlementResolver::class)->booleanValue($this, $featureKey);
+    }
+
     /** Enabled capabilities keyed by capability_key (memoized on the instance). */
     public function enabledCapabilities(): Collection
     {

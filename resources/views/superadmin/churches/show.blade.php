@@ -27,6 +27,7 @@
                 </a>
             @endif
             <a href="{{ route('superadmin.churches.edit', $church) }}" class="btn btn-outline-primary btn-sm">{{ __('tenancy.edit') }}</a>
+            <a href="{{ route('superadmin.churches.billing', $church) }}" class="btn btn-outline-success btn-sm">{{ __('billing.billing') }}</a>
             @if($church->status === 'active' && $church->slug !== config('tenancy.main_slug'))
                 <form method="POST" action="{{ route('superadmin.churches.suspend', $church) }}">
                     @csrf

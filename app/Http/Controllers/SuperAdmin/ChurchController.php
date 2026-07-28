@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\SuperAdmin;
 
+use App\Billing\QuotaGuard;
 use App\Http\Controllers\Controller;
 use App\Models\Church;
 use App\Models\Role;
@@ -17,6 +18,7 @@ class ChurchController extends Controller
 {
     public function __construct(
         private ChurchProvisioningService $provisioning,
+        private QuotaGuard $quotaGuard,
     ) {}
 
     public function index()
@@ -107,6 +109,11 @@ class ChurchController extends Controller
             return back()->withErrors(['status' => __('tenancy.cannot_suspend_main')]);
         }
 
+        $newDomain = $validated['domain'] ?? null;
+        if ($newDomain && $newDomain !== $church->domain && ! $this->quotaGuard->allowsCustomDomain($church)) {
+            return back()->withErrors(['domain' => __('billing.custom_domain_not_allowed')]);
+        }
+
         $church->update([
             'name' => $validated['name'],
             'domain' => $validated['domain'] ?? null,
@@ -187,6 +194,11 @@ class ChurchController extends Controller
         ]);
 
         $user = User::where('email', $validated['email'])->firstOrFail();
+
+        if (! $this->quotaGuard->canUse($church, 'max_active_users', 1)) {
+            return back()->withErrors(['email' => __('billing.seat_quota_exceeded')]);
+        }
+
         $role = null;
         if (! empty($validated['role_id'])) {
             $role = Role::where('role_id', $validated['role_id'])
@@ -195,6 +207,7 @@ class ChurchController extends Controller
         }
 
         $this->provisioning->addMember($church, $user, $role);
+        $this->quotaGuard->syncSeatUsage($church->fresh());
 
         return back()->with('success', __('tenancy.member_added'));
     }

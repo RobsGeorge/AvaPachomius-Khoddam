@@ -41,7 +41,9 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
+use App\Http\Controllers\SuperAdmin\ChurchBillingController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
+use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\AppointmentController;
@@ -738,6 +740,19 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/churches/{church}/view-as/start', [SuperAdminChurchController::class, 'viewAsChurchSigned'])
         ->middleware('signed')
         ->name('churches.view-as.start');
+
+    // T9 — platform billing & entitlements
+    Route::get('/plans', [SubscriptionPlanController::class, 'index'])->name('plans.index');
+    Route::get('/plans/create', [SubscriptionPlanController::class, 'create'])->name('plans.create');
+    Route::post('/plans', [SubscriptionPlanController::class, 'store'])->name('plans.store');
+    Route::get('/plans/{plan}', [SubscriptionPlanController::class, 'show'])->name('plans.show');
+    Route::get('/plans/{plan}/edit', [SubscriptionPlanController::class, 'edit'])->name('plans.edit');
+    Route::put('/plans/{plan}', [SubscriptionPlanController::class, 'update'])->name('plans.update');
+
+    Route::get('/churches/{church}/billing', [ChurchBillingController::class, 'show'])->name('churches.billing');
+    Route::post('/churches/{church}/billing/plan', [ChurchBillingController::class, 'assignPlan'])->name('churches.billing.assign');
+    Route::post('/churches/{church}/billing/overrides', [ChurchBillingController::class, 'storeOverride'])->name('churches.billing.overrides.store');
+    Route::delete('/churches/{church}/billing/overrides/{featureKey}', [ChurchBillingController::class, 'destroyOverride'])->name('churches.billing.overrides.destroy');
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
