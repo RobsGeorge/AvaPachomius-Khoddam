@@ -56,13 +56,19 @@ jobs:
             # PHP-FPM (www-data) creates cache/session files at runtime. Without
             # reclaiming ownership first, `git reset --hard` fails with:
             #   unable to unlink old 'storage/framework/cache/...': Permission denied
-            if sudo -n true 2>/dev/null; then
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n chmod -R ug+rwx storage bootstrap/cache
-            else
-              chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
-              echo "WARN: passwordless sudo not configured — git sync may fail if www-data owns storage files"
+            if ! sudo -n true 2>/dev/null; then
+              echo "ERROR: passwordless sudo is required for production deploy."
+              echo "See .github/DEPLOY-VPS.md — as root on the VPS run:"
+              echo "  sudo visudo -f /etc/sudoers.d/avapakhomios-deploy"
+              echo "Add:"
+              echo "  ${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm.service"
+              echo "Then recover this deploy (one-time if git sync is already broken):"
+              echo "  sudo chown -R ${DEPLOY_USER}:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache"
+              echo "  sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache"
+              exit 1
             fi
+            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+            sudo -n chmod -R ug+rwx storage bootstrap/cache
 
             step "git sync"
             git fetch origin main
@@ -104,14 +110,8 @@ jobs:
             fi
 
             step "permissions"
-            # GitHub SSH has no TTY — sudo must be passwordless (see .github/DEPLOY-VPS.md).
-            chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
-            if sudo -n true 2>/dev/null; then
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n chmod -R ug+rwx storage bootstrap/cache
-            else
-              echo "WARN: passwordless sudo not configured — skipped chown (chmod only as ${DEPLOY_USER})"
-            fi
+            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+            sudo -n chmod -R ug+rwx storage bootstrap/cache
 
             step "reload php-fpm"
             if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then

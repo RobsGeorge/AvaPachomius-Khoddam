@@ -4,6 +4,41 @@ Pushes to `main` run the **CI** workflow first (unit, integration, and load test
 
 Pull requests run **CI** only; they do not deploy.
 
+## Deploy blocked: `unable to unlink old 'storage/...': Permission denied`
+
+GitHub Actions SSH has no password prompt. The deploy user **must** have passwordless
+`sudo` for `chown`, `chmod`, and `systemctl reload php8.2-fpm`, and must reclaim
+`storage/` + `bootstrap/cache/` before `git reset --hard`.
+
+**One-time fix as root** (replace `deploy` with your `SSH_USER` secret):
+
+```bash
+# 1) Allow deploy to fix permissions without a TTY
+sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
+```
+
+Add:
+
+```
+deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm.service
+```
+
+Verify:
+
+```bash
+sudo -u deploy sudo -n true && echo OK
+sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
+```
+
+**Recover a failed deploy** (git sync already broke):
+
+```bash
+sudo chown -R deploy:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+```
+
+Then **Re-run** the failed GitHub Actions deploy job (or push again).
+
 ## One-time fix (on the VPS as root)
 
 Replace `deploy` with your SSH user (`SSH_USER` secret), then:

@@ -62,13 +62,13 @@ jobs:
 
             step "reclaim storage for git"
             # PHP-FPM may own runtime cache/session files; reclaim before git reset.
-            if sudo -n true 2>/dev/null; then
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n chmod -R ug+rwx storage bootstrap/cache
-            else
-              chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
-              echo "WARN: passwordless sudo not configured — git sync may fail if www-data owns storage files"
+            if ! sudo -n true 2>/dev/null; then
+              echo "ERROR: passwordless sudo is required for staging deploy."
+              echo "See .github/DEPLOY-VPS.md — configure NOPASSWD chown/chmod/php-fpm reload for ${DEPLOY_USER}."
+              exit 1
             fi
+            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+            sudo -n chmod -R ug+rwx storage bootstrap/cache
 
             step "git sync"
             git fetch origin staging
@@ -106,13 +106,8 @@ jobs:
             fi
 
             step "permissions"
-            chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
-            if sudo -n true 2>/dev/null; then
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n chmod -R ug+rwx storage bootstrap/cache
-            else
-              echo "WARN: passwordless sudo not configured — skipped chown (chmod only as ${DEPLOY_USER})"
-            fi
+            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+            sudo -n chmod -R ug+rwx storage bootstrap/cache
 
             step "reload php-fpm"
             # Reloading the FPM service reloads BOTH pools (prod + staging) gracefully.
