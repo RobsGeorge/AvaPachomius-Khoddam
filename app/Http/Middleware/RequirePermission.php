@@ -28,6 +28,16 @@ class RequirePermission
         }
 
         if (in_array('staff', $permissions, true)) {
+            // When the route carries an explicit course id, staff access must be held
+            // *in that course* (or system-wide) — not merely as staff of some other course.
+            $explicitCourse = $this->explicitRouteCourse($request);
+            if ($explicitCourse instanceof Course) {
+                if ($this->hasStaffAccessInCourse($user, $explicitCourse)) {
+                    return $next($request);
+                }
+                abort(403, __('pages.not_authorized'));
+            }
+
             if ($this->hasStaffAccess($user)) {
                 return $next($request);
             }
@@ -90,16 +100,17 @@ class RequirePermission
             && $this->resolver->canInChurch($user, $permission, $church);
     }
 
+    /** Permission keys that qualify a user as "staff" for the coarse `permission:staff` gate. */
+    private const STAFF_KEYS = [
+        'curriculum.manage', 'exam.author', 'assignment.manage', 'grade.manage',
+        'attendance.record', 'attendance.view_all', 'announcement.manage',
+        'roster.view', 'graduation.view', 'course.close', 'feedback.manage',
+        'live_quiz.manage', 'role.manage',
+    ];
+
     private function hasStaffAccess($user): bool
     {
-        $staffKeys = [
-            'curriculum.manage', 'exam.author', 'assignment.manage', 'grade.manage',
-            'attendance.record', 'attendance.view_all', 'announcement.manage',
-            'roster.view', 'graduation.view', 'course.close', 'feedback.manage',
-            'live_quiz.manage', 'role.manage',
-        ];
-
-        foreach ($staffKeys as $key) {
+        foreach (self::STAFF_KEYS as $key) {
             if ($this->resolver->canInSystem($user, $key)) {
                 return true;
             }
@@ -109,6 +120,57 @@ class RequirePermission
         }
 
         return $this->resolver->isStaffAnywhere($user);
+    }
+
+    /** True when the user holds any staff permission system-wide or *within this course*. */
+    private function hasStaffAccessInCourse($user, Course $course): bool
+    {
+        foreach (self::STAFF_KEYS as $key) {
+            if ($this->resolver->canInSystem($user, $key)) {
+                return true;
+            }
+            if ($this->resolver->canInCourse($user, $key, $course)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolve a course from an *explicit* route parameter only ({course}/{courseId}/
+     * {course_id}). Unlike {@see resolveCourse()} this never falls back to the ambient
+     * current_course(), so course-less staff dashboards keep staff-anywhere semantics.
+     */
+    private function explicitRouteCourse(Request $request): ?Course
+    {
+        $course = $request->route('course');
+
+        if ($course instanceof Course) {
+            return $course;
+        }
+
+        if (is_string($course) && $course !== '') {
+            return Course::find($course);
+        }
+
+        foreach (['courseId', 'course_id'] as $param) {
+            $value = $request->route($param);
+            if ($value) {
+                return Course::find($value);
+            }
+        }
+
+        // Exam-scoped admin routes ({exam}) derive their course from the exam.
+        $exam = $request->route('exam');
+        if ($exam instanceof \App\Models\Exam) {
+            return $exam->course;
+        }
+        if (is_string($exam) && $exam !== '') {
+            return \App\Models\Exam::find($exam)?->course;
+        }
+
+        return null;
     }
 
     private function resolveCourse(Request $request): ?Course

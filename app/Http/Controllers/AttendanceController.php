@@ -11,6 +11,9 @@ use App\Models\Session;
 use App\Models\Attendance;
 use App\Models\Module;
 use App\Services\AttendanceCloseService;
+use App\Services\AuditLogService;
+use App\Services\CoursePermissionResolver;
+use App\Services\RolePreviewService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,7 +48,34 @@ class AttendanceController extends Controller
 
     public function __construct(
         private AttendanceCloseService $attendanceClose,
+        private CoursePermissionResolver $permissions,
     ) {}
+
+    /**
+     * Load an attendance record and authorize the acting user to edit it *in that
+     * record's own course* (not merely as staff somewhere). Returns the record.
+     */
+    private function authorizeAttendanceRecord(int|string $id): Attendance
+    {
+        $attendance = Attendance::with('session.course')->findOrFail($id);
+        $user = auth()->user();
+
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return $attendance;
+        }
+
+        $course = $attendance->session?->course;
+        abort_unless(
+            $course && (
+                $this->permissions->canInSystem($user, 'attendance.record')
+                || $this->permissions->canInCourse($user, 'attendance.record', $course)
+            ),
+            403,
+            __('pages.not_authorized')
+        );
+
+        return $attendance;
+    }
 
     private function studentRoleIds(): Collection
     {
@@ -579,7 +609,7 @@ class AttendanceController extends Controller
         return $this->viewUserAttendance($userId);
     }
 
-    // Update attendance status
+    // Update attendance status (POST; authorized to the record's own course).
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
@@ -587,25 +617,49 @@ class AttendanceController extends Controller
             'permission_reason' => 'required_if:status,Permission|nullable|string|max:255'
         ]);
 
-        $attendance = Attendance::findOrFail($id);
+        $attendance = $this->authorizeAttendanceRecord($id);
+        $previousStatus = $attendance->status;
         $attendance->status = $request->status;
         $attendance->permission_reason = $request->permission_reason;
         $attendance->save();
 
+        AuditLogService::recordEvent('attendance.status_updated', [
+            'attendance_id'   => $attendance->attendance_id ?? $attendance->getKey(),
+            'user_id'         => $attendance->user_id,
+            'session_id'      => $attendance->session_id,
+            'course_id'       => $attendance->session?->course_id,
+            'previous_status' => $previousStatus,
+            'new_status'      => $attendance->status,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'تم تحديث الحالة بنجاح'
+            'message' => __('pages.status_updated'),
         ]);
     }
 
-    // Update permission reason
+    // Update permission reason (POST; authorized to the record's own course).
     public function updatePermissionReason(Request $request, $id)
     {
-        $attendance = Attendance::findOrFail($id);
+        $request->validate([
+            'permission_reason' => 'nullable|string|max:255',
+        ]);
+
+        $attendance = $this->authorizeAttendanceRecord($id);
         $attendance->permission_reason = $request->permission_reason;
         $attendance->save();
 
-        return response()->json(['success' => true]);
+        AuditLogService::recordEvent('attendance.permission_reason_updated', [
+            'attendance_id' => $attendance->attendance_id ?? $attendance->getKey(),
+            'user_id'       => $attendance->user_id,
+            'session_id'    => $attendance->session_id,
+            'course_id'     => $attendance->session?->course_id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('pages.permission_updated'),
+        ]);
     }
 
     // View attendance records for a specific date

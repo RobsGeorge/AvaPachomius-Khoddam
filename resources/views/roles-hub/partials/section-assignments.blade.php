@@ -5,7 +5,7 @@
                 data-bs-toggle="collapse" data-bs-target="#section-assignments">
             <i class="bi bi-people me-2"></i>
             <span class="fw-semibold">{{ __('rbac.section_assignments') }}</span>
-            <span class="badge bg-secondary ms-2">{{ $allAssignments->count() }}</span>
+            <span class="badge bg-secondary ms-2">{{ $allAssignments->total() }}</span>
         </button>
     </h2>
     <div id="section-assignments" class="accordion-collapse collapse {{ $open ? 'show' : '' }}" data-bs-parent="#rolesHubAccordion">
@@ -107,6 +107,9 @@
                         </tbody>
                     </table>
                 </div>
+                @if($allAssignments->hasPages())
+                    <div class="pt-2">{{ $allAssignments->links() }}</div>
+                @endif
             </details>
 
             @if($legacyRoles->isNotEmpty())

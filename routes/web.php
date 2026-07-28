@@ -243,13 +243,17 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     // Attendance report
     Route::get('/attendance/report', [AttendanceController::class, 'attendanceReport'])->name('attendance.report');
 
-    // Update attendance status
-    Route::get('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status');
-
-    // Update permission reason
-    Route::get('/attendance/update-permission-reason/{id}', [AttendanceController::class, 'updatePermissionReason'])->name('attendance.update-permission-reason');
-
     Route::get('/attendance/user-report/{userId}', [AttendanceController::class, 'userReport'])->name('attendance.user-report');
+});
+
+// Attendance record mutations — POST only. The coarse `staff` gate keeps students out;
+// AttendanceController enforces the real per-record course scope (attendance.record in the
+// record's own course). Paths match the fetch() calls in attendance-table.blade.php.
+Route::middleware(['auth', 'permission:staff'])->group(function () {
+    Route::post('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])
+        ->name('attendance.update-status')->whereNumber('id');
+    Route::post('/attendance/update-permission/{id}', [AttendanceController::class, 'updatePermissionReason'])
+        ->name('attendance.update-permission-reason')->whereNumber('id');
 });
 
 Route::middleware('auth')->group(function () {
@@ -368,11 +372,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/courses/{course}/application-form/steps/{step}/fields/reorder', [CourseApplicationFormController::class, 'reorderFields'])->name('courses.application-form.fields.reorder');
 });
 
-Route::get('/attendance/mark/{user_id}', [AttendanceController::class, 'mark'])->name('attendance.mark')->middleware('auth');
-
 Route::get('/attendance/date/{date}', [AttendanceController::class, 'viewAttendanceByDate'])->name('attendance.by-date')->middleware(['auth', 'permission:attendance.view_all']);
-
-Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])->name('attendance.update-status-post')->middleware(['auth', 'permission:attendance.edit']);
 
 // Exam routes
 Route::middleware(['auth', 'course.assessments', 'capability:exams'])->group(function () {

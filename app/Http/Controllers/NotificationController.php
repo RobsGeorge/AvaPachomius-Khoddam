@@ -6,6 +6,7 @@ use App\Models\UserNotification;
 use App\Services\NotificationFeedService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
@@ -33,11 +34,42 @@ class NotificationController extends Controller
 
         $this->feed->markRead($notification);
 
-        if ($notification->action_url) {
+        if ($this->isSafeInternalUrl($notification->action_url)) {
             return redirect($notification->action_url);
         }
 
         return redirect()->route('notifications.index');
+    }
+
+    /**
+     * Follow an action_url only when it targets this application (F9 — prevent open
+     * redirects). Accepts app-relative paths (but not protocol-relative "//host") and
+     * absolute URLs whose host matches the app host; rejects any cross-host target.
+     */
+    private function isSafeInternalUrl(?string $url): bool
+    {
+        if (! is_string($url) || $url === '') {
+            return false;
+        }
+
+        // Protocol-relative ("//evil.example") is an external target in disguise.
+        if (Str::startsWith($url, '//')) {
+            return false;
+        }
+
+        // App-relative path.
+        if (Str::startsWith($url, '/')) {
+            return true;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+        if ($host === null || $host === '') {
+            return false;
+        }
+
+        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        return $host === request()->getHost() || ($appHost !== null && $host === $appHost);
     }
 
     public function markAllRead()
