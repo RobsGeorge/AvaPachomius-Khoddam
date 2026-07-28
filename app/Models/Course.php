@@ -57,6 +57,7 @@ class Course extends Model
         'grace_eligibility_mode',
         'permissions_version',
         'roles_cloned_from_course_id',
+        'portal_account_preference',
     ];
 
     protected $casts = [

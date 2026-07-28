@@ -84,6 +84,55 @@ class PersonRegistryService
         ]);
     }
 
+    /**
+     * Find an existing person by strong identity keys, else create.
+     * Match priority: national_id → email → mobile (within church).
+     *
+     * @param  array<string, mixed>  $attributes
+     * @return array{person: Person, linked: bool}
+     */
+    public function findOrCreateByIdentity(array $attributes, bool $confirmedDuplicate = false): array
+    {
+        $churchId = (int) ($attributes['church_id'] ?? Church::main()?->church_id);
+
+        $query = Person::withoutTenancy()
+            ->where('church_id', $churchId)
+            ->whereNull('retired_at')
+            ->whereNull('merged_into_person_id');
+
+        $person = null;
+        if (filled($attributes['national_id'] ?? null)) {
+            $person = (clone $query)->where('national_id', $attributes['national_id'])->first();
+        }
+        if (! $person && filled($attributes['email'] ?? null)) {
+            $person = (clone $query)->where('email', $attributes['email'])->first();
+        }
+        if (! $person && filled($attributes['mobile_number'] ?? null)) {
+            $person = (clone $query)->where('mobile_number', $attributes['mobile_number'])->first();
+        }
+
+        if ($person) {
+            $person->fill(array_filter([
+                'first_name' => $attributes['first_name'] ?? null,
+                'second_name' => $attributes['second_name'] ?? null,
+                'third_name' => $attributes['third_name'] ?? null,
+                'display_name' => $attributes['display_name'] ?? null,
+                'date_of_birth' => $attributes['date_of_birth'] ?? null,
+                'mobile_number' => $attributes['mobile_number'] ?? $person->mobile_number,
+                'national_id' => $attributes['national_id'] ?? $person->national_id,
+                'email' => $attributes['email'] ?? $person->email,
+                'gender' => $attributes['gender'] ?? $person->gender,
+            ], fn ($v) => $v !== null && $v !== ''))->save();
+
+            return ['person' => $person->fresh(), 'linked' => true];
+        }
+
+        return [
+            'person' => $this->createPerson($attributes, $confirmedDuplicate),
+            'linked' => false,
+        ];
+    }
+
     public function resolveChurchIdForUser(User $user): int
     {
         $membershipChurchId = $user->churchMemberships()

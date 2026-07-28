@@ -24,7 +24,7 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 | F-05 | **Global search** (users, courses, services, content) | Admins, staff | Navigating by menus does not scale; admins need to jump to a person/course/service fast. |
 | F-06 | **Calendar + iCal/Google export** for sessions, exams, events | Student, Instructor | ✅ **M3** — `CalendarService` renders an RFC 5545 `.ics` feed (`/calendar.ics`) of upcoming sessions/exams/events; linked from My learning. Tests `CalendarExportTest`. |
 | F-07 | **Print / offline** for certificates, grade reports, attendance reports | Student, Instructor | ✅ **M4** — global `print.css` (media="print") + print buttons on final-grades & My learning. Tests `AuditVisibilityTest`. |
-| F-08 | **Admin bulk tooling**: user & enrollment import/export, gradebook export | Course/Service Admin | Onboarding a cohort by hand is slow and error-prone. |
+| F-08 | **Admin bulk tooling**: user & enrollment import/export, gradebook export | Course/Service Admin | ✅ **People Onboarding** — CSV template/import batches + bulk invite (email/WhatsApp) + roster CSV export. Gradebook export still open. |
 | F-09 | **Audit-log visibility & filters for admins** | SuperAdmin/Admin | ✅ **M4** — added date-range filter + CSV export (filter-aware, streamed) to the activity log. Tests `AuditVisibilityTest`. |
 | F-10 | **Notification preference completeness** (per-category, per-channel, digest) | all | Reduce noise; let users pick email vs WhatsApp vs portal per category, with a daily digest option. |
 | F-11 | **Empty states & guided onboarding/tooltips** | new users, all | Blank lists give no next action; first-run guidance improves activation. |

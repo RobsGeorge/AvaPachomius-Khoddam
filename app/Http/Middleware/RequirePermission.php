@@ -80,7 +80,7 @@ class RequirePermission
 
     private function isChurchPermission(string $permission): bool
     {
-        foreach (['church.', 'priest.', 'confession.', 'home_visit.', 'finance.'] as $prefix) {
+        foreach (['church.', 'priest.', 'confession.', 'appointment.', 'home_visit.', 'finance.', 'public_site.', 'people.'] as $prefix) {
             if (str_starts_with($permission, $prefix)) {
                 return true;
             }
