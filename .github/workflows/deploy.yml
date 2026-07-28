@@ -37,6 +37,11 @@ jobs:
             DEPLOY_USER="$(whoami)"
             DEPLOY_START=$(date +%s)
             step() { echo "==> $1 ($(date -Iseconds))"; }
+            fix_runtime_permissions() {
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n find storage bootstrap/cache -type d -exec chmod 2775 {} +
+              sudo -n find storage bootstrap/cache -type f -exec chmod 664 {} +
+            }
 
             if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
               echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
@@ -69,7 +74,7 @@ jobs:
               exit 1
             fi
             sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-            sudo -n chmod -R ug+rwx storage bootstrap/cache
+            fix_runtime_permissions
 
             step "git sync"
             git fetch origin main
@@ -99,9 +104,11 @@ jobs:
             # optimize:clear flushes file-cache hash dirs; recreate the root so the
             # first post-deploy request cannot race a missing data/ path.
             mkdir -p storage/framework/cache/data
+            fix_runtime_permissions
             $PHP_BIN artisan config:cache
             $PHP_BIN artisan route:cache
             $PHP_BIN artisan view:cache
+            fix_runtime_permissions
 
             step "storage link"
             if [ ! -L public/storage ]; then
@@ -111,8 +118,7 @@ jobs:
             fi
 
             step "permissions"
-            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-            sudo -n chmod -R ug+rwx storage bootstrap/cache
+            fix_runtime_permissions
 
             step "reload php-fpm"
             if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then

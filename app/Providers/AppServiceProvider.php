@@ -85,7 +85,10 @@ class AppServiceProvider extends ServiceProvider
         }
 
         try {
-            File::ensureDirectoryExists($path, 0775);
+            File::ensureDirectoryExists($path, 02775);
+            if (is_dir($path) && ! is_writable($path)) {
+                @chmod($path, 02775);
+            }
         } catch (\Throwable $e) {
             report($e);
         }

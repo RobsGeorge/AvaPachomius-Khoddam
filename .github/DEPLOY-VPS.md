@@ -40,6 +40,23 @@ sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstr
 
 Then **Re-run** the failed GitHub Actions deploy job (or push again).
 
+## Deploy blocked: `Permission denied` writing `storage/framework/cache/data`
+
+PHP-FPM runs as `www-data`. Cache directories must be **group-writable** with the
+`www-data` group (setgid `2775` on directories is recommended so new hash folders
+inherit the group).
+
+**Immediate recovery as root:**
+
+```bash
+sudo chown -R deploy:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+sudo find /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache -type d -exec chmod 2775 {} +
+sudo find /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache -type f -exec chmod 664 {} +
+sudo systemctl reload php8.2-fpm
+```
+
+Replace `deploy` with your deploy SSH user if different.
+
 ## One-time fix (on the VPS as root)
 
 Replace `deploy` with your SSH user (`SSH_USER` secret), then:

@@ -7,16 +7,8 @@ use Illuminate\Cache\FileStore;
 use Throwable;
 
 /**
- * File cache store that recovers from missing hash directories.
- *
- * Laravel's FileStore checks that the two-level hash path exists, then writes.
- * Under concurrency (cache:clear / flush during traffic, or deploy optimize:clear
- * racing PHP-FPM workers) the directory can disappear between those steps.
- * makeDirectory(..., $force = true) also swallows mkdir failures, so a later
- * file_put_contents surfaces as "No such file or directory".
- *
- * Proactive directory creation plus one forced recreate + retry prevents that
- * ErrorException from reaching users.
+ * File cache store that recovers from missing hash directories and common
+ * permission races between deploy (deploy user) and runtime (www-data / PHP-FPM).
  */
 class ResilientFileStore extends FileStore
 {
@@ -52,7 +44,7 @@ class ResilientFileStore extends FileStore
         try {
             return $callback();
         } catch (Throwable $e) {
-            if (! $this->isMissingCachePathError($e)) {
+            if (! $this->isRecoverableCacheWriteError($e)) {
                 throw $e;
             }
 
@@ -64,43 +56,72 @@ class ResilientFileStore extends FileStore
 
     protected function ensureWritableCachePath(string $directory): void
     {
-        if ($this->files->isDirectory($directory)) {
-            return;
-        }
-
         if (! $this->files->isDirectory($this->directory)) {
             $this->createDirectoryTree($this->directory);
+        } else {
+            $this->ensureDirectoryWritable($this->directory);
         }
 
-        $this->createDirectoryTree($directory);
+        if (! $this->files->isDirectory($directory)) {
+            $this->createDirectoryTree($directory);
+        } else {
+            $this->ensureDirectoryWritable($directory);
+        }
     }
 
     protected function createDirectoryTree(string $path): void
     {
         if ($this->files->isDirectory($path)) {
+            $this->ensureDirectoryWritable($path);
+
             return;
         }
 
-        $this->files->makeDirectory($path, 0775, true, true);
+        $this->files->makeDirectory($path, 02775, true, true);
 
         if ($this->files->isDirectory($path)) {
+            $this->ensureDirectoryWritable($path);
+
             return;
         }
 
         // makeDirectory(..., $force = true) suppresses mkdir errors — retry without @.
-        mkdir($path, 0775, true);
+        mkdir($path, 02775, true);
+        $this->ensureDirectoryWritable($path);
     }
 
-    protected function isMissingCachePathError(Throwable $e): bool
+    protected function ensureDirectoryWritable(string $path): void
     {
+        if (! $this->files->isDirectory($path)) {
+            return;
+        }
+
+        if (is_writable($path)) {
+            return;
+        }
+
+        $this->files->chmod($path, 02775);
+    }
+
+    protected function isRecoverableCacheWriteError(Throwable $e): bool
+    {
+        if (! $e instanceof ErrorException) {
+            return false;
+        }
+
         $message = $e->getMessage();
+
+        if (str_contains($message, 'Permission denied')) {
+            return str_contains($message, 'Failed to open stream')
+                || str_contains($message, 'failed to open stream')
+                || str_contains($message, 'file_put_contents');
+        }
 
         if (! str_contains($message, 'No such file or directory')) {
             return false;
         }
 
-        return $e instanceof ErrorException
-            || str_contains($message, 'Failed to open stream')
+        return str_contains($message, 'Failed to open stream')
             || str_contains($message, 'failed to open stream')
             || str_contains($message, 'mkdir():');
     }

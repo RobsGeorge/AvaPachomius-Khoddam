@@ -35,6 +35,11 @@ jobs:
             DEPLOY_USER="$(whoami)"
             DEPLOY_START=$(date +%s)
             step() { echo "==> $1 ($(date -Iseconds))"; }
+            fix_runtime_permissions() {
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n find storage bootstrap/cache -type d -exec chmod 2775 {} +
+              sudo -n find storage bootstrap/cache -type f -exec chmod 664 {} +
+            }
 
             # Guard: never let a staging deploy touch the production directory or DB.
             step "safety check"
@@ -68,7 +73,7 @@ jobs:
               exit 1
             fi
             sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-            sudo -n chmod -R ug+rwx storage bootstrap/cache
+            fix_runtime_permissions
 
             step "git sync"
             git fetch origin staging
@@ -97,6 +102,7 @@ jobs:
             # effect immediately while developing.
             $PHP_BIN artisan optimize:clear
             mkdir -p storage/framework/cache/data
+            fix_runtime_permissions
 
             step "storage link"
             if [ ! -L public/storage ]; then
@@ -106,8 +112,7 @@ jobs:
             fi
 
             step "permissions"
-            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-            sudo -n chmod -R ug+rwx storage bootstrap/cache
+            fix_runtime_permissions
 
             step "reload php-fpm"
             # Reloading the FPM service reloads BOTH pools (prod + staging) gracefully.
