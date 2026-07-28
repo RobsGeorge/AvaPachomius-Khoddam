@@ -43,6 +43,7 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdmin\ChurchBillingController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
+use App\Http\Controllers\SuperAdmin\ServiceBillingController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
@@ -755,6 +756,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/churches/{church}/billing/plan', [ChurchBillingController::class, 'assignPlan'])->name('churches.billing.assign');
     Route::post('/churches/{church}/billing/overrides', [ChurchBillingController::class, 'storeOverride'])->name('churches.billing.overrides.store');
     Route::delete('/churches/{church}/billing/overrides/{featureKey}', [ChurchBillingController::class, 'destroyOverride'])->name('churches.billing.overrides.destroy');
+
+    Route::get('/services/{service}/billing', [ServiceBillingController::class, 'show'])->name('services.billing');
+    Route::post('/services/{service}/billing/plan', [ServiceBillingController::class, 'assignPlan'])->name('services.billing.assign');
+    Route::post('/services/{service}/billing/overrides', [ServiceBillingController::class, 'storeOverride'])->name('services.billing.overrides.store');
+    Route::delete('/services/{service}/billing/overrides/{featureKey}', [ServiceBillingController::class, 'destroyOverride'])->name('services.billing.overrides.destroy');
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');

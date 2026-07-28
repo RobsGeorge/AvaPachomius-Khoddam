@@ -41,6 +41,7 @@ class ChurchBillingControllerTest extends EventModuleTestCase
             'status' => 'active',
             'includes_seats' => 200,
             'seat_overage_policy' => 'block',
+            'scope' => 'both',
             'entitlements' => [
                 'curriculum' => '1',
                 'exams' => '1',

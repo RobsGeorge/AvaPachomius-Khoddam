@@ -33,6 +33,7 @@ class ChurchService extends Model
         'status',
         'permissions_version',
         'slug',
+        'church_id',
         'structure_template_id',
         'level_labels',
         'enabled_levels',
@@ -144,6 +145,21 @@ class ChurchService extends Model
     public function userServiceRoles(): HasMany
     {
         return $this->hasMany(UserServiceRole::class, 'service_id', 'service_id');
+    }
+
+    public function subscription(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ServiceSubscription::class, 'service_id', 'service_id');
+    }
+
+    public function entitlementSnapshot(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ServiceEntitlementSnapshot::class, 'service_id', 'service_id');
+    }
+
+    public function entitlementOverrides(): HasMany
+    {
+        return $this->hasMany(ServiceEntitlementOverride::class, 'service_id', 'service_id');
     }
 
     public function localizedTitle(?string $locale = null): string

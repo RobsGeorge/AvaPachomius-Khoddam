@@ -19,6 +19,7 @@ class SubscriptionPlan extends Model
         'is_public',
         'is_custom',
         'status',
+        'scope',
         'includes_seats',
         'seat_overage_policy',
         'stripe_product_id',
@@ -53,8 +54,23 @@ class SubscriptionPlan extends Model
         return $this->hasMany(ChurchSubscription::class, 'plan_id', 'plan_id');
     }
 
+    public function serviceSubscriptions(): HasMany
+    {
+        return $this->hasMany(ServiceSubscription::class, 'plan_id', 'plan_id');
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function allowsChurch(): bool
+    {
+        return in_array($this->scope ?? 'both', ['church', 'both'], true);
+    }
+
+    public function allowsService(): bool
+    {
+        return in_array($this->scope ?? 'both', ['service', 'both'], true);
     }
 }

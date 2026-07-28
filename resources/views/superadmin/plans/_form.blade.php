@@ -33,6 +33,14 @@
                     @endforeach
                 </select>
             </div>
+            <div class="col-md-4">
+                <label class="form-label">{{ __('billing.col_scope') }}</label>
+                <select name="scope" class="form-select" required>
+                    @foreach(['both','church','service'] as $sc)
+                        <option value="{{ $sc }}" @selected(old('scope', $plan->scope ?? 'both') === $sc)>{{ __('billing.scope_'.$sc) }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="col-12">
                 <label class="form-label">{{ __('billing.description') }}</label>
                 <textarea name="description" class="form-control" rows="2">{{ old('description', $plan->description ?? '') }}</textarea>

@@ -14,6 +14,8 @@ class PlatformBillingSeeder extends Seeder
         app(PlatformFeatureCatalog::class)->syncFromConfig();
 
         if (SubscriptionPlan::query()->exists()) {
+            $this->ensureServiceAddonPlan();
+
             return;
         }
 
@@ -26,6 +28,7 @@ class PlatformBillingSeeder extends Seeder
             'tier_rank' => 0,
             'is_public' => true,
             'status' => 'active',
+            'scope' => 'both',
             'includes_seats' => 50,
             'entitlements' => [
                 'curriculum' => true,
@@ -33,6 +36,7 @@ class PlatformBillingSeeder extends Seeder
                 'assignments' => true,
                 'announcements' => true,
                 'max_active_users' => 50,
+                'max_services' => 1,
                 'storage_bytes' => 2_147_483_648,
                 'mobile_app' => 'none',
                 'custom_domain' => false,
@@ -50,6 +54,7 @@ class PlatformBillingSeeder extends Seeder
             'tier_rank' => 10,
             'is_public' => true,
             'status' => 'active',
+            'scope' => 'both',
             'includes_seats' => 150,
             'entitlements' => [
                 'curriculum' => true,
@@ -61,6 +66,7 @@ class PlatformBillingSeeder extends Seeder
                 'announcements' => true,
                 'reporting' => true,
                 'max_active_users' => 150,
+                'max_services' => 3,
                 'storage_bytes' => 10_737_418_240,
                 'mobile_app' => 'student',
                 'custom_domain' => false,
@@ -79,6 +85,7 @@ class PlatformBillingSeeder extends Seeder
             'tier_rank' => 20,
             'is_public' => true,
             'status' => 'active',
+            'scope' => 'both',
             'includes_seats' => 500,
             'entitlements' => [
                 'curriculum' => true,
@@ -94,6 +101,7 @@ class PlatformBillingSeeder extends Seeder
                 'reporting' => true,
                 'church_management' => true,
                 'max_active_users' => 500,
+                'max_services' => 10,
                 'storage_bytes' => 53_687_091_200,
                 'mobile_app' => 'student',
                 'custom_domain' => true,
@@ -112,6 +120,7 @@ class PlatformBillingSeeder extends Seeder
             'tier_rank' => 30,
             'is_public' => false,
             'status' => 'active',
+            'scope' => 'both',
             'includes_seats' => 2000,
             'entitlements' => [
                 'curriculum' => true,
@@ -127,6 +136,7 @@ class PlatformBillingSeeder extends Seeder
                 'reporting' => true,
                 'church_management' => true,
                 'max_active_users' => 2000,
+                'max_services' => null,
                 'storage_bytes' => null,
                 'max_courses' => null,
                 'mobile_app' => 'full',
@@ -136,6 +146,35 @@ class PlatformBillingSeeder extends Seeder
             ],
             'prices' => [
                 ['billing_interval' => 'month', 'amount_minor' => 600_000, 'is_default' => true],
+            ],
+        ]);
+
+        $this->ensureServiceAddonPlan();
+    }
+
+    private function ensureServiceAddonPlan(): void
+    {
+        if (SubscriptionPlan::where('slug', 'service-addon')->exists()) {
+            return;
+        }
+
+        app(SubscriptionPlanService::class)->create([
+            'slug' => 'service-addon',
+            'name' => 'Service Add-on',
+            'description' => 'Upsell exams and live quiz for a single service on top of the church floor.',
+            'tier_rank' => 15,
+            'is_public' => true,
+            'status' => 'active',
+            'scope' => 'service',
+            'includes_seats' => 1,
+            'entitlements' => [
+                'exams' => true,
+                'live_quiz' => true,
+                'grades' => true,
+                'mobile_app' => 'student',
+            ],
+            'prices' => [
+                ['billing_interval' => 'month', 'amount_minor' => 80_000, 'is_default' => true],
             ],
         ]);
     }
