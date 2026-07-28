@@ -62,9 +62,9 @@ jobs:
 
             step "reclaim storage for git"
             # PHP-FPM may own runtime cache/session files; reclaim before git reset.
-            if ! sudo -n true 2>/dev/null; then
+            if ! sudo -n chown --version >/dev/null 2>&1; then
               echo "ERROR: passwordless sudo is required for staging deploy."
-              echo "See .github/DEPLOY-VPS.md — configure NOPASSWD chown/chmod/php-fpm reload for ${DEPLOY_USER}."
+              echo "See .github/DEPLOY-VPS.md — configure NOPASSWD chown/chmod/systemctl for ${DEPLOY_USER}."
               exit 1
             fi
             sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache

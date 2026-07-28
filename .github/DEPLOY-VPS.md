@@ -17,16 +17,17 @@ GitHub Actions SSH has no password prompt. The deploy user **must** have passwor
 sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
 ```
 
-Add:
+Add (one line, no line breaks):
 
 ```
-deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm.service
+deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl
 ```
 
-Verify:
+Save (`visudo` validates syntax). Then verify — use `chown`, not `true` (only the commands above are allowed):
 
 ```bash
-sudo -u deploy sudo -n true && echo OK
+sudo -u deploy sudo -n chown --version && echo CHOWN OK
+sudo -u deploy sudo -n chmod --version && echo CHMOD OK
 sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
 ```
 
@@ -47,16 +48,16 @@ Replace `deploy` with your SSH user (`SSH_USER` secret), then:
 sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
 ```
 
-Add:
+Add (one line):
 
 ```
-deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm.service
+deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl
 ```
 
 Save and verify:
 
 ```bash
-sudo -u deploy sudo -n true && echo OK
+sudo -u deploy sudo -n chown --version && echo OK
 sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
 ```
 

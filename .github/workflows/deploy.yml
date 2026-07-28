@@ -56,12 +56,13 @@ jobs:
             # PHP-FPM (www-data) creates cache/session files at runtime. Without
             # reclaiming ownership first, `git reset --hard` fails with:
             #   unable to unlink old 'storage/framework/cache/...': Permission denied
-            if ! sudo -n true 2>/dev/null; then
+            if ! sudo -n chown --version >/dev/null 2>&1; then
               echo "ERROR: passwordless sudo is required for production deploy."
               echo "See .github/DEPLOY-VPS.md — as root on the VPS run:"
               echo "  sudo visudo -f /etc/sudoers.d/avapakhomios-deploy"
               echo "Add:"
-              echo "  ${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm.service"
+              echo "  ${DEPLOY_USER} ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl"
+              echo "Verify: sudo -u ${DEPLOY_USER} sudo -n chown --version"
               echo "Then recover this deploy (one-time if git sync is already broken):"
               echo "  sudo chown -R ${DEPLOY_USER}:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache"
               echo "  sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache"
