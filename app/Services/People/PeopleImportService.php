@@ -373,7 +373,7 @@ class PeopleImportService
         }
 
         $serviceId = $serviceId;
-        if (! $serviceId && filled($row['service_slug'] ?? null)) {
+        if (! $serviceId && filled($row['service_slug'] ?? null) && Schema::hasColumn('service', 'slug')) {
             $serviceId = ChurchService::withoutTenancy()
                 ->where('church_id', $churchId)
                 ->where('slug', $row['service_slug'])
@@ -406,7 +406,7 @@ class PeopleImportService
             return ChurchService::withoutTenancy()->find($batch->service_id);
         }
 
-        if (filled($row['service_slug'] ?? null)) {
+        if (filled($row['service_slug'] ?? null) && Schema::hasColumn('service', 'slug')) {
             return ChurchService::withoutTenancy()
                 ->where('church_id', $batch->church_id)
                 ->where('slug', $row['service_slug'])
