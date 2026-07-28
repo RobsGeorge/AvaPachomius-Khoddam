@@ -3,8 +3,10 @@
 @section('content')
 <div class="container animate-in py-4" style="max-width:860px;">
 
-    {{-- Back link --}}
-    @php $course = $lecture->module->courses->first(); @endphp
+    @php
+        $course = $lecture->module->courses->first();
+        $defaultMaterialSource = old('source_type', \App\Models\LectureMaterial::SOURCE_EXTERNAL_LINK);
+    @endphp
     <div class="mb-3">
         @if($course)
             <a href="{{ route('curriculum.admin', $course->course_id) }}" class="text-muted small">
@@ -14,16 +16,16 @@
         @endif
     </div>
 
-    <h1 class="mb-4">{{ __('pages.edit_lecture') }}</h1>
+    <h1 class="mb-3">{{ __('pages.edit_lecture') }}</h1>
 
-<div class="row g-4">
+    @include('course-content.partials.storage-quota-bar')
 
-        {{-- Lecture details form --}}
+    <div class="row g-4">
         <div class="col-lg-7">
             <div class="card shadow-sm">
                 <div class="card-header fw-semibold">{{ __('pages.lecture_details') }}</div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('lectures.update', $lecture->lecture_id) }}">
+                    <form method="POST" action="{{ route('lectures.update', $lecture->lecture_id) }}" enctype="multipart/form-data">
                         @csrf @method('PUT')
 
                         <div class="mb-3">
@@ -69,13 +71,15 @@
                             <input type="url" name="video_link" class="form-control"
                                    value="{{ old('video_link', $lecture->video_link) }}" maxlength="500"
                                    placeholder="https://...">
+                            <div class="form-text">{{ __('curriculum.slides_link_hint') }}</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">{{ __('pages.slides_url') }} / PDF</label>
-                            <input type="url" name="slides_link" class="form-control"
-                                   value="{{ old('slides_link', $lecture->slides_link) }}" maxlength="500"
-                                   placeholder="https://...">
-                        </div>
+
+                        @include('course-content.partials.slides-source-field', [
+                            'lecture' => $lecture,
+                            'maxUploadMb' => $maxUploadMb,
+                            'allowedMimes' => $allowedMimes,
+                        ])
+
                         <div class="mb-3">
                             <label class="form-label fw-semibold">{{ __('pages.notes') }}</label>
                             <textarea name="notes" class="form-control" rows="4"
@@ -89,30 +93,37 @@
             </div>
         </div>
 
-        {{-- Supplementary materials --}}
         <div class="col-lg-5">
             <div class="card shadow-sm">
                 <div class="card-header fw-semibold">
-                    <i class="bi bi-link-45deg"></i> {{ __('pages.additional_materials') }}
+                    <i class="bi bi-paperclip"></i> {{ __('pages.additional_materials') }}
                     <span class="badge bg-secondary ms-1">{{ $lecture->materials->count() }}</span>
                 </div>
 
-                {{-- Existing materials --}}
                 <ul class="list-group list-group-flush">
                     @forelse($lecture->materials as $mat)
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="fw-semibold small">{{ $mat->title }}</div>
-                                <a href="{{ $mat->link }}" target="_blank"
-                                   class="text-primary small text-truncate d-block" style="max-width:220px;">
-                                    {{ $mat->link }}
-                                </a>
+                            <div class="min-w-0">
+                                <div class="fw-semibold small d-flex align-items-center gap-1 flex-wrap">
+                                    {{ $mat->title }}
+                                    @if($mat->isHostedFile())
+                                        <span class="badge bg-primary-subtle text-primary-emphasis">{{ __('curriculum.hosted_file_badge') }}</span>
+                                    @else
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ __('curriculum.external_link_badge') }}</span>
+                                    @endif
+                                </div>
+                                @if($url = $mat->accessUrl())
+                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                       class="text-primary small text-truncate d-block" style="max-width:220px;">
+                                        {{ $mat->isHostedFile() ? ($mat->media->original_filename ?? $url) : $mat->link }}
+                                    </a>
+                                @endif
                             </div>
                             <form method="POST"
                                   action="{{ route('lecture-materials.destroy', $mat->material_id) }}"
                                   data-confirm="{{ __('pages.confirm_delete_link') }}">
                                 @csrf @method('DELETE')
-                                <button class="btn btn-sm btn-outline-danger py-0 px-1">
+                                <button class="btn btn-sm btn-outline-danger py-0 px-1" type="submit">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
@@ -124,20 +135,35 @@
                     @endforelse
                 </ul>
 
-                {{-- Add material form --}}
-                <div class="card-footer bg-light">
-                    <div class="small fw-semibold text-muted mb-2">{{ __('pages.add_new_link') }}</div>
-                    <form method="POST" action="{{ route('lecture-materials.store') }}">
+                <div class="card-footer bg-light" data-curriculum-material-source>
+                    <div class="small fw-semibold text-muted mb-2">{{ __('curriculum.add_material') }}</div>
+                    <form method="POST" action="{{ route('lecture-materials.store') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="lecture_id" value="{{ $lecture->lecture_id }}">
                         <div class="mb-2">
                             <input type="text" name="title" class="form-control form-control-sm"
                                    placeholder="{{ __('pages.link_name_example') }}" maxlength="150" required>
                         </div>
-                        <div class="mb-2">
-                            <input type="url" name="link" class="form-control form-control-sm"
-                                   placeholder="https://..." maxlength="500" required>
+                        <div class="btn-group btn-group-sm mb-2 w-100" role="group">
+                            <input type="radio" class="btn-check" name="source_type" id="mat_source_link"
+                                   value="{{ \App\Models\LectureMaterial::SOURCE_EXTERNAL_LINK }}"
+                                   @checked($defaultMaterialSource === \App\Models\LectureMaterial::SOURCE_EXTERNAL_LINK)>
+                            <label class="btn btn-outline-secondary" for="mat_source_link">{{ __('curriculum.source_external_link') }}</label>
+                            <input type="radio" class="btn-check" name="source_type" id="mat_source_file"
+                                   value="{{ \App\Models\LectureMaterial::SOURCE_HOSTED_FILE }}"
+                                   @checked($defaultMaterialSource === \App\Models\LectureMaterial::SOURCE_HOSTED_FILE)>
+                            <label class="btn btn-outline-secondary" for="mat_source_file">{{ __('curriculum.source_hosted_file') }}</label>
                         </div>
+                        <div class="mb-2" data-material-panel="external_link" @class(['d-none' => $defaultMaterialSource !== \App\Models\LectureMaterial::SOURCE_EXTERNAL_LINK])>
+                            <input type="url" name="link" class="form-control form-control-sm"
+                                   placeholder="https://..." maxlength="500">
+                        </div>
+                        <div class="mb-2" data-material-panel="hosted_file" @class(['d-none' => $defaultMaterialSource !== \App\Models\LectureMaterial::SOURCE_HOSTED_FILE])>
+                            <input type="file" name="file" class="form-control form-control-sm"
+                                   accept="{{ '.' . implode(',.', $allowedMimes) }}">
+                            <div class="form-text">{{ __('curriculum.upload_hint', ['max' => $maxUploadMb, 'types' => implode(', ', $allowedMimes)]) }}</div>
+                        </div>
+                        @error('file')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
                         <button type="submit" class="btn btn-success btn-sm w-100">
                             <i class="bi bi-plus-circle"></i> {{ __('pages.add') }}
                         </button>
@@ -145,7 +171,6 @@
                 </div>
             </div>
 
-            {{-- Lecture info card --}}
             <div class="card shadow-sm mt-3">
                 <div class="card-body py-2">
                     <dl class="row mb-0 small">
@@ -170,4 +195,19 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const root = document.querySelector('[data-curriculum-material-source]');
+    if (!root) return;
+    const panels = root.querySelectorAll('[data-material-panel]');
+    root.querySelectorAll('input[name="source_type"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            panels.forEach(function (panel) {
+                panel.classList.toggle('d-none', panel.getAttribute('data-material-panel') !== radio.value);
+            });
+        });
+    });
+});
+</script>
 @endsection

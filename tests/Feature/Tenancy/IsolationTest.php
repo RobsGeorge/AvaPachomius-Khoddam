@@ -5,6 +5,7 @@ namespace Tests\Feature\Tenancy;
 use App\Models\Church;
 use App\Models\ChurchUser;
 use App\Models\Course;
+use App\Models\MediaAsset;
 use App\Models\Organization;
 use App\Tenancy\BelongsToChurch;
 use App\Tenancy\ResolveTenant;
@@ -208,5 +209,40 @@ class IsolationTest extends EventModuleTestCase
 
         $this->assertSame((int) $churchA->church_id, (int) $course->church_id);
         $this->assertSame((int) $churchA->church_id, (int) app(TenantContext::class)->churchId());
+    }
+
+    public function test_media_assets_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'media-isol-b', 'name' => 'Media B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $assetA = MediaAsset::create([
+            'church_id' => $churchA->church_id,
+            'disk' => 'curriculum',
+            'path' => 'churches/'.$churchA->church_id.'/test/a.pdf',
+            'original_filename' => 'a.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 100,
+            'context' => MediaAsset::CONTEXT_CURRICULUM,
+        ]);
+
+        TenantContext::set($churchB);
+        $assetB = MediaAsset::create([
+            'church_id' => $churchB->church_id,
+            'disk' => 'curriculum',
+            'path' => 'churches/'.$churchB->church_id.'/test/b.pdf',
+            'original_filename' => 'b.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 200,
+            'context' => MediaAsset::CONTEXT_CURRICULUM,
+        ]);
+
+        $this->assertNull(MediaAsset::find($assetA->media_id));
+        $this->assertNotNull(MediaAsset::find($assetB->media_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(MediaAsset::find($assetA->media_id));
+        $this->assertNull(MediaAsset::find($assetB->media_id));
     }
 }

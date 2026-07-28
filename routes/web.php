@@ -71,6 +71,7 @@ use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\GraduationController;
 use App\Http\Controllers\CertificateDownloadController;
+use App\Http\Controllers\CurriculumMediaController;
 use App\Http\Controllers\FinalGradesController;
 use App\Http\Controllers\AttendanceSettingsController;
 use App\Http\Controllers\EventController;
@@ -590,6 +591,7 @@ Route::middleware(['auth', 'course.application'])->group(function () {
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
     Route::get('/courses/{course}/final-grades',   [FinalGradesController::class, 'show'])->name('courses.final-grades');
     Route::get('/certificates/{uuid}',              [CertificateDownloadController::class, 'download'])->name('certificates.download');
+    Route::get('/curriculum/media/{media}',         [CurriculumMediaController::class, 'download'])->name('curriculum.media.download');
 });
 
 // Curriculum & grades — admin/instructor management

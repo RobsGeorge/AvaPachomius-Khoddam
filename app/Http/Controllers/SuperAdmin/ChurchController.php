@@ -73,12 +73,18 @@ class ChurchController extends Controller
     {
         $church->load(['capabilities', 'members.user', 'roles' => fn ($q) => $q->whereNull('course_id')->whereNull('service_id')]);
 
+        $quota = app(\App\Services\ChurchStorageQuotaService::class);
+
         return view('superadmin.churches.show', [
             'church' => $church,
             'host' => ChurchHost::hostFor($church),
             'url' => ChurchHost::url($church),
             'catalog' => config('capabilities'),
             'churchRoles' => $church->roles,
+            'storageQuota' => $quota->quotaBytes($church),
+            'storageUsed' => $quota->usedBytes($church),
+            'storageRemaining' => $quota->remainingBytes($church),
+            'storagePercent' => $quota->usagePercent($church),
         ]);
     }
 

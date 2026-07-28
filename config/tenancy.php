@@ -81,6 +81,7 @@ return [
         'student_grades',
         'lectures',
         'lecture_materials',
+        'media_assets',
         // Ops / audit
         'activity_logs',
         'observability_events',

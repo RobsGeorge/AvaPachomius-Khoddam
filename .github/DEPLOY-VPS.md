@@ -134,3 +134,17 @@ cd /var/www/avapakhomios
 php8.2 artisan schedule:list | grep birthdays
 php8.2 artisan birthdays:notify-daily --date=$(date +%F)
 ```
+
+## Curriculum private uploads (`storage/app/curriculum`)
+
+Hosted curriculum files (PDFs/slides) are stored on the **`curriculum`** disk (`storage/app/curriculum/`), not under `public/`. After deploy, ensure the directory exists and is writable:
+
+```bash
+sudo mkdir -p /var/www/avapakhomios/storage/app/curriculum
+sudo chown -R deploy:www-data /var/www/avapakhomios/storage/app/curriculum
+sudo chmod -R ug+rwx /var/www/avapakhomios/storage/app/curriculum
+```
+
+Repeat for staging (`/var/www/khedma-staging/storage/app/curriculum`). Confirm PHP `upload_max_filesize` / `post_max_size` and Nginx `client_max_body_size` are at least **20M** (see `config/curriculum.php`).
+
+Reconcile per-church usage if needed: `php8.2 artisan church:reconcile-storage`.

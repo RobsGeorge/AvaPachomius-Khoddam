@@ -73,6 +73,14 @@
                 </ul>
             </div>
         </div>
+        <div class="col-lg-6">
+            @include('course-content.partials.storage-quota-bar', [
+                'storageQuota' => $storageQuota,
+                'storageUsed' => $storageUsed,
+                'storageRemaining' => $storageRemaining,
+                'storagePercent' => $storagePercent,
+            ])
+        </div>
     </div>
 
     <div class="app-card card shadow-sm mt-4">
