@@ -19,6 +19,15 @@ class QuotaGuard
 
     public function used(Church $church, string $featureKey, ?string $periodKey = null): int
     {
+        // Live counts for membership/service quotas so counters can't go stale.
+        if ($featureKey === 'max_active_users') {
+            return $this->countActiveMembers($church);
+        }
+
+        if ($featureKey === 'max_services') {
+            return $this->countActiveServices($church);
+        }
+
         $periodKey ??= $this->periodKeyFor($featureKey);
 
         $row = ChurchUsageCounter::query()
@@ -27,15 +36,7 @@ class QuotaGuard
             ->where('period_key', $periodKey)
             ->first();
 
-        if ($row) {
-            return (int) $row->used_amount;
-        }
-
-        if ($featureKey === 'max_active_users') {
-            return $this->countActiveMembers($church);
-        }
-
-        return 0;
+        return $row ? (int) $row->used_amount : 0;
     }
 
     public function limit(Church $church, string $featureKey): ?int
@@ -122,6 +123,23 @@ class QuotaGuard
         return $count;
     }
 
+    public function syncServiceCount(Church $church): int
+    {
+        $count = $this->countActiveServices($church);
+        $periodKey = $this->periodKeyFor('max_services');
+
+        ChurchUsageCounter::updateOrCreate(
+            [
+                'church_id' => $church->church_id,
+                'feature_key' => 'max_services',
+                'period_key' => $periodKey,
+            ],
+            ['used_amount' => $count]
+        );
+
+        return $count;
+    }
+
     public function allowsCustomDomain(Church $church): bool
     {
         return $this->resolver->booleanValue($church, 'custom_domain');
@@ -132,6 +150,19 @@ class QuotaGuard
         return ChurchUser::query()
             ->where('church_id', $church->church_id)
             ->where('status', 'active')
+            ->count();
+    }
+
+    private function countActiveServices(Church $church): int
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('service')) {
+            return 0;
+        }
+
+        return \App\Models\ChurchService::query()
+            ->withoutTenancy()
+            ->where('church_id', $church->church_id)
+            ->where('status', \App\Models\ChurchService::STATUS_ACTIVE)
             ->count();
     }
 

@@ -105,6 +105,7 @@ class SubscriptionPlanController extends Controller
             'tier_rank' => ['nullable', 'integer', 'min:0', 'max:999'],
             'is_public' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(['draft', 'active', 'archived'])],
+            'scope' => ['required', Rule::in(['church', 'service', 'both'])],
             'includes_seats' => ['required', 'integer', 'min:1', 'max:100000'],
             'seat_overage_policy' => ['required', Rule::in(['block', 'warn', 'bill'])],
             'entitlements' => ['nullable', 'array'],

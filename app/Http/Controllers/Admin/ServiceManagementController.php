@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\QuotaGuard;
 use App\Http\Controllers\Controller;
 use App\Models\Church;
 use App\Models\ChurchService;
@@ -88,6 +89,19 @@ class ServiceManagementController extends Controller
 
         $validated = $request->validate($rules);
 
+        $churchForQuota = null;
+        if ($requiresChurch) {
+            $churchForQuota = Church::query()->find((int) $validated['church_id']);
+        } elseif (config('tenancy.enabled')) {
+            $churchForQuota = app(\App\Tenancy\TenantContext::class)->church();
+        } else {
+            $churchForQuota = Church::main();
+        }
+
+        if ($churchForQuota) {
+            app(QuotaGuard::class)->enforce($churchForQuota, 'max_services', 1);
+        }
+
         $payload = [
             'title' => $validated['title'],
             'title_ar' => $validated['title_ar'] ?? null,
@@ -113,6 +127,10 @@ class ServiceManagementController extends Controller
         }
 
         $service->save();
+
+        if ($churchForQuota) {
+            app(QuotaGuard::class)->syncServiceCount($churchForQuota->fresh());
+        }
 
         if ($request->boolean('clone_templates', true)) {
             app(RoleTemplateService::class)->cloneTemplatesIntoService($service);
@@ -234,6 +252,13 @@ class ServiceManagementController extends Controller
 
         $service->status = ChurchService::STATUS_ARCHIVED;
         $service->save();
+
+        if ($service->church_id) {
+            $church = Church::query()->find($service->church_id);
+            if ($church) {
+                app(QuotaGuard::class)->syncServiceCount($church);
+            }
+        }
 
         return $this->redirectAfterMutation($request)
             ->with('success', __('service.archived'));

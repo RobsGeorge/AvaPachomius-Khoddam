@@ -18,6 +18,13 @@ return [
         'storage_bytes' => 'lifetime',
         'max_active_users' => 'lifetime',
         'max_courses' => 'lifetime',
+        'max_services' => 'lifetime',
+    ],
+
+    'mobile_app_ranks' => [
+        'none' => 0,
+        'student' => 1,
+        'full' => 2,
     ],
 
 ];

@@ -85,7 +85,8 @@ class SubscriptionPlanServiceTest extends EventModuleTestCase
     {
         $this->seed(PlatformBillingSeeder::class);
 
-        $this->assertSame(4, SubscriptionPlan::count());
+        $this->assertSame(5, SubscriptionPlan::count());
         $this->assertTrue(SubscriptionPlan::where('slug', 'enterprise')->exists());
+        $this->assertTrue(SubscriptionPlan::where('slug', 'service-addon')->exists());
     }
 }

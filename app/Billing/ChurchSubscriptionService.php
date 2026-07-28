@@ -36,6 +36,12 @@ class ChurchSubscriptionService
             ]);
         }
 
+        if (! $plan->allowsChurch()) {
+            throw ValidationException::withMessages([
+                'plan_id' => [__('billing.plan_scope_church_only')],
+            ]);
+        }
+
         if ($price && $price->plan_id !== $plan->plan_id) {
             throw ValidationException::withMessages([
                 'plan_price_id' => [__('billing.price_plan_mismatch')],
@@ -64,6 +70,7 @@ class ChurchSubscriptionService
 
             $this->sync->sync($church->fresh());
             $this->quotaGuard->syncSeatUsage($church->fresh());
+            $this->quotaGuard->syncServiceCount($church->fresh());
 
             AuditLogService::recordEvent('billing.plan_assigned', [
                 'church_id' => $church->church_id,
@@ -159,10 +166,15 @@ class ChurchSubscriptionService
             ]);
         }
 
-        return BillingAccount::firstOrCreate(
-            ['organization_id' => $orgId],
-            ['default_currency' => config('billing.default_currency', 'EGP')]
-        );
+        return BillingAccount::query()
+            ->where('organization_id', $orgId)
+            ->whereNull('service_id')
+            ->first()
+            ?? BillingAccount::create([
+                'organization_id' => $orgId,
+                'service_id' => null,
+                'default_currency' => config('billing.default_currency', 'EGP'),
+            ]);
     }
 
     private function assertValidFeatureKey(string $featureKey): void

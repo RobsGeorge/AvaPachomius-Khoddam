@@ -44,6 +44,7 @@ class SubscriptionPlanService
                 'is_public' => (bool) ($input['is_public'] ?? true),
                 'is_custom' => false,
                 'status' => $input['status'] ?? 'draft',
+                'scope' => $input['scope'] ?? 'both',
                 'includes_seats' => (int) ($input['includes_seats'] ?? 50),
                 'seat_overage_policy' => $input['seat_overage_policy'] ?? 'block',
             ]);
@@ -72,6 +73,7 @@ class SubscriptionPlanService
                 'tier_rank' => (int) ($input['tier_rank'] ?? $plan->tier_rank),
                 'is_public' => array_key_exists('is_public', $input) ? (bool) $input['is_public'] : $plan->is_public,
                 'status' => $input['status'] ?? $plan->status,
+                'scope' => $input['scope'] ?? $plan->scope ?? 'both',
                 'includes_seats' => (int) ($input['includes_seats'] ?? $plan->includes_seats),
                 'seat_overage_policy' => $input['seat_overage_policy'] ?? $plan->seat_overage_policy,
             ]);
@@ -104,7 +106,7 @@ class SubscriptionPlanService
             if (! in_array($featureKey, $catalog, true)) {
                 continue;
             }
-            if ($value === '' || $value === null) {
+            if ($value === '') {
                 continue;
             }
 

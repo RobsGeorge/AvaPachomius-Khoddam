@@ -109,6 +109,13 @@ return [
     'sort_order' => 220,
     'default' => null, // null = unlimited
   ],
+  'max_services' => [
+    'type' => 'limit',
+    'maps_to_capability' => null,
+    'label' => 'billing.features.max_services',
+    'sort_order' => 230,
+    'default' => 1,
+  ],
 
   // --- Enums ---
   'mobile_app' => [
