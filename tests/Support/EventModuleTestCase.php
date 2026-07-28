@@ -79,11 +79,27 @@ abstract class EventModuleTestCase extends TestCase
         static $churchCounter = 0;
         $churchCounter++;
 
-        $church = Church::create(array_merge([
+        $defaults = [
             'slug' => 'test-church-'.$churchCounter,
             'name' => 'Test Church '.$churchCounter,
             'status' => 'active',
-        ], $overrides));
+            'place_country_code' => 'EG',
+            'place_governorate' => 'Test Governorate',
+            'place_district' => 'Test District',
+        ];
+        if (! array_key_exists('short_name', $overrides)) {
+            $defaults['short_name'] = mb_substr($defaults['name'], 0, 40);
+        }
+        if (! array_key_exists('place_key', $overrides)) {
+            $defaults['place_key'] = \App\Support\ChurchPlace::placeKey([
+                'name' => $overrides['name'] ?? $defaults['name'],
+                'place_country_code' => $overrides['place_country_code'] ?? $defaults['place_country_code'],
+                'place_governorate' => $overrides['place_governorate'] ?? $defaults['place_governorate'],
+                'place_district' => $overrides['place_district'] ?? $defaults['place_district'],
+            ]);
+        }
+
+        $church = Church::create(array_merge($defaults, $overrides));
 
         app(\App\Services\ChurchProvisioningService::class)->ensureOrganizationLinked($church->fresh());
 

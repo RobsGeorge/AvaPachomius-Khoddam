@@ -4,21 +4,27 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Billing\QuotaGuard;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SuperAdmin\StoreChurchRequest;
+use App\Http\Requests\SuperAdmin\UpdateChurchRequest;
 use App\Models\Church;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\ChurchProvisioningService;
+use App\Services\ChurchSlugSuggester;
+use App\Services\PlaceLookupService;
 use App\Services\PlatformAccessService;
 use App\Services\RolePreviewService;
 use App\Support\ChurchHost;
+use App\Support\ChurchPlace;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class ChurchController extends Controller
 {
     public function __construct(
         private ChurchProvisioningService $provisioning,
         private QuotaGuard $quotaGuard,
+        private ChurchSlugSuggester $slugSuggester,
+        private PlaceLookupService $placeLookup,
     ) {}
 
     public function index()
@@ -39,34 +45,33 @@ class ChurchController extends Controller
         return view('superadmin.churches.create', [
             'capabilities' => config('capabilities'),
             'users' => User::query()->orderBy('email')->limit(200)->get(['user_id', 'email', 'first_name', 'second_name']),
+            'countries' => config('countries'),
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreChurchRequest $request)
     {
-        $validated = $request->validate([
-            'slug' => ['required', 'string', 'max:40', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/'],
-            'name' => ['required', 'string', 'max:120'],
-            'domain' => ['nullable', 'string', 'max:191'],
-            'capabilities' => ['nullable', 'array'],
-            'capabilities.*' => ['string'],
-            'admin_user_ids' => ['nullable', 'array'],
-            'admin_user_ids.*' => ['integer', 'exists:user,user_id'],
-        ]);
+        $validated = $request->validated();
 
         $church = $this->provisioning->create(
             [
                 'slug' => $validated['slug'],
                 'name' => $validated['name'],
+                'short_name' => $validated['short_name'],
                 'domain' => $validated['domain'] ?? null,
                 'capabilities' => $validated['capabilities'] ?? array_keys((array) config('capabilities')),
+                'place_street' => $validated['place_street'] ?? null,
+                'place_district' => $validated['place_district'] ?? null,
+                'place_region' => $validated['place_region'] ?? null,
+                'place_governorate' => $validated['place_governorate'] ?? null,
+                'place_country_code' => $validated['place_country_code'],
             ],
             $validated['admin_user_ids'] ?? []
         );
 
         return redirect()
             ->route('superadmin.churches.show', $church)
-            ->with('success', __('tenancy.church_created', ['name' => $church->name]));
+            ->with('success', __('tenancy.church_created', ['name' => $church->shownName()]));
     }
 
     public function show(Church $church)
@@ -97,21 +102,15 @@ class ChurchController extends Controller
             'church' => $church,
             'capabilities' => config('capabilities'),
             'enabledCapabilities' => $enabled,
+            'countries' => config('countries'),
         ]);
     }
 
-    public function update(Request $request, Church $church)
+    public function update(UpdateChurchRequest $request, Church $church)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
-            'domain' => ['nullable', 'string', 'max:191'],
-            'status' => ['required', Rule::in(['active', 'suspended'])],
-            'settings' => ['nullable', 'array'],
-            'capabilities' => ['nullable', 'array'],
-            'capabilities.*' => ['string'],
-        ]);
+        $validated = $request->validated();
 
-        if ($church->slug === config('tenancy.main_slug') && $validated['status'] === 'suspended') {
+        if ($church->slug === config('tenancy.main_slug') && ($validated['status'] ?? '') === 'suspended') {
             return back()->withErrors(['status' => __('tenancy.cannot_suspend_main')]);
         }
 
@@ -120,18 +119,65 @@ class ChurchController extends Controller
             return back()->withErrors(['domain' => __('billing.custom_domain_not_allowed')]);
         }
 
-        $church->update([
+        $this->provisioning->updateIdentity($church, [
             'name' => $validated['name'],
+            'short_name' => $validated['short_name'],
             'domain' => $validated['domain'] ?? null,
             'status' => $validated['status'],
             'settings' => $validated['settings'] ?? $church->settings,
+            'place_street' => $validated['place_street'] ?? null,
+            'place_district' => $validated['place_district'] ?? null,
+            'place_region' => $validated['place_region'] ?? null,
+            'place_governorate' => $validated['place_governorate'] ?? null,
+            'place_country_code' => $validated['place_country_code'],
         ]);
 
-        $this->provisioning->syncCapabilities($church, $validated['capabilities'] ?? []);
+        $this->provisioning->syncCapabilities($church->fresh(), $validated['capabilities'] ?? []);
 
         return redirect()
             ->route('superadmin.churches.show', $church)
             ->with('success', __('tenancy.church_updated'));
+    }
+
+    public function suggestSlug(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['nullable', 'string', 'max:'.ChurchPlace::NAME_MAX],
+            'short_name' => ['nullable', 'string', 'max:'.ChurchPlace::SHORT_NAME_MAX],
+            'place_country_code' => ['nullable', 'string', 'size:2'],
+            'place_governorate' => ['nullable', 'string', 'max:120'],
+            'place_district' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $suggestions = $this->slugSuggester->suggest($validated);
+        $shown = ChurchPlace::shownName([
+            'short_name' => $validated['short_name'] ?? null,
+            'name' => $validated['name'] ?? null,
+            'place_district' => $validated['place_district'] ?? null,
+            'place_governorate' => $validated['place_governorate'] ?? null,
+            'place_country_code' => $validated['place_country_code'] ?? null,
+        ]);
+
+        return response()->json([
+            'suggestions' => $suggestions,
+            'shown_name' => $shown,
+        ]);
+    }
+
+    public function searchPlaces(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => ['required', 'string', 'min:2', 'max:200'],
+            'country' => ['nullable', 'string', 'size:2'],
+        ]);
+
+        $results = $this->placeLookup->search(
+            $validated['q'],
+            $validated['country'] ?? null,
+            5
+        );
+
+        return response()->json(['results' => $results]);
     }
 
     public function platformEnter(Request $request, Church $church)
@@ -141,7 +187,7 @@ class ChurchController extends Controller
         PlatformAccessService::start($church, $request->user(), $request);
 
         return redirect(ChurchHost::url($church, '/dashboard'))
-            ->with('success', __('workspace.platform_access_started', ['church' => $church->name]));
+            ->with('success', __('workspace.platform_access_started', ['church' => $church->preferredShortName()]));
     }
 
     public function platformEnterSigned(Request $request, Church $church)
@@ -152,7 +198,7 @@ class ChurchController extends Controller
 
         return redirect()
             ->route('dashboard')
-            ->with('success', __('workspace.platform_access_started', ['church' => $church->name]));
+            ->with('success', __('workspace.platform_access_started', ['church' => $church->preferredShortName()]));
     }
 
     public function viewAsChurch(Request $request, Church $church)
@@ -163,7 +209,7 @@ class ChurchController extends Controller
         RolePreviewService::startChurchAdminRole($superadmin, $church, $request);
 
         return redirect(ChurchHost::url($church, '/dashboard'))
-            ->with('success', __('workspace.view_as_church_started', ['church' => $church->name]));
+            ->with('success', __('workspace.view_as_church_started', ['church' => $church->preferredShortName()]));
     }
 
     public function viewAsChurchSigned(Request $request, Church $church)
@@ -175,7 +221,7 @@ class ChurchController extends Controller
 
         return redirect()
             ->route('dashboard')
-            ->with('success', __('workspace.view_as_church_started', ['church' => $church->name]));
+            ->with('success', __('workspace.view_as_church_started', ['church' => $church->preferredShortName()]));
     }
 
     public function suspend(Church $church)

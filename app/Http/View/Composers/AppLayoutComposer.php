@@ -72,7 +72,7 @@ class AppLayoutComposer
             $branding = ChurchBranding::fromSettings($church->settings);
             $view->with('churchBrandingCss', ChurchBranding::portalCss($branding));
             $view->with('churchLogoUrl', ChurchBranding::logoUrl($branding));
-            $view->with('brandedChurchName', $church->name);
+            $view->with('brandedChurchName', $church->preferredShortName());
             $view->with('eventThemeActive', EventTheme::isActive(EventTheme::fromSettings($church->settings)));
         } catch (\Throwable $e) {
             report($e);

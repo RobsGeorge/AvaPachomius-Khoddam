@@ -34,7 +34,7 @@
                 <tbody>
                     @forelse($churches as $church)
                         <tr>
-                            <td class="fw-semibold">{{ $church->name }}</td>
+                            <td class="fw-semibold">{{ $church->shownName() }}</td>
                             <td><code>{{ $church->slug }}</code></td>
                             <td class="small">{{ \App\Support\ChurchHost::hostFor($church) }}</td>
                             <td>

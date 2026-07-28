@@ -728,6 +728,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
     Route::get('/churches/create', [SuperAdminChurchController::class, 'create'])->name('churches.create');
     Route::post('/churches', [SuperAdminChurchController::class, 'store'])->name('churches.store');
+    Route::get('/churches/suggest-slug', [SuperAdminChurchController::class, 'suggestSlug'])->name('churches.suggest-slug');
+    Route::get('/churches/search-places', [SuperAdminChurchController::class, 'searchPlaces'])->name('churches.search-places');
     Route::get('/churches/{church}', [SuperAdminChurchController::class, 'show'])->name('churches.show');
     Route::get('/churches/{church}/edit', [SuperAdminChurchController::class, 'edit'])->name('churches.edit');
     Route::put('/churches/{church}', [SuperAdminChurchController::class, 'update'])->name('churches.update');
