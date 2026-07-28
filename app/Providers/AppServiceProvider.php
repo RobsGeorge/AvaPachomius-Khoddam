@@ -15,6 +15,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -83,8 +84,10 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
-        if (! is_dir($path)) {
-            @mkdir($path, 0775, true);
+        try {
+            File::ensureDirectoryExists($path, 0775);
+        } catch (\Throwable $e) {
+            report($e);
         }
     }
 }

@@ -15,7 +15,8 @@ use Throwable;
  * makeDirectory(..., $force = true) also swallows mkdir failures, so a later
  * file_put_contents surfaces as "No such file or directory".
  *
- * One forced recreate + retry prevents that ErrorException from reaching users.
+ * Proactive directory creation plus one forced recreate + retry prevents that
+ * ErrorException from reaching users.
  */
 class ResilientFileStore extends FileStore
 {
@@ -34,6 +35,14 @@ class ResilientFileStore extends FileStore
     }
 
     /**
+     * @param  string  $path
+     */
+    protected function ensureCacheDirectoryExists($path): void
+    {
+        $this->ensureWritableCachePath(dirname($path));
+    }
+
+    /**
      * @template T
      * @param  callable(): T  $callback
      * @return T
@@ -47,28 +56,52 @@ class ResilientFileStore extends FileStore
                 throw $e;
             }
 
-            $directory = dirname($this->path($key));
-            $this->files->makeDirectory($directory, 0777, true, true);
-
-            // Also recreate the configured base path if a flush removed parents.
-            if (! $this->files->isDirectory($this->directory)) {
-                $this->files->makeDirectory($this->directory, 0777, true, true);
-                $this->files->makeDirectory($directory, 0777, true, true);
-            }
+            $this->ensureWritableCachePath(dirname($this->path($key)));
 
             return $callback();
         }
     }
 
+    protected function ensureWritableCachePath(string $directory): void
+    {
+        if ($this->files->isDirectory($directory)) {
+            return;
+        }
+
+        if (! $this->files->isDirectory($this->directory)) {
+            $this->createDirectoryTree($this->directory);
+        }
+
+        $this->createDirectoryTree($directory);
+    }
+
+    protected function createDirectoryTree(string $path): void
+    {
+        if ($this->files->isDirectory($path)) {
+            return;
+        }
+
+        $this->files->makeDirectory($path, 0775, true, true);
+
+        if ($this->files->isDirectory($path)) {
+            return;
+        }
+
+        // makeDirectory(..., $force = true) suppresses mkdir errors — retry without @.
+        mkdir($path, 0775, true);
+    }
+
     protected function isMissingCachePathError(Throwable $e): bool
     {
-        if (! $e instanceof ErrorException) {
+        $message = $e->getMessage();
+
+        if (! str_contains($message, 'No such file or directory')) {
             return false;
         }
 
-        $message = $e->getMessage();
-
-        return str_contains($message, 'Failed to open stream: No such file or directory')
-            || str_contains($message, 'failed to open stream: No such file or directory');
+        return $e instanceof ErrorException
+            || str_contains($message, 'Failed to open stream')
+            || str_contains($message, 'failed to open stream')
+            || str_contains($message, 'mkdir():');
     }
 }
