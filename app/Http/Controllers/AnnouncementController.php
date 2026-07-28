@@ -5,19 +5,27 @@ namespace App\Http\Controllers;
 use App\Models\Announcement;
 use App\Models\AnnouncementDelivery;
 use App\Services\AnnouncementService;
+use App\Services\CoursePermissionResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AnnouncementController extends Controller
 {
     public function __construct(
-        private AnnouncementService $announcements
+        private AnnouncementService $announcements,
+        private CoursePermissionResolver $permissions,
     ) {}
 
     public function index()
     {
         $user = Auth::user();
-        abort_unless($user->isStudent(), 403);
+        // Gate on the announcement.view permission (matches the nav entry), not a
+        // hardcoded role-name check (CLAUDE.md rule #4). Students hold this key.
+        abort_unless(
+            $this->permissions->canInSystem($user, 'announcement.view')
+                || $this->permissions->canAnyInAnyCourse($user, ['announcement.view']),
+            403
+        );
 
         $deliveries = $this->announcements->studentInbox($user);
 

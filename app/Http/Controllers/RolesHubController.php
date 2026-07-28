@@ -26,6 +26,13 @@ class RolesHubController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $this->hub->canAccess($user), 403);
 
+        // F7: the full user directory feeds several assignment <select>s. Load it at most
+        // once per request instead of running the same full-table query 2–3 times.
+        $userDirectory = null;
+        $loadUsers = function () use (&$userDirectory) {
+            return $userDirectory ??= User::orderBy('first_name')->orderBy('second_name')->get();
+        };
+
         $visibleSections = $this->hub->visibleSections($user);
         $section = $request->query('section');
         if (! in_array($section, $visibleSections, true)) {
@@ -76,7 +83,7 @@ class RolesHubController extends Controller
                     ->orderByDesc('is_primary')
                     ->orderBy('user_id')
                     ->get();
-                $serviceAssignUsers = User::orderBy('first_name')->orderBy('second_name')->get();
+                $serviceAssignUsers = $loadUsers();
             }
 
             if ($canCrossAddService) {
@@ -117,17 +124,20 @@ class RolesHubController extends Controller
         $otherCourses = collect();
 
         if ($this->hub->canViewAllAssignments($user)) {
+            // F7: paginate the assignment list — it grows linearly with users×courses and
+            // was previously loaded unbounded on every hub request.
             $allAssignments = UserCourseRole::with(['user', 'course', 'role'])
                 ->orderByDesc('course_id')
-                ->get();
-            $accountStatuses = $allAssignments->mapWithKeys(function (UserCourseRole $assignment) {
+                ->paginate(50)
+                ->withQueryString();
+            $accountStatuses = collect($allAssignments->items())->mapWithKeys(function (UserCourseRole $assignment) {
                 $status = $assignment->user
                     ? PendingRegistrationService::accountStatus($assignment->user)
                     : PendingRegistrationService::unknownAccountStatus();
 
                 return [$assignment->user_course_role_id => $status];
             });
-            $users = User::orderBy('first_name')->orderBy('second_name')->get();
+            $users = $loadUsers();
             $rolesByCourse = Role::assignableToCourses()
                 ->with('course')
                 ->orderBy('role_name')
@@ -181,7 +191,7 @@ class RolesHubController extends Controller
         }
 
         $assignUsers = $canAssignCourse || $canManageCourse
-            ? User::orderBy('first_name')->orderBy('second_name')->get()
+            ? $loadUsers()
             : collect();
 
         $emailTemplates = collect();
