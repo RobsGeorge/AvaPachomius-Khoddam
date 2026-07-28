@@ -11,6 +11,8 @@ class ChurchUsageCounter extends Model
 
     protected $primaryKey = 'church_usage_counter_id';
 
+    public $timestamps = false;
+
     protected $fillable = ['church_id', 'feature_key', 'period_key', 'used_amount'];
 
     protected $casts = ['used_amount' => 'integer'];
