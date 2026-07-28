@@ -56,6 +56,7 @@
           if (navScrollY) window.scrollTo(0, navScrollY);
       }">
     <a class="skip-link visually-hidden-focusable" href="#app-main">{{ __('a11y.skip_to_content') }}</a>
+    @include('layouts.partials.page-loader')
     {{-- Polite live region: JS mirrors toast/flash messages here so screen readers announce them. --}}
     <div id="khoddam-live-region" class="visually-hidden" aria-live="polite" role="status"></div>
     <div class="app-shell d-flex flex-column flex-grow-1">
@@ -85,6 +86,7 @@
     {{-- Pin Alpine exactly: floating @3.x.x is a supply-chain risk (auto-pulls any new 3.x). --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
     <script src="{{ asset('js/csrf-heal.js') }}?v=20260727a"></script>
+    <script src="{{ asset('js/kh-loader.js') }}?v=20260728a"></script>
     <script src="{{ asset('js/khoddam-ui.js') }}?v=20260727a"></script>
     <script src="{{ asset('js/observability-beacon.js') }}?v=20260728a"></script>
     @stack('scripts')
