@@ -2381,3 +2381,130 @@ body.theme-dark .report-pct--poor {
         scroll-behavior: auto !important;
     }
 }
+
+/* ============================================================
+   Orbit Loader system  (Deaconia — Brand Explorer "Orbit")
+   Coptic cross (static) inside a sweeping gold ring.
+   - .kh-page-loader : full-screen navigation overlay (driven by kh-loader.js)
+   - .kh-loader      : inline loader for widgets / cards / tables
+   - .kh-skeleton    : shimmer placeholder for async regions
+   ============================================================ */
+@keyframes kh-orbit-spin { to { transform: rotate(360deg); } }
+@keyframes kh-loader-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes kh-skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* --- the mark (reusable SVG) --- */
+.kh-orbit {
+    width: var(--kh-orbit-size, 48px);
+    height: var(--kh-orbit-size, 48px);
+    display: inline-block;
+    vertical-align: middle;
+    flex: none;
+}
+.kh-orbit__cross { fill: var(--kh-orbit-cross, #114b4f); }
+.kh-orbit__ring {
+    stroke: var(--kh-orbit-ring, #c9a227);
+    transform-origin: 50% 50%;
+    animation: kh-orbit-spin 1.2s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+    .kh-orbit__ring { animation-duration: 2.6s; }
+}
+
+/* --- full-page navigation overlay --- */
+.kh-page-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: grid;
+    place-items: center;
+    background: rgba(238, 244, 242, 0.72);
+    background: color-mix(in srgb, var(--color-bg-1, #eef4f2) 78%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.18s ease, visibility 0.18s ease;
+}
+.kh-page-loader.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    animation: kh-loader-fade 0.18s ease;
+}
+.kh-page-loader__box { display: grid; place-items: center; }
+.kh-page-loader__disc {
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(120% 120% at 20% 0%, #114b4f, #0e2224);
+    box-shadow: var(--shadow-lg, 0 16px 40px rgba(15, 74, 78, 0.16));
+}
+.kh-page-loader__disc .kh-orbit {
+    --kh-orbit-size: 66px;
+    --kh-orbit-cross: #c9a227;
+    --kh-orbit-ring: #c9a227;
+}
+.kh-page-loader__label {
+    margin-top: 0.9rem;
+    font-family: var(--font-display, inherit);
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    color: var(--color-text, #22423f);
+    text-align: center;
+}
+
+/* --- inline / widget loader --- */
+.kh-loader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.5rem;
+    min-height: var(--kh-loader-min, 120px);
+    color: var(--color-text-muted, #5b7773);
+}
+.kh-loader--overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(255, 255, 255, 0.7);
+    background: color-mix(in srgb, var(--color-surface, #ffffff) 72%, transparent);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    border-radius: inherit;
+    min-height: 0;
+}
+.kh-loader__text { font-size: 0.85rem; }
+
+/* --- skeleton shimmer --- */
+.kh-skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-sm, 0.5rem);
+    background: var(--color-surface-border, rgba(17, 75, 79, 0.14));
+    background: linear-gradient(
+        90deg,
+        var(--color-surface-border, rgba(17, 75, 79, 0.14)) 25%,
+        color-mix(in srgb, var(--color-surface-border, rgba(17, 75, 79, 0.14)) 45%, transparent) 37%,
+        var(--color-surface-border, rgba(17, 75, 79, 0.14)) 63%
+    );
+    background-size: 200% 100%;
+    animation: kh-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.kh-skeleton + .kh-skeleton { margin-top: 0.55rem; }
+.kh-skeleton--text,
+.kh-skeleton--line { height: 0.85em; }
+.kh-skeleton--title { height: 1.4em; width: 45%; }
+.kh-skeleton--block { min-height: 80px; }
+.kh-skeleton--circle { border-radius: 50%; aspect-ratio: 1; width: 42px; }
+@media (prefers-reduced-motion: reduce) {
+    .kh-skeleton { animation: none; }
+}
