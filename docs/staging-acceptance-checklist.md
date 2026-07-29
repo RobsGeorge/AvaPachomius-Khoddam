@@ -40,6 +40,9 @@ SESSION_DRIVER=database
 | Wildcard DNS `*.<TENANCY_BASE_DOMAIN>` → staging | Resolves |
 | TLS valid on apex + wildcard | Browser shows lock |
 | `php artisan config:cache` after env change | No stale config |
+| `MAIL_HOST` is not `mailpit` (or `MAIL_MAILER=log` / real SMTP configured) | Password reset does not error on send |
+
+**Mail on staging:** The repo auto-falls back to `log` when `APP_ENV=staging` and `MAIL_HOST=mailpit`. For deliverable mail, set real SMTP credentials or keep `log` and read `storage/logs/laravel.log`.
 
 ### A3. Pilot church
 

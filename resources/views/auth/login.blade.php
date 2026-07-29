@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('body_class', 'auth-form-page')
+
 @section('title', __('auth.login_title'))
 
 @section('content')

@@ -219,7 +219,22 @@ body.app-body {
     background: var(--gradient-bg);
     background-attachment: fixed;
     min-height: 100vh;
+    min-height: 100dvh;
     transition: background var(--transition-base), color var(--transition-base);
+}
+
+/* Guest auth forms (login, password reset, etc.) — avoid phantom scroll on mobile. */
+body.auth-form-page {
+    overflow-x: hidden;
+}
+
+body.auth-form-page .app-main {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1 1 auto;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
 }
 
 body.app-body::before {
