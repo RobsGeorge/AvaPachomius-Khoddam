@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\StoreChurchRequest;
 use App\Http\Requests\SuperAdmin\UpdateChurchRequest;
 use App\Models\Church;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\ChurchMemberInviteService;
 use App\Services\ChurchProvisioningService;
