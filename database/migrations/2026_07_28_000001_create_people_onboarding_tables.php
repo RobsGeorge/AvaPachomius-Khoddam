@@ -1,5 +1,6 @@
 <?php
 
+use App\Database\MigrationSupport;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,17 +15,8 @@ return new class extends Migration
     {
         // Avoid ->after(...) on columns that may not exist yet (main vs staging
         // schema drift). Appending nullable columns is expand-safe on MySQL.
-        if (Schema::hasTable('service') && ! Schema::hasColumn('service', 'portal_account_preference')) {
-            Schema::table('service', function (Blueprint $table) {
-                $table->string('portal_account_preference', 32)->nullable();
-            });
-        }
-
-        if (Schema::hasTable('course') && ! Schema::hasColumn('course', 'portal_account_preference')) {
-            Schema::table('course', function (Blueprint $table) {
-                $table->string('portal_account_preference', 32)->nullable();
-            });
-        }
+        MigrationSupport::addStringColumn('service', 'portal_account_preference', 32, true);
+        MigrationSupport::addStringColumn('course', 'portal_account_preference', 32, true);
 
         if (Schema::hasTable('user')) {
             Schema::table('user', function (Blueprint $table) {
