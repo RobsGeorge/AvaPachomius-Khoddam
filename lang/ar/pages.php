@@ -52,6 +52,7 @@ return [
     'exams'                       => 'الامتحانات',
     'grades'                      => 'الدرجات',
     'grade_report'                => 'تقرير الدرجات',
+    'gradebook_export_csv'        => 'تصدير كشف الدرجات CSV',
     'manage_grading'              => 'إدارة التقييم',
     'content'                     => 'المحتوى',
     'feedback'                    => 'التقييم والملاحظات',

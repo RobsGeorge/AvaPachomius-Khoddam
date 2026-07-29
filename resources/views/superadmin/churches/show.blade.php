@@ -89,11 +89,16 @@
         <div class="card-body border-bottom">
             <form method="POST" action="{{ route('superadmin.churches.members.store', $church) }}" class="row g-2 align-items-end">
                 @csrf
-                <div class="col-md-5">
-                    <label class="form-label" for="email">{{ __('tenancy.member_email') }}</label>
-                    <input type="email" name="email" id="email" class="form-control" required>
-                </div>
                 <div class="col-md-4">
+                    <label class="form-label" for="email">{{ __('tenancy.member_email') }}</label>
+                    <input type="email" name="email" id="email" class="form-control" value="{{ old('email') }}" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="first_name">{{ __('tenancy.invite_first_name') }}</label>
+                    <input type="text" name="first_name" id="first_name" class="form-control" value="{{ old('first_name') }}"
+                           placeholder="{{ __('tenancy.invite_first_name_hint') }}">
+                </div>
+                <div class="col-md-3">
                     <label class="form-label" for="role_id">{{ __('tenancy.member_role') }}</label>
                     <select name="role_id" id="role_id" class="form-select">
                         <option value="">{{ __('tenancy.no_role') }}</option>
@@ -102,8 +107,18 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary w-100">{{ __('tenancy.add_member') }}</button>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">{{ __('tenancy.add_or_invite_member') }}</button>
+                </div>
+                <div class="col-12 d-flex gap-3 flex-wrap">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="send_email" value="1" id="send_email" checked>
+                        <label class="form-check-label" for="send_email">{{ __('people_onboarding.bulk_invite_email') }}</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="send_whatsapp" value="1" id="send_whatsapp">
+                        <label class="form-check-label" for="send_whatsapp">{{ __('people_onboarding.bulk_invite_whatsapp') }}</label>
+                    </div>
                 </div>
             </form>
         </div>

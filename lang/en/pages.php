@@ -52,6 +52,7 @@ return [
     'exams'                       => 'Exams',
     'grades'                      => 'Grades',
     'grade_report'                => 'Grade report',
+    'gradebook_export_csv'        => 'Export gradebook CSV',
     'manage_grading'              => 'Manage grading',
     'content'                     => 'Content',
     'feedback'                    => 'Feedback',

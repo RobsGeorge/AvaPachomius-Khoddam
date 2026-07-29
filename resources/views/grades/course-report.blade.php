@@ -9,9 +9,14 @@
             <h1 class="page-title mb-0">{{ __('pages.grade_report') }}</h1>
             <small class="text-muted-theme fw-semibold">{{ $course->title }} — {{ $course->year }}</small>
         </div>
-        <a href="{{ route('grades.admin', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
-            <i class="bi bi-gear"></i> {{ __('pages.grading_management') }}
-        </a>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('grades.export', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
+                <i class="bi bi-download"></i> {{ __('pages.gradebook_export_csv') }}
+            </a>
+            <a href="{{ route('grades.admin', $course->course_id) }}" class="btn btn-outline-theme btn-sm">
+                <i class="bi bi-gear"></i> {{ __('pages.grading_management') }}
+            </a>
+        </div>
     </div>
 
     @php
