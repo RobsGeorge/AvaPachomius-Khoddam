@@ -12,28 +12,30 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Avoid ->after(...) on columns that may not exist yet (main vs staging
+        // schema drift). Appending nullable columns is expand-safe on MySQL.
         if (Schema::hasTable('service') && ! Schema::hasColumn('service', 'portal_account_preference')) {
             Schema::table('service', function (Blueprint $table) {
-                $table->string('portal_account_preference', 32)->nullable()->after('progression_config');
+                $table->string('portal_account_preference', 32)->nullable();
             });
         }
 
         if (Schema::hasTable('course') && ! Schema::hasColumn('course', 'portal_account_preference')) {
             Schema::table('course', function (Blueprint $table) {
-                $table->string('portal_account_preference', 32)->nullable()->after('permissions_version');
+                $table->string('portal_account_preference', 32)->nullable();
             });
         }
 
         if (Schema::hasTable('user')) {
             Schema::table('user', function (Blueprint $table) {
                 if (! Schema::hasColumn('user', 'email_verified_at')) {
-                    $table->timestamp('email_verified_at')->nullable()->after('is_verified');
+                    $table->timestamp('email_verified_at')->nullable();
                 }
                 if (! Schema::hasColumn('user', 'mobile_verified_at')) {
-                    $table->timestamp('mobile_verified_at')->nullable()->after('email_verified_at');
+                    $table->timestamp('mobile_verified_at')->nullable();
                 }
                 if (! Schema::hasColumn('user', 'whatsapp_capable')) {
-                    $table->boolean('whatsapp_capable')->nullable()->after('mobile_verified_at');
+                    $table->boolean('whatsapp_capable')->nullable();
                 }
             });
         }
