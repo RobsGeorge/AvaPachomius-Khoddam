@@ -43,6 +43,7 @@ return [
     'confession'        => 'جدول الاعتراف',
     'appointments'      => 'المواعيد الرعوية',
     'home_visits'       => 'الزيارات المنزلية',
+    'church_members'    => 'أعضاء الكنيسة',
     'church_cycle'      => 'دورة الكنيسة',
     'public_profile'    => 'الملف العام',
     'church_branding'   => 'هوية الكنيسة',

@@ -56,6 +56,7 @@ use App\Http\Controllers\Church\EventThemeController;
 use App\Http\Controllers\Church\PublicProfileController;
 use App\Http\Controllers\Church\HomepageEditorController;
 use App\Http\Controllers\Church\ChurchMediaController;
+use App\Http\Controllers\Church\MembersController;
 use App\Http\Controllers\PublicSite\ChurchPublicProfileController;
 use App\Http\Controllers\PublicSite\HomepageController;
 use App\Http\Controllers\Church\PayrollController;
@@ -252,6 +253,13 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/cycle/years/{year}/start-promotion', [ChurchCycleController::class, 'startPromotion'])->name('cycle.years.start-promotion');
             Route::post('/cycle/years/{year}/close', [ChurchCycleController::class, 'closeYear'])->name('cycle.years.close');
             Route::post('/cycle/years/{year}/services/{service}/done', [ChurchCycleController::class, 'markServiceDone'])->name('cycle.years.services.done');
+        });
+
+        // T4 — church-admin members self-service (add existing or invite-by-email)
+        Route::middleware(['permission:church.members.manage'])->group(function () {
+            Route::get('/members', [MembersController::class, 'index'])->name('members.index');
+            Route::post('/members', [MembersController::class, 'store'])->name('members.store');
+            Route::delete('/members/{user}', [MembersController::class, 'destroy'])->name('members.destroy');
         });
 
         // T6 — finance (first cut)
@@ -659,6 +667,7 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     // Grades management
     Route::get('/courses/{course}/grades/manage',               [GradeCategoryController::class, 'admin'])->name('grades.admin');
     Route::get('/courses/{course}/grades/report',               [StudentGradeController::class, 'courseReport'])->name('grades.report');
+    Route::get('/courses/{course}/grades/export',               [StudentGradeController::class, 'exportCsv'])->name('grades.export');
     Route::post('/courses/{course}/grade-categories',           [GradeCategoryController::class, 'store'])->name('grade-categories.store');
     Route::put('/grade-categories/{category}',                  [GradeCategoryController::class, 'update'])->name('grade-categories.update');
     Route::delete('/grade-categories/{category}',               [GradeCategoryController::class, 'destroy'])->name('grade-categories.destroy');
@@ -684,6 +693,7 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::post('/courses/{course}/email-templates/preview', [CourseEmailTemplateController::class, 'preview'])->name('courses.email-templates.preview');
 
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
+    Route::get('/students/roster/export',                       [StudentRosterController::class, 'exportCsv'])->name('students.roster.export');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
 
     Route::prefix('announcements/manage')->name('announcements.manage.')->group(function () {

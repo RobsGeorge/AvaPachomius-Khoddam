@@ -43,6 +43,7 @@ return [
     'confession'        => 'Confession calendar',
     'appointments'      => 'Pastoral appointments',
     'home_visits'       => 'Home visits',
+    'church_members'    => 'Church members',
     'church_cycle'      => 'Church cycle',
     'public_profile'    => 'Public profile',
     'church_branding'   => 'Church branding',

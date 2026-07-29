@@ -306,6 +306,20 @@ class NavigationHub
 
         if ($church && (
             ($user->is_superadmin ?? false)
+            || $resolver->canInChurch($user, 'church.members.manage', $church)
+        )) {
+            $churchLinks[] = array_merge(self::link(
+                'church.members.index',
+                'nav.church_members',
+                'bi-people',
+                ['church.members.*'],
+                'church.members.manage',
+                'church_management'
+            ), ['category' => 'pastoral']);
+        }
+
+        if ($church && (
+            ($user->is_superadmin ?? false)
             || $resolver->canInChurch($user, 'church.cycle.view', $church)
             || $resolver->canInChurch($user, 'church.cycle.manage', $church)
         )) {
@@ -602,6 +616,7 @@ class NavigationHub
             'church.confession.*',
             'church.appointments.*',
             'church.home-visits.*',
+            'church.members.*',
             'church.cycle.*',
             'church.finance.*',
             'church.public-profile.*',
