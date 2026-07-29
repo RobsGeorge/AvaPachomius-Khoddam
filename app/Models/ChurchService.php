@@ -30,6 +30,7 @@ class ChurchService extends Model
         'branding_theme',
         'status',
         'permissions_version',
+        'portal_account_preference',
     ];
 
     protected $casts = [

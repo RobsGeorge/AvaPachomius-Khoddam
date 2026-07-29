@@ -87,8 +87,10 @@ Still parked:
 - Polymorphic applications center (Church | Service | Course).
 - Church-admin self-service screens on `{slug}` (members/branding within guardrails) —
   superadmin console covers provisioning for now.
-- Invite-by-email onboarding that creates unverified users (add-member requires
-  existing email today).
+- ~~Invite-by-email onboarding~~ ? delivered under **People Onboarding** epic
+  (person_placements, invitations, CSV import + bulk invite email/WhatsApp).
+  Church `addMember` still requires an existing email for already-active users;
+  new people use the People hub invite path.
 - Per-church branding resolution wired into ThemeController / locale defaults.
 - Wildcard DNS/TLS + deploy docs updates (infra; document in DEPLOY when staging
   enables MULTI_TENANT).
