@@ -9,6 +9,7 @@ use App\Models\Organization;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserChurchRole;
+use App\Support\ChurchPlace;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -31,10 +32,16 @@ class ChurchProvisioningService
      * @param  array{
      *     slug: string,
      *     name: string,
+     *     short_name?: string|null,
      *     domain?: string|null,
      *     status?: string,
      *     settings?: array|null,
-     *     capabilities?: list<string>|null
+     *     capabilities?: list<string>|null,
+     *     place_street?: string|null,
+     *     place_district?: string|null,
+     *     place_region?: string|null,
+     *     place_governorate?: string|null,
+     *     place_country_code?: string|null,
      * }  $input
      * @param  list<int>  $adminUserIds
      */
@@ -59,18 +66,61 @@ class ChurchProvisioningService
             ]);
         }
 
-        return DB::transaction(function () use ($input, $adminUserIds, $slug) {
+        $placeKey = ChurchPlace::placeKey([
+            'name' => $input['name'] ?? null,
+            'place_country_code' => $input['place_country_code'] ?? null,
+            'place_governorate' => $input['place_governorate'] ?? null,
+            'place_district' => $input['place_district'] ?? null,
+        ]);
+        if ($placeKey !== null && Schema::hasColumn('church', 'place_key')
+            && Church::where('place_key', $placeKey)->exists()) {
+            throw ValidationException::withMessages([
+                'name' => __('tenancy.name_place_taken'),
+            ]);
+        }
+
+        return DB::transaction(function () use ($input, $adminUserIds, $slug, $placeKey) {
             $status = $input['status'] ?? 'active';
             $settings = $input['settings'] ?? null;
+            $shortName = ChurchPlace::shortName(
+                $input['short_name'] ?? null,
+                $input['name'] ?? null
+            );
 
-            $church = Church::create([
+            $place = [
+                'place_street' => isset($input['place_street']) ? trim((string) $input['place_street']) ?: null : null,
+                'place_district' => isset($input['place_district']) ? trim((string) $input['place_district']) ?: null : null,
+                'place_region' => isset($input['place_region']) ? trim((string) $input['place_region']) ?: null : null,
+                'place_governorate' => isset($input['place_governorate']) ? trim((string) $input['place_governorate']) ?: null : null,
+                'place_country_code' => isset($input['place_country_code'])
+                    ? strtoupper(trim((string) $input['place_country_code'])) ?: null
+                    : null,
+            ];
+
+            if (is_array($settings) || $place['place_country_code'] || $place['place_district'] || $place['place_governorate']) {
+                $settings = ChurchPlace::syncIntoPublicSettings(
+                    is_array($settings) ? $settings : [],
+                    $place
+                );
+            }
+
+            $attributes = [
                 'slug' => $slug,
                 'name' => $input['name'],
                 'domain' => $input['domain'] ?? null,
                 'status' => $status,
                 'settings' => $settings,
                 'permissions_version' => 1,
-            ]);
+            ];
+
+            if (Schema::hasColumn('church', 'short_name')) {
+                $attributes['short_name'] = $shortName;
+            }
+            if (Schema::hasColumn('church', 'place_street')) {
+                $attributes = array_merge($attributes, $place, ['place_key' => $placeKey]);
+            }
+
+            $church = Church::create($attributes);
 
             // Roles / capabilities stamp church_id → organizations.organization_id FKs.
             $this->ensureOrganizationLinked($church->fresh());
@@ -170,7 +220,7 @@ class ChurchProvisioningService
             'type' => 'church',
             'subdomain' => $church->slug,
             'name' => $church->name,
-            'region' => null,
+            'region' => $church->place_governorate ?: $church->place_district,
             'theme' => null,
             'settings' => $church->settings,
             'onboarding_state' => ['phase' => 'provisioned', 'completed' => false],
@@ -232,10 +282,98 @@ class ChurchProvisioningService
             'type' => 'church',
             'subdomain' => $church->slug,
             'name' => $church->name,
+            'region' => $church->place_governorate ?: $church->place_district,
             'settings' => $church->settings,
             'status' => $church->status,
         ]);
         $organization->save();
+    }
+
+    /**
+     * Update identity fields (name, short_name, place) and keep org / public profile in sync.
+     *
+     * @param  array{
+     *     name: string,
+     *     short_name?: string|null,
+     *     domain?: string|null,
+     *     status?: string,
+     *     settings?: array|null,
+     *     place_street?: string|null,
+     *     place_district?: string|null,
+     *     place_region?: string|null,
+     *     place_governorate?: string|null,
+     *     place_country_code?: string|null,
+     * }  $input
+     */
+    public function updateIdentity(Church $church, array $input): Church
+    {
+        $place = [
+            'place_street' => array_key_exists('place_street', $input)
+                ? (trim((string) $input['place_street']) ?: null)
+                : $church->place_street,
+            'place_district' => array_key_exists('place_district', $input)
+                ? (trim((string) $input['place_district']) ?: null)
+                : $church->place_district,
+            'place_region' => array_key_exists('place_region', $input)
+                ? (trim((string) $input['place_region']) ?: null)
+                : $church->place_region,
+            'place_governorate' => array_key_exists('place_governorate', $input)
+                ? (trim((string) $input['place_governorate']) ?: null)
+                : $church->place_governorate,
+            'place_country_code' => array_key_exists('place_country_code', $input)
+                ? (strtoupper(trim((string) $input['place_country_code'])) ?: null)
+                : $church->place_country_code,
+        ];
+
+        $name = $input['name'] ?? $church->name;
+        $placeKey = ChurchPlace::placeKey([
+            'name' => $name,
+            'place_country_code' => $place['place_country_code'],
+            'place_governorate' => $place['place_governorate'],
+            'place_district' => $place['place_district'],
+        ]);
+
+        if ($placeKey !== null && Schema::hasColumn('church', 'place_key')
+            && Church::where('place_key', $placeKey)->where('church_id', '!=', $church->church_id)->exists()) {
+            throw ValidationException::withMessages([
+                'name' => __('tenancy.name_place_taken'),
+            ]);
+        }
+
+        $settings = $input['settings'] ?? $church->settings;
+        $settings = ChurchPlace::syncIntoPublicSettings(
+            is_array($settings) ? $settings : [],
+            $place
+        );
+
+        $attributes = [
+            'name' => $name,
+            'domain' => array_key_exists('domain', $input) ? ($input['domain'] ?? null) : $church->domain,
+            'status' => $input['status'] ?? $church->status,
+            'settings' => $settings,
+        ];
+
+        if (Schema::hasColumn('church', 'short_name')) {
+            $attributes['short_name'] = ChurchPlace::shortName(
+                $input['short_name'] ?? $church->short_name,
+                $name
+            );
+        }
+        if (Schema::hasColumn('church', 'place_street')) {
+            $attributes = array_merge($attributes, $place, ['place_key' => $placeKey]);
+        }
+
+        return DB::transaction(function () use ($church, $attributes) {
+            $church->update($attributes);
+            $this->ensureOrganizationLinked($church->fresh());
+
+            AuditLogService::recordEvent('church.updated', [
+                'church_id' => $church->church_id,
+                'slug' => $church->slug,
+            ]);
+
+            return $church->fresh();
+        });
     }
 
     private function syncLinkedOrganizationStatus(Church $church, string $status): void

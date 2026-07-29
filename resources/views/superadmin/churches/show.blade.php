@@ -1,14 +1,15 @@
 @extends('layouts.app')
 
-@section('title', $church->name)
+@section('title', $church->shownName())
 
 @section('content')
 <div class="container py-4 animate-in" style="max-width:960px;">
     <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-4">
         <div>
-            <h1 class="page-title mb-1">{{ $church->name }}</h1>
+            <h1 class="page-title mb-1">{{ $church->shownName() }}</h1>
             <p class="text-muted-theme mb-0">
-                <code>{{ $church->slug }}</code>
+                <span>{{ $church->name }}</span>
+                · <code>{{ $church->slug }}</code>
                 · <a href="{{ $url }}" target="_blank" rel="noopener">{{ $host }}</a>
                 · <span class="badge {{ $church->status === 'active' ? 'bg-success' : 'bg-secondary' }}">{{ __('tenancy.status_'.$church->status) }}</span>
             </p>
