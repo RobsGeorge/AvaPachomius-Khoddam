@@ -696,6 +696,13 @@ return [
                 'routes' => ['church.finance.payroll.*'],
                 'nav' => ['church.payroll'],
             ],
+            'finance.payroll.approve' => [
+                'label_en' => 'Approve payroll',
+                'label_ar' => 'اعتماد الرواتب',
+                'type' => 'both',
+                'routes' => ['church.finance.payroll.approve', 'church.finance.payroll.reject'],
+                'nav' => ['church.payroll'],
+            ],
             'finance.money_in.view' => [
                 'label_en' => 'View money in',
                 'label_ar' => 'عرض الإيرادات',

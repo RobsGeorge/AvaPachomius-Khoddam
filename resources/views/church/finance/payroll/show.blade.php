@@ -15,6 +15,28 @@
         <a href="{{ route('church.finance.payroll.index') }}" class="btn btn-outline-secondary">{{ __('finance.back') }}</a>
     </div>
 
+    @if($run->isPendingApproval())
+        <div class="alert alert-info">
+            {{ __('finance.awaiting_approval_notice') }}
+            @if($run->submitted_at)
+                {{ __('finance.submitted_by', [
+                    'name' => $run->submittedBy?->name ?? $run->submittedBy?->email,
+                    'date' => $run->submitted_at->format('Y-m-d H:i'),
+                ]) }}
+            @endif
+        </div>
+    @endif
+
+    @if($run->isDraft() && $run->rejected_at)
+        <div class="alert alert-warning">
+            {{ __('finance.rejected_notice', [
+                'name' => $run->rejectedBy?->name ?? $run->rejectedBy?->email,
+                'date' => $run->rejected_at->format('Y-m-d H:i'),
+                'reason' => $run->rejection_reason,
+            ]) }}
+        </div>
+    @endif
+
     @if($run->isDraft())
         <div class="app-card card shadow-sm p-4 mb-4">
             <h2 class="h5 mb-3">{{ __('finance.add_line') }}</h2>
@@ -87,11 +109,31 @@
                 @csrf
                 <button type="submit" class="btn btn-primary">{{ __('finance.finalize') }}</button>
             </form>
+            <form method="POST" action="{{ route('church.finance.payroll.submit-for-approval', $run) }}">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary">{{ __('finance.submit_for_approval') }}</button>
+            </form>
             <form method="POST" action="{{ route('church.finance.payroll.destroy', $run) }}" data-confirm="{{ __('finance.confirm_delete') }}">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-outline-danger">{{ __('finance.delete_run') }}</button>
             </form>
+        </div>
+    @endif
+
+    @if($run->isPendingApproval())
+        <div class="d-flex flex-wrap gap-2 mt-3">
+            @can('finance.payroll.approve')
+                <form method="POST" action="{{ route('church.finance.payroll.approve', $run) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-primary">{{ __('finance.approve_run') }}</button>
+                </form>
+                <form method="POST" action="{{ route('church.finance.payroll.reject', $run) }}" class="d-flex gap-2" data-confirm="{{ __('finance.reject_confirm') }}">
+                    @csrf
+                    <input type="text" name="rejection_reason" class="form-control" placeholder="{{ __('finance.rejection_reason') }}" required>
+                    <button type="submit" class="btn btn-outline-danger">{{ __('finance.reject_run') }}</button>
+                </form>
+            @endcan
         </div>
     @endif
 </div>
