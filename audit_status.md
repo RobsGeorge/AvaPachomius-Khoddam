@@ -58,55 +58,62 @@ all, which is why Category C is the largest bucket.)*
 
 ## Category C — Completely Missing (not started)
 
-### From the master plan
-| Feature | Master-plan ref | Notes |
-|---|---|---|
-| **Public church-registration panel** (prospective church self-applies → superadmin review → auto-provision tenant) | §13 | No route, controller, or model (`grep` for "church registration/church application" → nothing). Confirmed parked, zero code. |
-| **Polymorphic applications center** (Church \| Service \| Course under one reviewer UI) | §13 | `CourseApplication` and `ServiceApplication` remain two separate, non-polymorphic systems — no `subject_type`/`subject_id` pattern anywhere in `app/`. |
-| **Church timezone setting** | §6, §17.6 (open decision) | No `timezone` field on `Church` model/`church.settings`. Confession/visit times are not church-timezone-aware yet. |
-| **PAC5 — tokenized ICS feeds** for priest/member confession & appointment calendars | §9 parking entry | No `.ics`/`Ics*` class inside `app/Services/Pastoral/` (only the unrelated session/exam `CalendarService` exists). |
-| **PAC6 — Google/Outlook OAuth push sync** | §9 parking entry | Zero OAuth code anywhere in `app/`. |
-| **Multi-currency catalogs beyond default EGP / fx_rate=1**, payroll cadence automation, approval workflows, finance reporting/reconciliation | §11 / PARKING-LOT T6 residual | Only a single default currency path is exercised; no approval/reporting layer found. |
-| **T10d multi-page homepage** | §7, T10c note | Current CMS is single curated homepage only. |
-| **Broader `/{service:slug}/…` route tree / nav driven purely by structure template** | T8 residual | Only the hub route + existing `/services/{slug}/…` exist. |
-| **`user_course_role` contraction** (drop/rename after enrollments cutover) | T8 residual | Explicitly deferred to Phase 5 per CLAUDE.md rule 2; correctly not started. |
+**Resolved since the last pass (landed on `origin/staging` via PR #99 while this branch was
+in flight — not this session's work, but confirmed present):** gradebook CSV export
+(`StudentGradeController::exportCsv`, `grades.export` route) and church-admin
+self-service member management (`Church/MembersController` + `members.index/store/destroy`
+routes + `church/members/index.blade.php`), addressing the "F-08 gradebook export" and
+"T4 — church-admin self-service screens on `{slug}`" items respectively. Both moved out of
+this list.
 
-### From the product feature-gap backlog (`docs/product/feature-gap-analysis.md`)
-| # | Feature | Confirmed status |
-|---|---|---|
-| F-05 | Global search (users/courses/services/content) | No controller, route, or view found anywhere. Not started. |
-| F-10 | Notification preference completeness (per-category × per-channel × digest) | Only coarse channel toggles exist; no per-category granularity or digest option in code. |
-| F-11 | Empty states & guided onboarding/tooltips | Not systematically implemented (spot-checked; matches doc). |
-| F-12 (residual) | Exam connection-loss recovery, accommodations (extra time) | Autosave itself is done (see Category A) but the recovery/accommodations layer on top was not found. |
-| F-14 | Mobile-first refinements (tables → cards, tap targets) | Not found as a dedicated effort; responsive but unoptimized per doc. |
-| F-15 | Service application richer form builder | `ServiceApplicationForm` is still single-message; no step/field-builder parity with course applications. |
-| F-17 | Nullable profile columns on `user` | Still NOT NULL on legacy profile fields per `PARKING-LOT.md`; not touched. |
-| F-18 | Fresh-environment bootstrap (seed a truly empty DB) | `DatabaseSeeder` intentionally empty, `RbacSeeder`/`permissions:sync` not wired into `migrate:fresh --seed`, confirmed still a manual/ops step. |
-| Gradebook export | (part of F-08) | No export method found in `FinalGradesController` or `StudentGradeController`. CSV roster import/export exists (People/Roles), but gradebook-specific export does not. |
+### Triage: 2026-07-30, for planning what's next
 
-### Contact Verification epic (mostly)
-| Slice | Status |
-|---|---|
-| CV1, narrow slice (self-service WhatsApp OTP verify from notification settings) | **Done 2026-07-30** — see Category A. |
-| CV1, remainder (registration-time channel-aware OTP, broader dispatch/prefs gating beyond the existing `mobile_verified_at` check) | Not started. |
-| CV2 (mobile-OTP password reset) | Not started. |
-| CV3 (`/api/v1` register + OTP) | Not started. |
-| CV4 (Expo native register/OTP) | Not started; lives in sibling mobile repo regardless. |
+Category C is not one kind of item — bulk-attacking it is the wrong move. Below it's split
+by what actually gates the work, not by source doc.
+
+#### Bucket 1 — low-risk, no phase conflict, could start next (pick one at a time)
+
+| Feature | Why it's low-risk | Rough shape |
+|---|---|---|
+| **F-18 — Fresh-environment bootstrap** | Pure ops/dev-tooling (`migrate:fresh --seed` wiring); zero product-facing surface, zero schema change. | Wire `RbacSeeder`/`permissions:sync` into `DatabaseSeeder`. Smallest item on the list. |
+| **FK hardening** to `organizations.organization_id` | Optional, additive, ops-only; no behavior change. | Add FK constraints; verify no orphaned rows first. |
+| **Church timezone setting** | Additive `church.settings` field + one settings-form input; §17.6 calls it an "open decision," not a park. | Add `timezone` to church settings UI; read it in confession/visit display (not full DST/edge-case handling). |
+| **F-05 — Global search (basic)** | A first-cut (search users/courses/services by name, one results page) needs no schema and no phase gate. | Scope tightly — "basic" is quick; a fuzzy/indexed version is not. Decide scope before starting. |
+| **F-10 — Notification preference completeness** | Extends the existing `UserNotificationPreference` model; no phase gate. | Per-category granularity is straightforward; the "digest" option needs a scheduled job — treat as a separate slice. |
+| **F-11 — Empty states & onboarding tooltips** | Pure UI/copy pass, no schema, no phase gate. | Needs scoping (which pages) before estimating size. |
+| **F-14 — Mobile-first refinements** | Pure CSS/markup pass, no schema, no phase gate. | Same — needs a page-by-page scope decision. |
+| **F-15 — Service application richer form builder** | No phase gate; `CourseApplicationForm`/`Field` already show the pattern to mirror. | Bigger than the others in this bucket — a real builder, not a quick add. |
+| **GitHub Actions deploy pipeline reliability** | Contained to workflow YAML; doesn't touch app code. | Investigate the SSH i/o timeouts noted in `PARKING-LOT.md`; low blast radius to *try* a fix. |
+
+#### Bucket 2 — parked by design, needs a product decision, and/or needs external ops setup first
+
+| Feature | What's blocking it | Notes |
+|---|---|---|
+| **Public church-registration panel** (§13) | Open product decision (§17.4: auto-provision on approval vs. superadmin finishes setup?) + security surface (public, unauthenticated tenant creation). | Don't start without that decision made; this is the highest-blast-radius item on the whole list. |
+| **Polymorphic applications center** (§13) | Real refactor merging `CourseApplication` + `ServiceApplication` into one polymorphic model — touches two live, working systems. | Not "quick" even with a decision; scope as its own project. |
+| **Multi-currency / payroll cadence / approval workflows / finance reporting** (§11) | Open product decisions (§17.5: which currencies, cadence, who approves). | Blocked on decisions, not code difficulty. |
+| **T10d multi-page homepage** | Explicitly parked, explicitly "optional next" — no urgency signal from the docs. | Low priority unless you say otherwise. |
+| **Broader nav/route tree driven purely by structure template** (T8 residual) | `PARKING-LOT.md`: "resume when dedicated cutover/product-wrap PRs after T9 expand track." | Same category of phase-gate we overrode for Category B — could be unblocked the same way if you want, but it's a bigger, less contained change. |
+| **PAC5 — tokenized ICS feeds** | Parked behind "T8 residual smoke-checked," but no external dependency — pure code. | Of the parked pastoral items, this is the easiest to unblock if you want to override again. |
+| **PAC6 — Google/Outlook OAuth push** | Parked **and** needs Google/Microsoft OAuth app registration (ops task) before any code is useful. | Don't start the code until the OAuth apps exist — that's an ops prerequisite, not a coding one. |
+| **CV1 remainder** (registration-time channel-aware OTP, broader dispatch gating) | Same phase gate as the slice we already overrode; this is the rest of a multi-step epic, not a quick add. | Continuing here means committing to more of the CV epic, not one wiring fix. |
+| **CV2** (mobile-OTP password reset) | Depends on CV1 remainder; parked. | |
+| **CV3** (`/api/v1` register + OTP) | Depends on CV1 remainder; parked. | |
+| **CV4** (Expo native register/OTP) | Depends on CV1–3; lives in the sibling mobile repo regardless. | Out of this repo's scope either way. |
+| **Laravel 10 → 12 upgrade** | Explicitly scheduled "after T7 cutover stability" — deliberate, not accidental. | High blast radius across the whole app; don't fold into unrelated work. |
+
+#### Do not touch right now
+- **`user_course_role` contraction** — `CLAUDE.md` rule 2: schema contractions only happen in dedicated Phase 5 PRs. This isn't a prioritization call, it's a hard rule.
 
 ### Mobile app (separate repo — noted, not scored)
 Push device tokens, staff app, store release pipeline, on-device OTP register — all explicitly deferred per `PARKING-LOT.md`; this repo's `/api/v1` read-API slice for the mobile MVP is the only piece inside this codebase, and that slice is present (Category A).
 
-### Infra / ops
-- **Laravel 10 → 12 upgrade** (needed for two known CVEs, currently mitigated via `SafeValidator`) — not started, deliberately scheduled post-cutover.
-- **GitHub Actions deploy pipeline reliability** — still manual `deploy.sh`, CI/CD automation not fixed.
-- **FK hardening** of every tenant table to `organizations.organization_id` — optional, not done.
-
 ---
 
 ## Summary counts
-- **Category A:** 18 feature groups confirmed fully wired (15 original + 3 added 2026-07-30).
+- **Category A:** 20 feature groups confirmed fully wired (15 original + 3 added 2026-07-30 + 2 landed via PR #99).
 - **Category B:** 0 items — closed out 2026-07-30.
-- **Category C:** ~20 discrete items, concentrated in: church registration/polymorphic apps (§13), pastoral calendar sync (PAC5/6), the remainder of contact verification (CV1 remainder, CV2–4), and the P1/P2 product backlog (F-05, F-10, F-11, F-14, F-15, F-17, F-18, gradebook export).
+- **Category C:** ~18 discrete items — 9 in the low-risk/no-conflict bucket, 8 parked/needs-decision, 1 hard "do not touch."
 
 The initial pass (this file's original version) wrote no functional code, per instructions.
 The 2026-07-30 Category B remediation did write code — two Blade/controller/service
