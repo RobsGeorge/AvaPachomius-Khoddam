@@ -281,6 +281,7 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware(['permission:finance.payroll.manage'])->group(function () {
                 Route::get('/payroll-create', [PayrollController::class, 'create'])->name('payroll.create');
                 Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+                Route::post('/payroll/generate-next', [PayrollController::class, 'generateNext'])->name('payroll.generate-next');
                 Route::post('/payroll/{run}/lines', [PayrollController::class, 'storeLine'])->name('payroll.lines.store');
                 Route::delete('/payroll/{run}/lines/{line}', [PayrollController::class, 'destroyLine'])->name('payroll.lines.destroy');
                 Route::post('/payroll/{run}/finalize', [PayrollController::class, 'finalize'])->name('payroll.finalize');

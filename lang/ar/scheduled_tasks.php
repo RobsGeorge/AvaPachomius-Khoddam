@@ -117,6 +117,7 @@ return [
     'tasks' => [
         'attendance_mark_absent' => 'تسجيل الغياب',
         'pending_registrations_purge' => 'حذف التسجيلات المعلّقة القديمة',
+        'finance_generate_payroll_next_period' => 'توليد فترة الرواتب التالية',
         'birthdays_notify_monthly' => 'بريد أعياد الميلاد الشهري',
         'birthdays_notify_daily' => 'تنبيهات أعياد الميلاد اليومية',
         'notifications_scan_deadlines' => 'فحص مواعيد التسليم والاختبارات',
@@ -131,6 +132,7 @@ return [
     ],
     'attendance_mark_absent_desc' => 'إغلاق الحضور وتسجيل الغياب عند منتصف الليل عند تفعيل الإغلاق التلقائي.',
     'pending_registrations_purge_desc' => 'يزيل التسجيلات المعلّقة المنتهية من قائمة الانتظار.',
+    'finance_generate_payroll_next_period_desc' => 'يولّد فترة الرواتب التالية لكل كنيسة كمسودة، بنسخ مستفيدي الفترة السابقة (اليوم 1 الساعة 03:00).',
     'birthdays_notify_monthly_desc' => 'يرسل بريداً للطاقم عن أعياد ميلاد الطلاب في الشهر (اليوم 1 الساعة 08:00).',
     'birthdays_notify_daily_desc' => 'يرسل بريداً وإشعارات البوابة لأعياد الميلاد اليوم (00:05 بتوقيت الحضور).',
     'notifications_scan_deadlines_desc' => 'ينشئ إشعارات للمواعيد القادمة للواجبات والاختبارات والجلسات.',

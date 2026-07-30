@@ -8,6 +8,7 @@ use App\Models\PayrollLine;
 use App\Models\PayrollRun;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\Finance\PayrollCadenceService;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,23 @@ class PayrollController extends Controller
     public function create()
     {
         return view('church.finance.payroll.create');
+    }
+
+    public function generateNext(PayrollCadenceService $cadence)
+    {
+        $church = $this->resolveChurch();
+        $result = $cadence->generateNextPeriod($church);
+
+        return match ($result['status']) {
+            PayrollCadenceService::STATUS_GENERATED => redirect()
+                ->route('church.finance.payroll.show', $result['run'])
+                ->with('success', __('finance.next_period_generated')),
+            PayrollCadenceService::STATUS_NO_PREVIOUS_RUN => back()
+                ->with('info', __('finance.next_period_no_prior_run')),
+            PayrollCadenceService::STATUS_ALREADY_EXISTS => back()
+                ->with('info', __('finance.next_period_already_exists')),
+            default => back(),
+        };
     }
 
     public function store(Request $request)
