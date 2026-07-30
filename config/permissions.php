@@ -172,7 +172,7 @@ return [
                 'label_en' => 'Manage grades',
                 'label_ar' => 'إدارة الدرجات',
                 'type' => 'both',
-                'routes' => ['grades.admin', 'grades.report', 'grade-categories.*', 'grade-items.*'],
+                'routes' => ['grades.admin', 'grades.report', 'grades.export', 'grade-categories.*', 'grade-items.*'],
                 'nav' => ['academic.grades'],
             ],
         ],
@@ -275,7 +275,7 @@ return [
                 'label_en' => 'View student roster',
                 'label_ar' => 'عرض قائمة الطلاب',
                 'type' => 'both',
-                'routes' => ['students.roster', 'students.birthdays'],
+                'routes' => ['students.roster', 'students.roster.export', 'students.birthdays'],
                 'nav' => ['academic.roster', 'academic.birthdays'],
             ],
             'roster.announce' => [
@@ -468,7 +468,13 @@ return [
                 'label_en' => 'Manage church members',
                 'label_ar' => 'إدارة أعضاء الكنيسة',
                 'type' => 'both',
-                'routes' => ['superadmin.churches.members.*'],
+                'routes' => [
+                    'superadmin.churches.members.*',
+                    'church.members.index',
+                    'church.members.store',
+                    'church.members.destroy',
+                ],
+                'nav' => ['church.members'],
             ],
             'church.role.manage' => [
                 'label_en' => 'Manage church roles & permissions',

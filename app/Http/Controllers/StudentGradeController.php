@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Role;
 use App\Models\GradeCategory;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentGradeController extends Controller
 {
@@ -32,30 +33,67 @@ class StudentGradeController extends Controller
     /** Admin view: all students' grades for a course */
     public function courseReport(string $courseId)
     {
-        $course   = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
-        $students = $this->enrolledStudents($courseId);
-
-        $report = $students->map(function (User $student) use ($course) {
-            $total = $course->studentTotalGrade($student->user_id);
-            return [
-                'user'         => $student,
-                'total'        => $total,
-                'letter'       => GradeCategory::letterGrade($total),
-                'letter_ar'    => GradeCategory::letterGradeAr($total),
-                'color'        => GradeCategory::gradeColor($total),
-                'categories'   => $course->gradeCategories->map(fn ($cat) => [
-                    'name'         => $cat->name,
-                    'weight'       => $cat->weight_percentage,
-                    'raw'          => $cat->studentRawScore($student->user_id),
-                    'max'          => $cat->maxRawScore(),
-                    'contribution' => $cat->studentContribution($student->user_id),
-                ]),
-            ];
-        })->sortByDesc('total')->values();
-
+        $course = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
+        $report = $this->buildCourseReport($course);
         $avg = $report->avg('total');
 
         return view('grades.course-report', compact('course', 'report', 'avg'));
+    }
+
+    /** F-08 — CSV gradebook export (category summary + totals). */
+    public function exportCsv(string $courseId): StreamedResponse
+    {
+        $course = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
+        $report = $this->buildCourseReport($course);
+        $categories = $course->gradeCategories;
+        $filename = 'gradebook-'.$course->course_id.'-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($report, $categories) {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM so Excel renders Arabic names correctly.
+            fwrite($out, "\xEF\xBB\xBF");
+
+            $headers = [
+                'national_id',
+                'first_name',
+                'second_name',
+                'email',
+            ];
+            foreach ($categories as $cat) {
+                $slug = preg_replace('/\s+/', '_', (string) $cat->name) ?: 'category';
+                $headers[] = $slug.'_raw';
+                $headers[] = $slug.'_max';
+                $headers[] = $slug.'_contribution';
+            }
+            $headers[] = 'total';
+            $headers[] = 'letter';
+            $headers[] = 'letter_ar';
+            fputcsv($out, $headers);
+
+            foreach ($report as $row) {
+                /** @var User $student */
+                $student = $row['user'];
+                $line = [
+                    $student->national_id,
+                    $student->first_name,
+                    $student->second_name,
+                    $student->email,
+                ];
+                foreach ($row['categories'] as $cat) {
+                    $line[] = $cat['raw'];
+                    $line[] = $cat['max'];
+                    $line[] = $cat['contribution'];
+                }
+                $line[] = $row['total'];
+                $line[] = $row['letter'];
+                $line[] = $row['letter_ar'];
+                fputcsv($out, $line);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /** Admin: show grading form for a specific item */
@@ -120,6 +158,30 @@ class StudentGradeController extends Controller
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
+
+    private function buildCourseReport(Course $course)
+    {
+        $students = $this->enrolledStudents((string) $course->course_id);
+
+        return $students->map(function (User $student) use ($course) {
+            $total = $course->studentTotalGrade($student->user_id);
+
+            return [
+                'user' => $student,
+                'total' => $total,
+                'letter' => GradeCategory::letterGrade($total),
+                'letter_ar' => GradeCategory::letterGradeAr($total),
+                'color' => GradeCategory::gradeColor($total),
+                'categories' => $course->gradeCategories->map(fn ($cat) => [
+                    'name' => $cat->name,
+                    'weight' => $cat->weight_percentage,
+                    'raw' => $cat->studentRawScore($student->user_id),
+                    'max' => $cat->maxRawScore(),
+                    'contribution' => $cat->studentContribution($student->user_id),
+                ]),
+            ];
+        })->sortByDesc('total')->values();
+    }
 
     private function enrolledStudents(string $courseId)
     {

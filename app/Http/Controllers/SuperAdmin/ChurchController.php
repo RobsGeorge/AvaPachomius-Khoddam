@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\SuperAdmin\StoreChurchRequest;
 use App\Http\Requests\SuperAdmin\UpdateChurchRequest;
 use App\Models\Church;
-use App\Models\Role;
 use App\Models\User;
+use App\Services\ChurchMemberInviteService;
 use App\Services\ChurchProvisioningService;
 use App\Services\ChurchSlugSuggester;
 use App\Services\PlaceLookupService;
@@ -22,6 +22,7 @@ class ChurchController extends Controller
 {
     public function __construct(
         private ChurchProvisioningService $provisioning,
+        private ChurchMemberInviteService $memberInvites,
         private QuotaGuard $quotaGuard,
         private ChurchSlugSuggester $slugSuggester,
         private PlaceLookupService $placeLookup,
@@ -241,27 +242,30 @@ class ChurchController extends Controller
     public function addMember(Request $request, Church $church)
     {
         $validated = $request->validate([
-            'email' => ['required', 'email', 'exists:user,email'],
+            'email' => ['required', 'email', 'max:191'],
+            'first_name' => ['nullable', 'string', 'max:120'],
+            'second_name' => ['nullable', 'string', 'max:120'],
+            'third_name' => ['nullable', 'string', 'max:120'],
+            'mobile_number' => ['nullable', 'string', 'max:40'],
             'role_id' => ['nullable', 'integer', 'exists:roles,role_id'],
+            'send_email' => ['sometimes', 'boolean'],
+            'send_whatsapp' => ['sometimes', 'boolean'],
+            'confirm_duplicate' => ['sometimes', 'boolean'],
         ]);
 
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        $result = $this->memberInvites->addOrInvite($church, [
+            ...$validated,
+            'send_email' => $request->boolean('send_email', true),
+            'send_whatsapp' => $request->boolean('send_whatsapp', false),
+            'invited_by_user_id' => $request->user()?->user_id,
+            'confirm_duplicate' => $request->boolean('confirm_duplicate', false),
+        ]);
 
-        if (! $this->quotaGuard->canUse($church, 'max_active_users', 1)) {
-            return back()->withErrors(['email' => __('billing.seat_quota_exceeded')]);
-        }
+        $flash = $result['mode'] === 'invited'
+            ? __('tenancy.member_invited')
+            : __('tenancy.member_added');
 
-        $role = null;
-        if (! empty($validated['role_id'])) {
-            $role = Role::where('role_id', $validated['role_id'])
-                ->where('church_id', $church->church_id)
-                ->first();
-        }
-
-        $this->provisioning->addMember($church, $user, $role);
-        $this->quotaGuard->syncSeatUsage($church->fresh());
-
-        return back()->with('success', __('tenancy.member_added'));
+        return back()->with('success', $flash);
     }
 
     public function removeMember(Church $church, User $user)
