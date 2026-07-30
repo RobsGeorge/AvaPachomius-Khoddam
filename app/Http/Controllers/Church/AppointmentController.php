@@ -12,6 +12,7 @@ use App\Models\Priest;
 use App\Models\PriestSecretary;
 use App\Models\User;
 use App\Services\Pastoral\AppointmentBookingService;
+use App\Services\Pastoral\AppointmentIcsFeed;
 use App\Services\Pastoral\AppointmentSlotService;
 use App\Services\Pastoral\PriestDelegationService;
 use App\Support\Pastoral\BookingRules;
@@ -31,6 +32,7 @@ class AppointmentController extends Controller
         private AppointmentSlotService $slots,
         private AppointmentBookingService $bookings,
         private PriestDelegationService $delegation,
+        private AppointmentIcsFeed $icsFeed,
     ) {}
 
     public function index(Request $request)
@@ -66,6 +68,11 @@ class AppointmentController extends Controller
         $priests = Priest::query()->active()->with('user')->orderBy('priest_id')->get();
         $types = AppointmentType::query()->active()->orderBy('name_ar')->get();
 
+        $icsAgendaLinks = $priests
+            ->filter(fn (Priest $p) => in_array((int) $p->priest_id, $manageablePriestIds, true))
+            ->map(fn (Priest $p) => ['priest' => $p, 'url' => $this->icsFeed->urlForPriest($p)])
+            ->values();
+
         return view('church.appointments.index', [
             'weekStart' => $weekStart,
             'weekEnd' => $weekStart->copy()->endOfWeek(Carbon::SUNDAY),
@@ -82,6 +89,7 @@ class AppointmentController extends Controller
             'types' => $types,
             'priestFilter' => $priestFilter,
             'typeFilter' => $typeFilter,
+            'icsAgendaLinks' => $icsAgendaLinks,
         ]);
     }
 
@@ -356,7 +364,9 @@ class AppointmentController extends Controller
             ->orderByDesc('appointment_booking_id')
             ->paginate(30);
 
-        return view('church.appointments.my_bookings', compact('bookings'));
+        $icsBookingsUrl = $this->icsFeed->urlForMember($user);
+
+        return view('church.appointments.my_bookings', compact('bookings', 'icsBookingsUrl'));
     }
 
     public function updateBookingNotes(Request $request, AppointmentBooking $booking)

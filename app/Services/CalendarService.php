@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ExamSchedule;
 use App\Models\Session;
 use App\Models\User;
+use App\Support\Calendar\IcsWriter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -19,6 +20,7 @@ class CalendarService
     public function __construct(
         private StudentRosterService $roster,
         private EventEligibilityService $eventEligibility,
+        private IcsWriter $icsWriter,
     ) {}
 
     /**
@@ -39,45 +41,7 @@ class CalendarService
     /** Render the user's calendar as an iCalendar (.ics) document. */
     public function icsForUser(User $user): string
     {
-        $lines = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'PRODID:-//Khedma//Portal//EN',
-            'CALSCALE:GREGORIAN',
-            'METHOD:PUBLISH',
-        ];
-
-        foreach ($this->itemsForUser($user) as $item) {
-            $lines[] = 'BEGIN:VEVENT';
-            $lines[] = 'UID:'.$item['uid'];
-            $lines[] = 'DTSTAMP:'.now('UTC')->format('Ymd\THis\Z');
-
-            if ($item['all_day']) {
-                $lines[] = 'DTSTART;VALUE=DATE:'.$item['start']->format('Ymd');
-                if (! empty($item['rrule'] ?? null)) {
-                    $lines[] = 'RRULE:'.$item['rrule'];
-                }
-            } else {
-                $lines[] = 'DTSTART:'.$item['start']->clone()->utc()->format('Ymd\THis\Z');
-                if ($item['end']) {
-                    $lines[] = 'DTEND:'.$item['end']->clone()->utc()->format('Ymd\THis\Z');
-                }
-            }
-
-            $lines[] = 'SUMMARY:'.$this->escape($item['summary']);
-            if (filled($item['location'])) {
-                $lines[] = 'LOCATION:'.$this->escape($item['location']);
-            }
-            if (filled($item['description'])) {
-                $lines[] = 'DESCRIPTION:'.$this->escape($item['description']);
-            }
-            $lines[] = 'END:VEVENT';
-        }
-
-        $lines[] = 'END:VCALENDAR';
-
-        // RFC 5545 mandates CRLF line endings.
-        return implode("\r\n", $lines)."\r\n";
+        return $this->icsWriter->render($this->itemsForUser($user));
     }
 
     /** Course IDs the user learns in or can administer. */
@@ -211,14 +175,5 @@ class CalendarService
                 ];
             })
             ->values();
-    }
-
-    private function escape(?string $value): string
-    {
-        $value = (string) $value;
-        // RFC 5545 text escaping: backslash, semicolon, comma, and newlines.
-        $value = str_replace(['\\', ';', ',', "\r\n", "\n", "\r"], ['\\\\', '\\;', '\\,', '\\n', '\\n', '\\n'], $value);
-
-        return $value;
     }
 }

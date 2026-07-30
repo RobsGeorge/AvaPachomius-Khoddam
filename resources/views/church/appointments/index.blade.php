@@ -26,6 +26,8 @@
         </div>
     </div>
 
+    @include('church.pastoral._ics_agenda_links')
+
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div class="d-flex gap-2 align-items-center">
             <a class="btn btn-sm btn-outline-secondary" href="{{ route('church.appointments.index', array_filter(['week' => $prevWeek, 'priest_id' => $priestFilter, 'appointment_type_id' => $typeFilter])) }}">‹</a>

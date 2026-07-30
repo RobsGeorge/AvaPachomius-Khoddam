@@ -49,6 +49,7 @@ use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMer
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\AppointmentController;
 use App\Http\Controllers\Church\ConfessionController;
+use App\Http\Controllers\Church\PastoralIcsController;
 use App\Http\Controllers\Church\HomeVisitController;
 use App\Http\Controllers\Church\ChurchCycleController;
 use App\Http\Controllers\Church\BrandingController;
@@ -234,6 +235,15 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/appointments/bookings/{booking}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.bookings.reschedule.store');
         });
 
+        // PAC5 — regenerate my own tokenized "my bookings" ICS link (self-scoped only).
+        Route::middleware(['permission:confession.view,confession.book,confession.manage,confession.manage_delegated,confession.book_on_behalf,appointment.view,appointment.book,appointment.manage,appointment.manage_delegated,appointment.book_on_behalf'])->group(function () {
+            Route::post('/ics/my-bookings/regenerate', [PastoralIcsController::class, 'regenerateMyBookings'])->name('ics.my-bookings.regenerate');
+        });
+        // PAC5 — regenerate a specific priest's agenda ICS link (own priest or active delegate; controller re-checks per-priest).
+        Route::middleware(['permission:confession.manage,confession.manage_delegated,appointment.manage,appointment.manage_delegated'])->group(function () {
+            Route::post('/priests/{priest}/ics-agenda/regenerate', [PastoralIcsController::class, 'regeneratePriestAgenda'])->name('ics.priest-agenda.regenerate');
+        });
+
         Route::middleware(['permission:home_visit.view,home_visit.manage'])->group(function () {
             Route::get('/home-visits', [HomeVisitController::class, 'index'])->name('home-visits.index');
         });
@@ -352,6 +362,11 @@ Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login']);
+
+// PAC5 — tokenized ICS feeds. No session/auth: external calendar apps poll these
+// with just the opaque token in the URL. Tenant resolution still applies (host-based).
+Route::get('/ics/bookings/{token}', [PastoralIcsController::class, 'bookings'])->name('ics.bookings');
+Route::get('/ics/priest-agenda/{token}', [PastoralIcsController::class, 'priestAgenda'])->name('ics.priest-agenda');
 
 Route::post('/observability/client-errors', [\App\Http\Controllers\ClientErrorController::class, 'store'])
     ->middleware('throttle:30,1')

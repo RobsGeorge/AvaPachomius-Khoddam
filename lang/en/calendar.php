@@ -7,4 +7,8 @@ return [
     'birthday_of' => '🎂 Birthday: :name',
     'download' => 'Add to calendar (.ics)',
     'download_hint' => 'Download your upcoming sessions, exams, events, and course birthdays to import into any calendar app.',
+    'confession_with' => 'Confession with :priest',
+    'appointment_with' => ':type with :priest',
+    'confession_agenda_with' => 'Confession — :name',
+    'appointment_agenda_with' => ':type — :name',
 ];

@@ -11,6 +11,7 @@ use App\Models\Priest;
 use App\Models\PriestSecretary;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\Pastoral\AppointmentIcsFeed;
 use App\Services\Pastoral\ConfessionBookingService;
 use App\Services\Pastoral\ConfessionSlotService;
 use App\Services\Pastoral\PriestDelegationService;
@@ -30,6 +31,7 @@ class ConfessionController extends Controller
         private ConfessionSlotService $slots,
         private ConfessionBookingService $bookings,
         private PriestDelegationService $delegation,
+        private AppointmentIcsFeed $icsFeed,
     ) {}
 
     public function index(Request $request)
@@ -63,6 +65,11 @@ class ConfessionController extends Controller
 
         $priests = Priest::query()->active()->with('user')->orderBy('priest_id')->get();
 
+        $icsAgendaLinks = $priests
+            ->filter(fn (Priest $p) => in_array((int) $p->priest_id, $manageablePriestIds, true))
+            ->map(fn (Priest $p) => ['priest' => $p, 'url' => $this->icsFeed->urlForPriest($p)])
+            ->values();
+
         return view('church.confession.index', [
             'weekStart' => $weekStart,
             'weekEnd' => $weekStart->copy()->endOfWeek(Carbon::SUNDAY),
@@ -77,6 +84,7 @@ class ConfessionController extends Controller
             'myBookings' => $myBookings,
             'priests' => $priests,
             'priestFilter' => $priestFilter,
+            'icsAgendaLinks' => $icsAgendaLinks,
         ]);
     }
 
@@ -253,7 +261,9 @@ class ConfessionController extends Controller
             ->orderByDesc('confession_booking_id')
             ->paginate(30);
 
-        return view('church.confession.my_bookings', compact('bookings'));
+        $icsBookingsUrl = $this->icsFeed->urlForMember($user);
+
+        return view('church.confession.my_bookings', compact('bookings', 'icsBookingsUrl'));
     }
 
     public function updateBookingNotes(Request $request, ConfessionBooking $booking)
