@@ -264,5 +264,12 @@ students" needs no code changes.
    separate entities? (Leaning: roles + a thin `priest` link row.)
 3. **Confession booking:** do the served *book* slots, or do priests just publish availability?
 4. **Church registration provisioning:** auto-create tenant on approval, or superadmin finishes setup?
+   **Decided 2026-07-30:** superadmin manually finishes setup after approval. Also decided:
+   the applications-center refactor (§13) into one polymorphic Church|Service|Course queue
+   should be built now, once the registration panel itself ships (not built yet — see
+   `PARKING-LOT.md`).
 5. **Finance scope for T6:** currencies in play, payroll cadence, who approves runs.
+   **Decided 2026-07-30:** all four T6-residual items approved — multi-currency catalogs,
+   payroll cadence automation, approval workflows before finalize, and reporting/
+   reconciliation exports (not built yet — see `PARKING-LOT.md`).
 6. **Timezone per church** (confession/visits) — store on `church.settings`.
