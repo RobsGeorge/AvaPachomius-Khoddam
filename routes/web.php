@@ -286,6 +286,11 @@ Route::middleware(['auth'])->group(function () {
                 Route::delete('/payroll/{run}/lines/{line}', [PayrollController::class, 'destroyLine'])->name('payroll.lines.destroy');
                 Route::post('/payroll/{run}/finalize', [PayrollController::class, 'finalize'])->name('payroll.finalize');
                 Route::delete('/payroll/{run}', [PayrollController::class, 'destroy'])->name('payroll.destroy');
+                Route::post('/payroll/{run}/submit-for-approval', [PayrollController::class, 'submitForApproval'])->name('payroll.submit-for-approval');
+            });
+            Route::middleware(['permission:finance.payroll.approve'])->group(function () {
+                Route::post('/payroll/{run}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+                Route::post('/payroll/{run}/reject', [PayrollController::class, 'reject'])->name('payroll.reject');
             });
 
             Route::middleware(['permission:finance.money_in.view,finance.money_in.manage'])->group(function () {
