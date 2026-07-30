@@ -253,6 +253,12 @@ class PermissionsParityTest extends EventModuleTestCase
             'application.',
             'communications.track-open',
             'courses.select',
+            'ics.',
+            'invitations.',
+            'csrf.token',
+            'favicon.show',
+            'observability.client-errors',
+            'public.church.profile',
         ];
         $unmapped = collect(\Illuminate\Support\Facades\Route::getRoutes())
             ->map(fn ($route) => $route->getName())

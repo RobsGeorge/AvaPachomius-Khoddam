@@ -122,6 +122,12 @@ class SyncPermissionsCommand extends Command
             'application.',
             'communications.track-open',
             'courses.select',
+            'ics.',
+            'invitations.',
+            'csrf.token',
+            'favicon.show',
+            'observability.client-errors',
+            'public.church.profile',
         ];
 
         return collect(Route::getRoutes())
