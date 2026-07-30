@@ -115,6 +115,7 @@ return [
     'cycle_proposal' => 'Proposed roster moves',
     'cycle_no_eligible' => 'No active enrollments eligible for this cycle.',
     'cycle_person' => 'Person',
+    'cycle_people_only_badge' => 'People-only (no portal account)',
     'cycle_action' => 'Action',
     'cycle_action_promote' => 'Promote',
     'cycle_action_skip' => 'Skip',

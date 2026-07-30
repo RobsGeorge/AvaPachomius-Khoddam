@@ -401,6 +401,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
     Route::put('/notifications/settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
+    Route::post('/notifications/settings/mobile/send-code', [NotificationSettingsController::class, 'sendMobileCode'])->name('notifications.settings.mobile.send-code');
+    Route::post('/notifications/settings/mobile/verify', [NotificationSettingsController::class, 'verifyMobileCode'])->name('notifications.settings.mobile.verify');
     Route::post('/notifications/reminders', [NotificationSettingsController::class, 'storeReminder'])->name('notifications.reminders.store');
     Route::delete('/notifications/reminders/{reminder}', [NotificationSettingsController::class, 'destroyReminder'])->name('notifications.reminders.destroy');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');

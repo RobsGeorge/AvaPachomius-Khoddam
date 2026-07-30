@@ -4,10 +4,13 @@ namespace Tests\Feature\Structure;
 
 use App\Models\ChurchService;
 use App\Models\Enrollment;
+use App\Models\Person;
+use App\Models\PersonPlacement;
 use App\Models\StructureTemplate;
 use App\Models\UserCourseRole;
 use App\Services\CourseRoleAssignmentService;
 use App\Services\Structure\CycleProgressionWizardService;
+use App\Support\People\PlacementMode;
 use App\Support\Structure\ProgressionPolicy;
 use App\Support\Structure\RosterStatus;
 use Illuminate\Support\Facades\Schema;
@@ -126,6 +129,70 @@ class CycleProgressionWizardTest extends EventModuleTestCase
         $inactiveEnrollment = Enrollment::query()->where('user_id', $inactiveUser->user_id)->first();
         $this->assertSame(RosterStatus::INACTIVE, $inactiveEnrollment->status);
         $this->assertSame('Left mid-year', $inactiveEnrollment->status_note);
+    }
+
+    public function test_propose_and_apply_includes_people_only_placement(): void
+    {
+        [$service, $from, $to] = $this->seedLadderService(withBlocked: false);
+
+        $person = Person::create(['first_name' => 'Person', 'second_name' => 'Only', 'third_name' => 'One']);
+        $placement = PersonPlacement::create([
+            'person_id' => $person->person_id,
+            'service_id' => $service->service_id,
+            'course_id' => $from->course_id,
+            'roster_status' => RosterStatus::ACTIVE,
+            'placement_mode' => PlacementMode::INFO_ONLY,
+        ]);
+
+        $wizard = app(CycleProgressionWizardService::class);
+        $proposal = $wizard->propose($service);
+
+        $row = collect($proposal['rows'])->firstWhere('placement_id', $placement->person_placement_id);
+        $this->assertNotNull($row);
+        $this->assertNull($row['enrollment_id']);
+        $this->assertSame(CycleProgressionWizardService::ACTION_PROMOTE, $row['suggested_action']);
+        $this->assertSame((int) $to->course_id, (int) $row['to_course_id']);
+
+        $actor = $this->createUser(['is_superadmin' => true]);
+        $result = $wizard->apply($service, $actor, [
+            [
+                'placement_id' => $placement->person_placement_id,
+                'action' => CycleProgressionWizardService::ACTION_PROMOTE,
+                'to_course_id' => $to->course_id,
+            ],
+        ]);
+
+        $this->assertSame(1, $result['moved']);
+        $this->assertSame('placement', $result['audit']['moved'][0]['type']);
+        $this->assertSame((int) $to->course_id, (int) $placement->fresh()->course_id);
+    }
+
+    public function test_apply_marks_people_only_placement_inactive(): void
+    {
+        [$service, $from] = $this->seedLadderService(withBlocked: false);
+
+        $person = Person::create(['first_name' => 'Person', 'second_name' => 'Two', 'third_name' => 'Two']);
+        $placement = PersonPlacement::create([
+            'person_id' => $person->person_id,
+            'service_id' => $service->service_id,
+            'course_id' => $from->course_id,
+            'roster_status' => RosterStatus::ACTIVE,
+            'placement_mode' => PlacementMode::INFO_ONLY,
+        ]);
+
+        $actor = $this->createUser(['is_superadmin' => true]);
+        $result = app(CycleProgressionWizardService::class)->apply($service, $actor, [
+            [
+                'placement_id' => $placement->person_placement_id,
+                'action' => CycleProgressionWizardService::ACTION_INACTIVE,
+                'note' => 'Moved away',
+            ],
+        ]);
+
+        $this->assertSame(1, $result['inactivated']);
+        $placement->refresh();
+        $this->assertSame(RosterStatus::INACTIVE, $placement->roster_status);
+        $this->assertSame('Moved away', $placement->status_note);
     }
 
     public function test_promote_without_target_fails_validation(): void

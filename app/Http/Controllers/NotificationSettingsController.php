@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\OtpCode;
 use App\Models\UserNotificationReminder;
 use App\Services\NotificationPreferenceService;
 use App\Services\WhatsAppNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationSettingsController extends Controller
 {
@@ -31,6 +34,7 @@ class NotificationSettingsController extends Controller
             'preferences' => $preferences,
             'reminders' => $reminders,
             'whatsappConfigured' => $this->whatsapp->isConfigured(),
+            'mobileVerificationReady' => Schema::hasColumn('user', 'mobile_verified_at'),
         ]);
     }
 
@@ -93,6 +97,68 @@ class NotificationSettingsController extends Controller
         ]);
 
         return back()->with('success', __('notifications.reminder_created'));
+    }
+
+    /** CV1 (narrow slice) — web progressive mobile verify from notification settings. */
+    public function sendMobileCode(Request $request)
+    {
+        abort_unless(Schema::hasColumn('user', 'mobile_verified_at'), 404);
+
+        $user = Auth::user();
+
+        if (! filled($user->mobile_number)) {
+            return back()->withErrors(['mobile' => __('notifications.mobile_verify_missing_number')]);
+        }
+
+        $key = 'mobile-verify-send-'.$user->user_id;
+        if (RateLimiter::tooManyAttempts($key, 1)) {
+            return back()->withErrors(['mobile' => __('notifications.mobile_verify_rate_limited')]);
+        }
+
+        $code = random_int(100000, 999999);
+        OtpCode::updateOrCreate(
+            ['user_id' => $user->user_id],
+            ['code' => $code, 'expires_at' => now()->addMinutes(10)]
+        );
+
+        $result = $this->whatsapp->sendRawText($user, __('notifications.mobile_verification_message', ['code' => $code]));
+        RateLimiter::hit($key, 60);
+
+        if (! $result['ok']) {
+            return back()->withErrors(['mobile' => __('notifications.mobile_verify_send_failed')]);
+        }
+
+        return back()->with('success', __('notifications.mobile_verify_code_sent'));
+    }
+
+    public function verifyMobileCode(Request $request)
+    {
+        abort_unless(Schema::hasColumn('user', 'mobile_verified_at'), 404);
+
+        $user = Auth::user();
+
+        $validated = $request->validate([
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        $otp = OtpCode::where('user_id', $user->user_id)
+            ->where('code', $validated['code'])
+            ->where('expires_at', '>=', now())
+            ->first();
+
+        if (! $otp) {
+            return back()->withErrors(['code' => __('notifications.mobile_verify_invalid_code')]);
+        }
+
+        $otp->delete();
+
+        $user->mobile_verified_at = now();
+        if (Schema::hasColumn('user', 'whatsapp_capable')) {
+            $user->whatsapp_capable = $request->boolean('whatsapp_capable');
+        }
+        $user->save();
+
+        return back()->with('success', __('notifications.mobile_verify_success'));
     }
 
     public function destroyReminder(UserNotificationReminder $reminder)

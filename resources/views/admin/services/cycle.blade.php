@@ -156,11 +156,20 @@
                                 @foreach($proposal['rows'] as $i => $row)
                                     <tr @class(['table-warning' => $row['block_reason']])>
                                         <td>
-                                            <div class="fw-semibold">{{ $row['user_name'] }}</div>
+                                            <div class="fw-semibold">
+                                                {{ $row['user_name'] }}
+                                                @if($row['placement_id'])
+                                                    <span class="badge bg-secondary-subtle text-secondary border">{{ __('service.cycle_people_only_badge') }}</span>
+                                                @endif
+                                            </div>
                                             @if($row['block_reason'] === 'missing_edge')
                                                 <div class="small text-warning">{{ __('service.cycle_blocked_missing_edge') }}</div>
                                             @endif
-                                            <input type="hidden" name="decisions[{{ $i }}][enrollment_id]" value="{{ $row['enrollment_id'] }}">
+                                            @if($row['enrollment_id'])
+                                                <input type="hidden" name="decisions[{{ $i }}][enrollment_id]" value="{{ $row['enrollment_id'] }}">
+                                            @else
+                                                <input type="hidden" name="decisions[{{ $i }}][placement_id]" value="{{ $row['placement_id'] }}">
+                                            @endif
                                         </td>
                                         <td class="small">{{ $row['from_course_title'] }}</td>
                                         <td>
