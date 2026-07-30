@@ -7,7 +7,13 @@
             <h1 class="page-title mb-1">{{ __('finance.payroll_title') }}</h1>
             <p class="text-muted-theme mb-0">{{ __('finance.payroll_intro') }}</p>
         </div>
-        <a href="{{ route('church.finance.payroll.create') }}" class="btn btn-primary">{{ __('finance.new_run') }}</a>
+        <div class="d-flex gap-2">
+            <form method="POST" action="{{ route('church.finance.payroll.generate-next') }}">
+                @csrf
+                <button type="submit" class="btn btn-outline-primary">{{ __('finance.generate_next_period') }}</button>
+            </form>
+            <a href="{{ route('church.finance.payroll.create') }}" class="btn btn-primary">{{ __('finance.new_run') }}</a>
+        </div>
     </div>
     <div class="app-card card shadow-sm">
         <div class="table-responsive">

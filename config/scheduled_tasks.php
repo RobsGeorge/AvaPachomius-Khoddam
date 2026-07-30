@@ -123,6 +123,17 @@ return [
             'schedule' => ['frequency' => 'every_five_minutes'],
             'when_config' => 'observability.enabled',
         ],
+        'finance.generate_payroll_next_period' => [
+            'label' => 'scheduled_tasks.tasks.finance_generate_payroll_next_period',
+            'description' => 'scheduled_tasks.finance_generate_payroll_next_period_desc',
+            'type' => 'command',
+            'command' => 'payroll:generate-next-period',
+            'schedule' => [
+                'frequency' => 'monthly_on',
+                'day' => 1,
+                'time' => '03:00',
+            ],
+        ],
         'observability.prune' => [
             'label' => 'scheduled_tasks.tasks.observability_prune',
             'description' => 'scheduled_tasks.observability_prune_desc',

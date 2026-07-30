@@ -117,6 +117,7 @@ return [
     'tasks' => [
         'attendance_mark_absent' => 'Mark absent students',
         'pending_registrations_purge' => 'Purge stale registrations',
+        'finance_generate_payroll_next_period' => 'Generate next payroll period',
         'birthdays_notify_monthly' => 'Monthly birthday emails',
         'birthdays_notify_daily' => 'Daily birthday alerts',
         'notifications_scan_deadlines' => 'Scan assignment/exam deadlines',
@@ -131,6 +132,7 @@ return [
     ],
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
     'pending_registrations_purge_desc' => 'Removes expired pending registrations from the queue.',
+    'finance_generate_payroll_next_period_desc' => "Generates each church's next payroll period as a draft run, copying forward the previous run's payees (1st at 03:00).",
     'birthdays_notify_monthly_desc' => 'Emails course staff about student birthdays in the current month (1st at 08:00).',
     'birthdays_notify_daily_desc' => 'Emails staff and creates portal notifications for birthdays today (00:05 attendance TZ).',
     'notifications_scan_deadlines_desc' => 'Creates portal notifications for upcoming assignment, exam, and session deadlines.',
