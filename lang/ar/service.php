@@ -115,6 +115,7 @@ return [
     'cycle_proposal' => 'النقل المقترح للقائمة',
     'cycle_no_eligible' => 'لا تسجيلات نشطة مؤهلة لهذه الدورة.',
     'cycle_person' => 'الشخص',
+    'cycle_people_only_badge' => 'أفراد فقط (بلا حساب بوابة)',
     'cycle_action' => 'الإجراء',
     'cycle_action_promote' => 'ترقية',
     'cycle_action_skip' => 'تخطي',

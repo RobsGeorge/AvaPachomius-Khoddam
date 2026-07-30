@@ -5,6 +5,7 @@ namespace App\Services\Structure;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\PersonPlacement;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Models\UserServiceRole;
@@ -63,6 +64,7 @@ class CycleProgressionWizardService
 
         $edges = $this->resolver->ladderEdges($service);
         $enrollments = $this->eligibility->proposeEligibleEnrollments($service)->load(['user', 'course', 'role']);
+        $placements = $this->eligibility->proposeEligiblePlacements($service)->load(['person', 'course']);
 
         $rows = [];
         $ready = 0;
@@ -84,11 +86,43 @@ class CycleProgressionWizardService
 
             $rows[] = [
                 'enrollment_id' => (int) $enrollment->enrollment_id,
+                'placement_id' => null,
                 'user_id' => (int) $enrollment->user_id,
                 'user_name' => $enrollment->user?->displayName() ?: (string) $enrollment->user_id,
                 'role_id' => (int) $enrollment->role_id,
                 'from_course_id' => $fromCourseId,
                 'from_course_title' => $enrollment->course?->localizedTitle() ?? (string) $fromCourseId,
+                'to_course_id' => $toCourseId,
+                'to_course_title' => $toCourseId
+                    ? (Course::find($toCourseId)?->localizedTitle() ?? (string) $toCourseId)
+                    : null,
+                'suggested_action' => $suggested,
+                'block_reason' => $blockReason,
+            ];
+        }
+
+        foreach ($placements as $placement) {
+            $fromCourseId = (int) $placement->course_id;
+            $toCourseId = ProgressionLadder::nextCourseId($edges, $fromCourseId);
+            $blockReason = null;
+            $suggested = self::ACTION_PROMOTE;
+
+            if ($toCourseId === null) {
+                $blockReason = 'missing_edge';
+                $suggested = self::ACTION_SKIP;
+                $blocked++;
+            } else {
+                $ready++;
+            }
+
+            $rows[] = [
+                'enrollment_id' => null,
+                'placement_id' => (int) $placement->person_placement_id,
+                'user_id' => null,
+                'user_name' => $placement->person?->display_name ?: (string) $placement->person_id,
+                'role_id' => (int) ($placement->intended_role_id ?? 0),
+                'from_course_id' => $fromCourseId,
+                'from_course_title' => $placement->course?->localizedTitle() ?? (string) $fromCourseId,
                 'to_course_id' => $toCourseId,
                 'to_course_title' => $toCourseId
                     ? (Course::find($toCourseId)?->localizedTitle() ?? (string) $toCourseId)
@@ -111,7 +145,7 @@ class CycleProgressionWizardService
     }
 
     /**
-     * @param  list<array{enrollment_id: int, action: string, to_course_id?: int|null}>  $decisions
+     * @param  list<array{enrollment_id?: int|null, placement_id?: int|null, action: string, to_course_id?: int|null}>  $decisions
      * @return array{moved: int, skipped: int, inactivated: int, audit: array<string, mixed>}
      */
     public function apply(ChurchService $service, User $actor, array $decisions): array
@@ -119,7 +153,8 @@ class CycleProgressionWizardService
         $this->assertWizardAllowed($service);
 
         $proposal = $this->propose($service);
-        $byId = collect($proposal['rows'])->keyBy('enrollment_id');
+        $byEnrollmentId = collect($proposal['rows'])->filter(fn ($row) => $row['enrollment_id'] !== null)->keyBy('enrollment_id');
+        $byPlacementId = collect($proposal['rows'])->filter(fn ($row) => $row['placement_id'] !== null)->keyBy('placement_id');
 
         $moved = [];
         $skipped = [];
@@ -129,16 +164,40 @@ class CycleProgressionWizardService
             $service,
             $actor,
             $decisions,
-            $byId,
+            $byEnrollmentId,
+            $byPlacementId,
             &$moved,
             &$skipped,
             &$inactivated,
         ) {
             foreach ($decisions as $decision) {
-                $enrollmentId = (int) ($decision['enrollment_id'] ?? 0);
+                $enrollmentId = isset($decision['enrollment_id']) ? (int) $decision['enrollment_id'] : null;
+                $placementId = isset($decision['placement_id']) ? (int) $decision['placement_id'] : null;
                 $action = (string) ($decision['action'] ?? self::ACTION_SKIP);
-                $row = $byId->get($enrollmentId);
 
+                if ($placementId) {
+                    $row = $byPlacementId->get($placementId);
+                    if (! $row) {
+                        continue;
+                    }
+
+                    $placement = PersonPlacement::query()->find($placementId);
+                    if (! $placement || ! $this->eligibility->placementEligibleForPropose($placement)) {
+                        continue;
+                    }
+
+                    $this->applyPlacementDecision(
+                        $service, $placement, $row, $action, $decision, $placementId, $moved, $skipped, $inactivated
+                    );
+
+                    continue;
+                }
+
+                if (! $enrollmentId) {
+                    continue;
+                }
+
+                $row = $byEnrollmentId->get($enrollmentId);
                 if (! $row) {
                     continue;
                 }
@@ -150,6 +209,7 @@ class CycleProgressionWizardService
 
                 if ($action === self::ACTION_SKIP) {
                     $skipped[] = [
+                        'type' => 'enrollment',
                         'enrollment_id' => $enrollmentId,
                         'user_id' => $row['user_id'],
                         'from_course_id' => $row['from_course_id'],
@@ -160,6 +220,7 @@ class CycleProgressionWizardService
                 if ($action === self::ACTION_INACTIVE) {
                     $this->markEnrollmentInactive($enrollment, (string) ($decision['note'] ?? ''));
                     $inactivated[] = [
+                        'type' => 'enrollment',
                         'enrollment_id' => $enrollmentId,
                         'user_id' => $row['user_id'],
                         'from_course_id' => $row['from_course_id'],
@@ -182,6 +243,7 @@ class CycleProgressionWizardService
                     $this->promoteEnrollment($enrollment, $toCourseId);
 
                     $moved[] = [
+                        'type' => 'enrollment',
                         'enrollment_id' => $enrollmentId,
                         'user_id' => $row['user_id'],
                         'from_course_id' => $row['from_course_id'],
@@ -268,6 +330,84 @@ class CycleProgressionWizardService
                     'status_changed_at' => now(),
                 ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<string, mixed>  $decision
+     * @param  list<array<string, mixed>>  $moved
+     * @param  list<array<string, mixed>>  $skipped
+     * @param  list<array<string, mixed>>  $inactivated
+     */
+    private function applyPlacementDecision(
+        ChurchService $service,
+        PersonPlacement $placement,
+        array $row,
+        string $action,
+        array $decision,
+        int $placementId,
+        array &$moved,
+        array &$skipped,
+        array &$inactivated,
+    ): void {
+        if ($action === self::ACTION_SKIP) {
+            $skipped[] = [
+                'type' => 'placement',
+                'placement_id' => $placementId,
+                'user_name' => $row['user_name'],
+                'from_course_id' => $row['from_course_id'],
+            ];
+
+            return;
+        }
+
+        if ($action === self::ACTION_INACTIVE) {
+            $this->markPlacementInactive($placement, (string) ($decision['note'] ?? ''));
+            $inactivated[] = [
+                'type' => 'placement',
+                'placement_id' => $placementId,
+                'user_name' => $row['user_name'],
+                'from_course_id' => $row['from_course_id'],
+            ];
+
+            return;
+        }
+
+        if ($action === self::ACTION_PROMOTE) {
+            $toCourseId = isset($decision['to_course_id']) && (int) $decision['to_course_id'] > 0
+                ? (int) $decision['to_course_id']
+                : ($row['to_course_id'] ? (int) $row['to_course_id'] : null);
+
+            if ($toCourseId === null) {
+                throw ValidationException::withMessages([
+                    "decisions.placement.{$placementId}" => [__('service.cycle_missing_target')],
+                ]);
+            }
+
+            $this->assertCourseInService($service, $toCourseId);
+            $this->promotePlacement($placement, $toCourseId);
+
+            $moved[] = [
+                'type' => 'placement',
+                'placement_id' => $placementId,
+                'user_name' => $row['user_name'],
+                'from_course_id' => $row['from_course_id'],
+                'to_course_id' => $toCourseId,
+            ];
+        }
+    }
+
+    private function promotePlacement(PersonPlacement $placement, int $toCourseId): void
+    {
+        $placement->course_id = $toCourseId;
+        $placement->save();
+    }
+
+    private function markPlacementInactive(PersonPlacement $placement, string $note): void
+    {
+        $placement->roster_status = RosterStatus::INACTIVE;
+        $placement->status_note = $note !== '' ? mb_substr($note, 0, 500) : __('service.cycle_marked_inactive');
+        $placement->save();
     }
 
     private function assertCourseInService(ChurchService $service, int $courseId): void

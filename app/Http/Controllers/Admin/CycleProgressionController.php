@@ -75,7 +75,8 @@ class CycleProgressionController extends Controller
 
         $validated = $request->validate([
             'decisions' => ['required', 'array'],
-            'decisions.*.enrollment_id' => ['required', 'integer'],
+            'decisions.*.enrollment_id' => ['nullable', 'required_without:decisions.*.placement_id', 'integer'],
+            'decisions.*.placement_id' => ['nullable', 'required_without:decisions.*.enrollment_id', 'integer'],
             'decisions.*.action' => [
                 'required',
                 Rule::in([
