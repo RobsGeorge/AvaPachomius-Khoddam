@@ -9,6 +9,7 @@
     @if($errors->any())
         <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif
+    @include('church.pastoral._ics_subscribe')
     <div class="app-card card shadow-sm">
         <div class="table-responsive">
             <table class="table mb-0 align-middle">
