@@ -85,22 +85,26 @@ by what actually gates the work, not by source doc.
 | **F-15 — Service application richer form builder** | No phase gate; `CourseApplicationForm`/`Field` already show the pattern to mirror. | Bigger than the others in this bucket — a real builder, not a quick add. |
 | **GitHub Actions deploy pipeline reliability** | Contained to workflow YAML; doesn't touch app code. | Investigate the SSH i/o timeouts noted in `PARKING-LOT.md`; low blast radius to *try* a fix. |
 
-#### Bucket 2 — parked by design, needs a product decision, and/or needs external ops setup first
+#### Bucket 2 — status after the 2026-07-30 product-decision round
 
-| Feature | What's blocking it | Notes |
+Four decisions were made this round (recorded in `khedma-master-plan.md` §17 and
+`PARKING-LOT.md`). Below reflects **decided but not yet built** vs. **still genuinely
+blocked** (product decision still open, or an external ops dependency).
+
+| Feature | Status | Notes |
 |---|---|---|
-| **Public church-registration panel** (§13) | Open product decision (§17.4: auto-provision on approval vs. superadmin finishes setup?) + security surface (public, unauthenticated tenant creation). | Don't start without that decision made; this is the highest-blast-radius item on the whole list. |
-| **Polymorphic applications center** (§13) | Real refactor merging `CourseApplication` + `ServiceApplication` into one polymorphic model — touches two live, working systems. | Not "quick" even with a decision; scope as its own project. |
-| **Multi-currency / payroll cadence / approval workflows / finance reporting** (§11) | Open product decisions (§17.5: which currencies, cadence, who approves). | Blocked on decisions, not code difficulty. |
-| **T10d multi-page homepage** | Explicitly parked, explicitly "optional next" — no urgency signal from the docs. | Low priority unless you say otherwise. |
-| **Broader nav/route tree driven purely by structure template** (T8 residual) | `PARKING-LOT.md`: "resume when dedicated cutover/product-wrap PRs after T9 expand track." | Same category of phase-gate we overrode for Category B — could be unblocked the same way if you want, but it's a bigger, less contained change. |
-| **PAC5 — tokenized ICS feeds** | Parked behind "T8 residual smoke-checked," but no external dependency — pure code. | Of the parked pastoral items, this is the easiest to unblock if you want to override again. |
-| **PAC6 — Google/Outlook OAuth push** | Parked **and** needs Google/Microsoft OAuth app registration (ops task) before any code is useful. | Don't start the code until the OAuth apps exist — that's an ops prerequisite, not a coding one. |
-| **CV1 remainder** (registration-time channel-aware OTP, broader dispatch gating) | Same phase gate as the slice we already overrode; this is the rest of a multi-step epic, not a quick add. | Continuing here means committing to more of the CV epic, not one wiring fix. |
-| **CV2** (mobile-OTP password reset) | Depends on CV1 remainder; parked. | |
-| **CV3** (`/api/v1` register + OTP) | Depends on CV1 remainder; parked. | |
-| **CV4** (Expo native register/OTP) | Depends on CV1–3; lives in the sibling mobile repo regardless. | Out of this repo's scope either way. |
-| **Laravel 10 → 12 upgrade** | Explicitly scheduled "after T7 cutover stability" — deliberate, not accidental. | High blast radius across the whole app; don't fold into unrelated work. |
+| **Public church-registration panel** (§13) | **Decided, not built.** Superadmin manually finishes provisioning after approval (no auto-create-on-approval). | Still the highest-blast-radius build on this list even with the safer model chosen — public, unauthenticated form. |
+| **Polymorphic applications center** (§13) | **Decided, not built.** Refactor into one polymorphic queue, build after the registration panel ships. | Real refactor touching two live systems (`CourseApplication` + `ServiceApplication`); scope as its own project, not a quick add. |
+| **Multi-currency / payroll cadence / approval workflows / finance reporting** (§11) | **Decided, not built.** All four T6-residual items approved. | No more decisions needed; sequencing among the four is still open. |
+| **PAC5 — tokenized ICS feeds** | **Unblocked, not built.** T8 residual smoke-check confirmed 2026-07-30. | No external dependency — pure code, lowest-effort item now unblocked. |
+| **PAC6 — Google/Outlook OAuth push** | **Still blocked** — smoke-check no longer the issue; needs Google/Microsoft OAuth app registration (ops task) first. | Don't start the code until the OAuth apps exist. |
+| **CV1 remainder** (registration-time channel-aware OTP, broader dispatch gating) | **Unblocked, not built.** Smoke-check confirmed. | Its own prerequisite row still applies: verify WhatsApp OTP template is approved in Meta Business Manager before building the send path. |
+| **CV2** (mobile-OTP password reset) | **Unblocked, not built.** Depends on CV1 remainder. | |
+| **CV3** (`/api/v1` register + OTP) | **Unblocked, not built.** Depends on CV1 remainder. | |
+| **CV4** (Expo native register/OTP) | Still parked — depends on CV1–3, lives in the sibling mobile repo regardless. | Out of this repo's scope either way. |
+| **T10d multi-page homepage** | Still parked, not asked about this round — explicitly "optional next" in the docs. | Low priority unless raised again. |
+| **Broader nav/route tree driven purely by structure template** (T8 residual) | Still parked, not asked about this round. | Different in kind from the T8-residual-smoke-check gate above — this one is "resume when dedicated cutover/product-wrap PRs after T9 expand track," a bigger and less contained change. |
+| **Laravel 10 → 12 upgrade** | Still parked, not asked about this round — deliberately scheduled "after T7 cutover stability." | High blast radius across the whole app; don't fold into unrelated work. |
 
 #### Do not touch right now
 - **`user_course_role` contraction** — `CLAUDE.md` rule 2: schema contractions only happen in dedicated Phase 5 PRs. This isn't a prioritization call, it's a hard rule.

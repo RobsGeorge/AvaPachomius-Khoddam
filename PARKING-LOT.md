@@ -73,7 +73,8 @@ Still parked / ops-owned:
 ## T6 deferred (finance first-cut boundary)
 Landed on `feature/church-tenancy-t6`: payroll runs/lines + money-in with integer
 minor units, currency, fx_rate; church-admin finance permissions; draft→finalize.
-Still parked (master-plan §11 / §17.5):
+Still parked (master-plan §11 / §17.5) — **all four approved to build 2026-07-30**, no
+further product decision needed, sequencing TBD:
 - Multi-currency catalogs beyond default EGP / fx_rate=`1`
 - Payroll cadence automation (monthly generators)
 - Approval workflows / multi-step sign-off before finalize
@@ -84,9 +85,15 @@ Still parked (master-plan §11 / §17.5):
 Landed on `feature/church-tenancy-t4`: TrustHosts, sessions migration, `ChurchHost`,
 `ChurchProvisioningService`, superadmin churches CRUD, nav church switcher (host
 links), login membership rejection, `EnsureChurchMember` on web stack.
-Still parked:
+Still parked (product decisions recorded 2026-07-30 — see master-plan §17.4, not yet built):
 - Public church-registration panel → superadmin approval (master-plan §13 / §17.4).
+  **Decided:** superadmin manually finishes provisioning after approval (no auto-create
+  tenant on approval) — lower blast-radius than auto-provisioning a public, unauthenticated
+  form straight into a live tenant.
 - Polymorphic applications center (Church | Service | Course).
+  **Decided:** refactor into one polymorphic review queue now, rather than adding Church as
+  a third parallel system alongside `CourseApplication`/`ServiceApplication`. Build only
+  after the registration panel above ships (this refactor exists to serve it).
 - ~~Church-admin self-service screens on `{slug}` (members/branding within guardrails)~~ —
   branding landed under public_site (T10b); **members self-service** at `/church/members`
   (`church.members.manage`) with add-existing or invite-by-email/WhatsApp.
@@ -213,7 +220,14 @@ on CV, and do **not** start Expo register (Wave E) before CV1–CV3 backend.
 After CV4: notification preference completeness (feature-gap **F-10**) can fold verified-channel
 rules into digests; optional SMS fallback provider.
 
-**Resume when:** T8 residual smoke-checked. Kickoff PR = **CV1** only (web-usable without app).
+**Resume when:** T8 residual smoke-checked — **confirmed by product owner 2026-07-30**, this
+epic is unblocked. Note: the *narrow* CV1 slice (channel-aware `mobile_verified_at` stamp,
+WhatsApp OTP send/verify, web progressive verify from notification settings) already shipped
+— see `audit_status.md` Category A. What remains of CV1 (registration-time channel-aware OTP,
+broader dispatch/prefs gating beyond the existing `mobile_verified_at` check) plus CV2/CV3
+can proceed. Still genuinely blocked on ops: CV1's own prerequisite row above requires
+"WA API + OTP template configured on staging" (Meta Business Manager approval) — verify that
+before building the registration-time OTP send path.
 
 ## Priest appointment calendar (Calendly-like) (parked 2026-07-26)
 
@@ -258,7 +272,10 @@ WhatsApp for these notification types (portal/email can ship earlier in PAC4).
 | **PAC5** | ICS | Tokenized priest/member feeds | PAC2 |
 | **PAC6** | OAuth | Google/Outlook push | PAC5; ops OAuth apps |
 
-**Resume when:** T8 residual smoke-checked. Kickoff PR = **PAC1** only.
+**Resume when:** T8 residual smoke-checked — **confirmed by product owner 2026-07-30**.
+PAC1–PAC4 already landed. **PAC5 (tokenized ICS)** is unblocked to proceed — no external
+dependency. **PAC6 (OAuth)** is still blocked separately on its own ops prerequisite: Google
++ Microsoft OAuth app registration must exist before that code is useful.
 
 ## Platform observability — ops + usage + infra (in progress 2026-07-28)
 
