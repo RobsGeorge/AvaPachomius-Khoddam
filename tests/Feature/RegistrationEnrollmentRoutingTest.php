@@ -257,6 +257,34 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
         $this->assertFalse($user->fresh()->registration_completed);
     }
 
+    public function test_enrollment_courses_requires_session_marker(): void
+    {
+        ['service' => $service, 'course' => $course] = $this->seedEnrollmentTarget();
+
+        $this->getJson(route('register.enrollment.courses', [
+            'service_id' => $service->service_id,
+        ]))->assertForbidden();
+    }
+
+    public function test_enrollment_courses_returns_eligible_courses_with_session_marker(): void
+    {
+        Mail::fake();
+
+        ['service' => $service, 'course' => $course] = $this->seedEnrollmentTarget();
+        $user = $this->registerApplicant('courses-ajax@example.com');
+        $this->completePasswordStep($user);
+
+        $this->getJson(route('register.enrollment.courses', [
+            'service_id' => $service->service_id,
+        ]))
+            ->assertOk()
+            ->assertJson([
+                'courses' => [
+                    ['id' => $course->course_id, 'title' => $course->title],
+                ],
+            ]);
+    }
+
     public function test_pending_signup_login_redirects_to_course_application_status(): void
     {
         Mail::fake();
