@@ -24,8 +24,8 @@ class ChurchRegistrationController extends Controller
     public function store(StoreChurchApplicationRequest $request)
     {
         // Honeypot: bots fill hidden "website"; real users leave it empty.
-        // Use raw trim (not filled()/blank()) so whitespace-only values still trip.
-        if (trim((string) $request->input('website', '')) !== '') {
+        // Do not trim here — whitespace-only must still trip (TrimStrings exempts this key).
+        if ((string) $request->input('website', '') !== '') {
             return redirect()->route('church-registration.thanks');
         }
 
