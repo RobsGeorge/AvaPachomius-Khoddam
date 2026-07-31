@@ -33,12 +33,12 @@ jobs:
             cd /var/www/khedma-staging
             PHP_BIN=php8.2
             DEPLOY_USER="$(whoami)"
+            DEPLOY_FIX_PERMS=/usr/local/sbin/avapakhomios-deploy-perms
             DEPLOY_START=$(date +%s)
             step() { echo "==> $1 ($(date -Iseconds))"; }
             fix_runtime_permissions() {
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n find storage bootstrap/cache -type d -exec chmod 2775 {} +
-              sudo -n find storage bootstrap/cache -type f -exec chmod 664 {} +
+              # Least-privilege helper (see .github/DEPLOY-VPS.md) — not bare chown/chmod.
+              sudo -n "$DEPLOY_FIX_PERMS" "$(pwd)" "${DEPLOY_USER}:www-data"
             }
 
             # Guard: never let a staging deploy touch the production directory or DB.
@@ -67,12 +67,12 @@ jobs:
 
             step "reclaim storage for git"
             # PHP-FPM may own runtime cache/session files; reclaim before git reset.
-            if ! sudo -n chown --version >/dev/null 2>&1; then
-              echo "ERROR: passwordless sudo is required for staging deploy."
-              echo "See .github/DEPLOY-VPS.md — configure NOPASSWD chown/chmod/systemctl for ${DEPLOY_USER}."
+            if ! sudo -n "$DEPLOY_FIX_PERMS" --version >/dev/null 2>&1; then
+              echo "ERROR: least-privilege deploy sudo is not configured."
+              echo "See .github/DEPLOY-VPS.md — install avapakhomios-deploy-perms + restricted sudoers for ${DEPLOY_USER}."
+              echo "Do NOT grant bare chown/chmod/systemctl."
               exit 1
             fi
-            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
             fix_runtime_permissions
 
             step "git sync"
@@ -119,7 +119,7 @@ jobs:
             if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then
               echo "php8.2-fpm reloaded"
             else
-              echo "WARN: could not reload php-fpm without password — configure NOPASSWD"
+              echo "WARN: could not reload php-fpm without password — allow only: systemctl reload php8.2-fpm (see .github/DEPLOY-VPS.md)"
             fi
 
             step "ensure scheduler cron"
