@@ -6,36 +6,56 @@ Pull requests run **CI** only; they do not deploy.
 
 ## Deploy blocked: `unable to unlink old 'storage/...': Permission denied`
 
-GitHub Actions SSH has no password prompt. The deploy user **must** have passwordless
-`sudo` for `chown`, `chmod`, and `systemctl reload php8.2-fpm`, and must reclaim
-`storage/` + `bootstrap/cache/` before `git reset --hard`.
+GitHub Actions SSH has no password prompt. The deploy user **must** reclaim
+`storage/` + `bootstrap/cache/` before `git reset --hard`, and may reload
+`php8.2-fpm` after deploy.
 
-**One-time fix as root** (replace `deploy` with your `SSH_USER` secret):
+Do **not** grant passwordless sudo on the full `chown` / `chmod` / `systemctl`
+binaries — that is root-equivalent if the deploy account is compromised. Use the
+least-privilege helper + a single `systemctl reload` rule below.
+
+### One-time fix as root (least privilege)
+
+Replace `deploy` with your `SSH_USER` secret. From a checkout of this repo on the VPS
+(or after copying the script):
 
 ```bash
-# 1) Allow deploy to fix permissions without a TTY
+# 1) Install the permission helper (root-owned; deploy cannot modify it)
+sudo install -o root -g root -m 0755 \
+  scripts/vps/avapakhomios-deploy-perms.sh \
+  /usr/local/sbin/avapakhomios-deploy-perms
+
+# 2) Allow only that helper + php-fpm reload (no bare chown/chmod/systemctl)
 sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
 ```
 
-Add (one line, no line breaks):
+Put exactly these lines (no bare `/usr/bin/systemctl` without args):
 
 ```
-deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/avapakhomios-deploy-perms
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm
 ```
 
-Save (`visudo` validates syntax). Then verify — use `chown`, not `true` (only the commands above are allowed):
+Save (`visudo` validates syntax). Then verify:
 
 ```bash
-sudo -u deploy sudo -n chown --version && echo CHOWN OK
-sudo -u deploy sudo -n chmod --version && echo CHMOD OK
+sudo -u deploy sudo -n /usr/local/sbin/avapakhomios-deploy-perms --version && echo PERMS OK
 sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
+# These must FAIL (password required / not allowed):
+# sudo -u deploy sudo -n systemctl status ssh
+# sudo -u deploy sudo -n chown root:root /tmp
 ```
 
-**Recover a failed deploy** (git sync already broke):
+If you previously installed the broad rule
+(`NOPASSWD: /usr/bin/chown, … /usr/bin/systemctl`), replace that file with the
+lines above.
+
+**Recover a failed deploy** (git sync already broke) — as root, or via the helper:
 
 ```bash
-sudo chown -R deploy:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
-sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+sudo /usr/local/sbin/avapakhomios-deploy-perms /var/www/avapakhomios deploy:www-data
+# Staging:
+# sudo /usr/local/sbin/avapakhomios-deploy-perms /var/www/khedma-staging deploy:www-data
 ```
 
 Then **Re-run** the failed GitHub Actions deploy job (or push again).
@@ -44,39 +64,16 @@ Then **Re-run** the failed GitHub Actions deploy job (or push again).
 
 PHP-FPM runs as `www-data`. Cache directories must be **group-writable** with the
 `www-data` group (setgid `2775` on directories is recommended so new hash folders
-inherit the group).
+inherit the group). The deploy helper applies those modes automatically.
 
 **Immediate recovery as root:**
 
 ```bash
-sudo chown -R deploy:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
-sudo find /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache -type d -exec chmod 2775 {} +
-sudo find /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache -type f -exec chmod 664 {} +
+sudo /usr/local/sbin/avapakhomios-deploy-perms /var/www/avapakhomios deploy:www-data
 sudo systemctl reload php8.2-fpm
 ```
 
 Replace `deploy` with your deploy SSH user if different.
-
-## One-time fix (on the VPS as root)
-
-Replace `deploy` with your SSH user (`SSH_USER` secret), then:
-
-```bash
-sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
-```
-
-Add (one line):
-
-```
-deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl
-```
-
-Save and verify:
-
-```bash
-sudo -u deploy sudo -n chown --version && echo OK
-sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
-```
 
 ## App ownership (recommended)
 

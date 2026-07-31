@@ -5,7 +5,7 @@ namespace Tests\Unit\Deploy;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Structural guards for staging deploy safety (pre-git chown + cache dir).
+ * Structural guards for staging deploy safety (pre-git reclaim + least-privilege sudo).
  * Pure file assertions — no Laravel bootstrap required.
  */
 class StagingDeployWorkflowGuardTest extends TestCase
@@ -14,6 +14,10 @@ class StagingDeployWorkflowGuardTest extends TestCase
 
     private string $productionWorkflow;
 
+    private string $deployDocs;
+
+    private string $permsHelper;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -21,6 +25,8 @@ class StagingDeployWorkflowGuardTest extends TestCase
         $root = dirname(__DIR__, 3);
         $this->stagingWorkflow = $root.'/.github/workflows/deploy-staging.yml';
         $this->productionWorkflow = $root.'/.github/workflows/deploy.yml';
+        $this->deployDocs = $root.'/.github/DEPLOY-VPS.md';
+        $this->permsHelper = $root.'/scripts/vps/avapakhomios-deploy-perms.sh';
     }
 
     public function test_staging_workflow_reclaims_storage_before_git_reset(): void
@@ -39,13 +45,14 @@ class StagingDeployWorkflowGuardTest extends TestCase
         $this->assertLessThan($resetPos, $gitSyncPos);
     }
 
-    public function test_staging_workflow_chowns_storage_and_bootstrap_cache(): void
+    public function test_staging_workflow_uses_least_privilege_perms_helper(): void
     {
         $body = $this->read($this->stagingWorkflow);
 
-        $this->assertStringContainsString('chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache', $body);
-        $this->assertStringContainsString('chmod -R ug+rwx storage bootstrap/cache', $body);
-        $this->assertStringContainsString('passwordless sudo not configured', $body);
+        $this->assertStringContainsString('avapakhomios-deploy-perms', $body);
+        $this->assertStringContainsString('sudo -n "$DEPLOY_FIX_PERMS" "$(pwd)" "${DEPLOY_USER}:www-data"', $body);
+        $this->assertStringContainsString('Do NOT grant bare chown/chmod/systemctl', $body);
+        $this->assertStringNotContainsString('NOPASSWD: /usr/bin/chown, /usr/bin/chmod', $body);
     }
 
     public function test_staging_workflow_ensures_file_cache_data_directory(): void
@@ -66,10 +73,40 @@ class StagingDeployWorkflowGuardTest extends TestCase
         $this->assertLessThan($resetPos, $reclaimPos);
     }
 
-    public function test_deploy_docs_mention_pre_git_reclaim(): void
+    public function test_production_workflow_uses_least_privilege_perms_helper(): void
     {
-        $docs = $this->read(dirname(__DIR__, 3).'/.github/DEPLOY-VPS.md');
-        $this->assertMatchesRegularExpression('/reclaim|chown.*storage|before git/i', $docs);
+        $body = $this->read($this->productionWorkflow);
+
+        $this->assertStringContainsString('avapakhomios-deploy-perms', $body);
+        $this->assertStringContainsString('sudo -n "$DEPLOY_FIX_PERMS" "$(pwd)" "${DEPLOY_USER}:www-data"', $body);
+        $this->assertStringContainsString('systemctl reload php8.2-fpm', $body);
+        $this->assertStringNotContainsString('NOPASSWD: /usr/bin/chown, /usr/bin/chmod', $body);
+        $this->assertStringNotContainsString('/usr/bin/systemctl, /bin/systemctl', $body);
+    }
+
+    public function test_deploy_docs_document_least_privilege_sudoers(): void
+    {
+        $docs = $this->read($this->deployDocs);
+
+        $this->assertMatchesRegularExpression('/reclaim|before git/i', $docs);
+        $this->assertStringContainsString('/usr/local/sbin/avapakhomios-deploy-perms', $docs);
+        $this->assertStringContainsString('/usr/bin/systemctl reload php8.2-fpm', $docs);
+        $this->assertStringContainsString('Do **not** grant passwordless sudo on the full', $docs);
+        $this->assertStringNotContainsString(
+            'NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl',
+            $docs
+        );
+    }
+
+    public function test_perms_helper_restricts_app_roots(): void
+    {
+        $script = $this->read($this->permsHelper);
+
+        $this->assertStringContainsString('/var/www/avapakhomios', $script);
+        $this->assertStringContainsString('/var/www/khedma-staging', $script);
+        $this->assertStringContainsString('Refusing unknown app root', $script);
+        $this->assertStringContainsString('storage', $script);
+        $this->assertStringContainsString('bootstrap/cache', $script);
     }
 
     private function read(string $path): string
