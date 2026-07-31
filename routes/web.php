@@ -386,6 +386,14 @@ Route::post('/register-church', [ChurchRegistrationController::class, 'store'])
     ->middleware('throttle:30,1')
     ->name('church-registration.store');
 Route::get('/register-church/thanks', [ChurchRegistrationController::class, 'thanks'])->name('church-registration.thanks');
+Route::get('/register-church/verify/{token}', [ChurchRegistrationController::class, 'verify'])
+    ->middleware('throttle:60,1')
+    ->where('token', '[A-Za-z0-9]{16,64}')
+    ->name('church-registration.verify');
+Route::get('/register-church/status/{token}', [ChurchRegistrationController::class, 'status'])
+    ->middleware('throttle:60,1')
+    ->where('token', '[A-Za-z0-9]{16,64}')
+    ->name('church-registration.status');
 
 Route::get('/verify-otp', [OTPController::class, 'showForm'])->name('otp.verify');
 Route::post('/verify-otp', [OTPController::class, 'verify']);

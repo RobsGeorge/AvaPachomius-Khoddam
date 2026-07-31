@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Middleware\VerifyCsrfToken;
+use App\Models\ActivityLog;
 use App\Models\Church;
 use App\Models\ChurchApplication;
 use App\Models\ChurchUser;
@@ -61,6 +62,8 @@ class ChurchApplicationTest extends EventModuleTestCase
             'contact_mobile' => '01009876543',
             'message' => null,
             'status' => ChurchApplication::STATUS_PENDING,
+            'public_token' => ChurchApplication::mintPublicToken(),
+            'email_verified_at' => now(),
             'submitted_at' => now(),
         ], $overrides));
     }
@@ -106,17 +109,29 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertDatabaseHas('church_applications', [
             'requested_name' => 'St Mark Church',
             'contact_email' => 'contact@stmark.example',
-            'status' => ChurchApplication::STATUS_PENDING,
+            'status' => ChurchApplication::STATUS_UNVERIFIED,
         ]);
 
         $row = ChurchApplication::query()->first();
         $this->assertNotNull($row->submitted_at);
+        $this->assertNotNull($row->public_token);
+        $this->assertNull($row->email_verified_at);
     }
 
     public function test_honeypot_filled_submission_creates_no_row(): void
     {
         $this->post(route('church-registration.store'), $this->validPayload([
             'website' => 'https://spam.example',
+        ]))->assertRedirect(route('church-registration.thanks'));
+
+        $this->assertSame(0, ChurchApplication::query()->count());
+    }
+
+    public function test_honeypot_whitespace_only_website_creates_no_row(): void
+    {
+        $this->post(route('church-registration.store'), $this->validPayload([
+            'website' => '   ',
+            'contact_email' => 'whitespace-honey@example.com',
         ]))->assertRedirect(route('church-registration.thanks'));
 
         $this->assertSame(0, ChurchApplication::query()->count());
@@ -209,6 +224,22 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertSame(ChurchApplication::STATUS_PENDING, $application->fresh()->status);
     }
 
+    public function test_reject_rejects_whitespace_only_admin_note(): void
+    {
+        $super = $this->superadmin();
+        $application = $this->pendingApplication();
+
+        $this->actingAs($super)
+            ->from(route('superadmin.church-applications.show', $application))
+            ->post(route('superadmin.church-applications.reject', $application), [
+                'admin_note' => '   ',
+            ])
+            ->assertRedirect(route('superadmin.church-applications.show', $application))
+            ->assertSessionHasErrors('admin_note');
+
+        $this->assertSame(ChurchApplication::STATUS_PENDING, $application->fresh()->status);
+    }
+
     public function test_superadmin_can_reject_with_admin_note(): void
     {
         $super = $this->superadmin();
@@ -225,6 +256,39 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertSame('Incomplete contact details.', $application->admin_note);
         $this->assertNotNull($application->reviewed_at);
         $this->assertSame($super->user_id, $application->reviewed_by_user_id);
+
+        $log = ActivityLog::query()->where('route_name', 'church_application.rejected')->latest('id')->first();
+        $this->assertNotNull($log);
+        $this->assertSame($application->church_application_id, $log->request_input['church_application_id'] ?? null);
+        $this->assertSame($application->contact_email, $log->request_input['contact_email'] ?? null);
+        $this->assertSame($application->contact_name, $log->request_input['contact_name'] ?? null);
+        $this->assertSame('Incomplete contact details.', $log->request_input['admin_note'] ?? null);
+        $this->assertSame(ChurchApplication::STATUS_REJECTED, $log->request_input['status'] ?? null);
+    }
+
+    public function test_approve_audit_log_includes_contact_snapshot(): void
+    {
+        $super = $this->superadmin();
+        $application = $this->pendingApplication([
+            'requested_name' => 'Audit Church',
+            'contact_email' => 'audit-approve@example.com',
+            'contact_mobile' => '01001112233',
+        ]);
+
+        $this->actingAs($super)
+            ->post(route('superadmin.church-applications.approve', $application), [
+                'admin_note' => 'Looks good.',
+            ])
+            ->assertRedirect();
+
+        $log = ActivityLog::query()->where('route_name', 'church_application.approved')->latest('id')->first();
+        $this->assertNotNull($log);
+        $this->assertSame($application->church_application_id, $log->request_input['church_application_id'] ?? null);
+        $this->assertSame('Audit Church', $log->request_input['requested_name'] ?? null);
+        $this->assertSame('audit-approve@example.com', $log->request_input['contact_email'] ?? null);
+        $this->assertSame('01001112233', $log->request_input['contact_mobile'] ?? null);
+        $this->assertSame('Looks good.', $log->request_input['admin_note'] ?? null);
+        $this->assertSame(ChurchApplication::STATUS_APPROVED, $log->request_input['status'] ?? null);
     }
 
     public function test_missing_each_required_field_redirects_with_session_error(): void
@@ -320,22 +384,6 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
     }
 
-    public function test_honeypot_whitespace_only_website_behavior(): void
-    {
-        // filled()/blank() treat whitespace-only strings as blank, so this does NOT
-        // trip the honeypot. Documented product finding — do not "fix" without ask.
-        $this->post(route('church-registration.store'), $this->validPayload([
-            'website' => '   ',
-            'contact_email' => 'whitespace-honey@example.com',
-        ]))->assertRedirect(route('church-registration.thanks'));
-
-        $this->assertSame(
-            1,
-            ChurchApplication::query()->where('contact_email', 'whitespace-honey@example.com')->count(),
-            'FINDING: whitespace-only honeypot "website" is treated as blank by filled() and creates a row'
-        );
-    }
-
     public function test_honeypot_key_absent_behaves_like_legitimate_submission(): void
     {
         $payload = $this->validPayload(['contact_email' => 'no-website-key@example.com']);
@@ -346,7 +394,7 @@ class ChurchApplicationTest extends EventModuleTestCase
 
         $this->assertDatabaseHas('church_applications', [
             'contact_email' => 'no-website-key@example.com',
-            'status' => ChurchApplication::STATUS_PENDING,
+            'status' => ChurchApplication::STATUS_UNVERIFIED,
         ]);
     }
 
@@ -536,7 +584,7 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertDatabaseHas('church_applications', [
             'contact_email' => 'from-subdomain@example.com',
             'requested_name' => 'Submitted On Subdomain',
-            'status' => ChurchApplication::STATUS_PENDING,
+            'status' => ChurchApplication::STATUS_UNVERIFIED,
         ]);
     }
 
