@@ -20,7 +20,7 @@
             <select id="place_country_code" name="place_country_code" class="form-select @error('place_country_code') is-invalid @enderror" required>
                 <option value="">{{ __('tenancy.place_country_placeholder') }}</option>
                 @foreach($countries as $code)
-                    <option value="{{ $code }}" @selected(old('place_country_code', $c?->place_country_code) === $code)>
+                    <option value="{{ $code }}" @selected(old('place_country_code', $c?->place_country_code ?? request('place_country_code')) === $code)>
                         {{ __('countries.'.$code) !== 'countries.'.$code ? __('countries.'.$code) : $code }}
                     </option>
                 @endforeach
@@ -31,7 +31,7 @@
             <label class="form-label" for="place_governorate">{{ __('tenancy.place_governorate') }}</label>
             <input id="place_governorate" name="place_governorate" type="text"
                    class="form-control @error('place_governorate') is-invalid @enderror"
-                   value="{{ old('place_governorate', $c?->place_governorate) }}" maxlength="120">
+                   value="{{ old('place_governorate', $c?->place_governorate ?? request('place_governorate')) }}" maxlength="120">
             <div class="form-text">{{ __('tenancy.place_governorate_hint') }}</div>
             @error('place_governorate')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
@@ -39,21 +39,21 @@
             <label class="form-label" for="place_region">{{ __('tenancy.place_region') }}</label>
             <input id="place_region" name="place_region" type="text"
                    class="form-control @error('place_region') is-invalid @enderror"
-                   value="{{ old('place_region', $c?->place_region) }}" maxlength="120">
+                   value="{{ old('place_region', $c?->place_region ?? request('place_region')) }}" maxlength="120">
             @error('place_region')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
         <div class="col-md-6">
             <label class="form-label" for="place_district">{{ __('tenancy.place_district') }}</label>
             <input id="place_district" name="place_district" type="text"
                    class="form-control @error('place_district') is-invalid @enderror"
-                   value="{{ old('place_district', $c?->place_district) }}" maxlength="120">
+                   value="{{ old('place_district', $c?->place_district ?? request('place_district')) }}" maxlength="120">
             @error('place_district')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
         <div class="col-12">
             <label class="form-label" for="place_street">{{ __('tenancy.place_street') }}</label>
             <input id="place_street" name="place_street" type="text"
                    class="form-control @error('place_street') is-invalid @enderror"
-                   value="{{ old('place_street', $c?->place_street) }}" maxlength="191">
+                   value="{{ old('place_street', $c?->place_street ?? request('place_street')) }}" maxlength="191">
             @error('place_street')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
     </div>

@@ -68,7 +68,7 @@ Still parked / ops-owned:
 - Wildcard DNS/TLS + SESSION_DOMAIN for shared SSO cookies
 - Full P6 checklist sign-off (`docs/architecture/multi-subsidiary/P6-pilot.md`) — use `docs/staging-acceptance-checklist.md` + `php artisan tenancy:acceptance-check`
 - Optional FK hardening on every tenant table → `organizations.organization_id`
-- Public church registration / polymorphic applications (§13)
+- ~~Public church registration panel (§13)~~ — landed; polymorphic applications center still parked
 
 ## T6 deferred (finance first-cut boundary)
 Landed on `feature/church-tenancy-t6`: payroll runs/lines + money-in with integer
@@ -85,11 +85,10 @@ further product decision needed, sequencing TBD:
 Landed on `feature/church-tenancy-t4`: TrustHosts, sessions migration, `ChurchHost`,
 `ChurchProvisioningService`, superadmin churches CRUD, nav church switcher (host
 links), login membership rejection, `EnsureChurchMember` on web stack.
-Still parked (product decisions recorded 2026-07-30 — see master-plan §17.4, not yet built):
-- Public church-registration panel → superadmin approval (master-plan §13 / §17.4).
-  **Decided:** superadmin manually finishes provisioning after approval (no auto-create
-  tenant on approval) — lower blast-radius than auto-provisioning a public, unauthenticated
-  form straight into a live tenant.
+Still parked (product decisions recorded 2026-07-30 — see master-plan §17.4):
+- ~~Public church-registration panel → superadmin approval (master-plan §13 / §17.4)~~ —
+  landed: public `/register-church` lead form + `church_applications` queue; approve only
+  marks the row and hands off to existing `superadmin.churches.create` (no auto-provision).
 - Polymorphic applications center (Church | Service | Course).
   **Decided:** refactor into one polymorphic review queue now, rather than adding Church as
   a third parallel system alongside `CourseApplication`/`ServiceApplication`. Build only

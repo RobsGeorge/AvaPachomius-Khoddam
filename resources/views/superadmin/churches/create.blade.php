@@ -13,13 +13,13 @@
             <div>
                 <label class="form-label" for="name">{{ __('tenancy.col_name') }}</label>
                 <input id="name" name="name" type="text" class="form-control @error('name') is-invalid @enderror"
-                       value="{{ old('name') }}" required maxlength="120">
+                       value="{{ old('name', request('name')) }}" required maxlength="120">
                 @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div>
                 <label class="form-label" for="short_name">{{ __('tenancy.col_short_name') }}</label>
                 <input id="short_name" name="short_name" type="text" class="form-control @error('short_name') is-invalid @enderror"
-                       value="{{ old('short_name') }}" required maxlength="40">
+                       value="{{ old('short_name', request('short_name')) }}" required maxlength="40">
                 <div class="form-text">{{ __('tenancy.short_name_hint') }}</div>
                 @error('short_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>

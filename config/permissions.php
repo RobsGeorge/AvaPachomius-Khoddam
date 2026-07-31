@@ -1078,6 +1078,13 @@ return [
                 'routes' => ['superadmin.scheduled-tasks.*'],
                 'system_only' => true,
             ],
+            'platform.church_applications' => [
+                'label_en' => 'Review church registration applications',
+                'label_ar' => 'مراجعة طلبات تسجيل الكنائس',
+                'type' => 'both',
+                'routes' => ['superadmin.church-applications.*'],
+                'system_only' => true,
+            ],
         ],
     ],
 ];
