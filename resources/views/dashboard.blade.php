@@ -142,15 +142,6 @@
             </a>
         </div>
 
-        @if(Auth::user()->isStudent())
-            <div class="col-md-6">
-                <a href="{{ route('my-learning.index') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">
-                    <h3><i class="bi bi-journal-bookmark"></i> {{ __('nav.my_learning') }}</h3>
-                    <p class="text-muted-theme mb-0">{{ __('my_learning.subtitle') }}</p>
-                </a>
-            </div>
-        @endif
-
         @if($hasService)
             <div class="col-md-6">
                 <a href="{{ route('hubs.service') }}" class="app-tile hub-tile d-flex flex-column h-100 text-decoration-none">

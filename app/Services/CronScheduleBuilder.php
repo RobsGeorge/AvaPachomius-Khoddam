@@ -10,6 +10,8 @@ class CronScheduleBuilder
 {
     public const FREQUENCY_EVERY_FIVE_MINUTES = 'every_five_minutes';
 
+    public const FREQUENCY_EVERY_MINUTE = 'every_minute';
+
     public const FREQUENCY_HOURLY = 'hourly';
 
     public const FREQUENCY_DAILY_AT = 'daily_at';
@@ -76,6 +78,10 @@ class CronScheduleBuilder
 
         [$minute, $hour, $dayOfMonth, $month, $dayOfWeek] = $parts;
 
+        if ($minute === '*' && $hour === '*' && $dayOfMonth === '*' && $month === '*' && $dayOfWeek === '*') {
+            return ['frequency' => self::FREQUENCY_EVERY_MINUTE];
+        }
+
         if ($minute === '*/5' && $hour === '*' && $dayOfMonth === '*' && $month === '*' && $dayOfWeek === '*') {
             return ['frequency' => self::FREQUENCY_EVERY_FIVE_MINUTES];
         }
@@ -133,6 +139,11 @@ class CronScheduleBuilder
     /** @param array<string, mixed> $schedule */
     public function describe(array $schedule): string
     {
+        $rawFrequency = (string) ($schedule['frequency'] ?? '');
+        if ($rawFrequency === self::FREQUENCY_EVERY_MINUTE) {
+            return __('scheduled_tasks.freq_every_minute');
+        }
+
         $ui = $this->normalizeScheduleUi($schedule);
 
         return match ($ui['frequency']) {
@@ -157,6 +168,11 @@ class CronScheduleBuilder
     public function scheduleUiFromConfig(array $scheduleConfig): array
     {
         $frequency = (string) ($scheduleConfig['frequency'] ?? self::FREQUENCY_DAILY_AT);
+
+        if ($frequency === self::FREQUENCY_EVERY_MINUTE) {
+            return ['frequency' => self::FREQUENCY_EVERY_MINUTE];
+        }
+
         $ui = ['frequency' => $frequency];
 
         if (in_array($frequency, [self::FREQUENCY_DAILY_AT, self::FREQUENCY_WEEKLY_ON, self::FREQUENCY_MONTHLY_ON], true)) {

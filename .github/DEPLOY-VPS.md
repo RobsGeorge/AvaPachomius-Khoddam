@@ -4,6 +4,59 @@ Pushes to `main` run the **CI** workflow first (unit, integration, and load test
 
 Pull requests run **CI** only; they do not deploy.
 
+## Deploy blocked: `unable to unlink old 'storage/...': Permission denied`
+
+GitHub Actions SSH has no password prompt. The deploy user **must** have passwordless
+`sudo` for `chown`, `chmod`, and `systemctl reload php8.2-fpm`, and must reclaim
+`storage/` + `bootstrap/cache/` before `git reset --hard`.
+
+**One-time fix as root** (replace `deploy` with your `SSH_USER` secret):
+
+```bash
+# 1) Allow deploy to fix permissions without a TTY
+sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
+```
+
+Add (one line, no line breaks):
+
+```
+deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl
+```
+
+Save (`visudo` validates syntax). Then verify — use `chown`, not `true` (only the commands above are allowed):
+
+```bash
+sudo -u deploy sudo -n chown --version && echo CHOWN OK
+sudo -u deploy sudo -n chmod --version && echo CHMOD OK
+sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
+```
+
+**Recover a failed deploy** (git sync already broke):
+
+```bash
+sudo chown -R deploy:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+```
+
+Then **Re-run** the failed GitHub Actions deploy job (or push again).
+
+## Deploy blocked: `Permission denied` writing `storage/framework/cache/data`
+
+PHP-FPM runs as `www-data`. Cache directories must be **group-writable** with the
+`www-data` group (setgid `2775` on directories is recommended so new hash folders
+inherit the group).
+
+**Immediate recovery as root:**
+
+```bash
+sudo chown -R deploy:www-data /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+sudo find /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache -type d -exec chmod 2775 {} +
+sudo find /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache -type f -exec chmod 664 {} +
+sudo systemctl reload php8.2-fpm
+```
+
+Replace `deploy` with your deploy SSH user if different.
+
 ## One-time fix (on the VPS as root)
 
 Replace `deploy` with your SSH user (`SSH_USER` secret), then:
@@ -12,16 +65,16 @@ Replace `deploy` with your SSH user (`SSH_USER` secret), then:
 sudo visudo -f /etc/sudoers.d/avapakhomios-deploy
 ```
 
-Add:
+Add (one line):
 
 ```
-deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/systemctl reload php8.2-fpm, /bin/systemctl reload php8.2-fpm.service
+deploy ALL=(ALL) NOPASSWD: /usr/bin/chown, /usr/bin/chmod, /bin/chown, /bin/chmod, /usr/bin/systemctl, /bin/systemctl
 ```
 
 Save and verify:
 
 ```bash
-sudo -u deploy sudo -n true && echo OK
+sudo -u deploy sudo -n chown --version && echo OK
 sudo -u deploy sudo -n systemctl reload php8.2-fpm && echo FPM OK
 ```
 
@@ -44,12 +97,6 @@ because PHP-FPM (`www-data`) creates cache/session files that otherwise block gi
 
 If a deploy fails on git sync with that error, run the chown above once as root (or as a
 sudoer), then re-run the failed GitHub Actions deploy job.
-because PHP-FPM often creates cache/session files as `www-data`, which otherwise yields
-`unable to unlink old 'storage/...': Permission denied`.
-
-If a deploy fails on git sync with that error, run the chown above once as root (or as a
-user with passwordless `sudo chown`/`chmod`), then re-run the deploy.
-
 Add deploy to the `www-data` group if needed:
 
 ```bash
@@ -111,28 +158,34 @@ If `migrate:deploy` fails with a lock error, wait for traffic to drop or run the
 
 ## Laravel scheduler (cron)
 
-Daily birthday emails and portal notifications for course staff depend on the scheduler.
-Without a system cron entry, `birthdays:notify-daily` never runs even though it is registered
-in `app/Console/Kernel.php` (daily at `00:05` in the attendance timezone).
+Daily birthday emails, reminders, and other automatic jobs depend on the scheduler.
+Without a system cron entry, tasks never run even though they are registered in
+`app/Console/Kernel.php`.
 
-On the VPS as root (or via `sudo crontab -u deploy -e`):
+Deploy workflows call `php8.2 artisan scheduler:ensure-cron` so the crontab line is
+installed (or verified) on every production and staging deploy.
+
+Manual install / repair on the VPS:
 
 ```bash
-* * * * * cd /var/www/avapakhomios && php8.2 artisan schedule:run >> /dev/null 2>&1
+cd /var/www/avapakhomios   # or /var/www/khedma-staging
+php8.2 artisan scheduler:ensure-cron --php=php8.2
+crontab -l | grep schedule:run
 ```
 
-For staging:
+Expected line (paths vary by environment):
 
 ```bash
-* * * * * cd /var/www/khedma-staging && php8.2 artisan schedule:run >> /dev/null 2>&1
+* * * * * cd '/var/www/avapakhomios' && 'php8.2' artisan schedule:run >> '/var/www/avapakhomios/storage/logs/scheduler-cron.log' 2>&1
 ```
 
 Verify:
 
 ```bash
 cd /var/www/avapakhomios
-php8.2 artisan schedule:list | grep birthdays
-php8.2 artisan birthdays:notify-daily --date=$(date +%F)
+php8.2 artisan schedule:list | grep -E 'heartbeat|birthdays'
+php8.2 artisan schedule:run
+# Superadmin → Scheduled tasks should show a healthy heartbeat within 1–2 minutes.
 ```
 
 ## Curriculum private uploads (`storage/app/curriculum`)

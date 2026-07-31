@@ -7,15 +7,8 @@ use Illuminate\Cache\FileStore;
 use Throwable;
 
 /**
- * File cache store that recovers from missing hash directories.
- *
- * Laravel's FileStore checks that the two-level hash path exists, then writes.
- * Under concurrency (cache:clear / flush during traffic, or deploy optimize:clear
- * racing PHP-FPM workers) the directory can disappear between those steps.
- * makeDirectory(..., $force = true) also swallows mkdir failures, so a later
- * file_put_contents surfaces as "No such file or directory".
- *
- * One forced recreate + retry prevents that ErrorException from reaching users.
+ * File cache store that recovers from missing hash directories and common
+ * permission races between deploy (deploy user) and runtime (www-data / PHP-FPM).
  */
 class ResilientFileStore extends FileStore
 {
@@ -34,6 +27,14 @@ class ResilientFileStore extends FileStore
     }
 
     /**
+     * @param  string  $path
+     */
+    protected function ensureCacheDirectoryExists($path): void
+    {
+        $this->ensureWritableCachePath(dirname($path));
+    }
+
+    /**
      * @template T
      * @param  callable(): T  $callback
      * @return T
@@ -43,24 +44,66 @@ class ResilientFileStore extends FileStore
         try {
             return $callback();
         } catch (Throwable $e) {
-            if (! $this->isMissingCachePathError($e)) {
+            if (! $this->isRecoverableCacheWriteError($e)) {
                 throw $e;
             }
 
-            $directory = dirname($this->path($key));
-            $this->files->makeDirectory($directory, 0777, true, true);
-
-            // Also recreate the configured base path if a flush removed parents.
-            if (! $this->files->isDirectory($this->directory)) {
-                $this->files->makeDirectory($this->directory, 0777, true, true);
-                $this->files->makeDirectory($directory, 0777, true, true);
-            }
+            $this->ensureWritableCachePath(dirname($this->path($key)));
 
             return $callback();
         }
     }
 
-    protected function isMissingCachePathError(Throwable $e): bool
+    protected function ensureWritableCachePath(string $directory): void
+    {
+        if (! $this->files->isDirectory($this->directory)) {
+            $this->createDirectoryTree($this->directory);
+        } else {
+            $this->ensureDirectoryWritable($this->directory);
+        }
+
+        if (! $this->files->isDirectory($directory)) {
+            $this->createDirectoryTree($directory);
+        } else {
+            $this->ensureDirectoryWritable($directory);
+        }
+    }
+
+    protected function createDirectoryTree(string $path): void
+    {
+        if ($this->files->isDirectory($path)) {
+            $this->ensureDirectoryWritable($path);
+
+            return;
+        }
+
+        $this->files->makeDirectory($path, 02775, true, true);
+
+        if ($this->files->isDirectory($path)) {
+            $this->ensureDirectoryWritable($path);
+
+            return;
+        }
+
+        // makeDirectory(..., $force = true) suppresses mkdir errors — retry without @.
+        mkdir($path, 02775, true);
+        $this->ensureDirectoryWritable($path);
+    }
+
+    protected function ensureDirectoryWritable(string $path): void
+    {
+        if (! $this->files->isDirectory($path)) {
+            return;
+        }
+
+        if (is_writable($path)) {
+            return;
+        }
+
+        $this->files->chmod($path, 02775);
+    }
+
+    protected function isRecoverableCacheWriteError(Throwable $e): bool
     {
         if (! $e instanceof ErrorException) {
             return false;
@@ -68,7 +111,18 @@ class ResilientFileStore extends FileStore
 
         $message = $e->getMessage();
 
-        return str_contains($message, 'Failed to open stream: No such file or directory')
-            || str_contains($message, 'failed to open stream: No such file or directory');
+        if (str_contains($message, 'Permission denied')) {
+            return str_contains($message, 'Failed to open stream')
+                || str_contains($message, 'failed to open stream')
+                || str_contains($message, 'file_put_contents');
+        }
+
+        if (! str_contains($message, 'No such file or directory')) {
+            return false;
+        }
+
+        return str_contains($message, 'Failed to open stream')
+            || str_contains($message, 'failed to open stream')
+            || str_contains($message, 'mkdir():');
     }
 }
