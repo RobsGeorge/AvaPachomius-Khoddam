@@ -179,15 +179,14 @@ class ApplicationsHubQuery
     /** @return Collection<int, ApplicationQueueItem> */
     private function churchItems(?string $statusFilter): Collection
     {
+        $allowed = ChurchApplication::reviewableStatuses();
+
         $query = ChurchApplication::query()
+            // Never surface unverified leads — email confirm happens before the review queue.
+            ->whereIn('status', $allowed)
             ->latest('submitted_at')
             ->limit(self::MERGE_CAP);
 
-        $allowed = [
-            ChurchApplication::STATUS_PENDING,
-            ChurchApplication::STATUS_APPROVED,
-            ChurchApplication::STATUS_REJECTED,
-        ];
         if ($statusFilter && in_array($statusFilter, $allowed, true)) {
             $query->where('status', $statusFilter);
         }

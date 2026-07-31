@@ -96,6 +96,26 @@ class ApplicationsHubTest extends EventModuleTestCase
             'contact_email' => 'hub-church@example.com',
             'contact_mobile' => '01001112222',
             'status' => ChurchApplication::STATUS_PENDING,
+            'public_token' => ChurchApplication::mintPublicToken(),
+            'email_verified_at' => now(),
+            'submitted_at' => now(),
+        ]);
+    }
+
+    private function unverifiedChurchApplication(string $name = 'Unverified Hub Church'): ChurchApplication
+    {
+        return ChurchApplication::create([
+            'requested_name' => $name,
+            'requested_short_name' => 'Unverified',
+            'place_district' => 'Smouha',
+            'place_governorate' => 'Alexandria',
+            'place_country_code' => 'EG',
+            'contact_name' => 'Contact',
+            'contact_email' => 'unverified-hub@example.com',
+            'contact_mobile' => '01003334444',
+            'status' => ChurchApplication::STATUS_UNVERIFIED,
+            'public_token' => ChurchApplication::mintPublicToken(),
+            'email_verified_at' => null,
             'submitted_at' => now(),
         ]);
     }
@@ -198,5 +218,24 @@ class ApplicationsHubTest extends EventModuleTestCase
         $this->actingAs($user)
             ->get(route('admin.applications-hub.index'))
             ->assertForbidden();
+    }
+
+    public function test_unverified_church_applications_are_hidden_from_hub(): void
+    {
+        $pending = $this->pendingChurchApplication('Visible Verified Church');
+        $unverified = $this->unverifiedChurchApplication('Hidden Unverified Church');
+
+        $super = $this->createUser([
+            'email' => 'hub-unverified-filter@example.com',
+            'is_superadmin' => true,
+        ]);
+
+        $this->actingAs($super)
+            ->get(route('admin.applications-hub.index'))
+            ->assertOk()
+            ->assertSee('Visible Verified Church', false)
+            ->assertSee(route('superadmin.church-applications.show', $pending), false)
+            ->assertDontSee('Hidden Unverified Church', false)
+            ->assertDontSee(route('superadmin.church-applications.show', $unverified), false);
     }
 }
