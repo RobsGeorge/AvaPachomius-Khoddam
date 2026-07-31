@@ -6,6 +6,7 @@ use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\ServiceApplication;
 use App\Models\User;
+use App\Services\ApplicationsHubQuery;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
@@ -490,6 +491,10 @@ class NavigationHub
             $links[] = self::categorized(self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*'], 'course_application.form_builder'), 'reviews');
         }
 
+        if (app(ApplicationsHubQuery::class)->canAccessHub($user)) {
+            $links[] = self::categorized(self::link('admin.applications-hub.index', 'applications_hub.nav_title', 'bi-inboxes', ['admin.applications-hub.*'], 'applications.hub.view'), 'reviews');
+        }
+
         if ($user->canAccessAdminCourseApplications()) {
             $links[] = self::categorized(self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*'], 'course_application.review'), 'reviews');
         }
@@ -515,6 +520,7 @@ class NavigationHub
         $exclusiveLinks = [
             self::hubLink('superadmin.churches.index', 'tenancy.nav_churches', 'tenancy.nav_churches_desc', 'bi-building', ['superadmin.churches.*'], true),
             self::hubLink('superadmin.church-applications.index', 'church_applications.nav_title', 'church_applications.nav_desc', 'bi-building-add', ['superadmin.church-applications.*'], true),
+            self::hubLink('admin.applications-hub.index', 'applications_hub.nav_title', 'applications_hub.nav_desc', 'bi-inboxes', ['admin.applications-hub.*'], true),
             self::hubLink('superadmin.plans.index', 'billing.nav_plans', 'billing.nav_plans_desc', 'bi-credit-card', ['superadmin.plans.*'], true),
             self::hubLink('superadmin.people.merge.index', 'people.nav_merge', 'people.nav_merge_desc', 'bi-people', ['superadmin.people.*'], true),
             self::hubLink('superadmin.courses', 'pages.manage_services_and_courses', 'pages.superadmin_services_and_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
@@ -978,6 +984,7 @@ class NavigationHub
             $links[] = self::categorized(self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']), 'config');
             $links[] = self::categorized(self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*']), 'reviews');
+            $links[] = self::categorized(self::link('admin.applications-hub.index', 'applications_hub.nav_title', 'bi-inboxes', ['admin.applications-hub.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*']), 'config');

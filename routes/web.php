@@ -97,6 +97,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\Admin\RegistrationApplicationController;
+use App\Http\Controllers\Admin\ApplicationsHubController;
 use App\Http\Controllers\Admin\CourseApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationFormController;
 use App\Http\Controllers\Admin\ServiceApplicationController as AdminServiceApplicationController;
@@ -549,6 +550,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/course-applications/{application}/approve', [CourseApplicationController::class, 'approve'])->name('course-applications.approve');
     Route::post('/course-applications/{application}/reject', [CourseApplicationController::class, 'reject'])->name('course-applications.reject');
     Route::post('/course-applications/{application}/restore', [CourseApplicationController::class, 'restore'])->name('course-applications.restore');
+
+    // §13 applications center — shared index; approve/reject stay on per-type show pages.
+    Route::get('/applications-hub', [ApplicationsHubController::class, 'index'])->name('applications-hub.index');
 
     Route::get('/service-applications', [AdminServiceApplicationController::class, 'index'])->name('service-applications.index');
     Route::get('/service-applications/{serviceApplication}', [AdminServiceApplicationController::class, 'show'])->name('service-applications.show');
