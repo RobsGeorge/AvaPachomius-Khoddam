@@ -185,7 +185,8 @@ class ChurchApplicationTest extends EventModuleTestCase
             ->get(route('superadmin.church-applications.show', $application))
             ->assertOk()
             ->assertSee('Visible Church', false)
-            ->assertSee($application->contact_email, false);
+            ->assertSee($application->contact_email, false)
+            ->assertSee(__('countries.EG'), false);
     }
 
     public function test_superadmin_can_approve_application(): void
@@ -647,8 +648,14 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertStringContainsString('تسجيل كنيستك', $create);
         $this->assertStringContainsString('اسم الكنيسة', $create);
         $this->assertStringContainsString('اسم جهة الاتصال', $create);
+        $this->assertStringContainsString('لن يُقبل الطلب تلقائيًا', $create);
+        $this->assertStringContainsString('الاسم المختصر', $create);
         $this->assertStringNotContainsString('church_applications.public_title', $create);
         $this->assertStringNotContainsString('church_applications.requested_name', $create);
+
+        $thanks = $this->get(route('church-registration.thanks'))->assertOk()->getContent();
+        $this->assertStringContainsString('استلمنا طلبك', $thanks);
+        $this->assertStringContainsString('تحقق من بريدك الإلكتروني', $thanks);
 
         $application = $this->pendingApplication(['requested_name' => 'كنيسة الاختبار']);
         $show = $this->actingAs($this->superadmin())
@@ -659,8 +666,31 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertStringContainsString('اسم الكنيسة', $show);
         $this->assertStringContainsString('قيد المراجعة', $show);
         $this->assertStringContainsString('كنيسة الاختبار', $show);
+        $this->assertStringContainsString(__('countries.EG'), $show);
         $this->assertStringNotContainsString('church_applications.status_pending_review', $show);
         $this->assertStringNotContainsString('church_applications.admin_title', $show);
+    }
+
+    public function test_guest_validation_uses_localized_field_messages(): void
+    {
+        $this->from(route('church-registration'))
+            ->post(route('church-registration.store'), $this->validPayload([
+                'requested_name' => '',
+                'contact_email' => 'not-an-email',
+            ]))
+            ->assertRedirect(route('church-registration'))
+            ->assertSessionHasErrors(['requested_name', 'contact_email']);
+
+        $errors = session('errors');
+        $this->assertNotNull($errors);
+        $this->assertStringContainsString(
+            __('church_applications.requested_name'),
+            $errors->first('requested_name')
+        );
+        $this->assertSame(
+            __('church_applications.validation_email'),
+            $errors->first('contact_email')
+        );
     }
 
     public function test_duplicate_contact_email_applications_are_allowed(): void

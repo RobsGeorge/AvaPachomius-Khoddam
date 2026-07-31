@@ -29,7 +29,9 @@
             </div>
 
             <div>
-                <label class="form-label" for="requested_name">{{ __('church_applications.requested_name') }}</label>
+                <label class="form-label" for="requested_name">
+                    {{ __('church_applications.requested_name') }} <span class="text-danger">*</span>
+                </label>
                 <input id="requested_name" name="requested_name" type="text"
                        class="form-control @error('requested_name') is-invalid @enderror"
                        value="{{ old('requested_name') }}" required maxlength="120">
@@ -41,6 +43,7 @@
                 <input id="requested_short_name" name="requested_short_name" type="text"
                        class="form-control @error('requested_short_name') is-invalid @enderror"
                        value="{{ old('requested_short_name') }}" maxlength="40">
+                <div class="form-text">{{ __('church_applications.requested_short_name_hint') }}</div>
                 @error('requested_short_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
@@ -72,10 +75,15 @@
                            value="{{ old('place_district') }}" maxlength="120">
                     @error('place_district')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
+                <div class="col-12">
+                    <div class="form-text mt-0">{{ __('church_applications.place_fields_hint') }}</div>
+                </div>
             </div>
 
             <div>
-                <label class="form-label" for="contact_name">{{ __('church_applications.contact_name') }}</label>
+                <label class="form-label" for="contact_name">
+                    {{ __('church_applications.contact_name') }} <span class="text-danger">*</span>
+                </label>
                 <input id="contact_name" name="contact_name" type="text"
                        class="form-control @error('contact_name') is-invalid @enderror"
                        value="{{ old('contact_name') }}" required maxlength="120">
@@ -84,14 +92,18 @@
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label" for="contact_email">{{ __('church_applications.contact_email') }}</label>
+                    <label class="form-label" for="contact_email">
+                        {{ __('church_applications.contact_email') }} <span class="text-danger">*</span>
+                    </label>
                     <input id="contact_email" name="contact_email" type="email"
                            class="form-control @error('contact_email') is-invalid @enderror"
                            value="{{ old('contact_email') }}" required maxlength="191">
                     @error('contact_email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="contact_mobile">{{ __('church_applications.contact_mobile') }}</label>
+                    <label class="form-label" for="contact_mobile">
+                        {{ __('church_applications.contact_mobile') }} <span class="text-danger">*</span>
+                    </label>
                     <input id="contact_mobile" name="contact_mobile" type="text"
                            class="form-control @error('contact_mobile') is-invalid @enderror"
                            value="{{ old('contact_mobile') }}" required maxlength="40">

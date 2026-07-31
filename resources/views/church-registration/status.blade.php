@@ -34,6 +34,7 @@
                 <p class="text-muted-theme mb-0">{{ __('church_applications.status_approved_hint') }}</p>
             @endif
             @if($application->status === \App\Models\ChurchApplication::STATUS_REJECTED)
+                <p class="text-muted-theme mb-0">{{ __('church_applications.status_rejected_hint') }}</p>
                 <p class="mb-0">
                     <strong>{{ __('church_applications.admin_note') }}:</strong>
                     {{ $application->admin_note ?: '—' }}

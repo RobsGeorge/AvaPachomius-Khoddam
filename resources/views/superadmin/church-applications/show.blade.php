@@ -3,6 +3,19 @@
 @section('title', __('church_applications.admin_title'))
 
 @section('content')
+@php
+    $statusBadgeClass = [
+        \App\Models\ChurchApplication::STATUS_PENDING => 'bg-warning text-dark',
+        \App\Models\ChurchApplication::STATUS_APPROVED => 'bg-success',
+        \App\Models\ChurchApplication::STATUS_REJECTED => 'bg-danger',
+        \App\Models\ChurchApplication::STATUS_UNVERIFIED => 'bg-secondary',
+    ];
+    $badge = $statusBadgeClass[$application->status] ?? 'bg-secondary';
+    $countryCode = $application->place_country_code;
+    $countryLabel = filled($countryCode)
+        ? (__('countries.'.$countryCode) !== 'countries.'.$countryCode ? __('countries.'.$countryCode) : $countryCode)
+        : '—';
+@endphp
 <div class="container py-4 animate-in" style="max-width:720px;">
     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
         <h1 class="page-title h4 mb-0">{{ $application->requested_name }}</h1>
@@ -18,7 +31,10 @@
     <div class="app-card card shadow-sm mb-3">
         <div class="card-body">
             <p><strong>{{ __('church_applications.status') }}:</strong>
-                {{ __('church_applications.status_'.$application->status) }}</p>
+                <span class="badge {{ $badge }}">
+                    {{ __('church_applications.status_'.$application->status) }}
+                </span>
+            </p>
             @if($application->isUnverified())
                 <div class="alert alert-warning py-2">{{ __('church_applications.email_not_verified_badge') }}</div>
             @endif
@@ -27,7 +43,7 @@
             <p><strong>{{ __('church_applications.requested_short_name') }}:</strong>
                 {{ $application->requested_short_name ?: '—' }}</p>
             <p><strong>{{ __('church_applications.place_country') }}:</strong>
-                {{ $application->place_country_code ?: '—' }}</p>
+                {{ $countryLabel }}</p>
             <p><strong>{{ __('church_applications.place_governorate') }}:</strong>
                 {{ $application->place_governorate ?: '—' }}</p>
             <p><strong>{{ __('church_applications.place_district') }}:</strong>
@@ -68,10 +84,13 @@
                   class="app-card card shadow-sm">
                 @csrf
                 <div class="card-body">
-                    <label class="form-label" for="admin_note">{{ __('church_applications.admin_note_required') }}</label>
+                    <label class="form-label" for="admin_note">
+                        {{ __('church_applications.admin_note_required') }} <span class="text-danger">*</span>
+                    </label>
                     <textarea id="admin_note" name="admin_note" rows="3" required
                               class="form-control @error('admin_note') is-invalid @enderror"
                               maxlength="2000">{{ old('admin_note') }}</textarea>
+                    <div class="form-text">{{ __('church_applications.admin_note_required_hint') }}</div>
                     @error('admin_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     <button class="btn btn-outline-danger mt-3" type="submit">{{ __('church_applications.reject') }}</button>
                 </div>

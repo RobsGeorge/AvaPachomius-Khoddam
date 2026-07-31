@@ -66,6 +66,11 @@ class ChurchApplicationController extends Controller
 
         $validated = $request->validate([
             'admin_note' => ['required', 'string', 'max:2000'],
+        ], [
+            'admin_note.required' => __('church_applications.validation_admin_note_required'),
+            'admin_note.max' => __('church_applications.validation_max', [
+                'attribute' => __('church_applications.admin_note_required'),
+            ]),
         ]);
 
         $this->applications->reject($churchApplication, $user, $validated['admin_note']);
