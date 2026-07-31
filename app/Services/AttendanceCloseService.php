@@ -3,13 +3,16 @@
 namespace App\Services;
 
 use App\Models\Attendance;
+use App\Models\Church;
 use App\Models\Role;
 use App\Models\Session;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceCloseService
@@ -296,22 +299,64 @@ class AttendanceCloseService
             return 0;
         }
 
+        // Attendance::insert() bypasses BelongsToChurch creating stamps. After T7,
+        // attendance.church_id is NOT NULL on MySQL — omit it and close-attendance 500s.
+        $churchId = $this->churchIdForBulkAttendanceInsert($session);
         $now = now();
-        $records = $missingStudentIds->map(fn ($userId) => [
-            'user_id' => $userId,
-            'session_id' => $session->session_id,
-            'taken_by_id' => $actorId,
-            'status' => $status,
-            'attendance_time' => $now,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ])->all();
+        $records = $missingStudentIds->map(function ($userId) use ($session, $actorId, $status, $now, $churchId) {
+            $row = [
+                'user_id' => $userId,
+                'session_id' => $session->session_id,
+                'taken_by_id' => $actorId,
+                'status' => $status,
+                'attendance_time' => $now,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+            if ($churchId !== null) {
+                $row['church_id'] = $churchId;
+            }
+            if (Schema::hasColumn('attendance', 'lock_version')) {
+                $row['lock_version'] = 0;
+            }
+
+            return $row;
+        })->all();
 
         foreach (array_chunk($records, 100) as $chunk) {
             Attendance::insert($chunk);
         }
 
         return count($records);
+    }
+
+    /**
+     * Resolve church_id for bulk attendance rows (insert skips Eloquent events).
+     */
+    private function churchIdForBulkAttendanceInsert(Session $session): ?int
+    {
+        if (! Schema::hasColumn('attendance', 'church_id')) {
+            return null;
+        }
+
+        $session->loadMissing('course');
+
+        $churchId = $session->church_id
+            ?? $session->course?->church_id
+            ?? app(TenantContext::class)->churchId()
+            ?? TenantContext::id();
+
+        if ($churchId !== null) {
+            return (int) $churchId;
+        }
+
+        if (! Schema::hasTable('church')) {
+            return null;
+        }
+
+        $mainId = Church::query()->where('slug', config('tenancy.main_slug'))->value('church_id');
+
+        return $mainId !== null ? (int) $mainId : null;
     }
 
     private function assertStudentCanBeRecorded(Session $session, User $user, bool $allowNonEnrolled): void
