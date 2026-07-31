@@ -4,6 +4,7 @@ namespace App\Http\Controllers\SuperAdmin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ChurchApplication;
+use App\Models\User;
 use App\Services\ChurchApplicationService;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,7 @@ class ChurchApplicationController extends Controller
     public function index()
     {
         $user = auth()->user();
-        abort_unless($user && ($user->is_superadmin ?? false), 403);
+        abort_unless($user instanceof User && $user->canAccessAdminChurchApplications(), 403);
 
         // Unverified rows stay out of the review queue until the contact confirms email.
         $applications = ChurchApplication::query()
@@ -30,7 +31,7 @@ class ChurchApplicationController extends Controller
     public function show(ChurchApplication $churchApplication)
     {
         $user = auth()->user();
-        abort_unless($user && ($user->is_superadmin ?? false), 403);
+        abort_unless($user instanceof User && $user->canAccessAdminChurchApplications(), 403);
 
         $churchApplication->load('reviewer');
 
@@ -42,7 +43,7 @@ class ChurchApplicationController extends Controller
     public function approve(Request $request, ChurchApplication $churchApplication)
     {
         $user = auth()->user();
-        abort_unless($user && ($user->is_superadmin ?? false), 403);
+        abort_unless($user instanceof User && $user->canAccessAdminChurchApplications(), 403);
 
         $validated = $request->validate([
             'admin_note' => ['nullable', 'string', 'max:2000'],
@@ -58,7 +59,7 @@ class ChurchApplicationController extends Controller
     public function reject(Request $request, ChurchApplication $churchApplication)
     {
         $user = auth()->user();
-        abort_unless($user && ($user->is_superadmin ?? false), 403);
+        abort_unless($user instanceof User && $user->canAccessAdminChurchApplications(), 403);
 
         $request->merge([
             'admin_note' => trim((string) $request->input('admin_note', '')),

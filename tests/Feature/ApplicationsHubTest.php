@@ -2,17 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Models\Church;
 use App\Models\ChurchApplication;
+use App\Models\ChurchService;
+use App\Models\ChurchUser;
 use App\Models\CourseApplication;
-use App\Models\CourseApplicationForm;
 use App\Models\Permission;
+use App\Models\RegistrationApplication;
 use App\Models\Role;
 use App\Models\ServiceApplication;
 use App\Models\ServiceApplicationForm;
 use App\Models\User;
+use App\Models\UserServiceRole;
 use App\Models\UserSystemRole;
 use App\Services\CourseApplicationFormService;
 use App\Services\ServiceRoleAssignmentService;
+use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
 use Tests\Support\EventModuleTestCase;
 
@@ -22,6 +27,12 @@ class ApplicationsHubTest extends EventModuleTestCase
     {
         parent::setUp();
         Artisan::call('permissions:sync');
+    }
+
+    protected function tearDown(): void
+    {
+        TenantContext::clear();
+        parent::tearDown();
     }
 
     private function grantSystemPermission(User $user, string $permissionKey): void
@@ -37,6 +48,37 @@ class ApplicationsHubTest extends EventModuleTestCase
         UserSystemRole::create([
             'user_id' => $user->user_id,
             'role_id' => $role->role_id,
+        ]);
+    }
+
+    private function grantServicePermission(User $user, ChurchService $service, string $permissionKey): void
+    {
+        $perm = Permission::where('key', $permissionKey)->firstOrFail();
+        $role = Role::create([
+            'role_name' => 'Svc '.$permissionKey,
+            'role_decription' => $permissionKey,
+            'slug' => 'svc-'.str_replace('.', '-', $permissionKey).'-'.$service->service_id.'-'.$user->user_id,
+            'service_id' => $service->service_id,
+            'church_id' => $service->church_id,
+            'is_template' => false,
+        ]);
+        $role->permissions()->sync([$perm->permission_id]);
+
+        UserServiceRole::create([
+            'user_id' => $user->user_id,
+            'service_id' => $service->service_id,
+            'role_id' => $role->role_id,
+            'is_primary' => true,
+        ]);
+    }
+
+    private function attachChurchMember(User $user, Church $church): void
+    {
+        ChurchUser::create([
+            'church_id' => $church->church_id,
+            'user_id' => $user->user_id,
+            'status' => 'active',
+            'joined_at' => now(),
         ]);
     }
 
@@ -62,9 +104,9 @@ class ApplicationsHubTest extends EventModuleTestCase
         ]);
     }
 
-    private function pendingServiceApplication(string $title = 'Hub Service'): ServiceApplication
+    private function pendingServiceApplication(string $title = 'Hub Service', ?ChurchService $service = null): ServiceApplication
     {
-        $service = $this->createService(['title' => $title, 'title_en' => $title]);
+        $service ??= $this->createService(['title' => $title, 'title_en' => $title]);
         $memberRole = app(ServiceRoleAssignmentService::class)->memberRoleFor($service);
         $form = ServiceApplicationForm::create([
             'service_id' => $service->service_id,
@@ -237,5 +279,139 @@ class ApplicationsHubTest extends EventModuleTestCase
             ->assertSee(route('superadmin.church-applications.show', $pending), false)
             ->assertDontSee('Hidden Unverified Church', false)
             ->assertDontSee(route('superadmin.church-applications.show', $unverified), false);
+    }
+
+    public function test_registration_applications_never_appear_on_hub(): void
+    {
+        $applicant = $this->createUser([
+            'email' => 'hub-reg-applicant@example.com',
+            'first_name' => 'RegHubUniqueFirst',
+            'application_status' => RegistrationApplication::STATUS_PENDING_REVIEW,
+        ]);
+        $registration = RegistrationApplication::create([
+            'user_id' => $applicant->user_id,
+            'status' => RegistrationApplication::STATUS_PENDING_REVIEW,
+            'snapshot' => ['first_name' => 'RegHubUniqueFirst'],
+            'version' => 1,
+            'submitted_at' => now(),
+        ]);
+
+        $super = $this->createUser([
+            'email' => 'hub-reg-super@example.com',
+            'is_superadmin' => true,
+        ]);
+
+        $this->actingAs($super)
+            ->get(route('admin.applications-hub.index'))
+            ->assertOk()
+            ->assertDontSee(route('admin.registration-applications.show', $registration), false);
+    }
+
+    public function test_system_service_reviewer_on_church_a_does_not_see_church_b_service_apps(): void
+    {
+        config([
+            'tenancy.enabled' => true,
+            'tenancy.base_domain' => 'example.test',
+        ]);
+
+        $churchA = Church::main();
+        $churchB = $this->createChurch([
+            'slug' => 'hub-svc-b',
+            'name' => 'Hub Service B',
+            'status' => 'active',
+        ]);
+
+        TenantContext::set($churchA);
+        $serviceA = $this->createService([
+            'title' => 'Hub Isol Service A',
+            'title_en' => 'Hub Isol Service A',
+            'church_id' => $churchA->church_id,
+        ]);
+        $appA = $this->pendingServiceApplication('Hub Isol Service A', $serviceA);
+
+        TenantContext::set($churchB);
+        $serviceB = $this->createService([
+            'title' => 'Hub Isol Service B',
+            'title_en' => 'Hub Isol Service B',
+            'church_id' => $churchB->church_id,
+        ]);
+        $appB = $this->pendingServiceApplication('Hub Isol Service B', $serviceB);
+        TenantContext::clear();
+
+        $reviewer = $this->createUser(['email' => 'hub-isol-svc-reviewer@example.com']);
+        $this->grantSystemPermission($reviewer, 'service_application.review');
+        $this->attachChurchMember($reviewer, $churchA);
+
+        $this->actingAs($reviewer)
+            ->call('GET', route('admin.applications-hub.index', [], false), [], [], [], [
+                'HTTP_HOST' => $churchA->slug.'.example.test',
+            ])
+            ->assertOk()
+            ->assertSee(route('admin.service-applications.show', $appA), false)
+            ->assertDontSee(route('admin.service-applications.show', $appB), false);
+
+        $this->actingAs($reviewer)
+            ->call('GET', route('admin.service-applications.index', [], false), [], [], [], [
+                'HTTP_HOST' => $churchA->slug.'.example.test',
+            ])
+            ->assertOk()
+            ->assertSee(route('admin.service-applications.show', $appA), false)
+            ->assertDontSee(route('admin.service-applications.show', $appB), false);
+    }
+
+    public function test_service_scoped_reviewer_sees_only_own_service_not_church(): void
+    {
+        config([
+            'tenancy.enabled' => true,
+            'tenancy.base_domain' => 'example.test',
+        ]);
+
+        $church = Church::main();
+
+        TenantContext::set($church);
+        $serviceA = $this->createService([
+            'title' => 'Scoped Service A',
+            'title_en' => 'Scoped Service A',
+            'church_id' => $church->church_id,
+        ]);
+        $serviceB = $this->createService([
+            'title' => 'Scoped Service B',
+            'title_en' => 'Scoped Service B',
+            'church_id' => $church->church_id,
+        ]);
+        $appA = $this->pendingServiceApplication('Scoped Service A', $serviceA);
+        $appB = $this->pendingServiceApplication('Scoped Service B', $serviceB);
+        $churchApp = $this->pendingChurchApplication('Scoped Must Hide Church');
+        TenantContext::clear();
+
+        $reviewer = $this->createUser(['email' => 'hub-scoped-svc@example.com']);
+        $this->grantServicePermission($reviewer, $serviceA, 'service_application.review');
+        $this->attachChurchMember($reviewer, $church);
+
+        $this->actingAs($reviewer)
+            ->call('GET', route('admin.applications-hub.index', [], false), [], [], [], [
+                'HTTP_HOST' => $church->slug.'.example.test',
+            ])
+            ->assertOk()
+            ->assertSee(route('admin.service-applications.show', $appA), false)
+            ->assertDontSee(route('admin.service-applications.show', $appB), false)
+            ->assertDontSee('Scoped Must Hide Church', false)
+            ->assertDontSee(route('superadmin.church-applications.show', $churchApp), false);
+    }
+
+    public function test_platform_church_applications_perm_unlocks_church_rows_for_superadmin(): void
+    {
+        // Controllers gate on platform.church_applications (superadmin bypass still applies).
+        $churchApp = $this->pendingChurchApplication('Perm Key Church Lead');
+
+        $super = $this->createUser([
+            'email' => 'hub-church-perm@example.com',
+            'is_superadmin' => true,
+        ]);
+
+        $this->actingAs($super)
+            ->get(route('admin.applications-hub.index', ['type' => 'church']))
+            ->assertOk()
+            ->assertSee(route('superadmin.church-applications.show', $churchApp), false);
     }
 }

@@ -3,14 +3,19 @@
 namespace App\Services;
 
 use App\Models\ChurchApplication;
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\CourseApplication;
 use App\Models\ServiceApplication;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserServiceRole;
+use App\Services\RolePreviewService;
 use App\Support\Applications\ApplicationQueueItem;
+use App\Tenancy\TenantContext;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class ApplicationsHubQuery
 {
@@ -40,7 +45,7 @@ class ApplicationsHubQuery
 
         if (($canSee[ApplicationQueueItem::TYPE_SERVICE] ?? false)
             && ($typeFilter === null || $typeFilter === '' || $typeFilter === ApplicationQueueItem::TYPE_SERVICE)) {
-            $items = $items->merge($this->serviceItems($statusFilter));
+            $items = $items->merge($this->serviceItems($viewer, $statusFilter));
         }
 
         if (($canSee[ApplicationQueueItem::TYPE_CHURCH] ?? false)
@@ -101,12 +106,10 @@ class ApplicationsHubQuery
     /** @return array<string, bool> */
     public function visibleTypes(User $viewer): array
     {
-        $isSuper = (bool) ($viewer->is_superadmin ?? false);
-
         return [
             ApplicationQueueItem::TYPE_COURSE => $viewer->canAccessAdminCourseApplications(),
-            ApplicationQueueItem::TYPE_SERVICE => $isSuper || $viewer->canInSystem('service_application.review'),
-            ApplicationQueueItem::TYPE_CHURCH => $isSuper,
+            ApplicationQueueItem::TYPE_SERVICE => $viewer->canAccessAdminServiceApplications(),
+            ApplicationQueueItem::TYPE_CHURCH => $viewer->canAccessAdminChurchApplications(),
         ];
     }
 
@@ -144,12 +147,17 @@ class ApplicationsHubQuery
     }
 
     /** @return Collection<int, ApplicationQueueItem> */
-    private function serviceItems(?string $statusFilter): Collection
+    private function serviceItems(User $viewer, ?string $statusFilter): Collection
     {
         $query = ServiceApplication::query()
             ->with(['user', 'service'])
             ->latest('submitted_at')
             ->limit(self::MERGE_CAP);
+
+        $allowedServiceIds = $this->reviewableServiceIds($viewer);
+        if ($allowedServiceIds !== null) {
+            $query->whereIn('service_id', $allowedServiceIds->isEmpty() ? [-1] : $allowedServiceIds);
+        }
 
         $allowed = [
             ServiceApplication::STATUS_PENDING,
@@ -233,6 +241,55 @@ class ApplicationsHubQuery
             ->get()
             ->filter(fn (Course $course) => $admin->canAccessAdminCourseApplications($course))
             ->pluck('course_id')
+            ->values();
+    }
+
+    /**
+     * null = unrestricted within current tenant (system / superadmin when tenancy dormant);
+     * otherwise explicit service IDs the reviewer may see.
+     *
+     * @return Collection<int, int>|null
+     */
+    private function reviewableServiceIds(User $admin): ?Collection
+    {
+        $systemWide = RolePreviewService::superadminBypassesPermissions($admin)
+            || $admin->canInSystem('service_application.review');
+
+        if ($systemWide) {
+            if (TenantContext::enforced() && Schema::hasColumn('service', 'church_id')) {
+                $churchId = TenantContext::id();
+
+                return ChurchService::query()
+                    ->withoutGlobalScope('church')
+                    ->where('church_id', $churchId)
+                    ->pluck('service_id')
+                    ->values();
+            }
+
+            return null;
+        }
+
+        if (! Schema::hasTable('user_service_role')) {
+            return collect();
+        }
+
+        $serviceIds = UserServiceRole::query()
+            ->where('user_id', $admin->user_id)
+            ->pluck('service_id')
+            ->unique()
+            ->filter()
+            ->values();
+
+        if ($serviceIds->isEmpty()) {
+            return collect();
+        }
+
+        return ChurchService::query()
+            ->withoutGlobalScope('church')
+            ->whereIn('service_id', $serviceIds)
+            ->get()
+            ->filter(fn (ChurchService $service) => $admin->canAccessAdminServiceApplications($service))
+            ->pluck('service_id')
             ->values();
     }
 }

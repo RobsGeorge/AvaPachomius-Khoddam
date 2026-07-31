@@ -114,8 +114,8 @@ are indicative — finalized per phase.
 service cycles, public profile/branding/homepage CMS, observability W0–W6). **Next:** complete
 [`staging-acceptance-checklist.md`](staging-acceptance-checklist.md) (T7 + T8 + T10c) before
 production `MULTI_TENANT=true`. T8 residual (UCR contract), T9 people-only / staff reassign,
-and **T10d** multi-page stay parked. Polymorphic applications / public church-registration
-remain parked (§13 / §17.4).
+and **T10d** multi-page stay parked. Public church-registration + polymorphic applications hub
+landed (§13 / §17.4; RegistrationApplication still out of the hub).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -266,8 +266,12 @@ students" needs no code changes.
 4. **Church registration provisioning:** auto-create tenant on approval, or superadmin finishes setup?
    **Decided 2026-07-30:** superadmin manually finishes setup after approval. Also decided:
    the applications-center refactor (§13) into one polymorphic Church|Service|Course queue
-   should be built now, once the registration panel itself ships (not built yet — see
-   `PARKING-LOT.md`).
+   should be built once the registration panel ships.
+   **Built:** read-side hub (`admin.applications-hub` / `ApplicationsHubQuery`) over existing
+   per-type tables — no storage merge; RegistrationApplication excluded; approve/reject stay on
+   each type’s existing show/service. Auth-scope hardened so service rows re-derive visibility
+   via service/church scope (not system-grant-only), and church rows require
+   `platform.church_applications` (superadmin bypass).
 5. **Finance scope for T6:** currencies in play, payroll cadence, who approves runs.
    **Decided 2026-07-30:** all four T6-residual items approved — multi-currency catalogs,
    payroll cadence automation, approval workflows before finalize, and reporting/
