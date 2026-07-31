@@ -3,10 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Attendance;
+use App\Models\AttendancePolicy;
+use App\Models\Church;
 use App\Models\Course;
 use App\Models\Session;
 use App\Models\User;
 use App\Services\AttendanceCloseService;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\Support\EventModuleTestCase;
 
 class AttendanceRosterTest extends EventModuleTestCase
@@ -158,6 +163,77 @@ class AttendanceRosterTest extends EventModuleTestCase
 
         $this->assertNotNull($session->fresh()->attendance_closed_at);
         $this->assertSame($admin->user_id, $session->fresh()->attendance_closed_by_id);
+    }
+
+    public function test_close_attendance_bulk_absents_stamp_church_id(): void
+    {
+        $this->assertTrue(Schema::hasColumn('attendance', 'church_id'));
+
+        ['admin' => $admin, 'course' => $course, 'session' => $session, 'students' => $students] = $this->seedSessionWithStudents(2);
+
+        $mainId = (int) Church::main()->church_id;
+        TenantContext::set(Church::main());
+        $course->forceFill(['church_id' => $mainId])->save();
+        $session->forceFill(['church_id' => $mainId])->save();
+
+        $this->actingAs($admin)
+            ->from(route('sessions.index'))
+            ->post(route('sessions.close-attendance', $session->session_id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        foreach ($students as $student) {
+            $this->assertDatabaseHas('attendance', [
+                'session_id' => $session->session_id,
+                'user_id' => $student->user_id,
+                'status' => 'Absent',
+                'church_id' => $mainId,
+            ]);
+        }
+
+        $this->assertNotNull($session->fresh()->attendance_closed_at);
+    }
+
+    public function test_fill_missing_bulk_absents_stamp_church_id(): void
+    {
+        $this->assertTrue(Schema::hasColumn('attendance', 'church_id'));
+
+        ['admin' => $admin, 'course' => $course, 'session' => $session, 'students' => $students] = $this->seedSessionWithStudents(1);
+
+        $mainId = (int) Church::main()->church_id;
+        TenantContext::set(Church::main());
+        $course->forceFill(['church_id' => $mainId])->save();
+        $session->forceFill(['church_id' => $mainId])->save();
+
+        $this->actingAs($admin)
+            ->post(route('sessions.attendance.fill-missing', $session))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('attendance', [
+            'session_id' => $session->session_id,
+            'user_id' => $students[0]->user_id,
+            'status' => 'Absent',
+            'church_id' => $mainId,
+        ]);
+    }
+
+    public function test_attendance_policy_current_recovers_legacy_null_church_id_row(): void
+    {
+        $this->assertTrue(Schema::hasColumn('attendance_policy', 'church_id'));
+
+        $main = Church::main();
+        TenantContext::set($main);
+
+        DB::table('attendance_policy')->where('id', 1)->update(['church_id' => null]);
+
+        // Scoped query alone would miss the NULL row and race into duplicate PK.
+        $this->assertFalse(AttendancePolicy::query()->whereKey(1)->exists());
+        $this->assertTrue(AttendancePolicy::withoutTenancy()->whereKey(1)->exists());
+
+        $policy = AttendancePolicy::current();
+
+        $this->assertSame(1, (int) $policy->id);
+        $this->assertSame((int) $main->church_id, (int) $policy->fresh()->church_id);
     }
 
     public function test_session_roster_service_reports_missing_students(): void
