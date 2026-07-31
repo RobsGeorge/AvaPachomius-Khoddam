@@ -62,6 +62,9 @@ final class TenantContext
         } else {
             app()->instance(self::KEY, $church);
         }
+
+        // Diocese-tier residency seam: repoint `tenant` when placement is isolated.
+        TenantDatabaseResolver::bindForChurch($church);
     }
 
     public static function clear(): void
@@ -71,6 +74,8 @@ final class TenantContext
         } elseif (app()->bound(self::KEY)) {
             app()->forgetInstance(self::KEY);
         }
+
+        TenantDatabaseResolver::bindShared();
     }
 
     /** True when queries must be church-filtered (a church is bound). */

@@ -3,12 +3,18 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
+use App\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * Household container (canary for {@see BelongsToTenant} — low UI blast radius).
+ * FamilyMember stays on the default connection until a later residency slice.
+ */
 class Family extends Model
 {
     use BelongsToChurch;
+    use BelongsToTenant;
 
     protected $table = 'families';
 

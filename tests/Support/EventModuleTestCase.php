@@ -45,6 +45,7 @@ abstract class EventModuleTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Tenancy\TenantDatabaseResolver::reset();
         $this->seed(\Database\Seeders\RbacSeeder::class);
     }
 
