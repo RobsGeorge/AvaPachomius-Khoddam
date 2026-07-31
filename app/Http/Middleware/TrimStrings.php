@@ -16,5 +16,7 @@ class TrimStrings extends Middleware
         'password',
         'new_password',
         'password_confirmation',
+        // Public church-registration honeypot: whitespace-only must remain detectable.
+        'website',
     ];
 }

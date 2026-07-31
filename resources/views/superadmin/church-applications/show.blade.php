@@ -19,6 +19,9 @@
         <div class="card-body">
             <p><strong>{{ __('church_applications.status') }}:</strong>
                 {{ __('church_applications.status_'.$application->status) }}</p>
+            @if($application->isUnverified())
+                <div class="alert alert-warning py-2">{{ __('church_applications.email_not_verified_badge') }}</div>
+            @endif
             <p><strong>{{ __('church_applications.requested_name') }}:</strong>
                 {{ $application->requested_name }}</p>
             <p><strong>{{ __('church_applications.requested_short_name') }}:</strong>
@@ -52,7 +55,9 @@
         </div>
     </div>
 
-    @if($application->status === \App\Models\ChurchApplication::STATUS_PENDING)
+    @if($application->isUnverified())
+        <p class="text-muted-theme">{{ __('church_applications.approve_disabled_until_verified') }}</p>
+    @elseif($application->status === \App\Models\ChurchApplication::STATUS_PENDING)
         <div class="d-flex flex-column gap-3">
             <form method="POST" action="{{ route('superadmin.church-applications.approve', $application) }}">
                 @csrf
