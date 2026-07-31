@@ -36,16 +36,16 @@ class EnsureSchedulerCronCommand extends Command
         }
 
         $existing = $this->currentCrontab();
-        $marker = $this->cronMarker();
 
         $lines = array_values(array_filter(
             preg_split("/\r\n|\n|\r/", $existing) ?: [],
             fn (string $row) => trim($row) !== ''
         ));
 
+        // Match quoted (escapeshellarg) and legacy unquoted `cd /path &&` lines.
         $withoutMarker = array_values(array_filter(
             $lines,
-            fn (string $row) => ! str_contains($row, $marker)
+            fn (string $row) => ! $this->isExistingSchedulerLine($row)
         ));
 
         $alreadyPresent = count($withoutMarker) !== count($lines);
@@ -93,6 +93,22 @@ class EnsureSchedulerCronCommand extends Command
     public function cronMarker(): string
     {
         return 'cd '.$this->shellEscape(base_path()).' &&';
+    }
+
+    /**
+     * True when a crontab row already schedules this app's artisan schedule:run,
+     * whether the path is shell-quoted or legacy-unquoted.
+     */
+    public function isExistingSchedulerLine(string $row): bool
+    {
+        $base = base_path();
+        if (! str_contains($row, 'artisan schedule:run')) {
+            return false;
+        }
+
+        return str_contains($row, 'cd '.$this->shellEscape($base).' &&')
+            || str_contains($row, 'cd '.$base.' &&')
+            || str_contains($row, 'cd "'.$base.'" &&');
     }
 
     private function shellEscape(string $value): string
