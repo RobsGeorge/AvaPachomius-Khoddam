@@ -60,6 +60,10 @@ class ChurchApplicationController extends Controller
         $user = auth()->user();
         abort_unless($user && ($user->is_superadmin ?? false), 403);
 
+        $request->merge([
+            'admin_note' => trim((string) $request->input('admin_note', '')),
+        ]);
+
         $validated = $request->validate([
             'admin_note' => ['required', 'string', 'max:2000'],
         ]);
