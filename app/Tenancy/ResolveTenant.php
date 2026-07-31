@@ -14,6 +14,10 @@ use Illuminate\Http\Request;
  *   church; since all production data is church_id=1, behavior matches pre-tenancy.
  * - MULTI_TENANT=true  → web: subdomain / custom domain; api: token claim / header /
  *   Host. Unknown tenant → 404. Console host stays unbound (superadmin).
+ *
+ * After TenantContext::set(), {@see TenantDatabaseResolver} may repoint the
+ * `tenant` connection when the church's placement organization is db_isolated;
+ * shared placement (the default) is a no-op.
  */
 class ResolveTenant
 {

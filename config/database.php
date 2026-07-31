@@ -93,6 +93,42 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | Tenant (diocese-tier residency seam)
+        |--------------------------------------------------------------------------
+        |
+        | Repointable per request when an organization has db_isolated=true.
+        | Defaults to the same credentials as the primary connection so shared
+        | placement (including Tenant Zero) is a no-op deploy.
+        |
+        */
+        'tenant' => env('DB_CONNECTION', 'mysql') === 'sqlite' ? [
+            'driver' => 'sqlite',
+            'url' => env('TENANT_DATABASE_URL', env('DATABASE_URL')),
+            'database' => env('TENANT_DB_DATABASE', env('DB_DATABASE', database_path('database.sqlite'))),
+            'prefix' => '',
+            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+        ] : [
+            'driver' => env('TENANT_DB_DRIVER', 'mysql'),
+            'url' => env('TENANT_DATABASE_URL', env('DATABASE_URL')),
+            'host' => env('TENANT_DB_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('TENANT_DB_PORT', env('DB_PORT', '3306')),
+            'database' => env('TENANT_DB_DATABASE', env('DB_DATABASE', 'forge')),
+            'username' => env('TENANT_DB_USERNAME', env('DB_USERNAME', 'forge')),
+            'password' => env('TENANT_DB_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
     ],
 
     /*
