@@ -3,9 +3,11 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Announcement;
+use App\Models\OtpCode;
 use App\Models\UserNotification;
 use App\Services\AnnouncementService;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\EventModuleTestCase;
 
@@ -21,6 +23,8 @@ class MobileApiV1Test extends EventModuleTestCase
 
     public function test_login_issues_sanctum_token(): void
     {
+        Mail::fake();
+
         $user = $this->createUser([
             'email' => 'mobile-login@example.com',
             'password' => Hash::make('password'),
@@ -28,9 +32,17 @@ class MobileApiV1Test extends EventModuleTestCase
             'registration_completed' => true,
         ]);
 
-        $response = $this->postJson('/api/v1/login', [
-            'email' => $user->email,
-            'password' => 'password',
+        $this->postJson('/api/v1/login', [
+            'identifier' => $user->email,
+            'device_name' => 'phpunit',
+        ])->assertOk();
+
+        $otp = OtpCode::query()->where('user_id', $user->user_id)->value('code');
+        $this->assertNotNull($otp);
+
+        $response = $this->postJson('/api/v1/login/verify', [
+            'identifier' => $user->email,
+            'otp' => (string) $otp,
             'device_name' => 'phpunit',
         ]);
 
@@ -46,16 +58,22 @@ class MobileApiV1Test extends EventModuleTestCase
             ->assertJsonPath('data.email', 'mobile-login@example.com');
     }
 
-    public function test_login_rejects_bad_password(): void
+    public function test_login_rejects_bad_otp(): void
     {
+        Mail::fake();
+
         $user = $this->createUser([
             'email' => 'mobile-bad@example.com',
             'password' => Hash::make('password'),
         ]);
 
         $this->postJson('/api/v1/login', [
-            'email' => $user->email,
-            'password' => 'wrong',
+            'identifier' => $user->email,
+        ])->assertOk();
+
+        $this->postJson('/api/v1/login/verify', [
+            'identifier' => $user->email,
+            'otp' => '000000',
         ])->assertStatus(422);
     }
 
@@ -124,14 +142,22 @@ class MobileApiV1Test extends EventModuleTestCase
 
     public function test_logout_revokes_token(): void
     {
+        Mail::fake();
+
         $user = $this->createUser([
             'email' => 'mobile-logout@example.com',
             'password' => Hash::make('password'),
         ]);
 
-        $login = $this->postJson('/api/v1/login', [
-            'email' => $user->email,
-            'password' => 'password',
+        $this->postJson('/api/v1/login', [
+            'identifier' => $user->email,
+        ])->assertOk();
+
+        $otp = OtpCode::query()->where('user_id', $user->user_id)->value('code');
+
+        $login = $this->postJson('/api/v1/login/verify', [
+            'identifier' => $user->email,
+            'otp' => (string) $otp,
         ])->assertOk();
 
         $token = $login->json('token');

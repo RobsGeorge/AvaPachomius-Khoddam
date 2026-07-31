@@ -294,9 +294,8 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
         $this->completePasswordStep($user);
         $this->submitEnrollment($user, $service, $course);
 
-        $this->post(route('login'), [
-            'email' => $user->email,
-            'password' => self::TEST_PASSWORD,
+        $this->loginWithOtp($user, route('login'), [
+            'identifier' => $user->email,
         ])->assertRedirect(route('courses.application.status', $course->course_id));
     }
 

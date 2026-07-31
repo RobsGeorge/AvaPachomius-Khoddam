@@ -214,18 +214,15 @@ class ChurchProvisioningTest extends EventModuleTestCase
     public function test_login_rejects_non_member_when_tenancy_enabled_and_church_bound(): void
     {
         config(['tenancy.enabled' => true]);
-        // ResolveTenant falls back to main; outsider has no church_user row.
-        $this->createUser([
+        $outsider = $this->createUser([
             'email' => 'outsider@example.com',
-            'password' => Hash::make('password'),
         ]);
 
-        $response = $this->from('/login')->post('/login', [
-            'email' => 'outsider@example.com',
-            'password' => 'password',
-        ]);
+        $this->from('/login')
+            ->loginWithOtp($outsider)
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('identifier');
 
-        $response->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 

@@ -67,17 +67,26 @@ class PlatformObservabilityTest extends EventModuleTestCase
 
     public function test_failed_web_login_records_auth_event(): void
     {
+        Mail::fake();
+
+        $user = $this->createUser(['email' => 'obs-login@example.com']);
+
         $this->from(route('login'))
             ->post(route('login'), [
-                'email' => 'missing-user@example.com',
-                'password' => 'wrong-password',
+                'identifier' => $user->email,
+            ])
+            ->assertRedirect(route('login.otp.show'));
+
+        $this->from(route('login.otp.show'))
+            ->post(route('login.otp.verify'), [
+                'otp' => '000000',
             ])
             ->assertRedirect();
 
         $this->assertTrue(
             ObservabilityEvent::withoutTenancy()
                 ->where('category', 'auth')
-                ->where('message', 'like', '%Invalid credentials%')
+                ->where('message', 'like', '%Invalid OTP%')
                 ->exists()
         );
     }

@@ -15,6 +15,7 @@ use Tests\TestCase;
 
 abstract class EventModuleTestCase extends TestCase
 {
+    use LogsInWithOtp;
     use RefreshDatabase;
 
     protected static int $userCounter = 0;

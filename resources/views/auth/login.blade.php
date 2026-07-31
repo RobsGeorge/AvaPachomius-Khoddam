@@ -30,28 +30,15 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label for="email" class="form-label">{{ __('auth.email') }}</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}"
-                           class="form-control @error('email') is-invalid @enderror"
+                    <label for="identifier" class="form-label">{{ __('auth.identifier') }}</label>
+                    <input id="identifier" type="text" name="identifier" value="{{ old('identifier') }}"
+                           class="form-control @error('identifier') is-invalid @enderror"
+                           placeholder="{{ __('auth.identifier_placeholder') }}"
                            required autofocus>
-                    @error('email')
+                    @error('identifier')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
-                </div>
-
-                <div class="mb-3">
-                    <label for="password" class="form-label">{{ __('auth.password') }}</label>
-                    <input id="password" type="password" name="password"
-                           class="form-control @error('password') is-invalid @enderror"
-                           required>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-3 d-flex align-items-center gap-2">
-                    <input type="checkbox" name="remember" id="remember" class="form-check-input">
-                    <label for="remember" class="form-check-label">{{ __('auth.remember') }}</label>
+                    <div class="form-text">{{ __('auth.login_identifier_hint') }}</div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 py-2">

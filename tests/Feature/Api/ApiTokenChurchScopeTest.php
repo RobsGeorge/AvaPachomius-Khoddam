@@ -4,6 +4,8 @@ namespace Tests\Feature\Api;
 
 use App\Models\Church;
 use App\Models\ChurchUser;
+use App\Models\OtpCode;
+use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\Support\EventModuleTestCase;
 
@@ -19,14 +21,22 @@ class ApiTokenChurchScopeTest extends EventModuleTestCase
 {
     public function test_login_stamps_the_resolved_church_on_the_token(): void
     {
+        Mail::fake();
+
         config(['tenancy.enabled' => true]);
         $church = Church::create(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
-        $user = $this->createUser(['email' => 'login-scope@example.com']); // factory password: 'password'
+        $user = $this->createUser(['email' => 'login-scope@example.com']);
         ChurchUser::create(['church_id' => $church->church_id, 'user_id' => $user->user_id, 'status' => 'active']);
 
-        $login = $this->postJson("http://{$church->slug}.localhost/api/v1/login", [
-            'email' => 'login-scope@example.com',
-            'password' => 'password',
+        $this->postJson("http://{$church->slug}.localhost/api/v1/login", [
+            'identifier' => 'login-scope@example.com',
+        ])->assertOk();
+
+        $otp = OtpCode::query()->where('user_id', $user->user_id)->value('code');
+
+        $login = $this->postJson("http://{$church->slug}.localhost/api/v1/login/verify", [
+            'identifier' => 'login-scope@example.com',
+            'otp' => (string) $otp,
         ])->assertOk();
 
         $token = PersonalAccessToken::findToken($login->json('token'));
