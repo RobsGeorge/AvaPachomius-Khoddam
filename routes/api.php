@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/design-tokens', [DesignTokensController::class, 'show']);
 
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::post('/login/verify', [AuthController::class, 'verifyLogin'])->middleware('throttle:20,1');
 
     // church.member + token.church run AFTER auth:sanctum so the token user is resolved:
     // church.member enforces membership of the bound church, and token.church pins the

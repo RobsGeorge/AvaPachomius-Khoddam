@@ -88,6 +88,15 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
+        static::saving(function (User $user) {
+            if ($user->isDirty('mobile_number')
+                && Schema::hasColumn('user', 'mobile_verified_at')
+                && ! $user->isDirty('mobile_verified_at')
+            ) {
+                $user->mobile_verified_at = null;
+            }
+        });
+
         static::created(function (User $user) {
             if (! Schema::hasTable('people') || ! Schema::hasColumn('user', 'person_id')) {
                 return;

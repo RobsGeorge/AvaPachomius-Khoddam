@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\OtpCode;
 use App\Models\UserNotificationReminder;
+use App\Services\AuditLogService;
 use App\Services\NotificationPreferenceService;
 use App\Services\WhatsAppNotificationService;
 use Illuminate\Http\Request;
@@ -157,6 +158,11 @@ class NotificationSettingsController extends Controller
             $user->whatsapp_capable = $request->boolean('whatsapp_capable');
         }
         $user->save();
+
+        AuditLogService::recordEvent('auth.mobile_verified', [
+            'user_id' => $user->user_id,
+            'mobile_number' => $user->mobile_number,
+        ]);
 
         return back()->with('success', __('notifications.mobile_verify_success'));
     }

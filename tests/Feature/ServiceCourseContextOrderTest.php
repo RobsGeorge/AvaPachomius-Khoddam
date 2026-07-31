@@ -40,10 +40,7 @@ class ServiceCourseContextOrderTest extends EventModuleTestCase
         $this->assignCourseRole($student, $courseA, $studentRole);
         $this->assignCourseRole($student, $courseB, $studentRole);
 
-        $this->post(route('login'), [
-            'email' => $student->email,
-            'password' => 'password',
-        ])->assertRedirect(route('services.select'));
+        $this->loginWithOtp($student)->assertRedirect(route('services.select'));
     }
 
     public function test_courses_picker_lists_only_courses_in_current_service(): void

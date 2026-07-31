@@ -62,10 +62,7 @@ class ChurchPortalHostTest extends EventModuleTestCase
         [$church, $priestUser] = $this->seedDemoChurchWithPriest();
 
         $this->from('https://admin.test/login')
-            ->post('https://admin.test/login', [
-                'email' => $priestUser->email,
-                'password' => 'password',
-            ])
+            ->loginWithOtp($priestUser, 'https://admin.test/login')
             ->assertRedirect(ChurchHost::url($church, '/dashboard'));
     }
 

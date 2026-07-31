@@ -21,10 +21,7 @@ class CourseContextTest extends EventModuleTestCase
         $this->assignCourseRole($student, $courseA, $studentRole);
         $this->assignCourseRole($student, $courseB, $studentRole);
 
-        $this->post(route('login'), [
-            'email' => $student->email,
-            'password' => 'password',
-        ])->assertRedirect(route('courses.select'));
+        $this->loginWithOtp($student)->assertRedirect(route('courses.select'));
     }
 
     public function test_single_selectable_course_is_auto_selected_on_login(): void
@@ -35,10 +32,7 @@ class CourseContextTest extends EventModuleTestCase
 
         $this->assignCourseRole($student, $course, $studentRole);
 
-        $this->post(route('login'), [
-            'email' => $student->email,
-            'password' => 'password',
-        ])->assertRedirect(route('dashboard'));
+        $this->loginWithOtp($student)->assertRedirect(route('dashboard'));
 
         $this->assertSame(
             $course->course_id,
@@ -53,10 +47,7 @@ class CourseContextTest extends EventModuleTestCase
         $instructor = $this->createUser(['email' => 'ctx-instructor-dash@example.com']);
         $this->assignCourseRole($instructor, $course, $instructorRole);
 
-        $this->post(route('login'), [
-            'email' => $instructor->email,
-            'password' => 'password',
-        ])->assertRedirect(route('dashboard'));
+        $this->loginWithOtp($instructor)->assertRedirect(route('dashboard'));
 
         $this->actingAs($instructor)
             ->get(route('dashboard'))
@@ -106,10 +97,7 @@ class CourseContextTest extends EventModuleTestCase
             'is_superadmin' => true,
         ]);
 
-        $this->post(route('login'), [
-            'email' => $super->email,
-            'password' => 'password',
-        ])->assertRedirect(route('dashboard'));
+        $this->loginWithOtp($super)->assertRedirect(route('dashboard'));
 
         $this->assertNull(session(CourseContextService::SESSION_KEY));
 
