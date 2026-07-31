@@ -41,6 +41,8 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
+use App\Http\Controllers\ChurchRegistrationController;
+use App\Http\Controllers\SuperAdmin\ChurchApplicationController as SuperAdminChurchApplicationController;
 use App\Http\Controllers\SuperAdmin\ChurchBillingController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
 use App\Http\Controllers\SuperAdmin\ServiceBillingController;
@@ -377,6 +379,13 @@ Route::get('/ics/priest-agenda/{token}', [PastoralIcsController::class, 'priestA
 Route::post('/observability/client-errors', [\App\Http\Controllers\ClientErrorController::class, 'store'])
     ->middleware('throttle:30,1')
     ->name('observability.client-errors');
+
+// Public church registration (lead capture → superadmin queue; no auto-provision).
+Route::get('/register-church', [ChurchRegistrationController::class, 'create'])->name('church-registration');
+Route::post('/register-church', [ChurchRegistrationController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('church-registration.store');
+Route::get('/register-church/thanks', [ChurchRegistrationController::class, 'thanks'])->name('church-registration.thanks');
 
 Route::get('/verify-otp', [OTPController::class, 'showForm'])->name('otp.verify');
 Route::post('/verify-otp', [OTPController::class, 'verify']);
@@ -856,6 +865,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/scheduled-tasks/{taskKey}/settings', [SuperAdminScheduledTaskController::class, 'updateSettings'])->where('taskKey', '.+')->name('scheduled-tasks.settings');
     Route::delete('/scheduled-tasks/{taskKey}', [SuperAdminScheduledTaskController::class, 'destroy'])->where('taskKey', '.+')->name('scheduled-tasks.destroy');
     Route::get('/scheduled-tasks/runs/{scheduledTaskRun}', [SuperAdminScheduledTaskController::class, 'show'])->name('scheduled-tasks.show');
+
+    // T4 deferred — public church-registration review queue (manual provision after approve).
+    Route::get('/church-applications', [SuperAdminChurchApplicationController::class, 'index'])->name('church-applications.index');
+    Route::get('/church-applications/{churchApplication}', [SuperAdminChurchApplicationController::class, 'show'])->name('church-applications.show');
+    Route::post('/church-applications/{churchApplication}/approve', [SuperAdminChurchApplicationController::class, 'approve'])->name('church-applications.approve');
+    Route::post('/church-applications/{churchApplication}/reject', [SuperAdminChurchApplicationController::class, 'reject'])->name('church-applications.reject');
 
     Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');
     Route::put('/templates/{role}',         [SystemRoleController::class, 'updateTemplate'])->name('templates.update');
