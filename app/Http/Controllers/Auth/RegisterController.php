@@ -491,6 +491,10 @@ class RegisterController extends Controller
 
     public function enrollmentCourses(Request $request)
     {
+        if (! session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY)) {
+            abort(403, __('register.complete_password_first'));
+        }
+
         $request->validate([
             'service_id' => ['required', 'integer'],
         ]);
