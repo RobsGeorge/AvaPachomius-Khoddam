@@ -42,6 +42,8 @@ class ChurchApplicationTest extends EventModuleTestCase
             'contact_mobile' => '01009876543',
             'message' => null,
             'status' => ChurchApplication::STATUS_PENDING,
+            'public_token' => ChurchApplication::mintPublicToken(),
+            'email_verified_at' => now(),
             'submitted_at' => now(),
         ], $overrides));
     }
@@ -87,11 +89,13 @@ class ChurchApplicationTest extends EventModuleTestCase
         $this->assertDatabaseHas('church_applications', [
             'requested_name' => 'St Mark Church',
             'contact_email' => 'contact@stmark.example',
-            'status' => ChurchApplication::STATUS_PENDING,
+            'status' => ChurchApplication::STATUS_UNVERIFIED,
         ]);
 
         $row = ChurchApplication::query()->first();
         $this->assertNotNull($row->submitted_at);
+        $this->assertNotNull($row->public_token);
+        $this->assertNull($row->email_verified_at);
     }
 
     public function test_honeypot_filled_submission_creates_no_row(): void

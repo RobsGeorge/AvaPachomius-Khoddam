@@ -18,7 +18,9 @@ class ChurchApplicationController extends Controller
         $user = auth()->user();
         abort_unless($user && ($user->is_superadmin ?? false), 403);
 
+        // Unverified rows stay out of the review queue until the contact confirms email.
         $applications = ChurchApplication::query()
+            ->whereIn('status', ChurchApplication::reviewableStatuses())
             ->orderByDesc('submitted_at')
             ->paginate(30);
 

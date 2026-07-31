@@ -8,8 +8,37 @@ use Illuminate\Validation\ValidationException;
 
 class ChurchApplicationService
 {
+    public function verifyEmail(ChurchApplication $application): void
+    {
+        if ($application->isEmailVerified() && $application->isPending()) {
+            return;
+        }
+
+        if (! $application->isUnverified() && ! $application->isPending()) {
+            throw ValidationException::withMessages([
+                'application' => __('church_applications.not_verifiable'),
+            ]);
+        }
+
+        $application->update([
+            'status' => ChurchApplication::STATUS_PENDING,
+            'email_verified_at' => $application->email_verified_at ?? now(),
+        ]);
+
+        AuditLogService::recordEvent('church_application.email_verified', [
+            'church_application_id' => $application->church_application_id,
+            'requested_name' => $application->requested_name,
+        ]);
+    }
+
     public function approve(ChurchApplication $application, User $reviewer, ?string $note = null): void
     {
+        if ($application->isUnverified()) {
+            throw ValidationException::withMessages([
+                'application' => __('church_applications.email_not_verified'),
+            ]);
+        }
+
         if (! $application->isPending()) {
             throw ValidationException::withMessages([
                 'application' => __('church_applications.not_pending'),
@@ -31,6 +60,12 @@ class ChurchApplicationService
 
     public function reject(ChurchApplication $application, User $reviewer, string $note): void
     {
+        if ($application->isUnverified()) {
+            throw ValidationException::withMessages([
+                'application' => __('church_applications.email_not_verified'),
+            ]);
+        }
+
         if (! $application->isPending()) {
             throw ValidationException::withMessages([
                 'application' => __('church_applications.not_pending'),
