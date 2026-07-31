@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Church;
 use App\Models\User;
+use App\Services\BreakGlass\BreakGlassService;
 use App\Services\RolePreviewService;
 use App\Support\ChurchHost;
 use App\Support\SuperadminWorkspace;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantDatabaseResolver;
 use Tests\Support\EventModuleTestCase;
 
 class SuperadminWorkspaceTest extends EventModuleTestCase
@@ -112,6 +114,10 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
             'registration_completed' => true,
         ]);
 
+        $org = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        $this->assertNotNull($org);
+        app(BreakGlassService::class)->grant($super, $super, $org, 'Workspace test platform access', 60);
+
         $url = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.platform-enter.start', $church);
         $host = ChurchHost::hostFor($church);
 
@@ -171,8 +177,14 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
         $viewAsUrl = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.view-as.start', $church);
         $platformUrl = ChurchHost::temporarySignedRoute($church, 'superadmin.churches.platform-enter.start', $church);
 
-        $this->assertStringStartsWith('https://'.$churchHost, $viewAsUrl);
-        $this->assertStringStartsWith('https://'.$churchHost, $platformUrl);
+        $this->assertStringContainsString($churchHost.'/superadmin/churches/', $viewAsUrl);
+        $this->assertStringContainsString($churchHost.'/superadmin/churches/', $platformUrl);
+        $this->assertStringContainsString('signature=', $viewAsUrl);
+        $this->assertStringContainsString('signature=', $platformUrl);
+
+        $org = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        $this->assertNotNull($org);
+        app(BreakGlassService::class)->grant($super, $super, $org, 'Signed console platform access', 60);
 
         $this->withServerVariables(['HTTP_HOST' => $churchHost])
             ->actingAs($super)

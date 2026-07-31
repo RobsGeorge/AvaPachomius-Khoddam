@@ -822,6 +822,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/churches/{church}/activate', [SuperAdminChurchController::class, 'activate'])->name('churches.activate');
     Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
     Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
+    Route::post('/churches/{church}/break-glass', [SuperAdminChurchController::class, 'storeBreakGlassGrant'])->name('churches.break-glass.store');
+    Route::post('/churches/{church}/break-glass/{grant}/revoke', [SuperAdminChurchController::class, 'revokeBreakGlassGrant'])->name('churches.break-glass.revoke');
     Route::post('/churches/{church}/platform-enter', [SuperAdminChurchController::class, 'platformEnter'])->name('churches.platform-enter');
     Route::get('/churches/{church}/platform-enter/start', [SuperAdminChurchController::class, 'platformEnterSigned'])
         ->middleware('signed')

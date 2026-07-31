@@ -7,9 +7,11 @@ use App\Models\ChurchUser;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserChurchRole;
+use App\Services\BreakGlass\BreakGlassService;
 use App\Services\ChurchProvisioningService;
 use App\Support\ChurchHost;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantDatabaseResolver;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\EventModuleTestCase;
@@ -279,6 +281,10 @@ class ChurchProvisioningTest extends EventModuleTestCase
         Church::create(['slug' => 'other-sw', 'name' => 'Other', 'status' => 'active']);
         $church = Church::main();
         $super = $this->createUser(['email' => 'switcher-super@example.com', 'is_superadmin' => true]);
+
+        $org = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        $this->assertNotNull($org);
+        app(BreakGlassService::class)->grant($super, $super, $org, 'Switcher test platform access', 60);
 
         TenantContext::set($church);
 
