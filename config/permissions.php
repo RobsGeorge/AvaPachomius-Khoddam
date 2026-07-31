@@ -896,6 +896,13 @@ return [
                 'routes' => ['admin.courses.application-forms.*', 'admin.courses.application-form.*'],
                 'nav' => ['system.application_forms'],
             ],
+            'applications.hub.view' => [
+                'label_en' => 'View applications center',
+                'label_ar' => 'عرض مركز الطلبات',
+                'type' => 'both',
+                'routes' => ['admin.applications-hub.*'],
+                'nav' => ['system.applications_hub'],
+            ],
         ],
     ],
 
