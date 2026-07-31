@@ -29,4 +29,32 @@ class StoreChurchApplicationRequest extends FormRequest
             'website' => ['nullable', 'string', 'max:191'],
         ];
     }
+
+    /** @return array<string, string> */
+    public function attributes(): array
+    {
+        return [
+            'requested_name' => __('church_applications.requested_name'),
+            'requested_short_name' => __('church_applications.requested_short_name'),
+            'place_district' => __('church_applications.place_district'),
+            'place_governorate' => __('church_applications.place_governorate'),
+            'place_country_code' => __('church_applications.place_country'),
+            'contact_name' => __('church_applications.contact_name'),
+            'contact_email' => __('church_applications.contact_email'),
+            'contact_mobile' => __('church_applications.contact_mobile'),
+            'message' => __('church_applications.message'),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'required' => __('church_applications.validation_required'),
+            'email' => __('church_applications.validation_email'),
+            'max' => __('church_applications.validation_max'),
+            'in' => __('church_applications.validation_country'),
+            'size' => __('church_applications.validation_country'),
+        ];
+    }
 }
