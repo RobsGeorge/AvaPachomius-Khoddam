@@ -12,7 +12,30 @@ return [
         'down',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Scheduler health
+    |--------------------------------------------------------------------------
+    |
+    | The heartbeat task ticks every minute when OS cron calls schedule:run.
+    | The portal marks the scheduler unhealthy if no tick arrives within this
+    | window (minutes).
+    |
+    */
+    'health' => [
+        'stale_after_minutes' => 5,
+    ],
+
     'tasks' => [
+        'scheduler.heartbeat' => [
+            'label' => 'scheduled_tasks.tasks.scheduler_heartbeat',
+            'description' => 'scheduled_tasks.scheduler_heartbeat_desc',
+            'type' => 'callback',
+            'callback' => [\App\Services\SchedulerHealthService::class, 'recordHeartbeat'],
+            'schedule' => ['frequency' => 'every_minute'],
+            'always_enabled' => true,
+            'record_runs' => false,
+        ],
         'attendance.mark_absent' => [
             'label' => 'scheduled_tasks.tasks.attendance_mark_absent',
             'description' => 'scheduled_tasks.attendance_mark_absent_desc',

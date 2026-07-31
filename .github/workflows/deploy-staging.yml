@@ -35,6 +35,11 @@ jobs:
             DEPLOY_USER="$(whoami)"
             DEPLOY_START=$(date +%s)
             step() { echo "==> $1 ($(date -Iseconds))"; }
+            fix_runtime_permissions() {
+              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+              sudo -n find storage bootstrap/cache -type d -exec chmod 2775 {} +
+              sudo -n find storage bootstrap/cache -type f -exec chmod 664 {} +
+            }
 
             # Guard: never let a staging deploy touch the production directory or DB.
             step "safety check"
@@ -62,13 +67,13 @@ jobs:
 
             step "reclaim storage for git"
             # PHP-FPM may own runtime cache/session files; reclaim before git reset.
-            if sudo -n true 2>/dev/null; then
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n chmod -R ug+rwx storage bootstrap/cache
-            else
-              chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
-              echo "WARN: passwordless sudo not configured — git sync may fail if www-data owns storage files"
+            if ! sudo -n chown --version >/dev/null 2>&1; then
+              echo "ERROR: passwordless sudo is required for staging deploy."
+              echo "See .github/DEPLOY-VPS.md — configure NOPASSWD chown/chmod/systemctl for ${DEPLOY_USER}."
+              exit 1
             fi
+            sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
+            fix_runtime_permissions
 
             step "git sync"
             git fetch origin staging
@@ -101,6 +106,7 @@ jobs:
             # effect immediately while developing.
             $PHP_BIN artisan optimize:clear
             mkdir -p storage/framework/cache/data
+            fix_runtime_permissions
 
             step "storage link"
             if [ ! -L public/storage ]; then
@@ -110,13 +116,7 @@ jobs:
             fi
 
             step "permissions"
-            chmod -R ug+rwx storage bootstrap/cache 2>/dev/null || true
-            if sudo -n true 2>/dev/null; then
-              sudo -n chown -R "${DEPLOY_USER}:www-data" storage bootstrap/cache
-              sudo -n chmod -R ug+rwx storage bootstrap/cache
-            else
-              echo "WARN: passwordless sudo not configured — skipped chown (chmod only as ${DEPLOY_USER})"
-            fi
+            fix_runtime_permissions
 
             step "reload php-fpm"
             # Reloading the FPM service reloads BOTH pools (prod + staging) gracefully.
@@ -125,6 +125,9 @@ jobs:
             else
               echo "WARN: could not reload php-fpm without password — configure NOPASSWD"
             fi
+
+            step "ensure scheduler cron"
+            $PHP_BIN artisan scheduler:ensure-cron --php=$PHP_BIN || echo "WARN: could not ensure scheduler cron"
 
             step "live"
             $PHP_BIN artisan up || true

@@ -154,6 +154,17 @@ class ResilientFileStoreTest extends TestCase
         }
     }
 
+    public function test_put_recovers_when_hash_subdirectory_is_not_writable(): void
+    {
+        $this->assertTrue($this->store->put('perm-key', 'v1', 60));
+
+        $hashDir = dirname($this->store->path('perm-key'));
+        $this->files->chmod($hashDir, 0555);
+
+        $this->assertTrue($this->store->put('perm-key', 'v2', 60));
+        $this->assertSame('v2', $this->store->get('perm-key'));
+    }
+
     public function test_non_missing_path_errors_are_not_swallowed(): void
     {
         $files = new class extends Filesystem

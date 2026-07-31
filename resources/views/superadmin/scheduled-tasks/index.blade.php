@@ -14,6 +14,28 @@
 
     <p class="text-muted-theme">{{ __('scheduled_tasks.intro') }}</p>
 
+    @php
+        $health = $schedulerHealth ?? ['healthy' => false];
+    @endphp
+    <div class="app-card card shadow-sm mb-4 border-{{ ($health['healthy'] ?? false) ? 'success' : 'danger' }} border-opacity-50">
+        <div class="card-body small">
+            @if($health['healthy'] ?? false)
+                <strong class="text-success">{{ __('scheduled_tasks.health_ok_title') }}</strong>
+                <p class="mb-0 mt-1">
+                    {{ __('scheduled_tasks.health_ok_body', [
+                        'time' => $health['last_heartbeat_at']?->timezone(config('app.timezone'))->format('Y-m-d H:i:s T') ?? '—',
+                    ]) }}
+                </p>
+            @else
+                <strong class="text-danger">{{ __('scheduled_tasks.health_stale_title') }}</strong>
+                <p class="mb-1 mt-1">{{ __('scheduled_tasks.health_stale_body', [
+                    'minutes' => $health['stale_after_minutes'] ?? 5,
+                ]) }}</p>
+                <p class="mb-0 text-muted-theme">{{ __('scheduled_tasks.health_stale_hint') }}</p>
+            @endif
+        </div>
+    </div>
+
     <div class="app-card card shadow-sm mb-4 border-info border-opacity-25">
         <div class="card-body small">
             <strong>{{ __('scheduled_tasks.cron_notice_title') }}</strong>
@@ -367,7 +389,7 @@
                                     </div>
                                 </div>
                             </form>
-                        @else
+                        @elseif(!($task['always_enabled'] ?? false))
                             <form method="POST" action="{{ route('superadmin.scheduled-tasks.settings', $task['key']) }}" class="border-top pt-3">
                                 @csrf
                                 <div class="row g-3">

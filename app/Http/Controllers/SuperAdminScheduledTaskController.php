@@ -6,6 +6,7 @@ use App\Models\ScheduledTaskRun;
 use App\Services\ScheduledTaskRegistrar;
 use App\Services\ScheduledTaskReportService;
 use App\Services\ScheduledTaskRunner;
+use App\Services\SchedulerHealthService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class SuperAdminScheduledTaskController extends Controller
         Request $request,
         ScheduledTaskRegistrar $registrar,
         ScheduledTaskReportService $reportService,
+        SchedulerHealthService $healthService,
     ) {
         $schedule = new Schedule;
         $registrar->register($schedule);
@@ -36,6 +38,7 @@ class SuperAdminScheduledTaskController extends Controller
             'reportService' => $reportService,
             'expand' => $request->query('expand'),
             'availableCommands' => $registrar->availableCommands(),
+            'schedulerHealth' => $healthService->status(),
         ]);
     }
 
@@ -134,6 +137,9 @@ class SuperAdminScheduledTaskController extends Controller
     ) {
         abort_unless($registrar->hasTask($taskKey), 404);
         abort_if($registrar->isCustomTask($taskKey), 404);
+
+        $resolved = $registrar->resolveTask($taskKey);
+        abort_if(($resolved['always_enabled'] ?? false) === true, 403);
 
         try {
             $registrar->updateSetting($taskKey, [
