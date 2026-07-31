@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-
+use App\Tenancy\TenantContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class AttendancePolicy extends Model
 {
@@ -30,10 +31,27 @@ class AttendancePolicy extends Model
 
     public static function current(): self
     {
-        return static::query()->firstOrCreate(['id' => 1], [
+        $defaults = [
             'late_threshold_minutes' => (int) config('attendance.late_threshold_minutes', 15),
             'late_grade_percentage' => (float) config('attendance.late_grade_percentage', 50),
             'is_enabled' => true,
-        ]);
+        ];
+
+        // Singleton row (id=1). Bypass the church scope so a legacy NULL church_id
+        // seed remains visible when Tenant Zero is bound — otherwise firstOrCreate
+        // misses the row and dies on duplicate primary key during close-attendance.
+        $policy = static::withoutTenancy()->firstOrCreate(['id' => 1], $defaults);
+
+        if (Schema::hasColumn($policy->getTable(), 'church_id') && $policy->church_id === null) {
+            $churchId = app(TenantContext::class)->churchId()
+                ?? TenantContext::id()
+                ?? Church::query()->where('slug', config('tenancy.main_slug'))->value('church_id');
+
+            if ($churchId !== null) {
+                $policy->forceFill(['church_id' => $churchId])->saveQuietly();
+            }
+        }
+
+        return $policy;
     }
 }
