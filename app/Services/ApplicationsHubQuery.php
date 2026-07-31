@@ -19,6 +19,10 @@ class ApplicationsHubQuery
 
     public const PER_PAGE = 30;
 
+    public function __construct(
+        private ServiceApplicationVisibility $serviceVisibility,
+    ) {}
+
     /**
      * @return array{items: LengthAwarePaginator, counts: array<string, int>, type_counts: array<string, int>, can_see: array<string, bool>}
      */
@@ -40,7 +44,7 @@ class ApplicationsHubQuery
 
         if (($canSee[ApplicationQueueItem::TYPE_SERVICE] ?? false)
             && ($typeFilter === null || $typeFilter === '' || $typeFilter === ApplicationQueueItem::TYPE_SERVICE)) {
-            $items = $items->merge($this->serviceItems($statusFilter));
+            $items = $items->merge($this->serviceItems($viewer, $statusFilter));
         }
 
         if (($canSee[ApplicationQueueItem::TYPE_CHURCH] ?? false)
@@ -101,12 +105,10 @@ class ApplicationsHubQuery
     /** @return array<string, bool> */
     public function visibleTypes(User $viewer): array
     {
-        $isSuper = (bool) ($viewer->is_superadmin ?? false);
-
         return [
             ApplicationQueueItem::TYPE_COURSE => $viewer->canAccessAdminCourseApplications(),
-            ApplicationQueueItem::TYPE_SERVICE => $isSuper || $viewer->canInSystem('service_application.review'),
-            ApplicationQueueItem::TYPE_CHURCH => $isSuper,
+            ApplicationQueueItem::TYPE_SERVICE => $viewer->canAccessAdminServiceApplications(),
+            ApplicationQueueItem::TYPE_CHURCH => $viewer->canAccessAdminChurchApplications(),
         ];
     }
 
@@ -144,12 +146,17 @@ class ApplicationsHubQuery
     }
 
     /** @return Collection<int, ApplicationQueueItem> */
-    private function serviceItems(?string $statusFilter): Collection
+    private function serviceItems(User $viewer, ?string $statusFilter): Collection
     {
         $query = ServiceApplication::query()
             ->with(['user', 'service'])
             ->latest('submitted_at')
             ->limit(self::MERGE_CAP);
+
+        $allowedServiceIds = $this->serviceVisibility->reviewableServiceIds($viewer);
+        if ($allowedServiceIds !== null) {
+            $query->whereIn('service_id', $allowedServiceIds->isEmpty() ? [-1] : $allowedServiceIds);
+        }
 
         $allowed = [
             ServiceApplication::STATUS_PENDING,

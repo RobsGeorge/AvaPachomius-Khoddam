@@ -10,7 +10,9 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-4">
         <div>
             <h1 class="page-title mb-1">{{ __('applications_hub.title') }}</h1>
-            <p class="text-muted-theme mb-0">{{ __('applications_hub.intro') }}</p>
+            <p class="text-muted-theme mb-0">
+                {{ $isPlatformReviewer ? __('applications_hub.intro_platform') : __('applications_hub.intro_scoped') }}
+            </p>
         </div>
     </div>
 
@@ -78,7 +80,15 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted-theme py-4">{{ __('applications_hub.no_applications') }}</td>
+                        <td colspan="6" class="text-center text-muted-theme py-4">
+                            @if($filter)
+                                {{ __('applications_hub.no_applications') }}
+                            @elseif($isPlatformReviewer)
+                                {{ __('applications_hub.no_applications_platform') }}
+                            @else
+                                {{ __('applications_hub.no_applications_scoped') }}
+                            @endif
+                        </td>
                     </tr>
                 @endforelse
             </tbody>

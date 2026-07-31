@@ -405,6 +405,40 @@ class User extends Authenticatable
             || $this->isAdmin();
     }
 
+    /**
+     * Review service applications queue / actions.
+     * Honors system grants and service-role grants (roles hub → service admin).
+     */
+    public function canAccessAdminServiceApplications(?ChurchService $service = null): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
+            return true;
+        }
+
+        if ($this->canInSystem('service_application.review')) {
+            return true;
+        }
+
+        if ($service) {
+            return $this->canInService('service_application.review', $service);
+        }
+
+        return app(CoursePermissionResolver::class)
+            ->canAnyInAnyService($this, ['service_application.review']);
+    }
+
+    /**
+     * Review platform church-registration applications (superadmin / system_only key).
+     */
+    public function canAccessAdminChurchApplications(): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
+            return true;
+        }
+
+        return $this->canInSystem('platform.church_applications');
+    }
+
     public function isBeingImpersonated(): bool
     {
         return ImpersonationService::isActive()

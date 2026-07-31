@@ -93,6 +93,8 @@ Still parked (product decisions recorded 2026-07-30 — see master-plan §17.4):
   review **hub UI** (`admin.applications-hub`) over existing per-type tables (no storage
   merge). RegistrationApplication (person onboarding) excluded from v1; approve/reject
   still delegate to each type’s existing show/service. Storage merge stays Phase-5-only.
+  Auth-scope hardened: service rows filtered by tenant/`canInService`; church rows gated
+  by `platform.church_applications` (not raw role-name checks).
 - ~~Church-admin self-service screens on `{slug}` (members/branding within guardrails)~~ —
   branding landed under public_site (T10b); **members self-service** at `/church/members`
   (`church.members.manage`) with add-existing or invite-by-email/WhatsApp.

@@ -47,6 +47,7 @@ class ApplicationsHubController extends Controller
             'typeFilter' => $typeFilter ?: null,
             'filter' => $statusFilter ?: null,
             'statusKeys' => $allowedStatuses,
+            'isPlatformReviewer' => (bool) ($result['can_see'][ApplicationQueueItem::TYPE_CHURCH] ?? false),
         ]);
     }
 }

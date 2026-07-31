@@ -166,7 +166,7 @@ class NavigationHub
             ];
         }
 
-        if ($user->canInSystem('service_application.review')) {
+        if ($user->canAccessAdminServiceApplications()) {
             $links[] = array_merge(self::link(
                 'admin.service-applications.index',
                 'service.applications_admin_title',

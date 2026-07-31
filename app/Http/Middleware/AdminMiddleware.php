@@ -36,8 +36,10 @@ class AdminMiddleware
             }
         }
 
-        // Course-scoped grants for application review / form builder (roles hub).
-        if ($user->canAccessAdminCourseApplications() || $user->canAccessAdminCourseApplicationForms()) {
+        // Course/service-scoped grants for application review / form builder (roles hub).
+        if ($user->canAccessAdminCourseApplications()
+            || $user->canAccessAdminCourseApplicationForms()
+            || $user->canAccessAdminServiceApplications()) {
             return $next($request);
         }
 
