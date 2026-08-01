@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Support\StoragePermissionError;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
@@ -44,6 +45,15 @@ class Handler extends ExceptionHandler
     {
         if ($e instanceof TokenMismatchException) {
             return $this->redirectAfterTokenMismatch($request);
+        }
+
+        // Deploy/www-data storage races must never surface as a bare 500 to end users.
+        if ($e instanceof StoragePermissionException) {
+            return $e->render($request);
+        }
+
+        if (StoragePermissionError::matches($e)) {
+            return StoragePermissionException::fromThrowable($e)->render($request);
         }
 
         $response = parent::render($request, $e);

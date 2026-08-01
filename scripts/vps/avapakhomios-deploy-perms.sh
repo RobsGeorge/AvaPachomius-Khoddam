@@ -20,7 +20,7 @@ usage() {
 }
 
 if [[ "${1:-}" == "--version" ]]; then
-  echo "avapakhomios-deploy-perms 1"
+  echo "avapakhomios-deploy-perms 2"
   exit 0
 fi
 
@@ -65,3 +65,8 @@ fi
 chown -R "$OWNER" "$STORAGE" "$CACHE"
 find "$STORAGE" "$CACHE" -type d -exec chmod 2775 {} +
 find "$STORAGE" "$CACHE" -type f -exec chmod 664 {} +
+
+# Leftovers from ResilientFileStore rename-recovery of deploy-owned hash dirs.
+if [[ -d "$STORAGE/framework/cache" ]]; then
+  find "$STORAGE/framework/cache" -depth -type d -name '*.unwritable.*' -exec rm -rf {} +
+fi

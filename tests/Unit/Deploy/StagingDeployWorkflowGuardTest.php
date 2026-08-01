@@ -61,6 +61,21 @@ class StagingDeployWorkflowGuardTest extends TestCase
         $this->assertStringContainsString('mkdir -p storage/framework/cache/data', $body);
     }
 
+    public function test_deploy_workflows_set_umask_for_group_write(): void
+    {
+        foreach ([$this->stagingWorkflow, $this->productionWorkflow] as $path) {
+            $body = $this->read($path);
+            $this->assertStringContainsString('umask 0002', $body, basename($path).' must set umask 0002');
+        }
+    }
+
+    public function test_deploy_docs_cover_chmod_operation_not_permitted(): void
+    {
+        $docs = $this->read($this->deployDocs);
+        $this->assertStringContainsString('chmod(): Operation not permitted', $docs);
+        $this->assertStringContainsString('umask 0002', $docs);
+    }
+
     public function test_production_workflow_also_reclaims_before_git_reset(): void
     {
         $body = $this->read($this->productionWorkflow);
@@ -107,6 +122,7 @@ class StagingDeployWorkflowGuardTest extends TestCase
         $this->assertStringContainsString('Refusing unknown app root', $script);
         $this->assertStringContainsString('storage', $script);
         $this->assertStringContainsString('bootstrap/cache', $script);
+        $this->assertStringContainsString('*.unwritable.*', $script);
     }
 
     private function read(string $path): string
