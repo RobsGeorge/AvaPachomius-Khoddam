@@ -61,7 +61,10 @@ class StoragePermissionException extends Exception
                 ? route('profile')
                 : route('login');
 
-            $target = url()->previous();
+            $referer = $request->headers->get('referer');
+            $previous = url()->previous();
+            $target = is_string($referer) && $referer !== '' ? $referer : $previous;
+
             if (! is_string($target) || $target === '' || $target === $request->fullUrl()) {
                 $target = $fallback;
             }

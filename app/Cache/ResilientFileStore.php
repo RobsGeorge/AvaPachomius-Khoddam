@@ -75,13 +75,33 @@ class ResilientFileStore extends FileStore
         try {
             return $callback();
         } catch (Throwable $e) {
-            if (! $this->isRecoverableCacheWriteError($e)) {
+            if ($e instanceof StoragePermissionException) {
                 throw $e;
             }
 
-            $this->ensureWritableCachePath(dirname($this->path($key)), recreateUnwritable: true);
+            if (! $this->isRecoverableCacheWriteError($e)) {
+                if (StoragePermissionError::matches($e)) {
+                    throw StoragePermissionException::fromThrowable($e);
+                }
 
-            return $callback();
+                throw $e;
+            }
+
+            try {
+                $this->ensureWritableCachePath(dirname($this->path($key)), recreateUnwritable: true);
+
+                return $callback();
+            } catch (Throwable $retry) {
+                if ($retry instanceof StoragePermissionException) {
+                    throw $retry;
+                }
+
+                if (StoragePermissionError::matches($retry) || $this->isRecoverableCacheWriteError($retry)) {
+                    throw StoragePermissionException::fromThrowable($retry);
+                }
+
+                throw $retry;
+            }
         }
     }
 
