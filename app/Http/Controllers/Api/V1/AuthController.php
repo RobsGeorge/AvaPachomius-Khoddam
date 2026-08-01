@@ -79,7 +79,11 @@ class AuthController extends Controller
         $resolved = $this->resolution->resolve($validated['identifier']);
 
         if (! $resolved || ! $this->otpChallenge->verify($resolved['user'], $validated['otp'])) {
-            $this->recordAuthFailure('Invalid OTP', $validated['identifier'], $resolved['user']->user_id ?? null);
+            $this->recordAuthFailure(
+                'Invalid OTP',
+                $validated['identifier'],
+                $resolved ? $resolved['user']->user_id : null
+            );
             throw ValidationException::withMessages([
                 'otp' => [__('auth.login_otp_invalid')],
             ]);

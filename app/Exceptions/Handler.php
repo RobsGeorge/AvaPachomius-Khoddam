@@ -2,7 +2,9 @@
 
 namespace App\Exceptions;
 
+use App\Exceptions\StoragePermissionException;
 use App\Observability\ObservabilityRecorder;
+use App\Support\StoragePermissionError;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
@@ -37,12 +39,25 @@ class Handler extends ExceptionHandler
 
             try {
                 app(ObservabilityRecorder::class)->exception($e, [
-                    'http_status' => $e instanceof HttpExceptionInterface ? $e->getStatusCode() : 500,
+                    'http_status' => $this->observabilityStatus($e),
                 ]);
             } catch (Throwable) {
                 // Never break exception reporting if observability itself fails.
             }
         });
+    }
+
+    private function observabilityStatus(Throwable $e): int
+    {
+        if ($e instanceof StoragePermissionException || StoragePermissionError::matches($e)) {
+            return 503;
+        }
+
+        if ($e instanceof HttpExceptionInterface) {
+            return $e->getStatusCode();
+        }
+
+        return 500;
     }
 
     private function shouldSkipObservability(Throwable $e): bool
@@ -70,6 +85,15 @@ class Handler extends ExceptionHandler
     {
         if ($e instanceof TokenMismatchException) {
             return $this->redirectAfterTokenMismatch($request);
+        }
+
+        // Deploy/www-data storage races must never surface as a bare 500 to end users.
+        if ($e instanceof StoragePermissionException) {
+            return $e->render($request);
+        }
+
+        if (StoragePermissionError::matches($e)) {
+            return StoragePermissionException::fromThrowable($e)->render($request);
         }
 
         $response = parent::render($request, $e);

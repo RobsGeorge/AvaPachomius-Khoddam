@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Cache\ResilientFileStore;
 use App\Contracts\TenantSecretStore;
+use App\Filesystem\SoftChmodFilesystem;
 use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
@@ -73,11 +74,12 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // Override before any cache store is resolved (production CACHE_DRIVER=file).
+        // SoftChmodFilesystem: deploy-owned cache nodes must not 500 on chmod().
         $this->app->booting(function () {
             Cache::extend('file', function ($app, array $config) {
                 return $this->repository(
                     (new ResilientFileStore(
-                        $app['files'],
+                        new SoftChmodFilesystem,
                         $config['path'],
                         $config['permission'] ?? null
                     ))->setLockDirectory($config['lock_path'] ?? null)

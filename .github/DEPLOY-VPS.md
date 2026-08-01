@@ -75,6 +75,39 @@ sudo systemctl reload php8.2-fpm
 
 Replace `deploy` with your deploy SSH user if different.
 
+## Runtime 500: `chmod(): Operation not permitted` (login / impersonate / cache)
+
+Symptom in `storage/logs/laravel.log`:
+
+```text
+chmod(): Operation not permitted ... Illuminate/Filesystem/Filesystem.php:288
+```
+
+Cause: deploy/cron create file-cache hash dirs as the deploy user. With default
+`umask 0022`, `mkdir(..., 02775)` becomes `2755` (no group write). PHP-FPM
+(`www-data`) can still hit Laravel's post-write `chmod`, which requires
+**ownership** and throws — often during permission-cache writes on login or
+impersonation.
+
+App-side mitigation (ResilientFileStore + SoftChmodFilesystem) soft-fails chmod
+and recreates unwritable hash dirs when the cache root is group-writable. Ops
+still need a healthy tree:
+
+```bash
+# One-shot heal (prod). Same helper as deploy.
+sudo /usr/local/sbin/avapakhomios-deploy-perms /var/www/avapakhomios deploy:www-data
+sudo systemctl reload php8.2-fpm
+```
+
+Deploy workflows set `umask 0002` before artisan so new dirs keep group-write.
+Re-install the helper after pulling if the script on the VPS is stale:
+
+```bash
+sudo install -o root -g root -m 0755 \
+  scripts/vps/avapakhomios-deploy-perms.sh \
+  /usr/local/sbin/avapakhomios-deploy-perms
+```
+
 ## App ownership (recommended)
 
 The deploy user should own the project (or at least `storage/` and `bootstrap/cache/`):
