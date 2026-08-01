@@ -136,6 +136,7 @@ return [
         'observability_flush_usage' => 'Flush observability usage rollups',
         'observability_sample_infra' => 'Sample host infrastructure metrics',
         'observability_prune' => 'Prune old observability data',
+        'maturity_emancipate_at_majority' => 'Emancipate wards at majority',
     ],
     'scheduler_heartbeat_desc' => 'Internal every-minute tick that proves OS cron is calling schedule:run. Used for the health banner above.',
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
@@ -152,4 +153,5 @@ return [
     'observability_flush_usage_desc' => 'Writes cached request/user/session counters into usage_rollups.',
     'observability_sample_infra_desc' => 'Collects load/memory/disk samples via the configured infra adapter.',
     'observability_prune_desc' => 'Deletes aged observability_events, infra_samples, and usage_rollups.',
+    'maturity_emancipate_at_majority_desc' => 'Ends active guardian_of edges when the ward reaches the organization age_of_majority (sets end_date; never deletes).',
 ];

@@ -531,6 +531,12 @@ return [
                 'type' => 'both',
                 'routes' => [],
             ],
+            'people.guardian_visibility.manage' => [
+                'label_en' => 'Restrict guardian visibility (safeguarding)',
+                'label_ar' => 'تقييد ظهور ولي الأمر (حماية)',
+                'type' => 'both',
+                'routes' => [],
+            ],
             'church.observability.view' => [
                 'label_en' => 'View church observability',
                 'label_ar' => 'عرض مراقبة الكنيسة',

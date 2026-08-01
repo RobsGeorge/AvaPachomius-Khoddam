@@ -29,12 +29,14 @@ class Person extends Model
         'national_id',
         'email',
         'gender',
+        'is_minor',
         'retired_at',
         'merged_into_person_id',
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'is_minor' => 'boolean',
         'retired_at' => 'datetime',
     ];
 
