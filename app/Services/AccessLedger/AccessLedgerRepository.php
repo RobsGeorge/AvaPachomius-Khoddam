@@ -26,6 +26,12 @@ final class AccessLedgerRepository
         'organization_subdomain',
         'duration_minutes',
         'expires_at',
+        'tier',
+        'purpose',
+        'outcome',
+        'channel',
+        'vouched_by',
+        'challenge_id',
     ];
 
     /**

@@ -531,6 +531,12 @@ return [
                 'type' => 'both',
                 'routes' => [],
             ],
+            'people.recovery.assist' => [
+                'label_en' => 'Assist account recovery (vouch only)',
+                'label_ar' => 'المساعدة في استعادة الحساب (تزكية فقط)',
+                'type' => 'both',
+                'routes' => ['people.recovery.*'],
+            ],
             'church.observability.view' => [
                 'label_en' => 'View church observability',
                 'label_ar' => 'عرض مراقبة الكنيسة',
@@ -1090,6 +1096,13 @@ return [
                 'label_ar' => 'مراجعة طلبات تسجيل الكنائس',
                 'type' => 'both',
                 'routes' => ['superadmin.church-applications.*'],
+                'system_only' => true,
+            ],
+            'platform.recovery.support' => [
+                'label_en' => 'Support-tier account recovery (vouch only)',
+                'label_ar' => 'استعادة الحساب من الدعم (تزكية فقط)',
+                'type' => 'both',
+                'routes' => ['superadmin.recovery.*'],
                 'system_only' => true,
             ],
         ],
