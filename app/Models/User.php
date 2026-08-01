@@ -40,6 +40,13 @@ class User extends Authenticatable
 
     public const APPLICATION_STATUS_PENDING_REVIEW = 'pending_review';
 
+    /** Registration trust lanes (open self-serve / QR / invite). */
+    public const REGISTRATION_LANE_OPEN = 'open_self_serve';
+
+    public const REGISTRATION_LANE_QR = 'qr_token';
+
+    public const REGISTRATION_LANE_INVITE = 'invite';
+
     public const APPLICATION_STATUS_NEEDS_CORRECTION = 'needs_correction';
 
     public const APPLICATION_STATUS_APPROVED = 'approved';
@@ -63,6 +70,7 @@ class User extends Authenticatable
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
         'registration_completed', 'application_status', 'registration_intent_course_id', 'communication_locale',
+        'registration_lane', 'registration_qr_token_id',
         'person_id',
         'email_verified_at', 'mobile_verified_at', 'whatsapp_capable',
         'is_minor', 'safeguarding_restricted',
@@ -105,6 +113,15 @@ class User extends Authenticatable
                 return;
             }
             if ($user->person_id) {
+                return;
+            }
+
+            // Open / QR self-serve: defer Person until admin approval (trust-lane ADR).
+            // Invite already sets person_id before User::create. Completed/factory users still sync.
+            $completed = Schema::hasColumn('user', 'registration_completed')
+                ? (bool) $user->registration_completed
+                : (bool) $user->is_verified;
+            if (! $completed) {
                 return;
             }
 

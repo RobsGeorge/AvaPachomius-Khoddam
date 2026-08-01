@@ -476,6 +476,12 @@ return [
                 ],
                 'nav' => ['church.members'],
             ],
+            'church.registration_qr.manage' => [
+                'label_en' => 'Mint church registration QR tokens',
+                'label_ar' => 'إنشاء رموز QR للتسجيل في الكنيسة',
+                'type' => 'both',
+                'routes' => ['church.registration_qr.mint'],
+            ],
             'church.role.manage' => [
                 'label_en' => 'Manage church roles & permissions',
                 'label_ar' => 'إدارة أدوار وصلاحيات الكنيسة',

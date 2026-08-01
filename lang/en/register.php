@@ -62,4 +62,7 @@ return [
     'enrollment_course_invalid' => 'The selected course is not valid for this service.',
     'enrollment_course_not_accepting' => 'This course is not accepting applications right now.',
     'enrollment_course_not_configured' => 'This course application form is not fully configured. Please contact an administrator.',
+    'qr_token_invalid' => 'This church registration QR code is invalid or has expired. Scan a new code or use open registration.',
+    'qr_token_accepted' => 'Church registration QR accepted. Complete the form to continue.',
+    'qr_minted' => 'A new church registration QR token was created. Previous tokens for this church were revoked.',
 ];

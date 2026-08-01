@@ -217,7 +217,7 @@ class RoleTemplateService
     {
         $templates = [
             'church-admin' => [
-                'church.configure', 'church.members.manage', 'church.role.manage',
+                'church.configure', 'church.members.manage', 'church.registration_qr.manage', 'church.role.manage',
                 'people.view', 'people.create', 'people.update', 'people.import',
                 'people.invite', 'people.invite_bulk', 'people.place',
                 'people.guardian_visibility.manage',

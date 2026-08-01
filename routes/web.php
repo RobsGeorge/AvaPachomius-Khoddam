@@ -20,6 +20,7 @@ use App\Http\Controllers\CourseAssessmentController;
 use App\Http\Controllers\UserAssessmentController;
 use App\Http\Controllers\UserCourseRoleController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ChurchRegistrationQrController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
@@ -282,6 +283,11 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/members/{user}', [MembersController::class, 'destroy'])->name('members.destroy');
         });
 
+        Route::middleware(['permission:church.registration_qr.manage'])->group(function () {
+            Route::post('/registration-qr', [ChurchRegistrationQrController::class, 'mint'])
+                ->name('registration_qr.mint');
+        });
+
         // T6 — finance (first cut)
         Route::prefix('finance')->name('finance.')->group(function () {
             Route::middleware(['permission:finance.payroll.view,finance.payroll.manage'])->group(function () {
@@ -365,7 +371,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
 });
 
 Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('register', [RegisterController::class, 'register'])->name('register.store');
+Route::post('register', [RegisterController::class, 'register'])
+    ->middleware('throttle:30,1')
+    ->name('register.store');
+Route::get('register/qr/{token}', [ChurchRegistrationQrController::class, 'scan'])
+    ->middleware('throttle:60,1')
+    ->name('register.qr.scan');
 Route::get('register/ask-parent', [RegisterController::class, 'showAskParent'])->name('register.ask-parent');
 
 Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');

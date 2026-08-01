@@ -116,6 +116,10 @@ class RegistrationReviewService
                 'application_status' => RegistrationApplication::STATUS_APPROVED,
             ])->save();
 
+            if (! $user->person_id) {
+                app(\App\Services\People\PersonRegistryService::class)->ensureForUser($user->fresh());
+            }
+
             $this->mail->send($user, RegistrationReviewTemplate::KEY_APPROVED);
 
             return $application->fresh(['fieldReviews', 'user']);

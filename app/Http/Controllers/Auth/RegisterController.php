@@ -11,6 +11,7 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Mail\SendOTPEmail;
 use App\Services\AuditLogService;
+use App\Services\Auth\ChurchRegistrationQrService;
 use App\Services\RegistrationEnrollmentService;
 use App\Services\PendingRegistrationService;
 use App\Services\People\PersonDuplicateDetector;
@@ -34,16 +35,33 @@ class RegisterController extends Controller
 {
     public function __construct(
         private RegistrationEnrollmentService $enrollment,
+        private ChurchRegistrationQrService $registrationQr,
     ) {}
 
     public function showRegistrationForm()
     {
+        // Drop a stale QR session so open self-serve does not inherit an expired token.
+        if (session()->has(ChurchRegistrationQrService::SESSION_TOKEN_ID)
+            && ! $this->registrationQr->sessionToken()) {
+            $this->registrationQr->clearSession();
+        }
+
         return view('auth.register');
     }
 
     public function register(Request $request)
     {
         $this->validator($request->all())->validate();
+
+        // QR lane: token must still be valid at submit (session bound by scan endpoint).
+        if (session(ChurchRegistrationQrService::SESSION_LANE) === User::REGISTRATION_LANE_QR
+            && ! $this->registrationQr->sessionToken()) {
+            $this->registrationQr->clearSession();
+
+            return back()
+                ->withErrors(['general' => __('register.qr_token_invalid')])
+                ->withInput();
+        }
 
         if ($redirect = $this->redirectIfBelowDigitalConsent($request)) {
             return $redirect;
@@ -220,7 +238,7 @@ class RegisterController extends Controller
                 'registration_completed' => false,
                 'created_at'             => now(),
                 'updated_at'             => now(),
-            ]));
+            ], $this->registrationLaneAttributes()));
 
             $otp = rand(100000, 999999);
             OtpCode::create([
@@ -256,6 +274,29 @@ class RegisterController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** @return array{registration_lane?: string, registration_qr_token_id?: int|null} */
+    private function registrationLaneAttributes(): array
+    {
+        if (! Schema::hasColumn('user', 'registration_lane')) {
+            return [];
+        }
+
+        $qrToken = $this->registrationQr->sessionToken();
+        if ($qrToken) {
+            return [
+                'registration_lane' => User::REGISTRATION_LANE_QR,
+                'registration_qr_token_id' => Schema::hasColumn('user', 'registration_qr_token_id')
+                    ? $qrToken->church_registration_qr_token_id
+                    : null,
+            ];
+        }
+
+        return [
+            'registration_lane' => User::REGISTRATION_LANE_OPEN,
+            'registration_qr_token_id' => null,
+        ];
+    }
 
     private function userProfileAttributes(Request $request, ?string $profilePhotoPath = null): array
     {
