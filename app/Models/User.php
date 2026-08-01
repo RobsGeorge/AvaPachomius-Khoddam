@@ -65,7 +65,7 @@ class User extends Authenticatable
         'registration_completed', 'application_status', 'registration_intent_course_id', 'communication_locale',
         'person_id',
         'email_verified_at', 'mobile_verified_at', 'whatsapp_capable',
-        'is_minor',
+        'is_minor', 'safeguarding_restricted',
         'created_at', 'updated_at',
     ];
 
@@ -76,6 +76,7 @@ class User extends Authenticatable
         'registration_completed' => 'boolean',
         'whatsapp_capable' => 'boolean',
         'is_minor' => 'boolean',
+        'safeguarding_restricted' => 'boolean',
         'email_verified_at' => 'datetime',
         'mobile_verified_at' => 'datetime',
         'profile_photo_grace_started_at' => 'datetime',

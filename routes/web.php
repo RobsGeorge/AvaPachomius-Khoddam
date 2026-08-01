@@ -34,6 +34,9 @@ use App\Http\Controllers\ServiceRosterController;
 use App\Http\Controllers\HubController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\RecoveryConfirmController;
+use App\Http\Controllers\People\AccountRecoveryAssistController;
+use App\Http\Controllers\SuperAdmin\AccountRecoveryController as SuperAdminAccountRecoveryController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamBuilderController;
 use App\Http\Controllers\ExamAttemptController;
@@ -160,6 +163,10 @@ Route::middleware(['auth'])->group(function () {
         Route::middleware(['permission:people.invite,people.invite_bulk,church.members.manage'])->group(function () {
             Route::post('/import/{batch}/bulk-invite', [PeopleImportController::class, 'bulkInvite'])->name('import.bulk-invite');
             Route::post('/{person}/invite', [PeopleHubController::class, 'invite'])->name('invite');
+        });
+        Route::middleware(['permission:people.recovery.assist'])->group(function () {
+            Route::get('/{person}/recovery', [AccountRecoveryAssistController::class, 'create'])->name('recovery.create');
+            Route::post('/{person}/recovery', [AccountRecoveryAssistController::class, 'store'])->name('recovery.store');
         });
         Route::get('/{person}', [PeopleHubController::class, 'show'])->name('show');
     });
@@ -365,6 +372,13 @@ Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestF
 Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('password/reset/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
 Route::post('password/reset', [NewPasswordController::class, 'store'])->name('password.update');
+
+Route::get('recovery/rebind', [ForgotPasswordController::class, 'showRebindForm'])->name('recovery.rebind');
+Route::post('recovery/rebind', [ForgotPasswordController::class, 'startSelfServeRebind'])->name('recovery.rebind.start')->middleware('throttle:10,1');
+Route::get('recovery/otp', [ForgotPasswordController::class, 'showRecoveryOtpForm'])->name('recovery.otp.show');
+Route::post('recovery/otp', [ForgotPasswordController::class, 'verifyRecoveryOtp'])->name('recovery.otp.verify')->middleware('throttle:20,1');
+Route::get('recovery/confirm', [RecoveryConfirmController::class, 'show'])->name('recovery.confirm');
+Route::post('recovery/confirm', [RecoveryConfirmController::class, 'store'])->name('recovery.confirm.store')->middleware('throttle:20,1');
 
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
@@ -854,6 +868,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
+
+    Route::get('/recovery', [SuperAdminAccountRecoveryController::class, 'index'])->name('recovery.index');
+    Route::post('/recovery', [SuperAdminAccountRecoveryController::class, 'store'])->name('recovery.store');
 
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/sessions/flush-users',    [SuperAdminController::class, 'flushSelectedUsers'])->name('sessions.flush-users');
