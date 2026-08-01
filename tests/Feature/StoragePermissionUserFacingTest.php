@@ -25,7 +25,10 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $payload = json_decode($response->getContent(), true);
         $this->assertSame('storage_unavailable', $payload['error'] ?? null);
         $this->assertSame(__('app.storage_unavailable'), $payload['message'] ?? null);
-        $this->assertStringContainsStringIgnoringCase('contact', __('app.storage_unavailable_contact'));
+        $this->assertSame(
+            'If this keeps happening, contact support or your church administrator.',
+            __('app.storage_unavailable_contact', [], 'en')
+        );
     }
 
     public function test_handler_web_flashes_error_toast_instead_of_500(): void
@@ -71,6 +74,7 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         Auth::login($user);
 
         $request = \Illuminate\Http\Request::create('/dashboard', 'GET');
+        $request->setUserResolver(fn () => $user);
         $session = $this->app['session']->driver();
         $session->start();
         $request->setLaravelSession($session);
