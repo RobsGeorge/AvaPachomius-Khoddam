@@ -32,6 +32,8 @@ jobs:
           script: |
             set -e
             cd /var/www/avapakhomios
+            # Keep group-write on mkdir 02775 (default umask 0022 → 2755 breaks www-data).
+            umask 0002
 
             PHP_BIN=php8.2
             DEPLOY_USER="$(whoami)"

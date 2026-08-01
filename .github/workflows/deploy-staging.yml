@@ -31,6 +31,8 @@ jobs:
           script: |
             set -e
             cd /var/www/khedma-staging
+            # Keep group-write on mkdir 02775 (default umask 0022 → 2755 breaks www-data).
+            umask 0002
             PHP_BIN=php8.2
             DEPLOY_USER="$(whoami)"
             DEPLOY_FIX_PERMS=/usr/local/sbin/avapakhomios-deploy-perms
