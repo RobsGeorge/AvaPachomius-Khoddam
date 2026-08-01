@@ -15,6 +15,7 @@ use App\Models\UserChurchRole;
 use App\Models\UserNotification;
 use App\Services\RoleTemplateService;
 use App\Tenancy\TenantContext;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
@@ -26,6 +27,7 @@ class AppointmentCalendarPac34Test extends EventModuleTestCase
 {
     protected function tearDown(): void
     {
+        Carbon::setTestNow();
         TenantContext::clear();
         parent::tearDown();
     }
@@ -40,6 +42,12 @@ class AppointmentCalendarPac34Test extends EventModuleTestCase
 
     public function test_priest_can_create_type_generate_slots_and_member_books(): void
     {
+        // Pin to a Monday morning so weekday=6 (Saturday) slots are always in the
+        // future with enough lead time — otherwise Saturday CI runs generate a
+        // same-day 11:00 slot that fails min-lead and book() redirects back with
+        // errors while still landing on appointments.index.
+        Carbon::setTestNow(Carbon::parse('2026-06-01 09:00:00', 'Africa/Cairo'));
+
         [$church, $priestUser, $roles] = $this->seedPriestChurch();
         $member = $this->createUser(['email' => 'pac3-member@example.com']);
         ChurchUser::create([
@@ -94,13 +102,17 @@ class AppointmentCalendarPac34Test extends EventModuleTestCase
             ])
             ->assertRedirect(route('church.appointments.index'));
 
-        $slot = AppointmentSlot::query()->where('priest_id', $priest->priest_id)->first();
+        $slot = AppointmentSlot::query()->where('priest_id', $priest->priest_id)->orderBy('starts_at')->first();
         $this->assertNotNull($slot);
         $this->assertSame((int) $type->appointment_type_id, (int) $slot->appointment_type_id);
+        $this->assertTrue($slot->starts_at->greaterThan(now()->addHour()));
 
         $this->actingAs($member)
+            ->from(route('church.appointments.index'))
             ->post(route('church.appointments.book', $slot))
-            ->assertRedirect(route('church.appointments.index'));
+            ->assertRedirect(route('church.appointments.index'))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
 
         $booking = AppointmentBooking::query()->where('user_id', $member->user_id)->first();
         $this->assertNotNull($booking);
