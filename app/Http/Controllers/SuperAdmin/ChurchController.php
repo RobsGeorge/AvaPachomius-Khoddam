@@ -8,6 +8,7 @@ use App\Http\Requests\SuperAdmin\StoreChurchRequest;
 use App\Http\Requests\SuperAdmin\UpdateChurchRequest;
 use App\Models\Church;
 use App\Models\User;
+use App\Services\BreakGlass\BreakGlassService;
 use App\Services\ChurchMemberInviteService;
 use App\Services\ChurchProvisioningService;
 use App\Services\ChurchSlugSuggester;
@@ -16,6 +17,7 @@ use App\Services\PlatformAccessService;
 use App\Services\RolePreviewService;
 use App\Support\ChurchHost;
 use App\Support\ChurchPlace;
+use App\Tenancy\TenantDatabaseResolver;
 use Illuminate\Http\Request;
 
 class ChurchController extends Controller
@@ -26,6 +28,7 @@ class ChurchController extends Controller
         private QuotaGuard $quotaGuard,
         private ChurchSlugSuggester $slugSuggester,
         private PlaceLookupService $placeLookup,
+        private BreakGlassService $breakGlass,
     ) {}
 
     public function index()
@@ -80,6 +83,15 @@ class ChurchController extends Controller
         $church->load(['capabilities', 'members.user', 'roles' => fn ($q) => $q->whereNull('course_id')->whereNull('service_id')]);
 
         $quota = app(\App\Services\ChurchStorageQuotaService::class);
+        $placement = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        $grants = $placement
+            ? \App\Models\BreakGlassGrant::query()
+                ->forOrganization((int) $placement->organization_id)
+                ->with('staff')
+                ->orderByDesc('granted_at')
+                ->limit(20)
+                ->get()
+            : collect();
 
         return view('superadmin.churches.show', [
             'church' => $church,
@@ -91,6 +103,11 @@ class ChurchController extends Controller
             'storageUsed' => $quota->usedBytes($church),
             'storageRemaining' => $quota->remainingBytes($church),
             'storagePercent' => $quota->usagePercent($church),
+            'placementOrganization' => $placement,
+            'breakGlassGrants' => $grants,
+            'activeBreakGlassGrant' => $placement && auth()->user()
+                ? $this->breakGlass->activeGrant(auth()->user(), $placement)
+                : null,
         ]);
     }
 
@@ -179,6 +196,47 @@ class ChurchController extends Controller
         );
 
         return response()->json(['results' => $results]);
+    }
+
+    public function storeBreakGlassGrant(Request $request, Church $church)
+    {
+        abort_unless($request->user()?->is_superadmin, 403);
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:5', 'max:2000'],
+            'duration_minutes' => ['required', 'integer', 'in:15,60,240,1440'],
+        ]);
+
+        $organization = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        if (! $organization) {
+            return back()->withErrors(['reason' => __('workspace.break_glass_no_organization')]);
+        }
+
+        $this->breakGlass->grant(
+            $request->user(),
+            $request->user(),
+            $organization,
+            $validated['reason'],
+            (int) $validated['duration_minutes'],
+        );
+
+        return back()->with('success', __('workspace.break_glass_granted'));
+    }
+
+    public function revokeBreakGlassGrant(Request $request, Church $church, \App\Models\BreakGlassGrant $grant)
+    {
+        abort_unless($request->user()?->is_superadmin, 403);
+
+        $organization = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        abort_unless(
+            $organization
+            && (int) $grant->organization_id === (int) $organization->organization_id,
+            404
+        );
+
+        $this->breakGlass->revoke($request->user(), $grant);
+
+        return back()->with('success', __('workspace.break_glass_revoked'));
     }
 
     public function platformEnter(Request $request, Church $church)

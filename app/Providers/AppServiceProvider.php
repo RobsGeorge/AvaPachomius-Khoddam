@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Cache\ResilientFileStore;
+use App\Contracts\TenantSecretStore;
 use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
@@ -16,6 +17,7 @@ use App\Observability\ObservabilityRecorder;
 use App\Observability\Sinks\LogErrorSink;
 use App\Observability\Sinks\NullErrorSink;
 use App\Observability\Sinks\SentryErrorSink;
+use App\Services\Tenancy\EncryptedConfigTenantSecretStore;
 use App\Tenancy\TenantContext;
 use App\Validation\SafeValidator;
 use Illuminate\Database\Connection;
@@ -44,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Tenancy\TenantContext::class, fn () => new \App\Tenancy\TenantContext());
         $this->app->singleton(\App\Services\ScheduledTaskRunner::class);
         $this->app->singleton(\App\Services\SchedulerHealthService::class);
+        $this->app->singleton(TenantSecretStore::class, EncryptedConfigTenantSecretStore::class);
 
         $this->app->singleton(ErrorSink::class, function () {
             return match (config('observability.error_sink', 'log')) {

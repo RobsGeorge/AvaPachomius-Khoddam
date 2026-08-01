@@ -154,5 +154,81 @@
             </table>
         </div>
     </div>
+
+    @if($placementOrganization)
+    <div class="app-card card shadow-sm mt-4">
+        <div class="card-header fw-semibold">{{ __('workspace.break_glass_section') }}</div>
+        <div class="card-body border-bottom">
+            <p class="text-muted-theme small mb-3">{{ __('workspace.break_glass_help') }}</p>
+            @if($activeBreakGlassGrant)
+                <div class="alert alert-success py-2 mb-3">
+                    {{ __('workspace.break_glass_active', ['until' => $activeBreakGlassGrant->expires_at?->timezone(config('app.timezone'))->format('Y-m-d H:i')]) }}
+                </div>
+            @else
+                <div class="alert alert-warning py-2 mb-3">{{ __('workspace.break_glass_none_active') }}</div>
+            @endif
+            <form method="POST" action="{{ route('superadmin.churches.break-glass.store', $church) }}" class="row g-2 align-items-end">
+                @csrf
+                <div class="col-md-6">
+                    <label class="form-label" for="break_glass_reason">{{ __('workspace.break_glass_reason') }}</label>
+                    <input type="text" name="reason" id="break_glass_reason" class="form-control @error('reason') is-invalid @enderror"
+                           value="{{ old('reason') }}" required minlength="5" maxlength="2000"
+                           placeholder="{{ __('workspace.break_glass_reason_placeholder') }}">
+                    @error('reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="duration_minutes">{{ __('workspace.break_glass_duration') }}</label>
+                    <select name="duration_minutes" id="duration_minutes" class="form-select" required>
+                        <option value="15">{{ __('workspace.break_glass_duration_15') }}</option>
+                        <option value="60" selected>{{ __('workspace.break_glass_duration_60') }}</option>
+                        <option value="240">{{ __('workspace.break_glass_duration_240') }}</option>
+                        <option value="1440">{{ __('workspace.break_glass_duration_1440') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">{{ __('workspace.break_glass_create') }}</button>
+                </div>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>{{ __('workspace.break_glass_col_staff') }}</th>
+                        <th>{{ __('workspace.break_glass_col_reason') }}</th>
+                        <th>{{ __('workspace.break_glass_col_expires') }}</th>
+                        <th>{{ __('workspace.break_glass_col_self') }}</th>
+                        <th>{{ __('workspace.col_actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($breakGlassGrants as $grant)
+                        <tr>
+                            <td>{{ $grant->staff?->email }}</td>
+                            <td class="small">{{ \Illuminate\Support\Str::limit($grant->reason, 80) }}</td>
+                            <td>
+                                <span class="badge {{ $grant->isActive() ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ $grant->isActive() ? __('workspace.break_glass_status_active') : __('workspace.break_glass_status_expired') }}
+                                </span>
+                                <div class="small text-muted-theme">{{ $grant->expires_at?->format('Y-m-d H:i') }}</div>
+                            </td>
+                            <td>{{ $grant->self_approved ? __('workspace.break_glass_yes') : __('workspace.break_glass_no') }}</td>
+                            <td class="text-end">
+                                @if($grant->isActive())
+                                    <form method="POST" action="{{ route('superadmin.churches.break-glass.revoke', [$church, $grant]) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('workspace.break_glass_revoke') }}</button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-muted-theme text-center py-3">{{ __('workspace.break_glass_none_active') }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
 </div>
 @endsection

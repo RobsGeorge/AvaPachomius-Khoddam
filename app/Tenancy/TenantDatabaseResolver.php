@@ -2,6 +2,7 @@
 
 namespace App\Tenancy;
 
+use App\Contracts\TenantSecretStore;
 use App\Models\Church;
 use App\Models\Organization;
 use Illuminate\Support\Facades\DB;
@@ -93,12 +94,15 @@ final class TenantDatabaseResolver
     {
         self::capturePrimaryTenantConfig();
 
-        $password = $placement->db_password_encrypted;
+        $creds = app(TenantSecretStore::class)->credentialsFor($placement);
+        $database = $creds['database'] ?? $placement->db_name;
+        $username = ($creds['username'] ?? null)
+            ?: (self::$primaryTenantConfig['username'] ?? null);
+        $password = $creds['password'] ?? '';
 
         config([
-            'database.connections.tenant.database' => $placement->db_name,
-            'database.connections.tenant.username' => $placement->db_user
-                ?: (self::$primaryTenantConfig['username'] ?? null),
+            'database.connections.tenant.database' => $database,
+            'database.connections.tenant.username' => $username,
             'database.connections.tenant.password' => $password ?? '',
         ]);
 

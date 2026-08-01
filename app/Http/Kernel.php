@@ -95,6 +95,7 @@ class Kernel extends HttpKernel
         'church.member' => \App\Tenancy\EnsureChurchMember::class,
         'token.church' => \App\Tenancy\EnsureTokenChurch::class,
         'capability' => \App\Tenancy\RequireCapability::class,
+        'breakglass' => \App\Http\Middleware\EnsureBreakGlassGrant::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'impersonator.stop' => \App\Http\Middleware\AllowImpersonatorStop::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,

@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Models\Church;
 use App\Models\User;
+use App\Services\BreakGlass\BreakGlassService;
 use App\Support\ChurchHost;
 use Illuminate\Http\Request;
 
 /**
  * Breaks-glass superadmin access to a church host with platform bypass still on.
+ * Requires an unexpired {@see BreakGlassGrant} for the church's placement organization.
  * Mutually exclusive with role preview / impersonation.
  */
 class PlatformAccessService
@@ -47,6 +49,9 @@ class PlatformAccessService
         if (RolePreviewService::isActive()) {
             RolePreviewService::stop($request);
         }
+
+        // Wired break-glass: no standing prod access without an unexpired grant.
+        app(BreakGlassService::class)->assertAllowed($superadmin, $church);
 
         $request->session()->put(self::SESSION_KEY, (int) $church->church_id);
 
