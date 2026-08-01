@@ -62,7 +62,11 @@ final class CredentialChangeService
             $user = User::query()->lockForUpdate()->findOrFail($record->user_id);
 
             if ($challenge->purpose === AccountRecoveryChallenge::PURPOSE_REBIND_MOBILE) {
+                // User::saving clears mobile_verified_at when the number changes unless
+                // verified_at is dirty. A same-second now() equals the prior stamp and is
+                // NOT dirty — so set number first (hook clears), then stamp in a second save.
                 $user->mobile_number = $challenge->asserted_value;
+                $user->save();
                 $user->mobile_verified_at = now();
                 $user->save();
             } elseif ($challenge->purpose === AccountRecoveryChallenge::PURPOSE_REBIND_EMAIL) {
