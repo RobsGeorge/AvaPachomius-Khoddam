@@ -165,6 +165,77 @@ class ResilientFileStoreTest extends TestCase
         $this->assertSame('v2', $this->store->get('perm-key'));
     }
 
+    public function test_put_survives_chmod_operation_not_permitted_after_write(): void
+    {
+        $files = new class extends Filesystem
+        {
+            public function chmod($path, $mode = null)
+            {
+                if ($mode !== null) {
+                    throw new \ErrorException('chmod(): Operation not permitted');
+                }
+
+                return parent::chmod($path, null);
+            }
+        };
+
+        $directory = storage_path('framework/cache/resilient-chmod-'.uniqid('', true));
+        $files->makeDirectory($directory, 0777, true, true);
+        $store = new ResilientFileStore($files, $directory, 0664);
+
+        try {
+            $this->assertTrue($store->put('login-perm-cache', ['ok' => true], 60));
+            $this->assertSame(['ok' => true], $store->get('login-perm-cache'));
+        } finally {
+            if (is_dir($directory)) {
+                (new Filesystem)->deleteDirectory($directory);
+            }
+        }
+    }
+
+    public function test_put_recreates_unwritable_hash_dir_when_chmod_is_forbidden(): void
+    {
+        $files = new class extends Filesystem
+        {
+            public function chmod($path, $mode = null)
+            {
+                if ($mode !== null) {
+                    throw new \ErrorException('chmod(): Operation not permitted');
+                }
+
+                return parent::chmod($path, null);
+            }
+        };
+
+        $directory = storage_path('framework/cache/resilient-recreate-'.uniqid('', true));
+        $files->makeDirectory($directory, 0777, true, true);
+        $store = new ResilientFileStore($files, $directory);
+
+        try {
+            $this->assertTrue($store->put('recreate-key', 'v1', 60));
+            $hashDir = dirname($store->path('recreate-key'));
+            // Simulate deploy-owned non-writable hash dir (www-data cannot chmod).
+            @chmod($hashDir, 0555);
+
+            if (is_writable($hashDir)) {
+                $this->markTestSkipped('Platform does not honor chmod 0555 for is_writable()');
+            }
+
+            $this->assertTrue($store->put('recreate-key', 'v2', 60));
+            $this->assertSame('v2', $store->get('recreate-key'));
+            clearstatcache(true, dirname($store->path('recreate-key')));
+            $this->assertDirectoryExists(dirname($store->path('recreate-key')));
+        } finally {
+            if (is_dir($directory)) {
+                @chmod($directory, 0777);
+                foreach ((new Filesystem)->directories($directory) as $child) {
+                    @chmod($child, 0777);
+                }
+                (new Filesystem)->deleteDirectory($directory);
+            }
+        }
+    }
+
     public function test_non_missing_path_errors_are_not_swallowed(): void
     {
         $files = new class extends Filesystem
@@ -183,6 +254,57 @@ class ResilientFileStoreTest extends TestCase
             $this->expectException(\ErrorException::class);
             $this->expectExceptionMessage('Permission denied');
             $store->put('denied-key', 'x', 60);
+        } finally {
+            if (is_dir($directory)) {
+                (new Filesystem)->deleteDirectory($directory);
+            }
+        }
+    }
+
+    public function test_unrecoverable_stream_permission_denied_becomes_storage_permission_exception(): void
+    {
+        $files = new class extends Filesystem
+        {
+            public function put($path, $contents, $lock = false)
+            {
+                throw new \ErrorException(
+                    'file_put_contents('.$path.'): Failed to open stream: Permission denied'
+                );
+            }
+        };
+
+        $directory = storage_path('framework/cache/resilient-storage-ex-'.uniqid('', true));
+        $files->makeDirectory($directory, 0777, true, true);
+        $store = new ResilientFileStore($files, $directory);
+
+        try {
+            $this->expectException(\App\Exceptions\StoragePermissionException::class);
+            $store->put('user:43:perms', 'x', 60);
+        } finally {
+            if (is_dir($directory)) {
+                (new Filesystem)->deleteDirectory($directory);
+            }
+        }
+    }
+
+    public function test_chmod_operation_not_permitted_on_unrecoverable_root_becomes_storage_exception(): void
+    {
+        $files = new class extends Filesystem
+        {
+            public function put($path, $contents, $lock = false)
+            {
+                throw new \ErrorException('chmod(): Operation not permitted');
+            }
+        };
+
+        $directory = storage_path('framework/cache/resilient-chmod-ex-'.uniqid('', true));
+        $files->makeDirectory($directory, 0777, true, true);
+        $store = new ResilientFileStore($files, $directory);
+
+        try {
+            // chmod errors are "recoverable" once; second failure still wraps.
+            $this->expectException(\App\Exceptions\StoragePermissionException::class);
+            $store->put('impersonate-cache', 'x', 60);
         } finally {
             if (is_dir($directory)) {
                 (new Filesystem)->deleteDirectory($directory);

@@ -77,6 +77,15 @@ class MobileApiV1Test extends EventModuleTestCase
         ])->assertStatus(422);
     }
 
+    public function test_login_verify_rejects_unknown_identifier_without_error(): void
+    {
+        $this->postJson('/api/v1/login/verify', [
+            'identifier' => 'nobody-exists@example.com',
+            'otp' => '123456',
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['otp']);
+    }
+
     public function test_notifications_and_mark_all_read(): void
     {
         $user = $this->createUser(['email' => 'mobile-notif@example.com']);
