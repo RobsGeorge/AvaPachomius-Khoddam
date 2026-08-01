@@ -111,6 +111,10 @@ class RegistrationApplicationService
                 'application_status' => RegistrationApplication::STATUS_APPROVED,
             ])->save();
 
+            if (! $user->person_id) {
+                app(\App\Services\People\PersonRegistryService::class)->ensureForUser($user->fresh());
+            }
+
             AuditLogService::recordEvent('registration.platform_unlocked_via_course', [
                 'user_id' => $user->user_id,
                 'course_id' => $application->course_id,

@@ -123,14 +123,21 @@ class PeopleOnboardingTest extends EventModuleTestCase
         Mail::fake();
         $church = Church::main();
 
+        // Invite always starts from a Person; incomplete portal users no longer auto-create Person.
+        $person = app(PersonRegistryService::class)->createPerson([
+            'church_id' => $church->church_id,
+            'first_name' => 'Link',
+            'second_name' => 'Me',
+            'email' => 'link-me@example.com',
+            'mobile_number' => '01000000992',
+        ], true);
+
         $existing = $this->createUser([
             'email' => 'link-me@example.com',
             'registration_completed' => false,
             'is_verified' => false,
+            'person_id' => $person->person_id,
         ]);
-        $personId = $existing->person_id;
-        $person = Person::withoutTenancy()->find($personId);
-        $person->forceFill(['email' => 'link-me@example.com'])->save();
 
         $result = app(InvitationService::class)->invite($person->fresh(), [
             'send_email' => true,

@@ -106,7 +106,19 @@ class PendingRegistrationService
             Storage::delete("public/{$user->profile_photo}");
         }
 
+        // Defensive: if a Person was somehow linked to an incomplete open/QR signup, retire it
+        // when no other users share it (invite path keeps its Person).
+        $personId = $user->person_id;
         $user->delete();
+
+        if ($personId
+            && Schema::hasTable('people')
+            && ! User::query()->where('person_id', $personId)->exists()) {
+            $person = \App\Models\Person::withoutTenancy()->find($personId);
+            if ($person && ! $person->isRetired()) {
+                $person->forceFill(['retired_at' => now()])->save();
+            }
+        }
     }
 
     public static function redirectToOtpResume(User $user, bool $resent = true)
