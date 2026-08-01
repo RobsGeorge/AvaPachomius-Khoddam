@@ -531,6 +531,12 @@ return [
                 'type' => 'both',
                 'routes' => [],
             ],
+            'people.guardian_visibility.manage' => [
+                'label_en' => 'Restrict guardian visibility (safeguarding)',
+                'label_ar' => 'تقييد ظهور ولي الأمر (حماية)',
+                'type' => 'both',
+                'routes' => [],
+            ],
             'people.recovery.assist' => [
                 'label_en' => 'Assist account recovery (vouch only)',
                 'label_ar' => 'المساعدة في استعادة الحساب (تزكية فقط)',

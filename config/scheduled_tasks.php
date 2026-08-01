@@ -168,5 +168,16 @@ return [
             ],
             'when_config' => 'observability.enabled',
         ],
+        'maturity.emancipate_at_majority' => [
+            'label' => 'scheduled_tasks.tasks.maturity_emancipate_at_majority',
+            'description' => 'scheduled_tasks.maturity_emancipate_at_majority_desc',
+            'type' => 'command',
+            'command' => 'maturity:emancipate-at-majority',
+            'schedule' => [
+                'frequency' => 'daily_at',
+                'time' => '01:30',
+                'timezone' => 'attendance.timezone',
+            ],
+        ],
     ],
 ];
