@@ -220,6 +220,7 @@ class RoleTemplateService
                 'church.configure', 'church.members.manage', 'church.registration_qr.manage', 'church.role.manage',
                 'people.view', 'people.create', 'people.update', 'people.import',
                 'people.invite', 'people.invite_bulk', 'people.place',
+                'people.guardian_visibility.manage',
                 'priest.manage', 'priest.view',
                 'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
                 'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',
@@ -236,6 +237,7 @@ class RoleTemplateService
             ],
             'priest' => [
                 'priest.view',
+                'people.guardian_visibility.manage',
                 'confession.manage', 'confession.view',
                 'appointment.manage', 'appointment.view',
                 'home_visit.manage', 'home_visit.view',

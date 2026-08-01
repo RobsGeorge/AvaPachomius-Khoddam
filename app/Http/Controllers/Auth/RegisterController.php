@@ -15,6 +15,9 @@ use App\Services\Auth\ChurchRegistrationQrService;
 use App\Services\RegistrationEnrollmentService;
 use App\Services\PendingRegistrationService;
 use App\Services\People\PersonDuplicateDetector;
+use App\Services\Maturity\AgePolicyResolver;
+use App\Models\Church;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -58,6 +61,10 @@ class RegisterController extends Controller
             return back()
                 ->withErrors(['general' => __('register.qr_token_invalid')])
                 ->withInput();
+        }
+
+        if ($redirect = $this->redirectIfBelowDigitalConsent($request)) {
+            return $redirect;
         }
 
         LegacySchemaSync::ensureRegistrationSchema();
@@ -107,6 +114,43 @@ class RegisterController extends Controller
         }
 
         return $this->createAndSendOtp($request);
+    }
+
+    public function showAskParent()
+    {
+        return view('auth.register-ask-parent');
+    }
+
+    /**
+     * Independent self-registration below digital-consent age → ask a parent (never hostile block).
+     * Does not create/update any Person or User.
+     */
+    protected function redirectIfBelowDigitalConsent(Request $request)
+    {
+        $dob = $request->input('date_of_birth');
+        if (! $dob) {
+            return null;
+        }
+
+        try {
+            $birth = Carbon::parse($dob);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $church = Church::main();
+        $policy = app(AgePolicyResolver::class)->forChurch($church);
+        $age = $birth->age;
+
+        if ($age >= (int) $policy['digital_consent_age']) {
+            return null;
+        }
+
+        // Existing person records for the same national_id / mobile must stay untouched —
+        // we never write here; only redirect.
+        return redirect()
+            ->route('register.ask-parent')
+            ->with('maturity_under_age', true);
     }
 
     // ── Re-registration (unverified user exists) ──────────────────────────────

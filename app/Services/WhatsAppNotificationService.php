@@ -117,17 +117,33 @@ class WhatsAppNotificationService
      */
     public function sendRawText(User $user, string $body): array
     {
+        return $this->dispatchRawTextToMobile((string) $user->mobile_number, $body, $user);
+    }
+
+    /**
+     * Send WhatsApp text to an arbitrary mobile (e.g. recovery rebind to a NEW number).
+     */
+    public function sendRawTextToMobile(string $mobileNumber, string $body, ?User $relatedUser = null): bool
+    {
+        return (bool) ($this->dispatchRawTextToMobile($mobileNumber, $body, $relatedUser)['ok'] ?? false);
+    }
+
+    /**
+     * @return array{ok: bool, provider_message_id?: string|null, error?: string}
+     */
+    private function dispatchRawTextToMobile(string $mobileNumber, string $body, ?User $relatedUser = null): array
+    {
         $log = $this->communicationLogs->record([
-            'user' => $user,
+            'user' => $relatedUser,
             'channel' => CommunicationLog::CHANNEL_WHATSAPP,
             'subject' => __('notifications.mobile_verification_subject'),
             'body_preview' => $body,
-            'related_type' => User::class,
-            'related_id' => $user->user_id,
+            'related_type' => $relatedUser ? User::class : null,
+            'related_id' => $relatedUser?->user_id,
             'metadata' => ['type' => 'mobile_verification'],
         ]);
 
-        $phone = $this->normalizePhone($user->mobile_number);
+        $phone = $this->normalizePhone($mobileNumber);
         if ($phone === null) {
             $this->communicationLogs->markFailed($log, __('communications.missing_mobile'));
 
