@@ -119,16 +119,32 @@ class ProfilePhotoAdminService
     {
         abort_unless($this->gate->adminActions($student)['extend_deadline'], 422);
 
+        $previous = $student->profile_photo_deadline_at;
+        $normalized = $deadline->timezone($this->gate->timezone());
+
         $student->forceFill([
-            'profile_photo_deadline_at' => $deadline->timezone($this->gate->timezone()),
+            'profile_photo_deadline_at' => $normalized,
         ])->save();
 
-        return $student->fresh();
+        $student = $student->fresh();
+
+        AuditLogService::recordEvent('profile_photo.deadline_extended', [
+            'actor_user_id' => $admin->user_id,
+            'target_user_id' => $student->user_id,
+            'previous_deadline_at' => $previous?->toIso8601String(),
+            'new_deadline_at' => $normalized->toIso8601String(),
+            'status' => $this->gate->complianceStatus($student),
+        ]);
+
+        return $student;
     }
 
     public function resetGraceStart(User $student, User $admin): User
     {
         abort_unless($this->gate->adminActions($student)['reset_grace'], 422);
+
+        $beforeStatus = $student->profile_photo_status;
+        $hadPhoto = filled($student->profile_photo);
 
         if ($student->profile_photo && Storage::disk('public')->exists($student->profile_photo)) {
             Storage::disk('public')->delete($student->profile_photo);
@@ -145,13 +161,24 @@ class ProfilePhotoAdminService
             'profile_photo_rejection_note' => null,
         ])->save();
 
-        return $student->fresh();
+        $student = $student->fresh();
+
+        AuditLogService::recordEvent('profile_photo.grace_reset', [
+            'actor_user_id' => $admin->user_id,
+            'target_user_id' => $student->user_id,
+            'previous_status' => $beforeStatus,
+            'had_photo' => $hadPhoto,
+        ]);
+
+        return $student;
     }
 
     public function approve(User $student, User $admin): User
     {
         abort_unless($student->hasProfilePhoto(), 422);
         abort_unless($this->gate->adminActions($student)['approve_reject'], 422);
+
+        $previousStatus = $student->profile_photo_status;
 
         $student->forceFill([
             'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
@@ -161,6 +188,13 @@ class ProfilePhotoAdminService
         ])->save();
 
         $student = $student->fresh();
+
+        AuditLogService::recordEvent('profile_photo.approved', [
+            'actor_user_id' => $admin->user_id,
+            'target_user_id' => $student->user_id,
+            'previous_status' => $previousStatus,
+            'new_status' => User::PHOTO_STATUS_APPROVED,
+        ]);
 
         if (filled($student->email)) {
             try {
@@ -246,6 +280,8 @@ class ProfilePhotoAdminService
     {
         abort_unless($this->gate->adminActions($student)['approve_reject'], 422);
 
+        $previousStatus = $student->profile_photo_status;
+
         if ($student->profile_photo && Storage::disk('public')->exists($student->profile_photo)) {
             Storage::disk('public')->delete($student->profile_photo);
         }
@@ -262,6 +298,14 @@ class ProfilePhotoAdminService
         ])->save();
 
         $student = $student->fresh();
+
+        AuditLogService::recordEvent('profile_photo.rejected', [
+            'actor_user_id' => $admin->user_id,
+            'target_user_id' => $student->user_id,
+            'previous_status' => $previousStatus,
+            'new_status' => User::PHOTO_STATUS_REJECTED,
+            'has_note' => filled($note),
+        ]);
 
         if (filled($student->email)) {
             try {

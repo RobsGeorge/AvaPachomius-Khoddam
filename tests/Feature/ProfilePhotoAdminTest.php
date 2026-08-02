@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Mail\NotificationMail;
+use App\Models\ActivityLog;
 use App\Models\PortalSettings;
 use App\Models\User;
 use App\Models\UserNotification;
@@ -42,6 +43,18 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             return $mail->hasTo($student->email)
                 && $mail->dashboardUrl === route('dashboard');
         });
+
+        $this->assertDatabaseHas('activity_logs', [
+            'route_name' => 'profile_photo.approved',
+        ]);
+
+        $audit = ActivityLog::withoutGlobalScopes()
+            ->where('route_name', 'profile_photo.approved')
+            ->latest('activity_log_id')
+            ->first();
+        $this->assertNotNull($audit);
+        $this->assertSame($admin->user_id, $audit->request_input['actor_user_id'] ?? null);
+        $this->assertSame($student->user_id, $audit->request_input['target_user_id'] ?? null);
     }
 
     public function test_admin_can_reset_grace_and_clear_photo(): void
@@ -68,6 +81,11 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
         $this->assertSame('', $student->profile_photo);
         $this->assertNull($student->profile_photo_grace_started_at);
         $this->assertNull($student->profile_photo_status);
+
+        $audit = ActivityLog::query()->where('route_name', 'profile_photo.grace_reset')->latest('activity_log_id')->first();
+        $this->assertNotNull($audit);
+        $this->assertSame($admin->user_id, $audit->request_input['actor_user_id'] ?? null);
+        $this->assertSame($student->user_id, $audit->request_input['target_user_id'] ?? null);
     }
 
     public function test_grace_days_setting_changes_deadline(): void
@@ -295,6 +313,11 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
         Mail::assertSent(\App\Mail\ProfilePhotoRejectedMail::class, function ($mail) use ($student) {
             return $mail->hasTo($student->email);
         });
+
+        $audit = ActivityLog::query()->where('route_name', 'profile_photo.rejected')->latest('activity_log_id')->first();
+        $this->assertNotNull($audit);
+        $this->assertSame($admin->user_id, $audit->request_input['actor_user_id'] ?? null);
+        $this->assertTrue((bool) ($audit->request_input['has_note'] ?? false));
     }
 
     public function test_rejected_photo_does_not_show_admin_review_actions(): void
