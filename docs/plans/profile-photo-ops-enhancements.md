@@ -30,7 +30,7 @@
 **Why:** Urgent admin notifies will pile up; one-by-one review does not scale.  
 **Scope:**
 - Pending filter: checkbox column + “Select all on page”.
-- Bulk bar: Approve selected | Reject selected (shared optional rejection note).
+- Bulk bar: Approve selected | Reject selected (**one shared optional rejection note** applied to all selected; empty allowed).
 - Server: `ProfilePhotoAdminService::approveMany` / `rejectMany` in a DB transaction; per-user eligibility via `adminActions()`; skip ineligible IDs with a flash summary.
 - Emit existing per-student approval/rejection emails (or batch-safe queue jobs if SMTP rate-limits).
 - Permission: existing `profile_photo.review`.
@@ -61,10 +61,11 @@
 #### 2. Reject → re-upload reminder
 **Why:** Rejected students can go overdue silently.  
 **Scope:**
-- Scheduled command/scanner (mirror `NotificationScannerService` patterns): students with `profile_photo_status = rejected`, no new pending upload, and `profile_photo_reviewed_at` older than N days (portal setting, default 2).
+- Scheduled command/scanner (mirror `NotificationScannerService` patterns): students with `profile_photo_status = rejected`, no new pending upload, and `profile_photo_reviewed_at` older than N days (**admin-adjustable** on the profile-photo settings card; default **2**).
+- Persist N on `portal_settings` (additive column, e.g. `profile_photo_reupload_reminder_days`).
 - Channels: portal + email (hub type e.g. `profile_photo_reupload_reminder`); audience student; dedupe per student per reject cycle (`reviewed_at` in dedupe key).
 - Stop when they upload (status → pending) or are approved.
-- Tests: fires once in window; does not fire if re-uploaded; respects preferences.
+- Tests: fires once in window; does not fire if re-uploaded; respects preferences; setting change moves the threshold.
 
 #### 6. Clearer student copy while pending
 **Why:** Pending is not hard-blocked; users often think they are locked.  
@@ -78,7 +79,8 @@
 **Scope:**
 - After successful approve/reject from modal: if more pending on the current page (or fetch next pending id), open next student’s review modal without full reload **or** redirect back with `?filter=pending_review&focus={user_id}` that auto-opens modal.
 - Prefer progressive enhancement: form POST redirects with flash + `focus` query (reliable, no SPA). Optional: `fetch` + JSON later.
-- Shortcuts (when modal open): `A` approve, `R` focus reject note / submit with confirm — only if no input focused; document in a small help hint in modal.
+- **v1:** auto-open / focus next pending after approve/reject; no hotkeys.
+- **v2 (optional):** shortcuts when modal open and focus is not in an input — `A` approve, `R` focus reject note; document in a small help hint in modal.
 - Tests: approve redirects/focuses next pending; last pending closes cleanly.
 
 ---
@@ -88,12 +90,11 @@
 #### 5. Revoke approval
 **Why:** Wrong photo can slip through; today no clean path.  
 **Scope:**
-- New action for `approved` status only: “Revoke approval” → status `rejected` (or dedicated `revoked` only if needed — prefer reuse `rejected` + note prefix to avoid schema churn).
-- Required note; clear photo file like reject **or** keep file and force re-upload — product choice: **clear file + rejected** (consistent with reject).
-- Email student (reuse rejection mail or dedicated revoke copy).
+- New action for `approved` status only: “Revoke approval” → clear stored file + status `rejected` (same cleanup as reject).
+- Required note; email student (reuse rejection mail or dedicated revoke copy).
 - Update `adminActions()`: approved → `revoke` only (still no extend/reset).
 - Audit log (feature 4).
-- Tests: revoke path, email, actions matrix, 422 if not approved.
+- Tests: revoke path, file deleted, email, actions matrix, 422 if not approved.
 
 #### 8. Soft client upload checks
 **Why:** Reduce obvious bad uploads before they hit the queue.  
@@ -156,9 +157,28 @@ Ship A→C first for ops value; D/E for student experience; F/G as follow-ups.
 
 ---
 
-## Open product questions (resolve before/during PR F/G)
+## Product decisions (locked)
 
-1. Reminder default: **2 days** after reject OK?
-2. Revoke: delete stored file (like reject) vs keep file visible to admin only?
-3. Bulk reject: one shared note for all selected, or require note?
-4. Keyboard shortcuts: ship in v1 of #7 or defer to v2?
+| # | Decision |
+|---|----------|
+| Reminder days | **Admin-adjustable** via portal settings on the profile-photo hub (same card as grace days / gate). Sensible default when unset: **2 days**. Additive `portal_settings` column (e.g. `profile_photo_reupload_reminder_days`). |
+| Revoke | **Deletes the stored file** and sets status to rejected (same cleanup path as reject), with required note + student email + audit. |
+| Bulk reject note | **One shared optional note** on the bulk bar, applied to every selected student. Empty note allowed (same as single reject today). Not a separate portal setting — the note itself is what admins “adjust” per batch. |
+| Keyboard shortcuts (#7) | **Defer to v2** of the modal flow. v1 ships **auto-advance / focus next pending** after approve/reject only. Shortcuts (below) are optional polish later. |
+
+### What “keyboard shortcuts” means
+
+While the review modal is open, hotkeys so admins need not reach for the mouse on every decision, e.g.:
+
+- **A** → approve current photo  
+- **R** → focus the rejection-note field (then Enter submits reject, with the existing confirm dialog)  
+- Optionally **Esc** → close (Bootstrap already does this)
+
+They only apply when focus is **not** inside a text input (so typing a rejection note is not interrupted).  
+This is speed sugar for high-volume review; the valuable part of #7 is **opening the next pending student after a decision**. Shortcuts can wait.
+
+---
+
+## Open product questions
+
+_None remaining for 1–8 — decisions above are locked._
