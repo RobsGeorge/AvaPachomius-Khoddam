@@ -9,6 +9,8 @@ return [
     'approved' => 'Photo approved for :name.',
     'rejected' => 'Photo rejected for :name.',
     'grace_days' => 'Grace period (days)',
+    'reupload_reminder_days' => 'Re-upload reminder delay (days)',
+    'reupload_reminder_days_hint' => 'Remind a student after this many days without replacing a rejected photo.',
     'gate_enabled' => 'Publish profile photo requirement',
     'gate_status_on' => 'Published — students without an approved photo get :days days from their first visit.',
     'gate_status_off' => 'Unpublished — no student banners, deadlines, or locks are shown.',

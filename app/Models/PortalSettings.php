@@ -18,11 +18,13 @@ class PortalSettings extends Model
         'profile_photo_grace_days',
         'profile_photo_gate_enabled',
         'profile_photo_gate_enabled_at',
+        'profile_photo_reupload_reminder_days',
     ];
 
     protected $casts = [
         'profile_photo_grace_days' => 'integer',
         'profile_photo_gate_enabled' => 'boolean',
+        'profile_photo_reupload_reminder_days' => 'integer',
         // Do not cast profile_photo_gate_enabled_at: MySQL zero-dates throw on datetime cast
         // and this value is read on every authenticated page via the photo gate.
     ];
@@ -36,6 +38,7 @@ class PortalSettings extends Model
                 'id' => 1,
                 'profile_photo_grace_days' => 3,
                 'profile_photo_gate_enabled' => true,
+                'profile_photo_reupload_reminder_days' => 2,
             ]);
         }
 
@@ -45,6 +48,10 @@ class PortalSettings extends Model
             'profile_photo_gate_enabled_at' => Schema::hasColumn('portal_settings', 'profile_photo_gate_enabled_at')
                 ? now()
                 : null,
+            'profile_photo_reupload_reminder_days' => Schema::hasColumn(
+                'portal_settings',
+                'profile_photo_reupload_reminder_days'
+            ) ? 2 : null,
         ], fn ($value) => $value !== null));
 
         $rawEnabledAt = $settings->getAttributes()['profile_photo_gate_enabled_at'] ?? null;

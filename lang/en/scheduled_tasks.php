@@ -130,6 +130,7 @@ return [
         'notifications_scan_events' => 'Scan nearby events',
         'notifications_scan_instructor' => 'Instructor alerts',
         'notifications_scan_grades_risk' => 'Below-passing grade alerts',
+        'profile_photos_scan_reupload_reminders' => 'Profile photo re-upload reminders',
         'notifications_fire_reminders' => 'Fire custom reminders',
     ],
     'scheduler_heartbeat_desc' => 'Internal every-minute tick that proves OS cron is calling schedule:run. Used for the health banner above.',
@@ -141,5 +142,6 @@ return [
     'notifications_scan_events_desc' => 'Scans for nearby reservable events and notifies students.',
     'notifications_scan_instructor_desc' => 'Alerts instructors about unclosed sessions, absent streaks, and ungraded work.',
     'notifications_scan_grades_risk_desc' => 'Weekly scan for students below passing grade thresholds.',
+    'profile_photos_scan_reupload_reminders_desc' => 'Daily scan that reminds students to replace rejected profile photos.',
     'notifications_fire_reminders_desc' => 'Dispatches due custom user reminders every five minutes.',
 ];

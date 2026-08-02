@@ -367,6 +367,7 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
         $this->actingAs($admin)
             ->put(route('admin.profile-photos.settings'), [
                 'profile_photo_grace_days' => 5,
+                'profile_photo_reupload_reminder_days' => 2,
                 'profile_photo_gate_enabled' => '0',
             ])
             ->assertRedirect();

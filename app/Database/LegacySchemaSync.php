@@ -194,11 +194,19 @@ final class LegacySchemaSync
             MigrationSupport::addColumn('portal_settings', 'profile_photo_gate_enabled_at', function (Blueprint $table) {
                 $table->timestamp('profile_photo_gate_enabled_at')->nullable();
             });
+            MigrationSupport::addColumn('portal_settings', 'profile_photo_reupload_reminder_days', function (Blueprint $table) {
+                $table->unsignedTinyInteger('profile_photo_reupload_reminder_days')->default(2);
+            });
 
             return;
         }
 
         self::addMysqlColumnIfMissing('portal_settings', 'profile_photo_gate_enabled_at', 'TIMESTAMP NULL');
+        self::addMysqlColumnIfMissing(
+            'portal_settings',
+            'profile_photo_reupload_reminder_days',
+            'TINYINT UNSIGNED NOT NULL DEFAULT 2'
+        );
     }
 
     private static function ensureOtpCodeTable(): void

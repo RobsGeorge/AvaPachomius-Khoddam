@@ -130,6 +130,7 @@ return [
         'notifications_scan_events' => 'فحص الفعاليات القريبة',
         'notifications_scan_instructor' => 'تنبيهات المُدرّسين',
         'notifications_scan_grades_risk' => 'تنبيهات الدرجات المنخفضة',
+        'profile_photos_scan_reupload_reminders' => 'تذكيرات إعادة رفع الصورة الشخصية',
         'notifications_fire_reminders' => 'إرسال التذكيرات المخصصة',
     ],
     'scheduler_heartbeat_desc' => 'نبضة داخلية كل دقيقة تثبت أن كرون النظام يستدعي schedule:run. تُستخدم لشريط الحالة أعلاه.',
@@ -141,5 +142,6 @@ return [
     'notifications_scan_events_desc' => 'يفحص الفعاليات القريبة القابلة للحجز ويُشعر الطلاب.',
     'notifications_scan_instructor_desc' => 'يُنبّه المُدرّسين بالجلسات غير المغلقة وسلاسل الغياب والواجبات غير المصححة.',
     'notifications_scan_grades_risk_desc' => 'فحص أسبوعي للطلاب دون حد النجاح.',
+    'profile_photos_scan_reupload_reminders_desc' => 'فحص يومي لتذكير الطلاب باستبدال الصور الشخصية المرفوضة.',
     'notifications_fire_reminders_desc' => 'يرسل التذكيرات المخصصة المستحقة كل خمس دقائق.',
 ];

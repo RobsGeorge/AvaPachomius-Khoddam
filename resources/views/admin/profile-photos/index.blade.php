@@ -24,7 +24,14 @@
                     <input type="number" min="1" max="90" class="form-control" id="profile_photo_grace_days"
                            name="profile_photo_grace_days" value="{{ old('profile_photo_grace_days', $settings->profile_photo_grace_days) }}" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label for="profile_photo_reupload_reminder_days" class="form-label">{{ __('profile_photos.reupload_reminder_days') }}</label>
+                    <input type="number" min="1" max="30" class="form-control" id="profile_photo_reupload_reminder_days"
+                           name="profile_photo_reupload_reminder_days"
+                           value="{{ old('profile_photo_reupload_reminder_days', $settings->profile_photo_reupload_reminder_days ?? 2) }}" required>
+                    <div class="form-text">{{ __('profile_photos.reupload_reminder_days_hint') }}</div>
+                </div>
+                <div class="col-md-3">
                     <div class="form-check mt-4">
                         <input type="hidden" name="profile_photo_gate_enabled" value="0">
                         <input class="form-check-input" type="checkbox" name="profile_photo_gate_enabled" value="1" id="profile_photo_gate_enabled"
