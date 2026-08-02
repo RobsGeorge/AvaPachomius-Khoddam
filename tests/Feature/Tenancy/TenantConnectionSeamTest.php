@@ -3,8 +3,8 @@
 namespace Tests\Feature\Tenancy;
 
 use App\Models\Church;
-use App\Models\Family;
 use App\Models\Organization;
+use App\Models\Residence;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantDatabaseResolver;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,6 +15,7 @@ use Tests\Support\EventModuleTestCase;
 /**
  * Diocese-tier residency seam — placement on organizations + repointable tenant
  * connection. Shared path must remain a true no-op (including Tenant Zero).
+ * Canary model: Residence (after Family soft-deprecation).
  */
 class TenantConnectionSeamTest extends EventModuleTestCase
 {
@@ -44,33 +45,33 @@ class TenantConnectionSeamTest extends EventModuleTestCase
         $this->assertNull($main->db_password_encrypted);
     }
 
-    public function test_shared_path_family_writes_primary_and_church_scope_applies(): void
+    public function test_shared_path_residence_writes_primary_and_church_scope_applies(): void
     {
         $churchA = Church::main();
         $churchB = $this->createChurch(['slug' => 'seam-shared-b', 'name' => 'Seam Shared B']);
 
         TenantContext::set($churchA);
         $this->assertFalse(TenantDatabaseResolver::usesIsolatedConnection());
-        $this->assertSame(config('database.default'), (new Family)->getConnectionName());
+        $this->assertSame(config('database.default'), (new Residence)->getConnectionName());
 
-        $familyA = Family::create(['name' => 'Shared Family A']);
-        $this->assertSame($churchA->church_id, (int) $familyA->church_id);
+        $residenceA = Residence::create(['address' => 'Shared Residence A']);
+        $this->assertSame($churchA->church_id, (int) $residenceA->church_id);
         $this->assertTrue(
             DB::connection(config('database.default'))
-                ->table('families')
-                ->where('family_id', $familyA->family_id)
+                ->table('residences')
+                ->where('residence_id', $residenceA->residence_id)
                 ->exists()
         );
 
         TenantContext::set($churchB);
-        $familyB = Family::create(['name' => 'Shared Family B']);
-        $this->assertSame($churchB->church_id, (int) $familyB->church_id);
-        $this->assertNull(Family::find($familyA->family_id));
-        $this->assertNotNull(Family::find($familyB->family_id));
+        $residenceB = Residence::create(['address' => 'Shared Residence B']);
+        $this->assertSame($churchB->church_id, (int) $residenceB->church_id);
+        $this->assertNull(Residence::find($residenceA->residence_id));
+        $this->assertNotNull(Residence::find($residenceB->residence_id));
 
         TenantContext::set($churchA);
-        $this->assertNotNull(Family::find($familyA->family_id));
-        $this->assertNull(Family::find($familyB->family_id));
+        $this->assertNotNull(Residence::find($residenceA->residence_id));
+        $this->assertNull(Residence::find($residenceB->residence_id));
     }
 
     public function test_top_level_org_without_parent_defaults_to_shared(): void
@@ -86,7 +87,7 @@ class TenantConnectionSeamTest extends EventModuleTestCase
         $this->assertSame((int) $org->organization_id, (int) $placement->organization_id);
         $this->assertFalse(TenantDatabaseResolver::usesIsolatedConnection());
 
-        Family::create(['name' => 'Orphan Family']);
+        Residence::create(['address' => 'Orphan Residence']);
         $this->assertFalse(TenantDatabaseResolver::usesIsolatedConnection());
     }
 
@@ -94,33 +95,33 @@ class TenantConnectionSeamTest extends EventModuleTestCase
     {
         [$church, $diocese] = $this->seedIsolatedDioceseChurch();
 
-        $primaryBefore = DB::connection(config('database.default'))->table('families')->count();
+        $primaryBefore = DB::connection(config('database.default'))->table('residences')->count();
 
         TenantContext::set($church);
         $this->assertTrue(TenantDatabaseResolver::usesIsolatedConnection());
-        $this->assertSame('tenant', (new Family)->getConnectionName());
+        $this->assertSame('tenant', (new Residence)->getConnectionName());
 
-        $family = Family::create(['name' => 'Isolated Family']);
-        $this->assertSame($church->church_id, (int) $family->church_id);
+        $residence = Residence::create(['address' => 'Isolated Residence']);
+        $this->assertSame($church->church_id, (int) $residence->church_id);
 
         $this->assertSame(
             $primaryBefore,
-            DB::connection(config('database.default'))->table('families')->count(),
+            DB::connection(config('database.default'))->table('residences')->count(),
             'Primary schema must stay untouched under isolated placement'
         );
         $this->assertTrue(
-            DB::connection('tenant')->table('families')->where('family_id', $family->family_id)->exists()
+            DB::connection('tenant')->table('residences')->where('residence_id', $residence->residence_id)->exists()
         );
         $this->assertSame(
-            'Isolated Family',
-            DB::connection('tenant')->table('families')->where('family_id', $family->family_id)->value('name')
+            'Isolated Residence',
+            DB::connection('tenant')->table('residences')->where('residence_id', $residence->residence_id)->value('address')
         );
 
         // Bind Tenant Zero again — must purge + leave isolated connection.
         TenantContext::set(Church::main());
         $this->assertFalse(TenantDatabaseResolver::usesIsolatedConnection());
-        $this->assertSame(config('database.default'), (new Family)->getConnectionName());
-        $this->assertNull(Family::withoutTenancy()->find($family->family_id));
+        $this->assertSame(config('database.default'), (new Residence)->getConnectionName());
+        $this->assertNull(Residence::withoutTenancy()->find($residence->residence_id));
     }
 
     public function test_db_password_encrypted_at_rest_and_hidden(): void
@@ -191,10 +192,12 @@ class TenantConnectionSeamTest extends EventModuleTestCase
 
         // Point tenant at the isolated sqlite and create the canary table only there.
         TenantDatabaseResolver::bindIsolated($diocese->fresh());
-        Schema::connection('tenant')->create('families', function (Blueprint $table) {
-            $table->id('family_id');
+        Schema::connection('tenant')->create('residences', function (Blueprint $table) {
+            $table->id('residence_id');
             $table->unsignedBigInteger('church_id')->nullable()->index();
-            $table->string('name', 191)->nullable();
+            $table->string('address', 500);
+            $table->string('geo', 128)->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
         // Leave isolated flag set so the next TenantContext::set re-binds cleanly;

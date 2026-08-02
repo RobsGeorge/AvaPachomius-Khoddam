@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Person extends Model
 {
@@ -76,6 +77,9 @@ class Person extends Model
         return $this->hasMany(User::class, 'person_id', 'person_id');
     }
 
+    /**
+     * @deprecated Soft-deprecated with Family/FamilyMember — prefer residenceMemberships().
+     */
     public function familyMemberships(): HasMany
     {
         return $this->hasMany(FamilyMember::class, 'person_id', 'person_id');
@@ -84,6 +88,16 @@ class Person extends Model
     public function relationships(): HasMany
     {
         return $this->hasMany(Relationship::class, 'person_id', 'person_id');
+    }
+
+    public function residenceMemberships(): HasMany
+    {
+        return $this->hasMany(ResidenceMember::class, 'person_id', 'person_id');
+    }
+
+    public function contacts(): MorphMany
+    {
+        return $this->morphMany(Contact::class, 'contactable');
     }
 
     public function placements(): HasMany

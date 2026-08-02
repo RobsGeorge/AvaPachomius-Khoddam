@@ -13,6 +13,12 @@ class Relationship extends Model
 
     public const TYPE_GUARDIAN_OF = 'guardian_of';
 
+    public const TYPE_CHILD_OF = 'child_of';
+
+    public const TYPE_SPOUSE_OF = 'spouse_of';
+
+    public const TYPE_SIBLING_OF = 'sibling_of';
+
     public const VISIBILITY_FULL = 'full';
 
     public const VISIBILITY_RESTRICTED = 'restricted';

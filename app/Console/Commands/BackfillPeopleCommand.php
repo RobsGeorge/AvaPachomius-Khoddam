@@ -109,8 +109,8 @@ class BackfillPeopleCommand extends Command
                 if ($person->users()->exists()) {
                     continue;
                 }
-                // Skip if family/relationship rows still reference them.
-                if ($person->familyMemberships()->exists() || $person->relationships()->exists()) {
+                // Skip if relationship or residence rows still reference them.
+                if ($person->relationships()->exists() || $person->residenceMemberships()->exists()) {
                     continue;
                 }
                 $person->delete();

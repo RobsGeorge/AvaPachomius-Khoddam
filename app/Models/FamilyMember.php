@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @deprecated Soft-deprecated 2026-08-24 with {@see Family}. Prefer residence_members
+ * for co-residence and Relationship edges for kinship. Tables retained until Phase 5.
+ */
 class FamilyMember extends Model
 {
     protected $table = 'family_members';
