@@ -29,6 +29,7 @@
                     <input type="number" min="1" max="30" class="form-control" id="profile_photo_reupload_reminder_days"
                            name="profile_photo_reupload_reminder_days"
                            value="{{ old('profile_photo_reupload_reminder_days', $settings->profile_photo_reupload_reminder_days ?? 2) }}" required>
+                    <div class="form-text">{{ __('profile_photos.reupload_reminder_days_hint') }}</div>
                 </div>
                 <div class="col-md-5">
                     <div class="form-check mt-4">

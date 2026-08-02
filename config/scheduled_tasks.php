@@ -116,6 +116,17 @@ return [
                 'time' => '09:00',
             ],
         ],
+        'profile_photos.scan_reupload_reminders' => [
+            'label' => 'scheduled_tasks.tasks.profile_photos_scan_reupload_reminders',
+            'description' => 'scheduled_tasks.profile_photos_scan_reupload_reminders_desc',
+            'type' => 'command',
+            'command' => 'profile-photos:scan-reupload-reminders',
+            'schedule' => [
+                'frequency' => 'daily_at',
+                'time' => '09:00',
+                'timezone' => 'attendance.timezone',
+            ],
+        ],
         'notifications.fire_reminders' => [
             'label' => 'scheduled_tasks.tasks.notifications_fire_reminders',
             'description' => 'scheduled_tasks.notifications_fire_reminders_desc',

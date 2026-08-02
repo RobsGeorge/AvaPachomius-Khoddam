@@ -8,6 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasTable('portal_settings')
+            || Schema::hasColumn('portal_settings', 'profile_photo_reupload_reminder_days')) {
+            return;
+        }
+
         Schema::table('portal_settings', function (Blueprint $table) {
             $table->unsignedTinyInteger('profile_photo_reupload_reminder_days')
                 ->default(2)
@@ -17,8 +22,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('portal_settings', function (Blueprint $table) {
-            $table->dropColumn('profile_photo_reupload_reminder_days');
-        });
+        // Additive migration: contractions are intentionally deferred.
     }
 };

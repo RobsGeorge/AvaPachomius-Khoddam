@@ -13,6 +13,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class ProfilePhotoAdminService
@@ -142,9 +143,12 @@ class ProfilePhotoAdminService
 
         $payload = [
             'profile_photo_grace_days' => max(1, min(90, $graceDays)),
-            'profile_photo_reupload_reminder_days' => max(1, min(30, $reuploadReminderDays)),
             'profile_photo_gate_enabled' => $enabled,
         ];
+
+        if (Schema::hasColumn('portal_settings', 'profile_photo_reupload_reminder_days')) {
+            $payload['profile_photo_reupload_reminder_days'] = max(1, min(30, $reuploadReminderDays));
+        }
 
         if ($enabled && ! $wasEnabled) {
             $payload['profile_photo_gate_enabled_at'] = now($this->gate->timezone());
