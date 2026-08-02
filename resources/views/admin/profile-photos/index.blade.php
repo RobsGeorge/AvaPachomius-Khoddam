@@ -404,6 +404,17 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
     syncBulkIds();
+
+    const focusId = new URLSearchParams(window.location.search).get('focus');
+    if (focusId) {
+        const trigger = document.querySelector('.student-photo-trigger[data-user-id="' + focusId + '"]');
+        if (trigger && window.bootstrap && bootstrap.Modal) {
+            const modalEl = document.getElementById('profilePhotoReviewModal');
+            if (modalEl) {
+                bootstrap.Modal.getOrCreateInstance(modalEl).show(trigger);
+            }
+        }
+    }
 });
 </script>
 @endpush
