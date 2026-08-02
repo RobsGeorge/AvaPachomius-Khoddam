@@ -52,4 +52,8 @@ return [
     'approval_email_action' => 'Open the dashboard to continue where you left off.',
     'approval_email_button' => 'Go to dashboard',
     'no_actions_for_status' => 'No admin actions for this status.',
+    'waiting_under_one_hour' => 'Waiting under 1 hour',
+    'waiting_hours' => 'Waiting :count hours',
+    'waiting_days' => 'Waiting :count days',
+    'waiting_unknown' => 'Waiting (upload time unknown)',
 ];
