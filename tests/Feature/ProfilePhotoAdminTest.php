@@ -367,11 +367,104 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
         $this->actingAs($admin)
             ->put(route('admin.profile-photos.settings'), [
                 'profile_photo_grace_days' => 5,
+                'profile_photo_reupload_reminder_days' => 2,
                 'profile_photo_gate_enabled' => '0',
             ])
             ->assertRedirect();
 
         $this->assertFalse(PortalSettings::current()->fresh()->profile_photo_gate_enabled);
+    }
+
+    public function test_admin_can_save_reupload_reminder_days(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $admin = $this->createUser(['email' => 'reminder-settings-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Reminder Settings Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $this->actingAs($admin)
+            ->put(route('admin.profile-photos.settings'), [
+                'profile_photo_grace_days' => 4,
+                'profile_photo_reupload_reminder_days' => 5,
+                'profile_photo_gate_enabled' => '1',
+            ])
+            ->assertRedirect();
+
+        $settings = PortalSettings::current()->fresh();
+        $this->assertSame(4, (int) $settings->profile_photo_grace_days);
+        $this->assertSame(5, (int) $settings->profile_photo_reupload_reminder_days);
+        $this->assertTrue((bool) $settings->profile_photo_gate_enabled);
+    }
+
+    public function test_reupload_reminder_fires_once_for_eligible_rejected_student(): void
+    {
+        Mail::fake();
+
+        $studentRole = $this->createRole('student');
+        $student = $this->createUser([
+            'email' => 'reupload-eligible@example.com',
+            'profile_photo' => '',
+            'profile_photo_status' => User::PHOTO_STATUS_REJECTED,
+            'profile_photo_reviewed_at' => now()->subDays(3),
+            'registration_completed' => true,
+        ]);
+        $course = $this->createCourse(['title' => 'Reupload Reminder Course']);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        PortalSettings::current()->update(['profile_photo_reupload_reminder_days' => 2]);
+
+        $service = app(\App\Services\ProfilePhotoReuploadReminderService::class);
+        $this->assertSame(1, $service->sendReminders());
+        $this->assertSame(0, $service->sendReminders());
+
+        $notification = UserNotification::query()
+            ->where('user_id', $student->user_id)
+            ->where('type', 'profile_photo_reupload_reminder')
+            ->first();
+
+        $this->assertNotNull($notification);
+        $this->assertSame(
+            1,
+            UserNotification::query()
+                ->where('user_id', $student->user_id)
+                ->where('type', 'profile_photo_reupload_reminder')
+                ->count()
+        );
+        $this->assertStringContainsString(
+            (string) $student->fresh()->profile_photo_reviewed_at->getTimestamp(),
+            (string) $notification->dedupe_key
+        );
+
+        Mail::assertSent(NotificationMail::class, function (NotificationMail $mail) use ($student) {
+            return $mail->hasTo($student->email);
+        });
+    }
+
+    public function test_reupload_reminder_skips_student_who_reuploaded_to_pending(): void
+    {
+        $studentRole = $this->createRole('student');
+        $student = $this->createUser([
+            'email' => 'reupload-pending@example.com',
+            'profile_photo' => 'profile_photos/new.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+            'profile_photo_uploaded_at' => now(),
+            'profile_photo_reviewed_at' => now()->subDays(5),
+            'registration_completed' => true,
+        ]);
+        $course = $this->createCourse(['title' => 'Reupload Pending Course']);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        PortalSettings::current()->update(['profile_photo_reupload_reminder_days' => 2]);
+
+        $sent = app(\App\Services\ProfilePhotoReuploadReminderService::class)->sendReminders();
+        $this->assertSame(0, $sent);
+        $this->assertSame(
+            0,
+            UserNotification::query()
+                ->where('user_id', $student->user_id)
+                ->where('type', 'profile_photo_reupload_reminder')
+                ->count()
+        );
     }
 
     public function test_registration_photo_sets_pending_review_status(): void

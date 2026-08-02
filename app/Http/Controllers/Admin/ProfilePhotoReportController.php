@@ -30,12 +30,14 @@ class ProfilePhotoReportController extends Controller
     {
         $data = $request->validate([
             'profile_photo_grace_days' => 'required|integer|min:1|max:90',
+            'profile_photo_reupload_reminder_days' => 'required|integer|min:1|max:30',
             'profile_photo_gate_enabled' => 'sometimes|boolean',
         ]);
 
         $this->adminService->updateSettings(
             (int) $data['profile_photo_grace_days'],
-            $request->boolean('profile_photo_gate_enabled')
+            $request->boolean('profile_photo_gate_enabled'),
+            (int) $data['profile_photo_reupload_reminder_days']
         );
 
         return back()->with('success', __('profile_photos.settings_saved'));

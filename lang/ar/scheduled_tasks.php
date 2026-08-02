@@ -131,6 +131,7 @@ return [
         'notifications_scan_instructor' => 'تنبيهات المُدرّسين',
         'notifications_scan_grades_risk' => 'تنبيهات الدرجات المنخفضة',
         'notifications_fire_reminders' => 'إرسال التذكيرات المخصصة',
+        'photos_send_reupload_reminders' => 'تذكيرات إعادة رفع الصورة الشخصية',
     ],
     'scheduler_heartbeat_desc' => 'نبضة داخلية كل دقيقة تثبت أن كرون النظام يستدعي schedule:run. تُستخدم لشريط الحالة أعلاه.',
     'attendance_mark_absent_desc' => 'إغلاق الحضور وتسجيل الغياب عند منتصف الليل عند تفعيل الإغلاق التلقائي.',
@@ -142,4 +143,5 @@ return [
     'notifications_scan_instructor_desc' => 'يُنبّه المُدرّسين بالجلسات غير المغلقة وسلاسل الغياب والواجبات غير المصححة.',
     'notifications_scan_grades_risk_desc' => 'فحص أسبوعي للطلاب دون حد النجاح.',
     'notifications_fire_reminders_desc' => 'يرسل التذكيرات المخصصة المستحقة كل خمس دقائق.',
+    'photos_send_reupload_reminders_desc' => 'يذكّر الطلاب المرفوضة صورهم بإعادة الرفع بعد المدة المضبوطة.',
 ];
