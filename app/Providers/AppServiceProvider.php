@@ -21,8 +21,12 @@ use App\Observability\Sinks\SentryErrorSink;
 use App\Services\Tenancy\EncryptedConfigTenantSecretStore;
 use App\Tenancy\TenantContext;
 use App\Validation\SafeValidator;
+use App\Models\Contact;
+use App\Models\Person;
+use App\Models\Residence;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Events\MigrationsStarted;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Cache;
@@ -109,6 +113,12 @@ class AppServiceProvider extends ServiceProvider
         // T2 — @capability('exams') ... @endcapability. Returns true when no church is
         // bound (tenancy dormant) so nav renders unchanged in production until cutover.
         Blade::if('capability', fn (string $key) => TenantContext::current()?->hasCapability($key) ?? true);
+
+        // Contact morph aliases (ADR §24): short types person|residence, not FQCN.
+        Relation::morphMap([
+            Contact::CONTACTABLE_PERSON => Person::class,
+            Contact::CONTACTABLE_RESIDENCE => Residence::class,
+        ]);
     }
 
     /**

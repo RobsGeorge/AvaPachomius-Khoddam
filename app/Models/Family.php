@@ -3,18 +3,17 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-use App\Tenancy\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Household container (canary for {@see BelongsToTenant} — low UI blast radius).
- * FamilyMember stays on the default connection until a later residency slice.
+ * @deprecated Soft-deprecated 2026-08-24 (ADR §21: family is edges, never a container).
+ * Tables retained until Phase-5 contraction. BelongsToTenant canary moved to {@see Residence}.
+ * Do not use for new product paths — use Relationship edges + Residence instead.
  */
 class Family extends Model
 {
     use BelongsToChurch;
-    use BelongsToTenant;
 
     protected $table = 'families';
 
