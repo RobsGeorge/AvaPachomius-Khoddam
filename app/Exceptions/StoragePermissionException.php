@@ -50,8 +50,25 @@ class StoragePermissionException extends Exception
         ], 503);
     }
 
+    /**
+     * A persistently broken session/cache file (e.g. wrong owner/mode for one
+     * visitor after a deploy chmod/chown pass) fails identically on *every*
+     * request, not just this one. Bouncing to "referer" or "previous URL" then
+     * risks an infinite redirect: request A fails and redirects to B, B fails the
+     * same way and redirects back to A (or to the login/profile fallback, which
+     * itself fails and redirects to B again) — forever, i.e. the browser's
+     * "too many redirects" error. `RETRY_MARKER` caps this at a single extra hop:
+     * once a redirect we issued for this exact failure is followed and fails
+     * again, we stop trying to be clever and show the dedicated error page.
+     */
+    private const RETRY_MARKER = 'storage_retry';
+
     private function tryFlashRedirect(Request $request, string $message): ?RedirectResponse
     {
+        if ($request->query(self::RETRY_MARKER) === '1') {
+            return null;
+        }
+
         try {
             if (! $request->hasSession()) {
                 return null;
@@ -69,11 +86,21 @@ class StoragePermissionException extends Exception
                 $target = $fallback;
             }
 
+            // Belt-and-suspenders: never hand back the exact URL that just failed.
+            if ($target === $request->fullUrl()) {
+                return null;
+            }
+
             return redirect()
-                ->to($target)
+                ->to($this->withRetryMarker($target))
                 ->with('error', $message);
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function withRetryMarker(string $url): string
+    {
+        return $url.(str_contains($url, '?') ? '&' : '?').self::RETRY_MARKER.'=1';
     }
 }
