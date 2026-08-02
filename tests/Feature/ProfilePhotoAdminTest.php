@@ -590,6 +590,31 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => false, 'revoke' => false],
             $gate->adminActions($notStarted)
         );
+
+        PortalSettings::current()->update([
+            'profile_photo_gate_enabled' => true,
+            'profile_photo_grace_days' => 3,
+        ]);
+
+        $inGrace = $this->createUser([
+            'email' => 'actions-in-grace@example.com',
+            'profile_photo' => '',
+            'profile_photo_grace_started_at' => now()->subDay(),
+        ]);
+        $this->assertSame(
+            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => true, 'revoke' => false],
+            $gate->adminActions($inGrace)
+        );
+
+        $overdue = $this->createUser([
+            'email' => 'actions-overdue@example.com',
+            'profile_photo' => '',
+            'profile_photo_grace_started_at' => now()->subDays(5),
+        ]);
+        $this->assertSame(
+            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => true, 'revoke' => false],
+            $gate->adminActions($overdue)
+        );
     }
 
     public function test_approved_students_do_not_see_extend_or_reset_actions(): void
@@ -635,6 +660,8 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             'profile_photo' => 'profile_photos/revoke-me.jpg',
             'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
             'profile_photo_uploaded_at' => now()->subDay(),
+            'profile_photo_grace_started_at' => now()->subDays(5),
+            'profile_photo_deadline_at' => now()->addDay(),
         ]);
         $course = $this->createCourse(['title' => 'Revoke Course']);
         $this->assignCourseRole($admin, $course, $adminRole);
@@ -698,6 +725,26 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
                 'profile_photo_rejection_note' => 'Should not work',
             ])
             ->assertStatus(422);
+    }
+
+    public function test_non_admin_cannot_revoke_approved_photo(): void
+    {
+        $studentRole = $this->createRole('student');
+        $actor = $this->createUser(['email' => 'revoke-forbidden-actor@example.com']);
+        $student = $this->createUser([
+            'email' => 'revoke-forbidden-student@example.com',
+            'profile_photo' => 'profile_photos/approved.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
+        ]);
+        $course = $this->createCourse(['title' => 'Revoke Forbidden Course']);
+        $this->assignCourseRole($actor, $course, $studentRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($actor)
+            ->post(route('admin.profile-photos.revoke', $student), [
+                'profile_photo_rejection_note' => 'Must not be allowed',
+            ])
+            ->assertForbidden();
     }
 
     public function test_photo_upload_notifies_course_admins_via_portal_and_email(): void
