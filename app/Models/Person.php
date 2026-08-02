@@ -32,6 +32,7 @@ class Person extends Model
         'gender',
         'is_minor',
         'retired_at',
+        'deceased_at',
         'merged_into_person_id',
     ];
 
@@ -39,6 +40,7 @@ class Person extends Model
         'date_of_birth' => 'date',
         'is_minor' => 'boolean',
         'retired_at' => 'datetime',
+        'deceased_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -115,8 +117,18 @@ class Person extends Model
         return $this->hasMany(Attendance::class, 'person_id', 'person_id');
     }
 
+    public function sacraments(): HasMany
+    {
+        return $this->hasMany(Sacrament::class, 'person_id', 'person_id');
+    }
+
     public function isRetired(): bool
     {
         return $this->retired_at !== null;
+    }
+
+    public function isDeceased(): bool
+    {
+        return $this->deceased_at !== null;
     }
 }

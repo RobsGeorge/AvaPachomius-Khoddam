@@ -11,6 +11,19 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    @can('viewAny', App\Models\Sacrament::class)
+        <div class="mb-3">
+            <a href="{{ route('people.sacraments.index', $person) }}" class="btn btn-outline-primary">
+                {{ __('sacraments.title') }}
+            </a>
+            @can('create', App\Models\Sacrament::class)
+                <a href="{{ route('people.sacraments.create', $person) }}" class="btn btn-primary">
+                    {{ __('sacraments.record') }}
+                </a>
+            @endcan
+        </div>
+    @endcan
+
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="app-card card shadow-sm">

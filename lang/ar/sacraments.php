@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'title' => 'الأسرار',
+    'title_for' => 'الأسرار — :name',
+    'record' => 'تسجيل سر',
+    'correct' => 'تصحيح السجل',
+    'correct_title' => 'تصحيح سر',
+    'recorded' => 'تم تسجيل السر.',
+    'corrected' => 'تم تسجيل التصحيح. السجل الأصلي لم يُغيَّر.',
+    'empty' => 'لا توجد أسرار مسجّلة بعد.',
+    'back_to_person' => 'العودة إلى الشخص',
+    'back_to_list' => 'العودة إلى الأسرار',
+    'original' => 'تصحيح للسجل الأصلي رقم #:id',
+    'fields' => [
+        'type' => 'النوع',
+        'date' => 'التاريخ',
+        'date_precision' => 'دقة التاريخ',
+        'location_text' => 'المكان (نص)',
+        'location_church_id' => 'معرّف كنيسة المكان',
+        'officiant_person_id' => 'معرّف القائم بالسر',
+        'second_person_id' => 'معرّف الشخص الثاني (زوج/ة أو شاهد)',
+        'recorded_at' => 'وقت التسجيل',
+    ],
+    'precision' => [
+        'day' => 'يوم محدد',
+        'month' => 'شهر فقط',
+        'year' => 'سنة فقط',
+    ],
+    'types' => [
+        'baptism' => 'معمودية',
+        'chrismation' => 'مسحة مقدسة',
+        'eucharist_first' => 'أول تناول',
+        'marriage' => 'إكليل',
+        'repose' => 'نياحة',
+        'ordination' => 'سيامة',
+    ],
+    'date_year' => ':year',
+    'date_month' => ':ym',
+    'date_day' => ':ymd',
+    'deceased_badge' => 'متنيّح',
+];
