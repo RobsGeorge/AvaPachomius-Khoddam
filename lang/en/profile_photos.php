@@ -56,4 +56,10 @@ return [
     'waiting_hours' => 'Waiting :count hours',
     'waiting_days' => 'Waiting :count days',
     'waiting_unknown' => 'Waiting (upload time unknown)',
+    'bulk_select_all' => 'Select all on page',
+    'bulk_approve' => 'Approve selected',
+    'bulk_reject' => 'Reject selected',
+    'bulk_approved' => 'Approved :approved photo(s); skipped :skipped.',
+    'bulk_rejected' => 'Rejected :rejected photo(s); skipped :skipped.',
+    'confirm_bulk_reject' => 'Reject all selected photos? Students will be notified and must upload again.',
 ];
