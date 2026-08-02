@@ -1018,5 +1018,9 @@ return [
     'profile_photo_required_link'         => 'Upload photo now',
     'profile_photo_required_locked'       => 'Your personal photo is required. Upload it to unlock the platform.',
     'profile_photo_modal_title'           => 'Profile photo',
+    'profile_photo_upload_tip'            => 'Use a clear photo of your face. Avoid group photos or extreme crops.',
+    'profile_photo_warn_small'            => 'This image looks quite small (under 200px). A clearer photo helps approval.',
+    'profile_photo_warn_aspect'           => 'This image has an unusual aspect ratio. A normal portrait works best.',
+    'profile_photo_warn_continue'         => 'Upload anyway?',
     'view_photo'                          => 'View photo',
 ];
