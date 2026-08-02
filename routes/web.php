@@ -367,6 +367,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/profile-photos/{user}/reset-grace', [ProfilePhotoReportController::class, 'resetGrace'])->name('profile-photos.reset-grace');
     Route::post('/profile-photos/{user}/approve', [ProfilePhotoReportController::class, 'approve'])->name('profile-photos.approve');
     Route::post('/profile-photos/{user}/reject', [ProfilePhotoReportController::class, 'reject'])->name('profile-photos.reject');
+    Route::post('/profile-photos/{user}/revoke', [ProfilePhotoReportController::class, 'revoke'])->name('profile-photos.revoke');
     Route::post('/profile-photos/bulk-approve', [ProfilePhotoReportController::class, 'bulkApprove'])->name('profile-photos.bulk-approve');
     Route::post('/profile-photos/bulk-reject', [ProfilePhotoReportController::class, 'bulkReject'])->name('profile-photos.bulk-reject');
     Route::get('/registration-applications', [RegistrationApplicationController::class, 'index'])->name('registration-applications.index');
