@@ -33,8 +33,9 @@
                 </select>
             </div>
             <div>
-                <label class="form-label" for="notes">{{ __('church_mgmt.notes') }}</label>
+                <label class="form-label" for="notes">{{ __('church_mgmt.scheduling_notes') }}</label>
                 <textarea name="notes" id="notes" class="form-control" rows="3">{{ old('notes', $visit->notes) }}</textarea>
+                <div class="form-text">{{ __('church_mgmt.scheduling_notes_hint') }}</div>
             </div>
         </div>
         <div class="card-footer d-flex justify-content-end gap-2">
@@ -42,5 +43,33 @@
             <button class="btn btn-primary" type="submit">{{ __('church_mgmt.save') }}</button>
         </div>
     </form>
+
+    <div class="app-card card shadow-sm mt-4">
+        <div class="card-body">
+            <h2 class="h5 mb-2">{{ __('church_mgmt.pastoral_notes_title') }}</h2>
+            <p class="text-muted-theme small mb-3">{{ __('church_mgmt.pastoral_notes_intro') }}</p>
+
+            @forelse($pastoralNotes as $note)
+                <div class="border-bottom py-2">
+                    <div class="small text-muted-theme">{{ $note->created_at?->timezone(config('app.timezone'))->format('Y-m-d H:i') }}</div>
+                    <div class="mt-1" style="white-space: pre-wrap;">{{ $note->body }}</div>
+                </div>
+            @empty
+                <p class="text-muted-theme mb-0">{{ __('church_mgmt.no_pastoral_notes') }}</p>
+            @endforelse
+
+            @if($canAppendPastoralNote)
+                <form method="POST" action="{{ route('church.home-visits.notes.store', $visit) }}" class="mt-3 d-flex flex-column gap-2">
+                    @csrf
+                    <label class="form-label" for="pastoral_body">{{ __('church_mgmt.add_pastoral_note') }}</label>
+                    <textarea name="body" id="pastoral_body" class="form-control @error('body') is-invalid @enderror" rows="3" required>{{ old('body') }}</textarea>
+                    @error('body')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                    <button class="btn btn-outline-primary align-self-end" type="submit">{{ __('church_mgmt.append_pastoral_note') }}</button>
+                </form>
+            @endif
+        </div>
+    </div>
 </div>
 @endsection
