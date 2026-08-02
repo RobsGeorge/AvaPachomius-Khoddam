@@ -123,5 +123,16 @@ return [
             'command' => 'notifications:fire-reminders',
             'schedule' => ['frequency' => 'every_five_minutes'],
         ],
+        'photos.send_reupload_reminders' => [
+            'label' => 'scheduled_tasks.tasks.photos_send_reupload_reminders',
+            'description' => 'scheduled_tasks.photos_send_reupload_reminders_desc',
+            'type' => 'command',
+            'command' => 'photos:send-reupload-reminders',
+            'schedule' => [
+                'frequency' => 'daily_at',
+                'time' => '09:30',
+                'timezone' => 'attendance.timezone',
+            ],
+        ],
     ],
 ];
