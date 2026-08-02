@@ -73,6 +73,22 @@ class StorageFailureNoRedirectLoopTest extends EventModuleTestCase
         $response->assertSee(__('auth.login_button'), false);
     }
 
+    /**
+     * Guests reach protected URLs all the time (bookmarks, announcement links, an
+     * expired session on an open tab). The auth redirect rebuilds `/login` from the
+     * route name, so anything the failure response appends to the URL is dropped on
+     * that hop and cannot be used to break out of a bounce.
+     */
+    public function test_guest_landing_on_a_protected_url_does_not_loop_when_the_cache_is_unwritable(): void
+    {
+        $this->failEveryCacheWrite();
+
+        $response = $this->followChain('/announcements');
+
+        $response->assertOk();
+        $response->assertSee(__('auth.login_button'), false);
+    }
+
     public function test_guest_login_page_renders_when_the_translation_cache_is_unwritable(): void
     {
         $this->failEveryCacheWrite();

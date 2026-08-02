@@ -10,10 +10,8 @@ class ExampleTest extends TestCase
     /**
      * A basic test example.
      */
-    public function test_the_application_redirects_guests_to_login(): void
+    public function test_the_application_shows_login_at_root_for_guests(): void
     {
-        // The home route ('/') is auth-protected, so an unauthenticated visitor is
-        // redirected to the login page rather than served a 200.
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/')->assertOk()->assertViewIs('auth.login');
     }
 }

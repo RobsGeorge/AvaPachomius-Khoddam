@@ -21,6 +21,16 @@ class LoginController extends Controller
 
     public function showLoginForm()
     {
+        $user = Auth::user();
+
+        if ($user) {
+            if (Schema::hasColumn('user', 'application_status') && ! $this->applications->isApproved($user)) {
+                return redirect()->route($this->applications->redirectRouteFor($user));
+            }
+
+            return redirect()->route($this->courseContext->resolvePostLoginRoute($user));
+        }
+
         // Avoid bfcache keeping a stale CSRF token after force-logout / session flush.
         return response()
             ->view('auth.login')

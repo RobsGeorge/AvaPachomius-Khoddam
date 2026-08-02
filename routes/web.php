@@ -241,6 +241,8 @@ Route::post('password/reset', [NewPasswordController::class, 'store'])->name('pa
 
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
+// Public landing — guests must not bounce / → /login → / (redirect loop when session storage fails).
+Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 
@@ -331,7 +333,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/courses/{course}/application/edit', [StudentCourseApplicationController::class, 'edit'])->name('courses.application.edit');
     Route::put('/courses/{course}/application', [StudentCourseApplicationController::class, 'update'])->name('courses.application.update');
     Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
-    Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 
     // View attendance records for a specific user
