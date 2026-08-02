@@ -92,7 +92,9 @@ class ServerLogReader
             }
 
             $files[] = [
-                'name' => basename($real),
+                // Name from the globbed path, not the resolved one: an in-directory
+                // symlink must keep its own name instead of shadowing its target.
+                'name' => basename($path),
                 'size' => (int) $size,
                 'modified_at' => Carbon::createFromTimestamp((int) $modified, config('app.timezone')),
             ];
@@ -184,6 +186,12 @@ class ServerLogReader
         });
 
         return $levels;
+    }
+
+    /** Whether a level name is one this reader can produce. */
+    public function isKnownLevel(string $level): bool
+    {
+        return $level === self::LEVEL_NONE || in_array($level, self::LEVEL_ORDER, true);
     }
 
     /** Human readable byte size, e.g. "1.4 MB". */
@@ -319,7 +327,9 @@ class ServerLogReader
     private function parseTime(string $raw): ?Carbon
     {
         try {
-            return Carbon::parse($raw);
+            // error_log prefixes carry their own timezone; normalise so every row
+            // in the table is on one clock.
+            return Carbon::parse($raw)->setTimezone(config('app.timezone'));
         } catch (\Throwable) {
             return null;
         }

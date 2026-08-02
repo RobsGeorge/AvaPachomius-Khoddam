@@ -161,13 +161,58 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
         $result = app(ServerLogReader::class)->read('scheduler-cron.log');
 
         $this->assertTrue($result['truncated']);
-        $this->assertGreaterThan(1000, count($result['entries']));
+        $this->assertCount(ServerLogReader::MAX_ENTRIES, $result['entries']);
 
         $this->actingAs($this->superadmin())
             ->get(route('superadmin.logs.index', ['file' => 'scheduler-cron.log']))
             ->assertOk()
             ->assertSee('Running [scheduler:heartbeat]')
             ->assertDontSee(__('server_logs.no_entries'));
+    }
+
+    public function test_only_the_half_cut_first_line_is_dropped_from_a_truncated_tail(): void
+    {
+        // 64 bytes per line, so the 512 KB window starts mid-line and every whole
+        // line after it must survive.
+        $total = (int) (ServerLogReader::TAIL_BYTES / 64) + 30;
+        $lines = '';
+        for ($i = 1; $i <= $total; $i++) {
+            $lines .= str_pad(sprintf('cron line %06d', $i), 63, ' ').PHP_EOL;
+        }
+        $this->writeLog('scheduler-cron.log', $lines);
+
+        $entries = app(ServerLogReader::class)->read('scheduler-cron.log')['entries'];
+
+        // Newest first, and the newest whole line is the last one written.
+        $this->assertStringContainsString(sprintf('cron line %06d', $total), $entries[0]['message']);
+
+        $expectedOldest = $total - ServerLogReader::MAX_ENTRIES + 1;
+        $this->assertStringContainsString(
+            sprintf('cron line %06d', $expectedOldest),
+            $entries[array_key_last($entries)]['message']
+        );
+    }
+
+    public function test_a_symlink_out_of_the_log_directory_is_not_readable(): void
+    {
+        $secret = storage_path('framework/testing/server-logs-secret-'.uniqid().'.txt');
+        File::put($secret, 'APP_KEY=base64:SUPERSECRET');
+        symlink($secret, $this->logDirectory.'/escape.log');
+
+        try {
+            $reader = app(ServerLogReader::class);
+
+            $this->assertSame([], array_column($reader->availableFiles(), 'name'));
+            $this->assertFalse($reader->isReadableFile('escape.log'));
+            $this->assertSame([], $reader->read('escape.log')['entries']);
+
+            $this->actingAs($this->superadmin())
+                ->get(route('superadmin.logs.index', ['file' => 'escape.log']))
+                ->assertOk()
+                ->assertDontSee('SUPERSECRET');
+        } finally {
+            File::delete($secret);
+        }
     }
 
     public function test_php_error_log_timestamps_are_parsed_and_trace_lines_attach_to_the_entry(): void

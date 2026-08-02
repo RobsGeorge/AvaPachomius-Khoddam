@@ -33,9 +33,9 @@ class SuperAdminLogController extends Controller
         $result = $this->reader->read($selectedFile ?? '', ['level' => $level, 'q' => $search]);
 
         $levelCounts = $result['level_counts'];
-        // Keep a level carried over from another file selectable, so the dropdown
-        // never claims "all levels" while the table is filtered to nothing.
-        if ($level !== null && ! array_key_exists($level, $levelCounts)) {
+        // Keep a known level carried over from another file selectable, so the
+        // dropdown never claims "all levels" while the table is filtered to nothing.
+        if ($level !== null && $this->reader->isKnownLevel($level) && ! array_key_exists($level, $levelCounts)) {
             $levelCounts[$level] = 0;
         }
 
