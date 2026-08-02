@@ -85,4 +85,72 @@ class SuperadminApplicationLogTest extends EventModuleTestCase
             ->assertSee('Running scheduled command: inspire', false)
             ->assertSee('Completed successfully.', false);
     }
+
+    public function test_search_filters_entries_by_message_text(): void
+    {
+        $this->seedLogFile(
+            "[2026-08-02 10:00:00] testing.ERROR: Payment gateway timeout\n".
+            "[2026-08-02 10:01:00] testing.ERROR: Unrelated failure\n"
+        );
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'q' => 'payment']))
+            ->assertOk()
+            ->assertSee('Payment gateway timeout', false)
+            ->assertDontSee('Unrelated failure', false);
+    }
+
+    public function test_pagination_pages_back_through_older_entries(): void
+    {
+        // The page size is clamped to a minimum of 10, so use enough entries to span
+        // two pages of the smallest allowed page size.
+        $lines = '';
+        for ($i = 1; $i <= 12; $i++) {
+            $lines .= sprintf("[2026-08-02 09:%02d:00] testing.ERROR: Entry number %d\n", $i, $i);
+        }
+        $this->seedLogFile($lines);
+
+        // Page 1 (newest first) shows the ten most recent entries. ("Entry number 2" is
+        // used for the absence check, not "1", since "Entry number 1" is a substring
+        // of "Entry number 12"/"11"/"10" which legitimately are on this page.)
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'lines' => 10]))
+            ->assertOk()
+            ->assertSee('Entry number 12', false)
+            ->assertSee('Entry number 3', false)
+            ->assertDontSee('Entry number 2', false);
+
+        // Page 2 pages back to the two oldest, remaining entries.
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'lines' => 10, 'page' => 2]))
+            ->assertOk()
+            ->assertSee('Entry number 1', false)
+            ->assertSee('Entry number 2', false)
+            ->assertDontSee('Entry number 12', false);
+    }
+
+    public function test_out_of_range_page_clamps_to_the_last_page_instead_of_showing_empty(): void
+    {
+        $this->seedLogFile("[2026-08-02 09:00:00] testing.ERROR: Only entry\n");
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'page' => 999]))
+            ->assertOk()
+            ->assertSee('Only entry', false)
+            ->assertDontSee(__('pages.application_logs_empty'), false);
+    }
+
+    public function test_discovers_a_custom_log_file_beyond_the_fixed_whitelist(): void
+    {
+        $dir = storage_path('logs');
+        File::ensureDirectoryExists($dir);
+        $this->logPath = $dir.'/custom-worker.log';
+        File::put($this->logPath, "[2026-08-02 10:00:00] testing.INFO: Custom worker tick\n");
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'custom-worker.log']))
+            ->assertOk()
+            ->assertSee('custom-worker.log', false)
+            ->assertSee('Custom worker tick', false);
+    }
 }

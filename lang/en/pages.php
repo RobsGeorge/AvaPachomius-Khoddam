@@ -768,6 +768,8 @@ return [
     'application_logs_file'           => 'Log file',
     'application_logs_level'          => 'Level',
     'application_logs_lines'          => 'Max entries',
+    'application_logs_search' => 'Search message',
+    'application_logs_search_placeholder' => 'Text to search for in the log message…',
     'application_logs_entries'        => 'Recent entries from :file',
     'application_logs_missing_file'   => 'The log file :file does not exist yet on this server.',
     'application_logs_empty'          => 'No log entries match the current filters.',
