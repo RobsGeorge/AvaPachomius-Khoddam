@@ -175,7 +175,7 @@ class ProfilePhotoGateService
     /**
      * Which admin controls apply for this compliance status.
      *
-     * @return array{approve_reject: bool, extend_deadline: bool, reset_grace: bool}
+     * @return array{approve_reject: bool, extend_deadline: bool, reset_grace: bool, revoke: bool}
      */
     public function adminActions(User $user): array
     {
@@ -184,21 +184,31 @@ class ProfilePhotoGateService
                 'approve_reject' => true,
                 'extend_deadline' => false,
                 'reset_grace' => false,
+                'revoke' => false,
             ],
             'rejected', 'in_grace', 'overdue' => [
                 'approve_reject' => false,
                 'extend_deadline' => true,
                 'reset_grace' => true,
+                'revoke' => false,
             ],
             'not_started' => [
                 'approve_reject' => false,
                 'extend_deadline' => true,
                 'reset_grace' => false,
+                'revoke' => false,
             ],
-            default => [ // approved and any unknown
+            'approved' => [
                 'approve_reject' => false,
                 'extend_deadline' => false,
                 'reset_grace' => false,
+                'revoke' => true,
+            ],
+            default => [ // any unknown
+                'approve_reject' => false,
+                'extend_deadline' => false,
+                'reset_grace' => false,
+                'revoke' => false,
             ],
         };
     }

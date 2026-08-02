@@ -1,7 +1,7 @@
 @php
     $compact = $compact ?? true;
     $actions = $gate->adminActions($student);
-    $hasActions = $actions['approve_reject'] || $actions['extend_deadline'] || $actions['reset_grace'];
+    $hasActions = $actions['approve_reject'] || $actions['extend_deadline'] || $actions['reset_grace'] || $actions['revoke'];
 @endphp
 @if(! $hasActions)
     <span class="small text-muted-theme">{{ __('profile_photos.no_actions_for_status') }}</span>
@@ -23,6 +23,18 @@
                    placeholder="{{ __('profile_photos.rejection_note') }}">
             <button type="submit" class="btn btn-sm btn-outline-danger w-100">
                 <i class="bi bi-x-lg"></i> {{ __('profile_photos.reject') }}
+            </button>
+        </form>
+    @endif
+
+    @if($actions['revoke'])
+        <form method="POST" action="{{ route('admin.profile-photos.revoke', $student) }}"
+              data-confirm="{{ __('profile_photos.confirm_revoke') }}">
+            @csrf
+            <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
+                   placeholder="{{ __('profile_photos.revoke_note') }}" required>
+            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                <i class="bi bi-arrow-counterclockwise"></i> {{ __('profile_photos.revoke') }}
             </button>
         </form>
     @endif
