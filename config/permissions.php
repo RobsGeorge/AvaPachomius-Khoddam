@@ -543,6 +543,26 @@ return [
                 'type' => 'both',
                 'routes' => [],
             ],
+            'sacraments.view' => [
+                'label_en' => 'View sacraments (الأسرار)',
+                'label_ar' => 'عرض الأسرار',
+                'type' => 'both',
+                'routes' => [
+                    'people.sacraments.index',
+                    'sacraments.show',
+                ],
+            ],
+            'sacraments.record' => [
+                'label_en' => 'Record / correct sacraments (الأسرار)',
+                'label_ar' => 'تسجيل أو تصحيح الأسرار',
+                'type' => 'both',
+                'routes' => [
+                    'people.sacraments.create',
+                    'people.sacraments.store',
+                    'sacraments.correct',
+                    'sacraments.correct.store',
+                ],
+            ],
             'people.recovery.assist' => [
                 'label_en' => 'Assist account recovery (vouch only)',
                 'label_ar' => 'المساعدة في استعادة الحساب (تزكية فقط)',

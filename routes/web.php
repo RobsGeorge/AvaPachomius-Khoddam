@@ -124,6 +124,7 @@ use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\People\PeopleHubController;
 use App\Http\Controllers\People\PeopleImportController;
 use App\Http\Controllers\People\InvitationClaimController;
+use App\Http\Controllers\Sacraments\SacramentController;
 
 
 
@@ -170,7 +171,22 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/{person}/recovery', [AccountRecoveryAssistController::class, 'create'])->name('recovery.create');
             Route::post('/{person}/recovery', [AccountRecoveryAssistController::class, 'store'])->name('recovery.store');
         });
+        Route::middleware(['permission:sacraments.view,sacraments.record'])->group(function () {
+            Route::get('/{person}/sacraments', [SacramentController::class, 'index'])->name('sacraments.index');
+        });
+        Route::middleware(['permission:sacraments.record'])->group(function () {
+            Route::get('/{person}/sacraments/create', [SacramentController::class, 'create'])->name('sacraments.create');
+            Route::post('/{person}/sacraments', [SacramentController::class, 'store'])->name('sacraments.store');
+        });
         Route::get('/{person}', [PeopleHubController::class, 'show'])->name('show');
+    });
+
+    Route::middleware(['permission:sacraments.view,sacraments.record'])->group(function () {
+        Route::get('/sacraments/{sacrament}', [SacramentController::class, 'show'])->name('sacraments.show');
+    });
+    Route::middleware(['permission:sacraments.record'])->group(function () {
+        Route::get('/sacraments/{sacrament}/correct', [SacramentController::class, 'correctForm'])->name('sacraments.correct');
+        Route::post('/sacraments/{sacrament}/correct', [SacramentController::class, 'correct'])->name('sacraments.correct.store');
     });
 
     // T8b — canonical slug hub (+ legacy numeric /services/{id}/… 301 via middleware).
