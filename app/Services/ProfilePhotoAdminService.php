@@ -135,13 +135,14 @@ class ProfilePhotoAdminService
             ->get();
     }
 
-    public function updateSettings(int $graceDays, bool $enabled): PortalSettings
+    public function updateSettings(int $graceDays, bool $enabled, int $reuploadReminderDays = 2): PortalSettings
     {
         $settings = PortalSettings::current();
         $wasEnabled = (bool) $settings->profile_photo_gate_enabled;
 
         $payload = [
             'profile_photo_grace_days' => max(1, min(90, $graceDays)),
+            'profile_photo_reupload_reminder_days' => max(1, min(30, $reuploadReminderDays)),
             'profile_photo_gate_enabled' => $enabled,
         ];
 

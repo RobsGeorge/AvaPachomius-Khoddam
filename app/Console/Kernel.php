@@ -32,5 +32,6 @@ class Kernel extends ConsoleKernel
         Commands\ScanNotificationEvents::class,
         Commands\FireNotificationReminders::class,
         Commands\GeneratePayrollNextPeriod::class,
+        Commands\SendProfilePhotoReuploadReminders::class,
     ];
 }

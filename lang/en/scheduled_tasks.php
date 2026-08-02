@@ -137,6 +137,7 @@ return [
         'observability_sample_infra' => 'Sample host infrastructure metrics',
         'observability_prune' => 'Prune old observability data',
         'maturity_emancipate_at_majority' => 'Emancipate wards at majority',
+        'photos_send_reupload_reminders' => 'Profile photo re-upload reminders',
     ],
     'scheduler_heartbeat_desc' => 'Internal every-minute tick that proves OS cron is calling schedule:run. Used for the health banner above.',
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
@@ -154,4 +155,5 @@ return [
     'observability_sample_infra_desc' => 'Collects load/memory/disk samples via the configured infra adapter.',
     'observability_prune_desc' => 'Deletes aged observability_events, infra_samples, and usage_rollups.',
     'maturity_emancipate_at_majority_desc' => 'Ends active guardian_of edges when the ward reaches the organization age_of_majority (sets end_date; never deletes).',
+    'photos_send_reupload_reminders_desc' => 'Reminds rejected students to re-upload a profile photo after the configured delay.',
 ];
