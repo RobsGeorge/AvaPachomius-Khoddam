@@ -333,6 +333,32 @@ class ProfilePhotoAdminService
     }
 
     /**
+     * Next pending student after $current in oldest-first pending queue (or null).
+     */
+    public function nextPendingUserIdAfter(User $current): ?int
+    {
+        $pending = $this->studentReport('pending_review');
+        $passed = false;
+
+        foreach ($pending as $student) {
+            if ($passed) {
+                return (int) $student->user_id;
+            }
+            if ((int) $student->user_id === (int) $current->user_id) {
+                $passed = true;
+            }
+        }
+
+        // If current was first / not in list, return the new first pending.
+        $first = $pending->first();
+        if ($first && (int) $first->user_id !== (int) $current->user_id) {
+            return (int) $first->user_id;
+        }
+
+        return null;
+    }
+
+    /**
      * Notify course admins (portal + email) that a student photo awaits urgent review.
      */
     public function notifyAdminsOfPendingPhoto(User $student): void
