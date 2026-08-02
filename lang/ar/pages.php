@@ -424,6 +424,7 @@ return [
     'superadmin_security_title'   => 'أدوات الأمان',
     'superadmin_security_desc'    => 'إنهاء جلسات جميع المستخدمين أو معاينة البوابة كحساب آخر.',
     'superadmin_audit_desc'       => 'مراجعة سجلات النشاط ومحاولات تسجيل الدخول.',
+    'superadmin_logs_desc'        => 'قراءة ملفات سجل الخادم (التطبيق) الخام مباشرة من القرص.',
     'superadmin_events_tests_desc' => 'تشغيل الاختبارات الآلية لوحدة الفعاليات.',
     'superadmin_system_tests_desc' => 'تشغيل خطوط اختبار النظام المصنَّفة وعرض التقرير.',
     'superadmin_scheduled_tasks_desc' => 'مراقبة مهام الكرون، تعديل الجداول، التشغيل اليدوي، ومراجعة المخرجات.',
@@ -792,6 +793,18 @@ return [
     'audit_from'                      => 'من تاريخ',
     'audit_to'                        => 'إلى تاريخ',
     'audit_export_csv'                => 'تصدير CSV',
+
+    'server_logs_title'               => 'سجلات الخادم',
+    'server_logs_warning'             => 'تعرض هذه الصفحة محتوى سجل التطبيق الخام دون تحليل، كما هو مكتوب على القرص تماماً. قد يحتوي على بيانات طلبات حساسة. الوصول مقصور على المشرف العام فقط.',
+    'server_logs_file'                => 'ملف السجل',
+    'server_logs_level'               => 'المستوى',
+    'server_logs_search'              => 'بحث في الرسالة',
+    'server_logs_search_placeholder'  => 'نص للبحث عنه في رسالة السجل…',
+    'server_logs_time'                => 'الوقت',
+    'server_logs_message'             => 'الرسالة',
+    'server_logs_no_files'            => 'لم يتم العثور على ملفات سجل في storage/logs.',
+    'server_logs_no_entries'          => 'لا توجد سجلات مطابقة للتصفية الحالية.',
+    'server_logs_showing_count'       => 'عرض :shown من :total سجل من :file (الأحدث أولاً).',
     'print'                           => 'طباعة',
 
     // Feedback / survey (ar parity burn-down for F-13)
