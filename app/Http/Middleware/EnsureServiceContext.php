@@ -21,6 +21,9 @@ class EnsureServiceContext
         'profile',
         // Hard-blocked students must upload a photo before picking service context.
         'profile.picture.update',
+        'application.status',
+        'application.edit',
+        'application.update',
         // courses.select* intentionally NOT excepted: service must be chosen before course.
     ];
 

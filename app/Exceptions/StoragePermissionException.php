@@ -65,8 +65,14 @@ class StoragePermissionException extends Exception
             $previous = url()->previous();
             $target = is_string($referer) && $referer !== '' ? $referer : $previous;
 
-            if (! is_string($target) || $target === '' || $target === $request->fullUrl()) {
+            if (! is_string($target) || $target === '') {
                 $target = $fallback;
+            }
+
+            // Never bounce to the same path — that becomes an infinite redirect loop
+            // (common when session files are deploy-owned after a VPS permission change).
+            if ($this->sameRequestPath($request, $target) || $target === $request->fullUrl()) {
+                return null;
             }
 
             return redirect()
@@ -75,5 +81,23 @@ class StoragePermissionException extends Exception
         } catch (Throwable) {
             return null;
         }
+    }
+
+    private function sameRequestPath(Request $request, string $target): bool
+    {
+        $currentPath = '/'.ltrim($request->path(), '/');
+        $targetPath = parse_url($target, PHP_URL_PATH);
+
+        if (! is_string($targetPath) || $targetPath === '') {
+            if (str_starts_with($target, '/') && ! str_starts_with($target, '//')) {
+                $targetPath = $target;
+            } else {
+                return false;
+            }
+        }
+
+        $targetPath = '/'.ltrim($targetPath, '/');
+
+        return rtrim($currentPath, '/') === rtrim($targetPath, '/');
     }
 }

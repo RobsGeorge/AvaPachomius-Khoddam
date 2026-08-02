@@ -68,7 +68,7 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $this->assertStringNotContainsString('Server Error', $html);
     }
 
-    public function test_authenticated_user_redirect_targets_profile_fallback(): void
+    public function test_authenticated_user_same_path_shows_503_instead_of_profile_loop(): void
     {
         $user = $this->createUser(['email' => 'storage-perm@example.com']);
         Auth::login($user);
@@ -78,8 +78,27 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $session = $this->app['session']->driver();
         $session->start();
         $request->setLaravelSession($session);
-        // previous == current → fallback to profile
+        // previous == current → must not redirect back to dashboard (infinite loop).
         $request->headers->set('referer', url('/dashboard'));
+
+        $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
+            ->render($request, new ErrorException('chmod(): Operation not permitted'));
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertStringContainsString(__('app.storage_unavailable'), $response->getContent());
+    }
+
+    public function test_authenticated_user_can_redirect_to_profile_from_different_page(): void
+    {
+        $user = $this->createUser(['email' => 'storage-perm-profile@example.com']);
+        Auth::login($user);
+
+        $request = \Illuminate\Http\Request::create('/dashboard', 'GET');
+        $request->setUserResolver(fn () => $user);
+        $session = $this->app['session']->driver();
+        $session->start();
+        $request->setLaravelSession($session);
+        $request->headers->set('referer', route('profile'));
 
         $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
             ->render($request, new ErrorException('chmod(): Operation not permitted'));
@@ -87,6 +106,26 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame(route('profile'), $response->headers->get('Location'));
         $this->assertSame(__('app.storage_unavailable'), $session->get('error'));
+    }
+
+    public function test_handler_same_path_target_shows_503_instead_of_redirect_loop(): void
+    {
+        $request = \Illuminate\Http\Request::create('/login', 'GET');
+        $session = $this->app['session']->driver();
+        $session->start();
+        $request->setLaravelSession($session);
+        $request->headers->set('referer', route('login'));
+
+        $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
+            ->render(
+                $request,
+                StoragePermissionException::fromThrowable(
+                    new ErrorException('file_put_contents(...): Failed to open stream: Permission denied')
+                )
+            );
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertStringContainsString(__('app.storage_unavailable'), $response->getContent());
     }
 
     public function test_arabic_copy_is_localized(): void
