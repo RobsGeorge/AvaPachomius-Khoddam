@@ -16,6 +16,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SessionAttendanceController;
+use App\Http\Controllers\GuardianAttendanceController;
 use App\Http\Controllers\CourseAssessmentController;
 use App\Http\Controllers\UserAssessmentController;
 use App\Http\Controllers\UserCourseRoleController;
@@ -447,6 +448,13 @@ Route::middleware(['auth', 'permission:communications.report'])->group(function 
 Route::middleware(['auth', 'attendance.staff'])->group(function () {
     Route::get('/attendance/sessions', [AttendanceController::class, 'showTodaySessions'])->name('attendance.sessions');
     Route::post('/attendance/record/{session}', [AttendanceController::class, 'recordAttendance'])->name('attendance.record');
+});
+
+// Guardian-mediated check-in — writes the ward's person_id (custodial visibility).
+Route::middleware(['auth'])->group(function () {
+    Route::post('/attendance/guardian/{session}/check-in', [GuardianAttendanceController::class, 'store'])
+        ->name('attendance.guardian.check-in')
+        ->whereNumber('session');
 });
 
 Route::middleware(['auth', 'permission:staff'])->group(function () {

@@ -264,6 +264,8 @@ return [
     'view_session_roster'         => 'عرض كشف الحضور',
     'missing_records_count'       => ':count ناقص',
     'student_not_found'           => 'الطالب غير موجود.',
+    'attendance_qr_invalid'       => 'رمز QR للحضور غير صالح أو منتهي.',
+    'attendance_guardian_forbidden' => 'غير مسموح لك بتسجيل حضور هذا الشخص.',
     'no_sessions_add_instruction' => 'يرجى إضافة جلسة لليوم من صفحة إضافة الجلسات.',
     'add_session'                 => 'إضافة جلسة',
     'upload_new_photo'            => 'اضغط لتحميل صورة جديدة',

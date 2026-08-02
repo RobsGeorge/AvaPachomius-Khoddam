@@ -14,7 +14,8 @@ use InvalidArgumentException;
 
 /**
  * Merge duplicate person into survivor: re-point FKs, soft-retire duplicate, audit.
- * Enrollment/attendance stay on user_id; users are re-pointed to the survivor person.
+ * Enrollment stays on user_id; attendance.person_id is re-pointed when present;
+ * attendance.user_id rows remain intact (expand-era dual key).
  */
 class PersonMergeService
 {
@@ -25,6 +26,7 @@ class PersonMergeService
      *     users_repointed: int,
      *     family_members_repointed: int,
      *     relationships_repointed: int,
+     *     attendance_person_repointed: int,
      *     enrollments_intact: int,
      *     attendance_intact: int
      * }
@@ -59,6 +61,13 @@ class PersonMergeService
             $attendanceIntact = $userIds === []
                 ? 0
                 : Attendance::query()->whereIn('user_id', $userIds)->count();
+
+            $attendancePersonRepointed = 0;
+            if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'person_id')) {
+                $attendancePersonRepointed = Attendance::query()
+                    ->where('person_id', $duplicateId)
+                    ->update(['person_id' => $survivorId]);
+            }
 
             $usersRepointed = User::query()
                 ->where('person_id', $duplicateId)
@@ -121,6 +130,7 @@ class PersonMergeService
                 'users_repointed' => $usersRepointed,
                 'family_members_repointed' => $familyRepointed,
                 'relationships_repointed' => $relationshipsRepointed,
+                'attendance_person_repointed' => $attendancePersonRepointed,
                 'enrollments_intact' => $enrollmentsIntact,
                 'attendance_intact' => $attendanceIntact,
                 'actor_user_id' => $actor?->user_id,
