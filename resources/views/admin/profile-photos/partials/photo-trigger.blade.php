@@ -7,6 +7,7 @@
             class="btn p-0 border-0 student-photo-trigger"
             data-bs-toggle="modal"
             data-bs-target="#profilePhotoReviewModal"
+            data-user-id="{{ $student->user_id }}"
             data-photo-url="{{ asset('storage/' . $student->profile_photo) }}"
             data-photo-name="{{ $student->displayName() }}"
             data-photo-email="{{ $student->email }}"
