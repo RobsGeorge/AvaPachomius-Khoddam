@@ -50,6 +50,7 @@ class Organization extends Model
 
     protected $hidden = [
         'db_password_encrypted',
+        'documents_dek_wrapped',
     ];
 
     protected $casts = [
