@@ -71,4 +71,18 @@ class SuperadminApplicationLogTest extends EventModuleTestCase
             ->assertSee('Safe entry', false)
             ->assertDontSee('.env', false);
     }
+
+    public function test_plain_scheduler_cron_lines_are_shown(): void
+    {
+        $dir = storage_path('logs');
+        File::ensureDirectoryExists($dir);
+        $this->logPath = $dir.'/scheduler-cron.log';
+        File::put($this->logPath, "Running scheduled command: inspire\nCompleted successfully.\n");
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'scheduler-cron.log']))
+            ->assertOk()
+            ->assertSee('Running scheduled command: inspire', false)
+            ->assertSee('Completed successfully.', false);
+    }
 }

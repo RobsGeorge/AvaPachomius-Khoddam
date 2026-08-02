@@ -161,7 +161,15 @@ class ApplicationLogReaderService
             if ($entries !== []) {
                 $last = count($entries) - 1;
                 $entries[$last]['message'] .= "\n".$line;
+
+                continue;
             }
+
+            $entries[] = [
+                'timestamp' => null,
+                'level' => null,
+                'message' => $line,
+            ];
         }
 
         return $entries;
