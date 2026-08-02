@@ -80,14 +80,7 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                @if($student->profile_photo)
-                                    <button type="button" class="btn p-0 border-0 student-photo-trigger"
-                                            data-bs-toggle="modal" data-bs-target="#studentPhotoModal"
-                                            data-photo-url="{{ asset('storage/' . $student->profile_photo) }}"
-                                            data-photo-name="{{ $student->displayName() }}">
-                                        <img src="{{ asset('storage/' . $student->profile_photo) }}" alt="" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
-                                    </button>
-                                @endif
+                                @include('admin.profile-photos.partials.photo-trigger', ['student' => $student, 'size' => 40])
                                 <div>
                                     <strong>{{ $student->displayName() }}</strong>
                                     <div class="small text-muted-theme">{{ $student->email }}</div>
@@ -99,39 +92,10 @@
                         <td>{{ $deadline?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>{{ $uploadedAt?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>
-                            <div class="d-flex flex-column gap-2">
-                                @if($student->isProfilePhotoPending())
-                                    <div class="d-flex flex-wrap gap-2">
-                                        <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}" class="d-inline">
-                                            @csrf
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                <i class="bi bi-check-lg"></i> {{ __('profile_photos.approve') }}
-                                            </button>
-                                        </form>
-                                    </div>
-                                    <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}"
-                                          data-confirm="{{ __('profile_photos.confirm_reject') }}">
-                                        @csrf
-                                        <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
-                                               placeholder="{{ __('profile_photos.rejection_note') }}">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                                            <i class="bi bi-x-lg"></i> {{ __('profile_photos.reject') }}
-                                        </button>
-                                    </form>
-                                @endif
-
-                                <form method="POST" action="{{ route('admin.profile-photos.extend-deadline', $student) }}" class="d-flex gap-1 flex-wrap">
-                                    @csrf
-                                    <input type="datetime-local" name="profile_photo_deadline_at" class="form-control form-control-sm" required>
-                                    <button type="submit" class="btn btn-sm btn-outline-primary">{{ __('profile_photos.extend_deadline') }}</button>
-                                </form>
-
-                                <form method="POST" action="{{ route('admin.profile-photos.reset-grace', $student) }}"
-                                      data-confirm="{{ __('profile_photos.confirm_reset_grace') }}">
-                                    @csrf
-                                    <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('profile_photos.reset_grace') }}</button>
-                                </form>
-                            </div>
+                            @include('admin.profile-photos.partials.review-actions', [
+                                'student' => $student,
+                                'compact' => true,
+                            ])
                         </td>
                     </tr>
                 @empty
@@ -154,14 +118,7 @@
             <article class="data-card app-card card shadow-sm">
                 <div class="card-body">
                     <div class="d-flex align-items-center gap-2 mb-2">
-                        @if($student->profile_photo)
-                            <button type="button" class="btn p-0 border-0 student-photo-trigger"
-                                    data-bs-toggle="modal" data-bs-target="#studentPhotoModal"
-                                    data-photo-url="{{ asset('storage/' . $student->profile_photo) }}"
-                                    data-photo-name="{{ $student->displayName() }}">
-                                <img src="{{ asset('storage/' . $student->profile_photo) }}" alt="" class="rounded-circle" width="48" height="48" style="object-fit:cover;">
-                            </button>
-                        @endif
+                        @include('admin.profile-photos.partials.photo-trigger', ['student' => $student, 'size' => 48])
                         <div>
                             <div class="data-card-title mb-0">{{ $student->displayName() }}</div>
                             <div class="small text-muted-theme">{{ $student->email }}</div>
@@ -185,34 +142,11 @@
                             <dd>{{ $uploadedAt?->format('d/m/Y H:i') ?? '—' }}</dd>
                         </div>
                     </dl>
-                    <div class="data-card-actions d-flex flex-column gap-2">
-                        @if($student->isProfilePhotoPending())
-                            <form method="POST" action="{{ route('admin.profile-photos.approve', $student) }}">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-success w-100">
-                                    <i class="bi bi-check-lg"></i> {{ __('profile_photos.approve') }}
-                                </button>
-                            </form>
-                            <form method="POST" action="{{ route('admin.profile-photos.reject', $student) }}"
-                                  data-confirm="{{ __('profile_photos.confirm_reject') }}">
-                                @csrf
-                                <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm mb-1"
-                                       placeholder="{{ __('profile_photos.rejection_note') }}">
-                                <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                                    <i class="bi bi-x-lg"></i> {{ __('profile_photos.reject') }}
-                                </button>
-                            </form>
-                        @endif
-                        <form method="POST" action="{{ route('admin.profile-photos.extend-deadline', $student) }}" class="d-flex flex-column gap-1">
-                            @csrf
-                            <input type="datetime-local" name="profile_photo_deadline_at" class="form-control form-control-sm" required>
-                            <button type="submit" class="btn btn-sm btn-outline-primary w-100">{{ __('profile_photos.extend_deadline') }}</button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.profile-photos.reset-grace', $student) }}"
-                              data-confirm="{{ __('profile_photos.confirm_reset_grace') }}">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-warning w-100">{{ __('profile_photos.reset_grace') }}</button>
-                        </form>
+                    <div class="data-card-actions">
+                        @include('admin.profile-photos.partials.review-actions', [
+                            'student' => $student,
+                            'compact' => false,
+                        ])
                     </div>
                 </div>
             </article>
@@ -221,6 +155,164 @@
         @endforelse
     </div>
 </div>
-
-@include('students.partials.student-photo-modal')
 @endsection
+
+@push('modals')
+<div class="modal fade" id="profilePhotoReviewModal" tabindex="-1" aria-labelledby="profilePhotoReviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-0" id="profilePhotoReviewModalLabel">{{ __('pages.profile_photo_modal_title') }}</h5>
+                    <div class="small text-muted-theme" id="profilePhotoReviewModalEmail"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <p class="fw-semibold mb-3" id="profilePhotoReviewModalName"></p>
+                    <img src="" alt="" id="profilePhotoReviewModalImage" class="img-fluid rounded profile-photo-review-image">
+                </div>
+
+                <div id="profilePhotoReviewPendingActions" class="d-none border-top pt-3">
+                    <form method="POST" id="profilePhotoReviewApproveForm" class="mb-2">
+                        @csrf
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-check-lg"></i> {{ __('profile_photos.approve') }}
+                        </button>
+                    </form>
+                    <form method="POST" id="profilePhotoReviewRejectForm"
+                          data-confirm="{{ __('profile_photos.confirm_reject') }}">
+                        @csrf
+                        <input type="text" name="profile_photo_rejection_note" id="profilePhotoReviewRejectNote"
+                               class="form-control form-control-sm mb-1"
+                               placeholder="{{ __('profile_photos.rejection_note') }}">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-x-lg"></i> {{ __('profile_photos.reject') }}
+                        </button>
+                    </form>
+                </div>
+
+                <div id="profilePhotoReviewGraceActions" class="d-none border-top pt-3 mt-3 d-flex flex-column gap-2">
+                    <form method="POST" id="profilePhotoReviewExtendForm" class="d-none d-flex flex-column flex-sm-row gap-1">
+                        @csrf
+                        <input type="datetime-local" name="profile_photo_deadline_at" id="profilePhotoReviewExtendDeadline"
+                               class="form-control form-control-sm" required>
+                        <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">
+                            {{ __('profile_photos.extend_deadline') }}
+                        </button>
+                    </form>
+                    <form method="POST" id="profilePhotoReviewResetForm" class="d-none"
+                          data-confirm="{{ __('profile_photos.confirm_reset_grace') }}">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-outline-warning w-100">
+                            {{ __('profile_photos.reset_grace') }}
+                        </button>
+                    </form>
+                </div>
+
+                <p id="profilePhotoReviewNoActions" class="d-none small text-muted-theme border-top pt-3 mb-0">
+                    {{ __('profile_photos.no_actions_for_status') }}
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('pages.close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endpush
+
+@push('styles')
+<style>
+.profile-photo-review-image {
+    max-height: min(55vh, 420px);
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    border: 2px solid var(--color-surface-border, #dee2e6);
+    background: var(--color-surface, #fff);
+}
+#profilePhotoReviewModal .modal-body {
+    pointer-events: auto;
+}
+#profilePhotoReviewModal .modal-content {
+    pointer-events: auto;
+}
+</style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('profilePhotoReviewModal');
+    if (!modal) return;
+
+    const image = document.getElementById('profilePhotoReviewModalImage');
+    const nameEl = document.getElementById('profilePhotoReviewModalName');
+    const emailEl = document.getElementById('profilePhotoReviewModalEmail');
+    const pendingBox = document.getElementById('profilePhotoReviewPendingActions');
+    const graceBox = document.getElementById('profilePhotoReviewGraceActions');
+    const noActions = document.getElementById('profilePhotoReviewNoActions');
+    const approveForm = document.getElementById('profilePhotoReviewApproveForm');
+    const rejectForm = document.getElementById('profilePhotoReviewRejectForm');
+    const rejectNote = document.getElementById('profilePhotoReviewRejectNote');
+    const extendForm = document.getElementById('profilePhotoReviewExtendForm');
+    const extendDeadline = document.getElementById('profilePhotoReviewExtendDeadline');
+    const resetForm = document.getElementById('profilePhotoReviewResetForm');
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        if (!trigger) return;
+
+        const url = trigger.getAttribute('data-photo-url') || '';
+        const name = trigger.getAttribute('data-photo-name') || '';
+        const email = trigger.getAttribute('data-photo-email') || '';
+        const canReview = trigger.getAttribute('data-can-approve-reject') === '1';
+        const canExtend = trigger.getAttribute('data-can-extend') === '1';
+        const canReset = trigger.getAttribute('data-can-reset') === '1';
+
+        if (image) {
+            image.src = url;
+            image.alt = name;
+        }
+        if (nameEl) nameEl.textContent = name;
+        if (emailEl) emailEl.textContent = email;
+        if (rejectNote) rejectNote.value = '';
+        if (extendDeadline) extendDeadline.value = '';
+
+        if (approveForm) approveForm.action = trigger.getAttribute('data-approve-url') || '';
+        if (rejectForm) rejectForm.action = trigger.getAttribute('data-reject-url') || '';
+        if (extendForm) extendForm.action = trigger.getAttribute('data-extend-url') || '';
+        if (resetForm) resetForm.action = trigger.getAttribute('data-reset-url') || '';
+
+        if (pendingBox) pendingBox.classList.toggle('d-none', !canReview);
+        if (extendForm) {
+            extendForm.classList.toggle('d-none', !canExtend);
+            extendForm.classList.toggle('d-flex', canExtend);
+        }
+        if (resetForm) resetForm.classList.toggle('d-none', !canReset);
+        if (graceBox) graceBox.classList.toggle('d-none', !canExtend && !canReset);
+        if (noActions) noActions.classList.toggle('d-none', canReview || canExtend || canReset);
+    });
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        if (image) {
+            image.removeAttribute('src');
+            image.alt = '';
+        }
+        document.querySelectorAll('.modal-backdrop').forEach(function (backdrop) {
+            if (!document.querySelector('.modal.show')) {
+                backdrop.remove();
+            }
+        });
+        if (!document.querySelector('.modal.show')) {
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+            document.body.removeAttribute('inert');
+        }
+    });
+});
+</script>
+@endpush

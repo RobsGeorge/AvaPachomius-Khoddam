@@ -81,6 +81,7 @@ return [
         'below_passing_grade' => 'طلاب دون درجة النجاح',
         'custom_reminder' => 'تذكيرات مخصصة',
         'course_application_submitted' => 'طلب التحاق جديد بالدورة',
+        'profile_photo_pending_review' => 'صورة شخصية بانتظار الاعتماد',
         'course_graduation_announced' => 'إعلان درجات الدورة',
         'service_progression_applied' => 'تطبيق نهاية دورة الخدمة',
         'church_cycle_promotion_season' => 'بدء موسم ترقية الكنيسة',

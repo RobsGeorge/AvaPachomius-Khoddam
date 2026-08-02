@@ -173,6 +173,37 @@ class ProfilePhotoGateService
     }
 
     /**
+     * Which admin controls apply for this compliance status.
+     *
+     * @return array{approve_reject: bool, extend_deadline: bool, reset_grace: bool}
+     */
+    public function adminActions(User $user): array
+    {
+        return match ($this->complianceStatus($user)) {
+            'pending_review' => [
+                'approve_reject' => true,
+                'extend_deadline' => false,
+                'reset_grace' => false,
+            ],
+            'rejected', 'in_grace', 'overdue' => [
+                'approve_reject' => false,
+                'extend_deadline' => true,
+                'reset_grace' => true,
+            ],
+            'not_started' => [
+                'approve_reject' => false,
+                'extend_deadline' => true,
+                'reset_grace' => false,
+            ],
+            default => [ // approved and any unknown
+                'approve_reject' => false,
+                'extend_deadline' => false,
+                'reset_grace' => false,
+            ],
+        };
+    }
+
+    /**
      * Admin-report status for an enrolled student. Does not call isStudent()
      * (permission-resolver heavy / false-negative when learner keys are unsynced).
      */
