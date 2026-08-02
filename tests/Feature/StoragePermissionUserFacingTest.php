@@ -68,7 +68,7 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $this->assertStringNotContainsString('Server Error', $html);
     }
 
-    public function test_authenticated_user_redirect_targets_profile_fallback(): void
+    public function test_authenticated_user_same_path_shows_503_instead_of_profile_loop(): void
     {
         $user = $this->createUser(['email' => 'storage-perm@example.com']);
         Auth::login($user);
@@ -78,8 +78,27 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $session = $this->app['session']->driver();
         $session->start();
         $request->setLaravelSession($session);
-        // previous == current → fallback to profile
+        // previous == current → must not redirect back to dashboard (infinite loop).
         $request->headers->set('referer', url('/dashboard'));
+
+        $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
+            ->render($request, new ErrorException('chmod(): Operation not permitted'));
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertStringContainsString(__('app.storage_unavailable'), $response->getContent());
+    }
+
+    public function test_authenticated_user_can_redirect_to_profile_from_different_page(): void
+    {
+        $user = $this->createUser(['email' => 'storage-perm-profile@example.com']);
+        Auth::login($user);
+
+        $request = \Illuminate\Http\Request::create('/dashboard', 'GET');
+        $request->setUserResolver(fn () => $user);
+        $session = $this->app['session']->driver();
+        $session->start();
+        $request->setLaravelSession($session);
+        $request->headers->set('referer', route('profile'));
 
         $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
             ->render($request, new ErrorException('chmod(): Operation not permitted'));
@@ -145,13 +164,12 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         );
         $handler = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class);
 
-        // Request 1: guest hits a protected page; their frozen previous URL
-        // (stale from before storage broke) is the same page, so it falls back
-        // to the login route.
+        // Request 1: guest hits a protected page; frozen previous URL points at login
+        // (a different path) so one recovery hop is attempted before showing 503.
         $request1 = \Illuminate\Http\Request::create(url('/dashboard'), 'GET');
         $session1 = $this->app['session']->driver();
         $session1->start();
-        $session1->put('_previous.url', url('/dashboard'));
+        $session1->put('_previous.url', url('/login'));
         $request1->setLaravelSession($session1);
 
         $response1 = $handler->render($request1, $exception());
@@ -164,7 +182,7 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $request2 = \Illuminate\Http\Request::create($firstHop, 'GET');
         $session2 = $this->app['session']->driver();
         $session2->start();
-        $session2->put('_previous.url', url('/dashboard'));
+        $session2->put('_previous.url', url('/login'));
         $request2->setLaravelSession($session2);
 
         $response2 = $handler->render($request2, $exception());
