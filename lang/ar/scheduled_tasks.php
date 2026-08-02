@@ -137,6 +137,7 @@ return [
         'observability_sample_infra' => 'عيّنة مقاييس البنية التحتية للمضيف',
         'observability_prune' => 'تنظيف بيانات المراقبة القديمة',
         'maturity_emancipate_at_majority' => 'تحرير القُصّر عند سن الرشد',
+        'photos_send_reupload_reminders' => 'تذكيرات إعادة رفع الصورة الشخصية',
     ],
     'scheduler_heartbeat_desc' => 'نبضة داخلية كل دقيقة تثبت أن كرون النظام يستدعي schedule:run. تُستخدم لشريط الحالة أعلاه.',
     'attendance_mark_absent_desc' => 'إغلاق الحضور وتسجيل الغياب عند منتصف الليل عند تفعيل الإغلاق التلقائي.',
@@ -154,4 +155,5 @@ return [
     'observability_sample_infra_desc' => 'يجمع عينات الحمل/الذاكرة/القرص عبر محوّل البنية التحتية المضبوط.',
     'observability_prune_desc' => 'يحذف سجلات المراقبة وعينات البنية وملخصات الاستخدام القديمة.',
     'maturity_emancipate_at_majority_desc' => 'ينهي علاقات الوصاية النشطة عند بلوغ سن الرشد حسب سياسة المنظمة (يضبط end_date دون حذف الصف).',
+    'photos_send_reupload_reminders_desc' => 'يذكّر الطلاب المرفوضة صورهم بإعادة الرفع بعد المدة المضبوطة.',
 ];

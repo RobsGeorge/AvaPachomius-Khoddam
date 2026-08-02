@@ -16,12 +16,14 @@ class PortalSettings extends Model
 
     protected $fillable = [
         'profile_photo_grace_days',
+        'profile_photo_reupload_reminder_days',
         'profile_photo_gate_enabled',
         'profile_photo_gate_enabled_at',
     ];
 
     protected $casts = [
         'profile_photo_grace_days' => 'integer',
+        'profile_photo_reupload_reminder_days' => 'integer',
         'profile_photo_gate_enabled' => 'boolean',
         // Do not cast profile_photo_gate_enabled_at: MySQL zero-dates throw on datetime cast
         // and this value is read on every authenticated page via the photo gate.
@@ -35,12 +37,16 @@ class PortalSettings extends Model
             return new static([
                 'id' => 1,
                 'profile_photo_grace_days' => 3,
+                'profile_photo_reupload_reminder_days' => 2,
                 'profile_photo_gate_enabled' => true,
             ]);
         }
 
         $settings = static::query()->firstOrCreate(['id' => 1], array_filter([
             'profile_photo_grace_days' => 3,
+            'profile_photo_reupload_reminder_days' => Schema::hasColumn('portal_settings', 'profile_photo_reupload_reminder_days')
+                ? 2
+                : null,
             'profile_photo_gate_enabled' => true,
             'profile_photo_gate_enabled_at' => Schema::hasColumn('portal_settings', 'profile_photo_gate_enabled_at')
                 ? now()
