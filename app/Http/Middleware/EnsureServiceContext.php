@@ -21,6 +21,10 @@ class EnsureServiceContext
         'profile',
         // Hard-blocked students must upload a photo before picking service context.
         'profile.picture.update',
+        // Mandatory surveys authorize via enrollment, not ambient service context.
+        'feedback.index',
+        'feedback.surveys.show',
+        'feedback.surveys.submit',
         // courses.select* intentionally NOT excepted: service must be chosen before course.
     ];
 
@@ -64,7 +68,8 @@ class EnsureServiceContext
         }
 
         return redirect()->route('services.select', [
-            'intended' => $request->fullUrl(),
+            // Path-only so ServiceContextController::isSafeLocalRedirect accepts it.
+            'intended' => $request->getRequestUri(),
         ]);
     }
 
