@@ -468,4 +468,57 @@ class ProfilePhotoAdminService
 
         return $student;
     }
+
+    /**
+     * Revoke a previously approved photo (same cleanup as reject; required note).
+     */
+    public function revoke(User $student, User $admin, string $note): User
+    {
+        abort_unless($this->gate->adminActions($student)['revoke'], 422);
+
+        $note = trim($note);
+        abort_unless($note !== '', 422);
+
+        $previousStatus = $student->profile_photo_status;
+        $hadPhoto = filled($student->profile_photo);
+
+        if ($student->profile_photo && Storage::disk('public')->exists($student->profile_photo)) {
+            Storage::disk('public')->delete($student->profile_photo);
+        }
+
+        $student->forceFill([
+            'profile_photo' => '',
+            'profile_photo_status' => User::PHOTO_STATUS_REJECTED,
+            'profile_photo_uploaded_at' => null,
+            'profile_photo_grace_started_at' => null,
+            'profile_photo_deadline_at' => null,
+            'profile_photo_reviewed_at' => now($this->gate->timezone()),
+            'profile_photo_reviewed_by_user_id' => $admin->user_id,
+            'profile_photo_rejection_note' => $note,
+        ])->save();
+
+        $student = $student->fresh();
+
+        AuditLogService::recordEvent('profile_photo.revoked', [
+            'actor_user_id' => $admin->user_id,
+            'target_user_id' => $student->user_id,
+            'previous_status' => $previousStatus,
+            'new_status' => User::PHOTO_STATUS_REJECTED,
+            'had_photo' => $hadPhoto,
+            'has_note' => true,
+        ]);
+
+        if (filled($student->email)) {
+            try {
+                Mail::to($student->email)->send(new ProfilePhotoRejectedMail($student));
+            } catch (\Throwable $e) {
+                Log::warning('Profile photo revoke email failed', [
+                    'user_id' => $student->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $student;
+    }
 }

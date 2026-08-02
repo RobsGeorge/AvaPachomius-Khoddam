@@ -89,6 +89,17 @@ class ProfilePhotoReportController extends Controller
         ]))->with('success', __('profile_photos.rejected', ['name' => $user->displayName()]));
     }
 
+    public function revoke(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'profile_photo_rejection_note' => 'required|string|max:1000',
+        ]);
+
+        $this->adminService->revoke($user, Auth::user(), $data['profile_photo_rejection_note']);
+
+        return back()->with('success', __('profile_photos.revoked', ['name' => $user->displayName()]));
+    }
+
     public function bulkApprove(Request $request)
     {
         $data = $request->validate([

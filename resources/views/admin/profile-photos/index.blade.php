@@ -249,6 +249,19 @@
                     </form>
                 </div>
 
+                <div id="profilePhotoReviewRevokeActions" class="d-none border-top pt-3">
+                    <form method="POST" id="profilePhotoReviewRevokeForm"
+                          data-confirm="{{ __('profile_photos.confirm_revoke') }}">
+                        @csrf
+                        <input type="text" name="profile_photo_rejection_note" id="profilePhotoReviewRevokeNote"
+                               class="form-control form-control-sm mb-1"
+                               placeholder="{{ __('profile_photos.revoke_note') }}" required>
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-arrow-counterclockwise"></i> {{ __('profile_photos.revoke') }}
+                        </button>
+                    </form>
+                </div>
+
                 <div id="profilePhotoReviewGraceActions" class="d-none border-top pt-3 mt-3 d-flex flex-column gap-2">
                     <form method="POST" id="profilePhotoReviewExtendForm" class="d-none d-flex flex-column flex-sm-row gap-1">
                         @csrf
@@ -308,11 +321,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const nameEl = document.getElementById('profilePhotoReviewModalName');
     const emailEl = document.getElementById('profilePhotoReviewModalEmail');
     const pendingBox = document.getElementById('profilePhotoReviewPendingActions');
+    const revokeBox = document.getElementById('profilePhotoReviewRevokeActions');
     const graceBox = document.getElementById('profilePhotoReviewGraceActions');
     const noActions = document.getElementById('profilePhotoReviewNoActions');
     const approveForm = document.getElementById('profilePhotoReviewApproveForm');
     const rejectForm = document.getElementById('profilePhotoReviewRejectForm');
     const rejectNote = document.getElementById('profilePhotoReviewRejectNote');
+    const revokeForm = document.getElementById('profilePhotoReviewRevokeForm');
+    const revokeNote = document.getElementById('profilePhotoReviewRevokeNote');
     const extendForm = document.getElementById('profilePhotoReviewExtendForm');
     const extendDeadline = document.getElementById('profilePhotoReviewExtendDeadline');
     const resetForm = document.getElementById('profilePhotoReviewResetForm');
@@ -327,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const canReview = trigger.getAttribute('data-can-approve-reject') === '1';
         const canExtend = trigger.getAttribute('data-can-extend') === '1';
         const canReset = trigger.getAttribute('data-can-reset') === '1';
+        const canRevoke = trigger.getAttribute('data-can-revoke') === '1';
 
         if (image) {
             image.src = url;
@@ -335,21 +352,24 @@ document.addEventListener('DOMContentLoaded', function () {
         if (nameEl) nameEl.textContent = name;
         if (emailEl) emailEl.textContent = email;
         if (rejectNote) rejectNote.value = '';
+        if (revokeNote) revokeNote.value = '';
         if (extendDeadline) extendDeadline.value = '';
 
         if (approveForm) approveForm.action = trigger.getAttribute('data-approve-url') || '';
         if (rejectForm) rejectForm.action = trigger.getAttribute('data-reject-url') || '';
+        if (revokeForm) revokeForm.action = trigger.getAttribute('data-revoke-url') || '';
         if (extendForm) extendForm.action = trigger.getAttribute('data-extend-url') || '';
         if (resetForm) resetForm.action = trigger.getAttribute('data-reset-url') || '';
 
         if (pendingBox) pendingBox.classList.toggle('d-none', !canReview);
+        if (revokeBox) revokeBox.classList.toggle('d-none', !canRevoke);
         if (extendForm) {
             extendForm.classList.toggle('d-none', !canExtend);
             extendForm.classList.toggle('d-flex', canExtend);
         }
         if (resetForm) resetForm.classList.toggle('d-none', !canReset);
         if (graceBox) graceBox.classList.toggle('d-none', !canExtend && !canReset);
-        if (noActions) noActions.classList.toggle('d-none', canReview || canExtend || canReset);
+        if (noActions) noActions.classList.toggle('d-none', canReview || canExtend || canReset || canRevoke);
     });
 
     modal.addEventListener('hidden.bs.modal', function () {

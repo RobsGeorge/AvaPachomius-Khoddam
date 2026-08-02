@@ -464,7 +464,7 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
         ]);
         $this->assertSame(
-            ['approve_reject' => false, 'extend_deadline' => false, 'reset_grace' => false],
+            ['approve_reject' => false, 'extend_deadline' => false, 'reset_grace' => false, 'revoke' => true],
             $gate->adminActions($approved)
         );
 
@@ -474,7 +474,7 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             'profile_photo_status' => User::PHOTO_STATUS_PENDING,
         ]);
         $this->assertSame(
-            ['approve_reject' => true, 'extend_deadline' => false, 'reset_grace' => false],
+            ['approve_reject' => true, 'extend_deadline' => false, 'reset_grace' => false, 'revoke' => false],
             $gate->adminActions($pending)
         );
 
@@ -485,7 +485,7 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             'profile_photo_grace_started_at' => now()->subDay(),
         ]);
         $this->assertSame(
-            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => true],
+            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => true, 'revoke' => false],
             $gate->adminActions($rejected)
         );
 
@@ -494,7 +494,7 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             'profile_photo' => '',
         ]);
         $this->assertSame(
-            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => false],
+            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => false, 'revoke' => false],
             $gate->adminActions($notStarted)
         );
     }
@@ -513,17 +513,97 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
         $this->assignCourseRole($admin, $course, $adminRole);
         $this->assignCourseRole($student, $course, $studentRole);
 
-        $response = $this->actingAs($admin)
+        $this->actingAs($admin)
             ->get(route('admin.profile-photos.index', ['filter' => 'approved']))
             ->assertOk()
-            ->assertSee(__('profile_photos.no_actions_for_status'))
+            ->assertSee(__('profile_photos.revoke'))
             ->assertSee('data-can-extend="0"', false)
             ->assertSee('data-can-reset="0"', false)
+            ->assertSee('data-can-revoke="1"', false)
             ->assertDontSee('data-extend-url=', false)
-            ->assertDontSee('data-reset-url=', false);
+            ->assertDontSee('data-reset-url=', false)
+            ->assertSee('data-revoke-url=', false);
 
         $this->actingAs($admin)
             ->post(route('admin.profile-photos.reset-grace', $student))
+            ->assertStatus(422);
+    }
+
+    public function test_admin_can_revoke_approved_photo(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'revoke-admin@example.com']);
+        $student = $this->createUser([
+            'email' => 'revoke-student@example.com',
+            'profile_photo' => 'profile_photos/revoke-me.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
+            'profile_photo_uploaded_at' => now()->subDay(),
+        ]);
+        $course = $this->createCourse(['title' => 'Revoke Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        Storage::disk('public')->put('profile_photos/revoke-me.jpg', 'fake-image');
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.revoke', $student), [
+                'profile_photo_rejection_note' => 'Wrong person in photo',
+            ])
+            ->assertRedirect();
+
+        $student->refresh();
+        $this->assertTrue($student->isProfilePhotoRejected());
+        $this->assertSame('', $student->profile_photo);
+        $this->assertNull($student->profile_photo_uploaded_at);
+        $this->assertNull($student->profile_photo_grace_started_at);
+        $this->assertNull($student->profile_photo_deadline_at);
+        $this->assertSame('Wrong person in photo', $student->profile_photo_rejection_note);
+        $this->assertSame($admin->user_id, $student->profile_photo_reviewed_by_user_id);
+        $this->assertFalse(Storage::disk('public')->exists('profile_photos/revoke-me.jpg'));
+
+        Mail::assertSent(\App\Mail\ProfilePhotoRejectedMail::class, function ($mail) use ($student) {
+            return $mail->hasTo($student->email);
+        });
+
+        $audit = ActivityLog::query()->where('route_name', 'profile_photo.revoked')->latest('activity_log_id')->first();
+        $this->assertNotNull($audit);
+        $this->assertSame($admin->user_id, $audit->request_input['actor_user_id'] ?? null);
+        $this->assertSame($student->user_id, $audit->request_input['target_user_id'] ?? null);
+        $this->assertTrue((bool) ($audit->request_input['has_note'] ?? false));
+    }
+
+    public function test_revoke_requires_note_and_approved_status(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'revoke-guard-admin@example.com']);
+        $approved = $this->createUser([
+            'email' => 'revoke-guard-approved@example.com',
+            'profile_photo' => 'profile_photos/ok.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
+        ]);
+        $pending = $this->createUser([
+            'email' => 'revoke-guard-pending@example.com',
+            'profile_photo' => 'profile_photos/pending.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+        ]);
+        $course = $this->createCourse(['title' => 'Revoke Guard Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($approved, $course, $studentRole);
+        $this->assignCourseRole($pending, $course, $studentRole);
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.revoke', $approved), [])
+            ->assertSessionHasErrors('profile_photo_rejection_note');
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.revoke', $pending), [
+                'profile_photo_rejection_note' => 'Should not work',
+            ])
             ->assertStatus(422);
     }
 

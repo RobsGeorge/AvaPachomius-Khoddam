@@ -14,9 +14,13 @@
             data-can-approve-reject="{{ $actions['approve_reject'] ? '1' : '0' }}"
             data-can-extend="{{ $actions['extend_deadline'] ? '1' : '0' }}"
             data-can-reset="{{ $actions['reset_grace'] ? '1' : '0' }}"
+            data-can-revoke="{{ $actions['revoke'] ? '1' : '0' }}"
             @if($actions['approve_reject'])
                 data-approve-url="{{ route('admin.profile-photos.approve', $student) }}"
                 data-reject-url="{{ route('admin.profile-photos.reject', $student) }}"
+            @endif
+            @if($actions['revoke'])
+                data-revoke-url="{{ route('admin.profile-photos.revoke', $student) }}"
             @endif
             @if($actions['extend_deadline'])
                 data-extend-url="{{ route('admin.profile-photos.extend-deadline', $student) }}"
