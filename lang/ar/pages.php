@@ -431,6 +431,7 @@ return [
     'server_logs_filter_all'      => 'كل المستويات',
     'server_logs_refresh'         => 'تحديث',
     'server_logs_empty'           => 'لم يتم العثور على إدخالات سجل مطابقة.',
+    'server_logs_empty_message'   => '(رسالة فارغة)',
     'server_logs_time'            => 'الوقت',
     'server_logs_level'           => 'المستوى',
     'server_logs_message'         => 'الرسالة',

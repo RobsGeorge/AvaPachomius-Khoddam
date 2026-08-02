@@ -86,15 +86,15 @@ class ServerLogReader
 
         foreach ($matches as $match) {
             $message = trim($match[3] ?? '');
-            // Drop trailing JSON context / exception blob on the same line when present.
-            if (preg_match('/^(.*?)(\s\{"|\s\{)/u', $message, $msgParts) === 1) {
+            // Drop trailing Monolog JSON context / exception blob (" {...") on the same line.
+            if (preg_match('/^(.*?)\s\{"/u', $message, $msgParts) === 1) {
                 $message = trim($msgParts[1]);
             }
 
             $entries[] = [
                 'time' => $match[1],
                 'level' => strtoupper($match[2]),
-                'message' => $message !== '' ? $message : '(empty message)',
+                'message' => $message,
                 'file' => $basename,
             ];
         }

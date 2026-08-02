@@ -431,6 +431,7 @@ return [
     'server_logs_filter_all'      => 'All levels',
     'server_logs_refresh'         => 'Refresh',
     'server_logs_empty'           => 'No matching log entries were found.',
+    'server_logs_empty_message'   => '(empty message)',
     'server_logs_time'            => 'Time',
     'server_logs_level'           => 'Level',
     'server_logs_message'         => 'Message',

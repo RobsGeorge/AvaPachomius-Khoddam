@@ -65,7 +65,7 @@
                                 @endphp
                                 <span class="badge bg-{{ $badge }}">{{ $entry['level'] }}</span>
                             </td>
-                            <td class="small" style="white-space: pre-wrap; word-break: break-word;">{{ $entry['message'] }}</td>
+                            <td class="small" style="white-space: pre-wrap; word-break: break-word;">{{ $entry['message'] !== '' ? $entry['message'] : __('pages.server_logs_empty_message') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -88,7 +88,7 @@
                             @endphp
                             <span class="badge bg-{{ $badge }}">{{ $entry['level'] }}</span>
                         </div>
-                        <div class="small" style="white-space: pre-wrap; word-break: break-word;">{{ $entry['message'] }}</div>
+                        <div class="small" style="white-space: pre-wrap; word-break: break-word;">{{ $entry['message'] !== '' ? $entry['message'] : __('pages.server_logs_empty_message') }}</div>
                     </div>
                 </div>
             @endforeach
