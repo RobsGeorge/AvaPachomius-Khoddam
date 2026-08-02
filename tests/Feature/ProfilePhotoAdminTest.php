@@ -153,6 +153,51 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             ->assertSee('data-bs-target="#profilePhotoReviewModal"', false);
     }
 
+    public function test_pending_review_filter_orders_oldest_uploads_first(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'aging-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Aging Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $newer = $this->createUser([
+            'email' => 'aging-newer@example.com',
+            'first_name' => 'Newer',
+            'profile_photo' => 'profile_photos/newer.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+            'profile_photo_uploaded_at' => now()->subHours(2),
+        ]);
+        $older = $this->createUser([
+            'email' => 'aging-older@example.com',
+            'first_name' => 'Older',
+            'profile_photo' => 'profile_photos/older.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+            'profile_photo_uploaded_at' => now()->subDays(2),
+        ]);
+        $this->assignCourseRole($newer, $course, $studentRole);
+        $this->assignCourseRole($older, $course, $studentRole);
+
+        $ordered = app(\App\Services\ProfilePhotoAdminService::class)
+            ->studentReport('pending_review')
+            ->pluck('email')
+            ->all();
+
+        $this->assertSame(
+            ['aging-older@example.com', 'aging-newer@example.com'],
+            array_values(array_intersect($ordered, ['aging-older@example.com', 'aging-newer@example.com']))
+        );
+
+        $label = app(\App\Services\ProfilePhotoAdminService::class)->pendingWaitLabel($older);
+        $this->assertNotNull($label);
+        $this->assertStringContainsString('2', $label);
+
+        $this->actingAs($admin)
+            ->get(route('admin.profile-photos.index', ['filter' => 'pending_review']))
+            ->assertOk()
+            ->assertSee(__('profile_photos.waiting_days', ['count' => 2]), false);
+    }
+
     public function test_admin_report_tolerates_legacy_zero_dates(): void
     {
         $adminRole = $this->createRole('admin');

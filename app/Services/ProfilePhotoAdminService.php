@@ -32,12 +32,51 @@ class ProfilePhotoAdminService
         $students = $this->enrolledStudents();
 
         if ($filter) {
-            return $students
+            $students = $students
                 ->filter(fn (User $user) => $this->gate->complianceStatus($user) === $filter)
                 ->values();
         }
 
+        if ($filter === 'pending_review') {
+            return $students
+                ->sortBy(function (User $user) {
+                    $uploaded = $this->gate->safeDate($user, 'profile_photo_uploaded_at');
+
+                    return $uploaded?->getTimestamp() ?? PHP_INT_MAX;
+                })
+                ->values();
+        }
+
         return $students;
+    }
+
+    /**
+     * Human-readable how long a pending photo has been waiting.
+     */
+    public function pendingWaitLabel(User $user): ?string
+    {
+        if (! $user->isProfilePhotoPending()) {
+            return null;
+        }
+
+        $uploaded = $this->gate->safeDate($user, 'profile_photo_uploaded_at');
+        if (! $uploaded) {
+            return __('profile_photos.waiting_unknown');
+        }
+
+        $hours = max(0, (int) $uploaded->diffInHours(now($this->gate->timezone())));
+
+        if ($hours < 1) {
+            return __('profile_photos.waiting_under_one_hour');
+        }
+
+        if ($hours < 24) {
+            return __('profile_photos.waiting_hours', ['count' => $hours]);
+        }
+
+        $days = (int) floor($hours / 24);
+
+        return __('profile_photos.waiting_days', ['count' => $days]);
     }
 
     /**

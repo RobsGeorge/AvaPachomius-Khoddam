@@ -5,6 +5,7 @@
 @section('content')
 @php
     $gate = app(\App\Services\ProfilePhotoGateService::class);
+    $photoAdmin = app(\App\Services\ProfilePhotoAdminService::class);
 @endphp
 <div class="container-fluid py-4 animate-in student-data-hub">
     <div class="mb-4">
@@ -87,7 +88,15 @@
                                 </div>
                             </div>
                         </td>
-                        <td><span class="badge bg-secondary">{{ __('profile_photos.status_'.$status) }}</span></td>
+                        <td>
+                            <span class="badge bg-secondary">{{ __('profile_photos.status_'.$status) }}</span>
+                            @if($status === 'pending_review')
+                                @php $wait = $photoAdmin->pendingWaitLabel($student); @endphp
+                                @if($wait)
+                                    <div class="small text-muted-theme mt-1">{{ $wait }}</div>
+                                @endif
+                            @endif
+                        </td>
                         <td>{{ $graceStarted?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>{{ $deadline?->format('d/m/Y H:i') ?? '—' }}</td>
                         <td>{{ $uploadedAt?->format('d/m/Y H:i') ?? '—' }}</td>
@@ -127,7 +136,15 @@
                     <dl class="data-meta-list mb-3">
                         <div class="data-meta-row">
                             <dt>{{ __('profile_photos.status') }}</dt>
-                            <dd><span class="badge bg-secondary">{{ __('profile_photos.status_'.$status) }}</span></dd>
+                            <dd>
+                                <span class="badge bg-secondary">{{ __('profile_photos.status_'.$status) }}</span>
+                                @if($status === 'pending_review')
+                                    @php $wait = $photoAdmin->pendingWaitLabel($student); @endphp
+                                    @if($wait)
+                                        <div class="small text-muted-theme mt-1">{{ $wait }}</div>
+                                    @endif
+                                @endif
+                            </dd>
                         </div>
                         <div class="data-meta-row">
                             <dt>{{ __('profile_photos.grace_started') }}</dt>
