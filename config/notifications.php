@@ -26,6 +26,7 @@ return [
             'service_progression_applied',
             'church_cycle_promotion_season',
             'role_assigned',
+            'profile_photo_pending_review',
         ],
         'events' => [
             'event_nearby',
@@ -225,6 +226,17 @@ return [
             'label' => 'notifications.types.course_application_submitted',
             'category' => 'academic',
             'audience' => ['admin', 'instructor'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'profile_photo_pending_review' => [
+            'label' => 'notifications.types.profile_photo_pending_review',
+            'category' => 'academic',
+            'audience' => ['admin'],
             'defaults' => [
                 'portal_enabled' => true,
                 'email_enabled' => true,

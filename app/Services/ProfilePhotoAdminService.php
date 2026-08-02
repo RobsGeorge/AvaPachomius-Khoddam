@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Mail\ProfilePhotoApprovedMail;
 use App\Mail\ProfilePhotoRejectedMail;
 use App\Models\PortalSettings;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserNotification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +21,9 @@ class ProfilePhotoAdminService
     private ?Collection $studentsCache = null;
 
     public function __construct(
-        private ProfilePhotoGateService $gate
+        private ProfilePhotoGateService $gate,
+        private StudentRosterService $roster,
+        private NotificationGeneratorService $notifications,
     ) {}
 
     /** @return Collection<int, User> */
@@ -113,6 +117,8 @@ class ProfilePhotoAdminService
 
     public function extendDeadline(User $student, Carbon $deadline, User $admin): User
     {
+        abort_unless($this->gate->adminActions($student)['extend_deadline'], 422);
+
         $student->forceFill([
             'profile_photo_deadline_at' => $deadline->timezone($this->gate->timezone()),
         ])->save();
@@ -122,6 +128,8 @@ class ProfilePhotoAdminService
 
     public function resetGraceStart(User $student, User $admin): User
     {
+        abort_unless($this->gate->adminActions($student)['reset_grace'], 422);
+
         if ($student->profile_photo && Storage::disk('public')->exists($student->profile_photo)) {
             Storage::disk('public')->delete($student->profile_photo);
         }
@@ -143,6 +151,7 @@ class ProfilePhotoAdminService
     public function approve(User $student, User $admin): User
     {
         abort_unless($student->hasProfilePhoto(), 422);
+        abort_unless($this->gate->adminActions($student)['approve_reject'], 422);
 
         $student->forceFill([
             'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
@@ -151,11 +160,92 @@ class ProfilePhotoAdminService
             'profile_photo_rejection_note' => null,
         ])->save();
 
-        return $student->fresh();
+        $student = $student->fresh();
+
+        if (filled($student->email)) {
+            try {
+                Mail::to($student->email)->send(new ProfilePhotoApprovedMail($student));
+            } catch (\Throwable $e) {
+                Log::warning('Profile photo approval email failed', [
+                    'user_id' => $student->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $student;
+    }
+
+    /**
+     * Notify course admins (portal + email) that a student photo awaits urgent review.
+     */
+    public function notifyAdminsOfPendingPhoto(User $student): void
+    {
+        if (! $student->isProfilePhotoPending()) {
+            return;
+        }
+
+        $courses = $this->roster->studentEnrolledCourses($student);
+        if ($courses->isEmpty()) {
+            return;
+        }
+
+        $recipients = collect();
+        foreach ($courses as $course) {
+            $courseId = (string) $course->course_id;
+            foreach ($this->roster->courseStaff($courseId) as $member) {
+                if ((int) $member->user_id === (int) $student->user_id) {
+                    continue;
+                }
+                if (! $member->isAdmin($courseId)) {
+                    continue;
+                }
+                $recipients->put($member->user_id, $member);
+            }
+        }
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        $name = $student->displayName();
+        $uploadedAt = $student->profile_photo_uploaded_at;
+        $dedupeSuffix = $uploadedAt instanceof Carbon
+            ? (string) $uploadedAt->getTimestamp()
+            : (string) now($this->gate->timezone())->getTimestamp();
+        $actionUrl = route('admin.profile-photos.index', ['filter' => 'pending_review']);
+
+        foreach ($recipients as $admin) {
+            try {
+                $this->notifications->createOrUpdate(
+                    $admin,
+                    'profile_photo_pending_review',
+                    __('profile_photos.notification_pending_title'),
+                    __('profile_photos.notification_pending_body', ['name' => $name]),
+                    $actionUrl,
+                    User::class,
+                    (int) $student->user_id,
+                    UserNotification::PRIORITY_HIGH,
+                    [
+                        'student_user_id' => $student->user_id,
+                        'dedupe_suffix' => $dedupeSuffix,
+                    ],
+                    "profile_photo_pending_review:{$student->user_id}:{$dedupeSuffix}",
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Profile photo pending-review notification failed', [
+                    'student_user_id' => $student->user_id,
+                    'admin_user_id' => $admin->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     public function reject(User $student, User $admin, ?string $note = null): User
     {
+        abort_unless($this->gate->adminActions($student)['approve_reject'], 422);
+
         if ($student->profile_photo && Storage::disk('public')->exists($student->profile_photo)) {
             Storage::disk('public')->delete($student->profile_photo);
         }

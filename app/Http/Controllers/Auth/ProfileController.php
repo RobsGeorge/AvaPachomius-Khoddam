@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AttendanceQrService;
+use App\Services\ProfilePhotoAdminService;
 use App\Services\ProfilePhotoGateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,7 @@ class ProfileController extends Controller
 {
     public function __construct(
         private ProfilePhotoGateService $photoGate,
+        private ProfilePhotoAdminService $photoAdmin,
         private AttendanceQrService $attendanceQr,
     ) {}
 
@@ -73,6 +75,8 @@ class ProfileController extends Controller
         $user->profile_photo_reviewed_by_user_id = null;
         $user->profile_photo_rejection_note = null;
         $user->save();
+
+        $this->photoAdmin->notifyAdminsOfPendingPhoto($user->fresh());
 
         return redirect()->route('profile')->with('success', __('pages.profile_photo_updated_pending'));
     }
