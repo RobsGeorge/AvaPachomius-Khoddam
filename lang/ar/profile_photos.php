@@ -52,4 +52,8 @@ return [
     'approval_email_action' => 'افتح لوحة التحكم للمتابعة من حيث توقفت.',
     'approval_email_button' => 'الذهاب إلى لوحة التحكم',
     'no_actions_for_status' => 'لا توجد إجراءات إدارية لهذه الحالة.',
+    'waiting_under_one_hour' => 'بانتظار أقل من ساعة',
+    'waiting_hours' => 'بانتظار :count ساعات',
+    'waiting_days' => 'بانتظار :count أيام',
+    'waiting_unknown' => 'بانتظار (وقت الرفع غير معروف)',
 ];
