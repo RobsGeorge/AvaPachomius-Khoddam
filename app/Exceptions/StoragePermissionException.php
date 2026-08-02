@@ -27,9 +27,12 @@ class StoragePermissionException extends Exception
     }
 
     /**
-     * The response must be terminal. Redirecting sends the browser to another page
-     * served by the same broken storage, and a guest bounces between `/` and `/login`
-     * until the browser gives up with ERR_TOO_MANY_REDIRECTS.
+     * The response must be terminal. These failures are persistent for the affected
+     * visitor — a cache shard or session file the runtime user cannot write after a
+     * deploy chmod/chown pass — so any redirect target fails identically and bounces
+     * back: production saw a guest ping-pong between `/` and `/login` until the
+     * browser reported ERR_TOO_MANY_REDIRECTS. Redirecting cannot recover from this,
+     * only a healthy storage tree can.
      */
     public function render(Request $request): SymfonyResponse
     {

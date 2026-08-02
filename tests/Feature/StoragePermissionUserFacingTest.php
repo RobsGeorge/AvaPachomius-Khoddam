@@ -91,6 +91,60 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $this->assertNull($response->headers->get('Location'));
     }
 
+    /**
+     * A guest whose storage writes fail on /login itself must not be sent anywhere:
+     * the only candidate targets are the page that just failed or another page
+     * served by the same broken storage.
+     */
+    public function test_guest_failing_on_login_itself_does_not_redirect_to_itself(): void
+    {
+        $request = \Illuminate\Http\Request::create(route('login'), 'GET');
+        $session = $this->app['session']->driver();
+        $session->start();
+        $request->setLaravelSession($session);
+        // Fresh guest hit, no prior page — no referer, no stored previous URL.
+
+        $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
+            ->render(
+                $request,
+                StoragePermissionException::fromThrowable(
+                    new ErrorException('file_put_contents(...): Failed to open stream: Permission denied')
+                )
+            );
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertNull($response->headers->get('Location'));
+        $this->assertStringContainsString(__('app.storage_unavailable_title'), $response->getContent());
+    }
+
+    /**
+     * Prod reproduction: the visitor's stale, frozen `_previous.url` (never updated
+     * because writes keep failing) points at another protected page, so the old
+     * referer/previous-URL bounce ping-ponged between two URLs. Every request in a
+     * persistent failure must terminate on its own.
+     */
+    public function test_persistent_failure_across_two_requests_does_not_ping_pong(): void
+    {
+        $exception = fn () => StoragePermissionException::fromThrowable(
+            new ErrorException('file_put_contents(...): Failed to open stream: Permission denied')
+        );
+        $handler = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class);
+
+        foreach ([url('/dashboard'), route('login')] as $url) {
+            $request = \Illuminate\Http\Request::create($url, 'GET');
+            $session = $this->app['session']->driver();
+            $session->start();
+            $session->put('_previous.url', url('/dashboard'));
+            $request->setLaravelSession($session);
+
+            $response = $handler->render($request, $exception());
+
+            $this->assertSame(503, $response->getStatusCode(), "{$url} must not bounce during a persistent storage failure.");
+            $this->assertNull($response->headers->get('Location'));
+            $this->assertStringContainsString(__('app.storage_unavailable_title'), $response->getContent());
+        }
+    }
+
     public function test_arabic_copy_is_localized(): void
     {
         app()->setLocale('ar');

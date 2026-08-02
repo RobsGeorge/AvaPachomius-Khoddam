@@ -40,6 +40,7 @@ class AuditLogService
     /** @var list<string> */
     private const SKIPPED_ROUTE_PREFIXES = [
         'superadmin.audit',
+        'superadmin.logs',
     ];
 
     public static function shouldLogRequest(Request $request): bool

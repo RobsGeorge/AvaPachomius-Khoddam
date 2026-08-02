@@ -37,6 +37,11 @@ class EnsureCourseContext
         'courses.application.edit',
         'courses.application.update',
         'onboarding.complete',
+        // Mandatory surveys authorize via enrollment, not ambient course context.
+        // Keep them reachable when session context was cleared (e.g. cache flush).
+        'feedback.index',
+        'feedback.surveys.show',
+        'feedback.surveys.submit',
     ];
 
     public function __construct(
@@ -67,11 +72,12 @@ class EnsureCourseContext
         }
 
         return redirect()->route('courses.select', [
-            'intended' => $request->fullUrl(),
+            // Path-only so CourseContextController::isSafeLocalRedirect accepts it.
+            'intended' => $request->getRequestUri(),
         ]);
     }
 
-  /** @var list<string> */
+    /** @var list<string> */
     private array $exceptRoutePrefixes = [
         'admin.',
         'superadmin.',
