@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
  * carry a timestamp prefix are still surfaced, unparsed, one per line — cron and
  * artisan output land here.
  */
-class ServerLogReader
+class ApplicationLogReaderService
 {
     /** Production log files grow into hundreds of megabytes — only the tail is read. */
     public const TAIL_BYTES = 512 * 1024;

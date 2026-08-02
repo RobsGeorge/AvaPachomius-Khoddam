@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Services\ServerLogReader;
+use App\Services\ApplicationLogReaderService;
 use Illuminate\Support\Facades\File;
 use Tests\Support\EventModuleTestCase;
 
@@ -12,7 +12,7 @@ use Tests\Support\EventModuleTestCase;
  * plus its timestamp. The log directory is redirected to a scratch folder so the
  * suite never touches (or depends on) the real application log.
  */
-class SuperAdminServerLogsTest extends EventModuleTestCase
+class SuperadminApplicationLogTest extends EventModuleTestCase
 {
     private string $logDirectory;
 
@@ -66,7 +66,7 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
         $this->actingAs($this->superadmin())
             ->get(route('superadmin.logs.index'))
             ->assertOk()
-            ->assertSee(__('server_logs.title'))
+            ->assertSee(__('pages.application_logs_title'))
             ->assertSee('laravel.log')
             ->assertSee('Undefined church for tenant resolution')
             ->assertSee('2026-08-01 11:20:31')
@@ -111,14 +111,14 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
         $this->actingAs($admin)
             ->get(route('superadmin.logs.index', ['q' => 'nothing matches this']))
             ->assertOk()
-            ->assertSee(__('server_logs.no_entries'));
+            ->assertSee(__('pages.application_logs_empty'));
     }
 
     public function test_stack_trace_lines_are_kept_with_their_entry(): void
     {
         $this->writeLog('laravel.log', $this->sampleLog());
 
-        $result = app(ServerLogReader::class)->read('laravel.log', ['level' => 'error']);
+        $result = app(ApplicationLogReaderService::class)->read('laravel.log', ['level' => 'error']);
 
         $this->assertCount(1, $result['entries']);
         $entry = $result['entries'][0];
@@ -147,8 +147,8 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
             ->get(route('superadmin.logs.index', ['file' => '../../.env']))
             ->assertOk();
 
-        $this->assertFalse(app(ServerLogReader::class)->isReadableFile('../../.env'));
-        $this->assertSame([], app(ServerLogReader::class)->read('../../.env')['entries']);
+        $this->assertFalse(app(ApplicationLogReaderService::class)->isReadableFile('../../.env'));
+        $this->assertSame([], app(ApplicationLogReaderService::class)->read('../../.env')['entries']);
     }
 
     public function test_a_file_without_laravel_formatted_lines_is_still_shown_when_larger_than_the_tail_cap(): void
@@ -156,37 +156,37 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
         // scheduler-cron.log is plain artisan output and grows past the tail cap in a
         // few days of cron ticks; every surviving line must still be listed.
         $line = str_pad('Running [scheduler:heartbeat] ... DONE', 120, '.').PHP_EOL;
-        $this->writeLog('scheduler-cron.log', str_repeat($line, (int) ceil(ServerLogReader::TAIL_BYTES / 120) + 50));
+        $this->writeLog('scheduler-cron.log', str_repeat($line, (int) ceil(ApplicationLogReaderService::TAIL_BYTES / 120) + 50));
 
-        $result = app(ServerLogReader::class)->read('scheduler-cron.log');
+        $result = app(ApplicationLogReaderService::class)->read('scheduler-cron.log');
 
         $this->assertTrue($result['truncated']);
-        $this->assertCount(ServerLogReader::MAX_ENTRIES, $result['entries']);
+        $this->assertCount(ApplicationLogReaderService::MAX_ENTRIES, $result['entries']);
 
         $this->actingAs($this->superadmin())
             ->get(route('superadmin.logs.index', ['file' => 'scheduler-cron.log']))
             ->assertOk()
             ->assertSee('Running [scheduler:heartbeat]')
-            ->assertDontSee(__('server_logs.no_entries'));
+            ->assertDontSee(__('pages.application_logs_empty'));
     }
 
     public function test_only_the_half_cut_first_line_is_dropped_from_a_truncated_tail(): void
     {
         // 64 bytes per line, so the 512 KB window starts mid-line and every whole
         // line after it must survive.
-        $total = (int) (ServerLogReader::TAIL_BYTES / 64) + 30;
+        $total = (int) (ApplicationLogReaderService::TAIL_BYTES / 64) + 30;
         $lines = '';
         for ($i = 1; $i <= $total; $i++) {
             $lines .= str_pad(sprintf('cron line %06d', $i), 63, ' ').PHP_EOL;
         }
         $this->writeLog('scheduler-cron.log', $lines);
 
-        $entries = app(ServerLogReader::class)->read('scheduler-cron.log')['entries'];
+        $entries = app(ApplicationLogReaderService::class)->read('scheduler-cron.log')['entries'];
 
         // Newest first, and the newest whole line is the last one written.
         $this->assertStringContainsString(sprintf('cron line %06d', $total), $entries[0]['message']);
 
-        $expectedOldest = $total - ServerLogReader::MAX_ENTRIES + 1;
+        $expectedOldest = $total - ApplicationLogReaderService::MAX_ENTRIES + 1;
         $this->assertStringContainsString(
             sprintf('cron line %06d', $expectedOldest),
             $entries[array_key_last($entries)]['message']
@@ -200,7 +200,7 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
         symlink($secret, $this->logDirectory.'/escape.log');
 
         try {
-            $reader = app(ServerLogReader::class);
+            $reader = app(ApplicationLogReaderService::class);
 
             $this->assertSame([], array_column($reader->availableFiles(), 'name'));
             $this->assertFalse($reader->isReadableFile('escape.log'));
@@ -226,7 +226,7 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
 
         LOG);
 
-        $result = app(ServerLogReader::class)->read('php-fpm.log');
+        $result = app(ApplicationLogReaderService::class)->read('php-fpm.log');
 
         $this->assertCount(1, $result['entries']);
         $entry = $result['entries'][0];
@@ -245,7 +245,7 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
             ->get(route('superadmin.logs.index', ['file' => 'quiet.log', 'level' => 'error']))
             ->assertOk()
             ->assertSee('value="error" selected', false)
-            ->assertSee(__('server_logs.no_entries'));
+            ->assertSee(__('pages.application_logs_empty'));
     }
 
     public function test_page_renders_when_no_log_files_exist(): void
@@ -253,10 +253,10 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
         $this->actingAs($this->superadmin())
             ->get(route('superadmin.logs.index'))
             ->assertOk()
-            ->assertSee(__('server_logs.no_files'));
+            ->assertSee(__('pages.application_logs_no_files'));
     }
 
-    public function test_non_superadmin_cannot_read_server_logs(): void
+    public function test_non_superadmin_cannot_read_application_logs(): void
     {
         $this->writeLog('laravel.log', $this->sampleLog());
 

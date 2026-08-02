@@ -108,6 +108,52 @@ sudo install -o root -g root -m 0755 \
   /usr/local/sbin/avapakhomios-deploy-perms
 ```
 
+## Runtime `ERR_TOO_MANY_REDIRECTS` for some users (broken cache shard)
+
+Symptom: a user opening the bare domain gets *"This page isn't working — redirected you
+too many times"*, while other users browse normally. The affected browser bounces between
+`/` and `/login`.
+
+Cause: one file-cache hash directory is not writable by `www-data`, so every request that
+has to write a key hashing into it fails. Cache keys are per user and per locale
+(`translations.db.ar`, `perms:system:<user_id>`, …), which is why only some users are hit.
+
+Confirm from the VPS:
+
+```bash
+# 1) Does the bare domain bounce? (a healthy guest gets exactly one 302 to /login)
+curl -sIL --max-redirs 10 -o /dev/null \
+  -w 'final=%{http_code} redirects=%{num_redirects}\n' https://avapakhomios.com/
+
+# 2) Which cache dirs www-data cannot write?
+#    cd /tmp first: www-data cannot read /home/deploy, and find then fails to
+#    restore its working directory.
+cd /tmp && sudo -u www-data find /var/www/avapakhomios/storage/framework/cache/data \
+  -type d ! -writable -printf '%p %u:%g %m\n'
+
+# 3) Matching errors in the log
+grep -E 'Permission denied|chmod\(\)|mkdir\(\)' /var/www/avapakhomios/storage/logs/laravel.log | tail
+```
+
+A line such as `.../cache/data/02/50 root:www-data 2755` is the signature: owner `root`
+and mode `2755` (setgid set, **group-write missing**) means an artisan command ran as
+root under `umask 0022`. `www-data` can then neither write into that shard nor create a
+missing one — the log shows `file_put_contents(...): Permission denied` for shards that
+exist and `mkdir(): Permission denied` for shards that do not.
+
+Run artisan as the deploy user (or `sudo -u www-data`) with `umask 0002`, never as root.
+
+Recovery is the same permission heal as above:
+
+```bash
+sudo /usr/local/sbin/avapakhomios-deploy-perms /var/www/avapakhomios deploy:www-data
+sudo systemctl reload php8.2-fpm
+```
+
+Since the storage-permission fix, an unwritable cache only degrades performance
+(values are recomputed uncached) and any unrecoverable storage failure renders a
+terminal 503 page — never a redirect.
+
 ## App ownership (recommended)
 
 The deploy user should own the project (or at least `storage/` and `bootstrap/cache/`):

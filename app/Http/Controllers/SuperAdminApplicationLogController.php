@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ServerLogReader;
+use App\Services\ApplicationLogReaderService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Pagination\Paginator;
@@ -11,11 +11,11 @@ use Illuminate\Pagination\Paginator;
  * Read-only viewer over the server log files (storage/logs/*.log) so a superadmin
  * can read production errors and their timestamps from the console instead of SSH.
  */
-class SuperAdminLogController extends Controller
+class SuperAdminApplicationLogController extends Controller
 {
     private const PER_PAGE = 50;
 
-    public function __construct(private readonly ServerLogReader $reader) {}
+    public function __construct(private readonly ApplicationLogReaderService $reader) {}
 
     public function index(Request $request)
     {
@@ -41,7 +41,7 @@ class SuperAdminLogController extends Controller
 
         return view('superadmin.logs.index', [
             'files' => array_map(function (array $file) {
-                $file['size_label'] = ServerLogReader::humanSize($file['size']);
+                $file['size_label'] = ApplicationLogReaderService::humanSize($file['size']);
 
                 return $file;
             }, $files),
@@ -54,7 +54,7 @@ class SuperAdminLogController extends Controller
             'matchCount' => count($result['entries']),
             'isFiltered' => $level !== null || $search !== null,
             'truncated' => $result['truncated'],
-            'tailLimitLabel' => ServerLogReader::humanSize(ServerLogReader::TAIL_BYTES),
+            'tailLimitLabel' => ApplicationLogReaderService::humanSize(ApplicationLogReaderService::TAIL_BYTES),
             'entries' => $this->paginate($result['entries'], $request),
         ]);
     }

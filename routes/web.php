@@ -41,7 +41,7 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
-use App\Http\Controllers\SuperAdminLogController;
+use App\Http\Controllers\SuperAdminApplicationLogController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
@@ -241,6 +241,8 @@ Route::post('password/reset', [NewPasswordController::class, 'store'])->name('pa
 
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
+// Public landing — guests must not bounce / → /login → / (redirect loop when session storage fails).
+Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('login', [LoginController::class, 'login']);
 
@@ -331,7 +333,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/courses/{course}/application/edit', [StudentCourseApplicationController::class, 'edit'])->name('courses.application.edit');
     Route::put('/courses/{course}/application', [StudentCourseApplicationController::class, 'update'])->name('courses.application.update');
     Route::post('/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
-    Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
     Route::match(['get', 'post'], '/logout', [LoginController::class, 'logout'])->name('logout');
 
     // View attendance records for a specific user
@@ -627,7 +628,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
-    Route::get('/logs',                      [SuperAdminLogController::class, 'index'])->name('logs.index');
+    Route::get('/logs',                      [SuperAdminApplicationLogController::class, 'index'])->name('logs.index');
 
     // T4 — church tenant provisioning (also reachable on the console host).
     Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
