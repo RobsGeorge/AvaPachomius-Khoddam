@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AttendanceQrService;
 use App\Services\ProfilePhotoGateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Storage;
 class ProfileController extends Controller
 {
     public function __construct(
-        private ProfilePhotoGateService $photoGate
+        private ProfilePhotoGateService $photoGate,
+        private AttendanceQrService $attendanceQr,
     ) {}
 
     public function index()
@@ -28,7 +30,7 @@ class ProfileController extends Controller
             $user->third_name ?? ''
         );
 
-        $attendanceUrl = route('attendance.sessions', ['user_id' => $user->user_id], true);
+        $attendanceUrl = $this->attendanceQr->urlForUser($user);
 
         return response()
             ->view('profile.show', [

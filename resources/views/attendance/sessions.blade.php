@@ -3,6 +3,15 @@
 @section('title', __('pages.attendance_confirm_title'))
 
 @section('content')
+@php
+    $displayName = $person
+        ? ($person->display_name ?: trim($person->first_name.' '.$person->second_name.' '.($person->third_name ?? '')))
+        : ($user ? trim($user->first_name.' '.$user->second_name.' '.$user->third_name) : '');
+    $nationalId = $person?->national_id ?? $user?->national_id ?? null;
+    $mobile = $person?->mobile_number ?? $user?->mobile_number ?? null;
+    $email = $person?->email ?? $user?->email ?? null;
+    $photo = $user?->profile_photo ?? null;
+@endphp
 <div class="container py-4 animate-in" style="max-width:720px;">
     <h2 class="page-title mb-4">{{ __('pages.attendance_confirm_title') }}</h2>
 
@@ -12,8 +21,8 @@
         </div>
         <div class="card-body">
             <div class="text-center mb-3">
-                @if($user->profile_photo)
-                    <img src="{{ asset('storage/' . $user->profile_photo) }}" alt="{{ __('pages.profile_photo') }}"
+                @if($photo)
+                    <img src="{{ asset('storage/' . $photo) }}" alt="{{ __('pages.profile_photo') }}"
                          class="rounded-circle border profile-preview-img">
                 @else
                     <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center profile-preview-img">
@@ -23,11 +32,11 @@
             </div>
 
             <p class="mb-2"><strong>{{ __('pages.full_name') }}:</strong>
-                {{ trim($user->first_name . ' ' . $user->second_name . ' ' . $user->third_name) }}
+                {{ $displayName }}
             </p>
-            <p class="mb-2"><strong>{{ __('pages.national_id') }}:</strong> {{ $user->national_id ?? __('pages.not_available') }}</p>
-            <p class="mb-2"><strong>{{ __('pages.phone') }}:</strong> {{ $user->mobile_number ?? __('pages.not_available') }}</p>
-            <p class="mb-0"><strong>{{ __('pages.email') }}:</strong> {{ $user->email }}</p>
+            <p class="mb-2"><strong>{{ __('pages.national_id') }}:</strong> {{ $nationalId ?? __('pages.not_available') }}</p>
+            <p class="mb-2"><strong>{{ __('pages.phone') }}:</strong> {{ $mobile ?? __('pages.not_available') }}</p>
+            <p class="mb-0"><strong>{{ __('pages.email') }}:</strong> {{ $email ?? __('pages.not_available') }}</p>
         </div>
     </div>
 
@@ -80,7 +89,12 @@
                     @else
                         <form action="{{ route('attendance.record', $session->session_id) }}" method="POST">
                             @csrf
-                            <input type="hidden" name="student_user_id" value="{{ $userId }}">
+                            @if(!empty($personId))
+                                <input type="hidden" name="student_person_id" value="{{ $personId }}">
+                            @endif
+                            @if(!empty($userId))
+                                <input type="hidden" name="student_user_id" value="{{ $userId }}">
+                            @endif
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="bi bi-check2-circle"></i> {{ __('pages.confirm_attendance') }}
                             </button>

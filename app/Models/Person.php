@@ -110,6 +110,11 @@ class Person extends Model
         return $this->hasMany(Invitation::class, 'person_id', 'person_id');
     }
 
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'person_id', 'person_id');
+    }
+
     public function isRetired(): bool
     {
         return $this->retired_at !== null;
