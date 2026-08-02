@@ -280,6 +280,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/home-visits', [HomeVisitController::class, 'store'])->name('home-visits.store');
             Route::get('/home-visits/{visit}/edit', [HomeVisitController::class, 'edit'])->name('home-visits.edit');
             Route::put('/home-visits/{visit}', [HomeVisitController::class, 'update'])->name('home-visits.update');
+            Route::post('/home-visits/{visit}/notes', [HomeVisitController::class, 'storeNote'])->name('home-visits.notes.store');
         });
 
         // T9c — Church Cycle Dashboard (school year season; no global promote)
