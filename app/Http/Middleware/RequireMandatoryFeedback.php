@@ -55,6 +55,14 @@ class RequireMandatoryFeedback
             'feedback.index',
             'feedback.surveys.show',
             'feedback.surveys.submit',
+            // Context pickers must stay reachable after session flush; otherwise
+            // EnsureCourseContext/EnsureServiceContext ↔ this middleware loops.
+            'courses.select',
+            'courses.select.store',
+            'courses.select.clear',
+            'services.select',
+            'services.select.store',
+            'services.select.clear',
             'announcements.index',
             'announcements.show',
             'announcements.dismiss-banner',

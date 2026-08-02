@@ -10,6 +10,7 @@ return [
     'roles'             => 'Role management',
     'superadmin'        => 'Super admin',
     'audit_reports'     => 'Audit reports',
+    'application_logs'  => 'Application logs',
     'profile'           => 'Profile',
     'account'           => 'Account center',
     'help'              => 'Help & FAQ',

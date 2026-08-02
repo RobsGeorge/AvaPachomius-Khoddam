@@ -786,6 +786,14 @@ return [
                 'nav' => ['system.audit'],
                 'system_only' => true,
             ],
+            'platform.application_logs' => [
+                'label_en' => 'View application logs',
+                'label_ar' => 'عرض سجلات التطبيق',
+                'type' => 'both',
+                'routes' => ['superadmin.logs.*'],
+                'nav' => ['system.application_logs'],
+                'system_only' => true,
+            ],
             'platform.impersonate' => [
                 'label_en' => 'Impersonate users',
                 'label_ar' => 'انتحال هوية المستخدمين',
