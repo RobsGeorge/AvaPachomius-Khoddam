@@ -66,8 +66,12 @@ class ProfilePhotoReportController extends Controller
     public function approve(User $user)
     {
         $this->adminService->approve($user, Auth::user());
+        $nextId = $this->adminService->nextPendingUserIdAfter($user);
 
-        return back()->with('success', __('profile_photos.approved', ['name' => $user->displayName()]));
+        return redirect()->route('admin.profile-photos.index', array_filter([
+            'filter' => 'pending_review',
+            'focus' => $nextId,
+        ]))->with('success', __('profile_photos.approved', ['name' => $user->displayName()]));
     }
 
     public function reject(Request $request, User $user)
@@ -77,8 +81,12 @@ class ProfilePhotoReportController extends Controller
         ]);
 
         $this->adminService->reject($user, Auth::user(), $data['profile_photo_rejection_note'] ?? null);
+        $nextId = $this->adminService->nextPendingUserIdAfter($user);
 
-        return back()->with('success', __('profile_photos.rejected', ['name' => $user->displayName()]));
+        return redirect()->route('admin.profile-photos.index', array_filter([
+            'filter' => 'pending_review',
+            'focus' => $nextId,
+        ]))->with('success', __('profile_photos.rejected', ['name' => $user->displayName()]));
     }
 
     public function bulkApprove(Request $request)

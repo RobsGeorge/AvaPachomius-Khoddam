@@ -242,6 +242,39 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
         ]);
     }
 
+    public function test_approve_redirects_to_next_pending_focus(): void
+    {
+        Mail::fake();
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'focus-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Focus Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $first = $this->createUser([
+            'email' => 'focus-first@example.com',
+            'profile_photo' => 'profile_photos/first.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+            'profile_photo_uploaded_at' => now()->subDays(2),
+        ]);
+        $second = $this->createUser([
+            'email' => 'focus-second@example.com',
+            'profile_photo' => 'profile_photos/second.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+            'profile_photo_uploaded_at' => now()->subHour(),
+        ]);
+        $this->assignCourseRole($first, $course, $studentRole);
+        $this->assignCourseRole($second, $course, $studentRole);
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.approve', $first))
+            ->assertRedirect(route('admin.profile-photos.index', [
+                'filter' => 'pending_review',
+                'focus' => $second->user_id,
+            ]));
+    }
+
     public function test_admin_report_tolerates_legacy_zero_dates(): void
     {
         $adminRole = $this->createRole('admin');
