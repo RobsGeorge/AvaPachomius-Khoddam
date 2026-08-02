@@ -63,8 +63,9 @@
                     <label for="profile_photo_input" class="btn btn-sm btn-primary mt-3">
                         <i class="bi bi-camera"></i> {{ __('pages.upload_new_photo') }}
                     </label>
-                    <input type="file" name="profile_photo" id="profile_photo_input" class="d-none" accept="image/*"
-                           onchange="this.form.submit()">
+                    <input type="file" name="profile_photo" id="profile_photo_input" class="d-none" accept="image/*">
+                    <p class="small text-muted-theme mt-2 mb-0">{{ __('pages.profile_photo_upload_tip') }}</p>
+                    <div id="profilePhotoUploadWarn" class="alert alert-warning mt-2 py-2 px-3 d-none small" role="status"></div>
                 </form>
             </div>
 
@@ -132,4 +133,67 @@
     </div>
 </div>
 
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('profile_photo_input');
+    const form = document.getElementById('profilePhotoUploadForm');
+    const warn = document.getElementById('profilePhotoUploadWarn');
+    if (!input || !form) return;
+
+    const minSide = 200;
+    const extremeRatio = 3;
+
+    input.addEventListener('change', function () {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        if (warn) {
+            warn.classList.add('d-none');
+            warn.textContent = '';
+        }
+
+        if (!file.type.startsWith('image/')) {
+            form.submit();
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = function () {
+            URL.revokeObjectURL(url);
+            const w = img.naturalWidth || img.width;
+            const h = img.naturalHeight || img.height;
+            const ratio = w > 0 && h > 0 ? Math.max(w, h) / Math.min(w, h) : 1;
+            const warnings = [];
+
+            if (w < minSide || h < minSide) {
+                warnings.push(@json(__('pages.profile_photo_warn_small')));
+            }
+            if (ratio >= extremeRatio) {
+                warnings.push(@json(__('pages.profile_photo_warn_aspect')));
+            }
+
+            if (warnings.length && warn) {
+                warn.textContent = warnings.join(' ');
+                warn.classList.remove('d-none');
+                const proceed = window.confirm(warnings.join('\n') + '\n\n' + @json(__('pages.profile_photo_warn_continue')));
+                if (!proceed) {
+                    input.value = '';
+                    return;
+                }
+            }
+
+            form.submit();
+        };
+        img.onerror = function () {
+            URL.revokeObjectURL(url);
+            form.submit();
+        };
+        img.src = url;
+    });
+});
+</script>
 @endpush
