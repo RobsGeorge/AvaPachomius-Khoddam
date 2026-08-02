@@ -3,11 +3,8 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\User;
-use App\Models\Session;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
@@ -20,7 +17,7 @@ class Attendance extends Model
     protected $primaryKey = 'attendance_id';
 
     protected $fillable = [
-        'user_id', 'session_id', 'taken_by_id', 'status',
+        'user_id', 'person_id', 'session_id', 'taken_by_id', 'status',
         'permission_reason', 'attendance_time', 'lock_version',
     ];
 
@@ -48,19 +45,23 @@ class Attendance extends Model
         return $local->format('h:i').' '.$suffix;
     }
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
     }
 
-    public function takenBy()
+    public function person(): BelongsTo
+    {
+        return $this->belongsTo(Person::class, 'person_id', 'person_id');
+    }
+
+    public function takenBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'taken_by_id', 'user_id');
     }
 
-    public function session()
+    public function session(): BelongsTo
     {
         return $this->belongsTo(Session::class, 'session_id', 'session_id');
     }
 }
-

@@ -264,6 +264,8 @@ return [
     'view_session_roster'         => 'View session roster',
     'missing_records_count'       => ':count missing',
     'student_not_found'           => 'Student not found.',
+    'attendance_qr_invalid'       => 'This attendance QR code is invalid or expired.',
+    'attendance_guardian_forbidden' => 'You are not allowed to check in this person.',
     'no_sessions_add_instruction' => 'Please add a session for today from the session management page.',
     'add_session'                 => 'Add session',
     'upload_new_photo'            => 'Click to upload a new photo',
