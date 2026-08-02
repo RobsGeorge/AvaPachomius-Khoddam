@@ -41,6 +41,7 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
+use App\Http\Controllers\SuperAdminApplicationLogController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
@@ -626,6 +627,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
+    Route::get('/logs',                      [SuperAdminApplicationLogController::class, 'index'])->name('logs.index');
 
     // T4 — church tenant provisioning (also reachable on the console host).
     Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
