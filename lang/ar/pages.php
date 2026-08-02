@@ -768,6 +768,8 @@ return [
     'application_logs_file'           => 'ملف السجل',
     'application_logs_level'          => 'المستوى',
     'application_logs_lines'          => 'أقصى عدد للإدخالات',
+    'application_logs_search' => 'بحث في الرسالة',
+    'application_logs_search_placeholder' => 'نص للبحث عنه في رسالة السجل…',
     'application_logs_entries'        => 'أحدث الإدخالات من :file',
     'application_logs_missing_file'   => 'ملف السجل :file غير موجود بعد على هذا الخادم.',
     'application_logs_empty'          => 'لا توجد إدخالات سجل تطابق عوامل التصفية الحالية.',

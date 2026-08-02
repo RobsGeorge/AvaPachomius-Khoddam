@@ -22,7 +22,7 @@
     <div class="app-card card shadow-sm mb-4">
         <div class="card-body">
             <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label" for="file">{{ __('pages.application_logs_file') }}</label>
                     <select name="file" id="file" class="form-select">
                         @forelse($availableFiles as $basename => $label)
@@ -32,7 +32,7 @@
                         @endforelse
                     </select>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="form-label" for="level">{{ __('pages.application_logs_level') }}</label>
                     <select name="level" id="level" class="form-select">
                         <option value="">{{ __('pages.all') }}</option>
@@ -41,11 +41,15 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="q">{{ __('pages.application_logs_search') }}</label>
+                    <input type="text" name="q" id="q" class="form-control" value="{{ $search }}" placeholder="{{ __('pages.application_logs_search_placeholder') }}">
+                </div>
                 <div class="col-md-2">
                     <label class="form-label" for="lines">{{ __('pages.application_logs_lines') }}</label>
                     <input type="number" name="lines" id="lines" class="form-control" min="10" max="500" value="{{ $lines }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100">{{ __('pages.filter') }}</button>
                 </div>
             </form>
@@ -56,12 +60,12 @@
         <div class="card-body">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <h2 class="h6 mb-0">{{ __('pages.application_logs_entries', ['file' => $selectedFile]) }}</h2>
-                <span class="badge bg-secondary">{{ count($entries) }}</span>
+                <span class="badge bg-secondary">{{ $entries->total() }}</span>
             </div>
 
             @if($missingFile)
                 <p class="text-muted-theme mb-0">{{ __('pages.application_logs_missing_file', ['file' => $selectedFile]) }}</p>
-            @elseif($entries === [])
+            @elseif($entries->isEmpty())
                 <p class="text-muted-theme mb-0">{{ __('pages.application_logs_empty') }}</p>
             @else
                 <div class="table-responsive">
@@ -100,6 +104,8 @@
                         </tbody>
                     </table>
                 </div>
+
+                @include('partials.pagination', ['paginator' => $entries])
             @endif
         </div>
     </div>

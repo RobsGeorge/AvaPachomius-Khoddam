@@ -4,11 +4,8 @@ namespace App\Services;
 
 class ApplicationLogReaderService
 {
-    /** @var list<string> */
-    private const ALLOWED_BASENAMES = [
-        'laravel.log',
-        'scheduler-cron.log',
-    ];
+    /** Cap on how far back a page can force us to read, regardless of $page. */
+    private const MAX_RAW_LINES = 5000;
 
     /**
      * @return array<string, string> basename => localized label key suffix
@@ -18,13 +15,10 @@ class ApplicationLogReaderService
         $dir = storage_path('logs');
         $files = [];
 
-        foreach (self::ALLOWED_BASENAMES as $basename) {
-            if (is_file($dir.'/'.$basename)) {
-                $files[$basename] = $basename;
-            }
-        }
-
-        foreach (glob($dir.'/laravel-*.log') ?: [] as $path) {
+        // Any plain ".log" file directly under storage/logs — not just the historical
+        // laravel.log / scheduler-cron.log / laravel-*.log names — so a custom queue
+        // worker or job log dropped in the same directory shows up automatically.
+        foreach (glob($dir.'/*.log') ?: [] as $path) {
             $basename = basename($path);
             if ($this->isAllowedBasename($basename)) {
                 $files[$basename] = $basename;
@@ -40,12 +34,21 @@ class ApplicationLogReaderService
      * @return array{
      *     entries: list<array{timestamp: ?string, level: ?string, message: string}>,
      *     file: string,
-     *     missing: bool
+     *     missing: bool,
+     *     total: int,
+     *     page: int,
+     *     per_page: int
      * }
      */
-    public function tail(string $basename, int $maxLines = 200, ?string $levelFilter = null): array
-    {
-        $maxLines = max(10, min(500, $maxLines));
+    public function tail(
+        string $basename,
+        int $perPage = 200,
+        ?string $levelFilter = null,
+        ?string $search = null,
+        int $page = 1,
+    ): array {
+        $perPage = max(10, min(500, $perPage));
+        $page = max(1, $page);
         $path = $this->resolvePath($basename);
 
         if ($path === null) {
@@ -53,10 +56,17 @@ class ApplicationLogReaderService
                 'entries' => [],
                 'file' => $basename,
                 'missing' => true,
+                'total' => 0,
+                'page' => 1,
+                'per_page' => $perPage,
             ];
         }
 
-        $rawLines = $this->readLastLines($path, $maxLines * 3);
+        // Read enough of the file's tail to (likely) cover the requested page — the
+        // window grows with $page so paging back reaches further into the file — but
+        // capped so a very large page number can't force an unbounded read.
+        $rawWindow = min(self::MAX_RAW_LINES, $perPage * $page * 3);
+        $rawLines = $this->readLastLines($path, $rawWindow);
         $entries = $this->parseLines($rawLines);
 
         if ($levelFilter !== null && $levelFilter !== '') {
@@ -67,12 +77,28 @@ class ApplicationLogReaderService
             ));
         }
 
-        $entries = array_slice($entries, -$maxLines);
+        if ($search !== null && $search !== '') {
+            $entries = array_values(array_filter(
+                $entries,
+                fn (array $entry) => stripos($entry['message'], $search) !== false
+            ));
+        }
+
+        // Newest first, so page 1 shows the most recent matching entries and higher
+        // pages page back through older ones (within the read window above).
+        $entries = array_reverse($entries);
+
+        $total = count($entries);
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $page = min($page, $lastPage);
 
         return [
-            'entries' => $entries,
+            'entries' => array_slice($entries, ($page - 1) * $perPage, $perPage),
             'file' => $basename,
             'missing' => false,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
         ];
     }
 
@@ -91,13 +117,14 @@ class ApplicationLogReaderService
         return array_key_first($files);
     }
 
+    /** A plain filename ending in ".log" — no path separators or traversal segments. */
     private function isAllowedBasename(string $basename): bool
     {
-        if (in_array($basename, self::ALLOWED_BASENAMES, true)) {
-            return true;
+        if ($basename === '' || str_contains($basename, '/') || str_contains($basename, '\\') || str_contains($basename, '..')) {
+            return false;
         }
 
-        return (bool) preg_match('/^laravel-\d{4}-\d{2}-\d{2}\.log$/', $basename);
+        return (bool) preg_match('/^[\w.-]+\.log$/', $basename);
     }
 
     private function resolvePath(string $basename): ?string

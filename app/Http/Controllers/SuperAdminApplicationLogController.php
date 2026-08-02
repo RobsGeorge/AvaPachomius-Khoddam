@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\ApplicationLogReaderService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class SuperAdminApplicationLogController extends Controller
 {
@@ -16,18 +17,35 @@ class SuperAdminApplicationLogController extends Controller
             $selectedFile = $reader->defaultBasename();
         }
 
-        $maxLines = (int) $request->query('lines', 200);
+        $perPage = (int) $request->query('lines', 200);
         $level = $request->query('level');
+        $search = $request->query('q');
+        $page = (int) $request->query('page', 1);
 
-        $result = $reader->tail($selectedFile, $maxLines, is_string($level) ? $level : null);
+        $result = $reader->tail(
+            $selectedFile,
+            $perPage,
+            is_string($level) ? $level : null,
+            is_string($search) ? trim($search) : null,
+            $page
+        );
+
+        $entries = new LengthAwarePaginator(
+            $result['entries'],
+            $result['total'],
+            $result['per_page'],
+            $result['page'],
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
 
         return view('superadmin.logs.index', [
             'availableFiles' => $availableFiles,
             'selectedFile' => $selectedFile,
-            'entries' => $result['entries'],
+            'entries' => $entries,
             'missingFile' => $result['missing'],
             'level' => is_string($level) ? $level : '',
-            'lines' => max(10, min(500, $maxLines)),
+            'search' => is_string($search) ? trim($search) : '',
+            'lines' => $result['per_page'],
         ]);
     }
 }
