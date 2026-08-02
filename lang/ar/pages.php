@@ -424,6 +424,7 @@ return [
     'superadmin_security_title'   => 'أدوات الأمان',
     'superadmin_security_desc'    => 'إنهاء جلسات جميع المستخدمين أو معاينة البوابة كحساب آخر.',
     'superadmin_audit_desc'       => 'مراجعة سجلات النشاط ومحاولات تسجيل الدخول.',
+    'superadmin_server_logs_desc' => 'قراءة ملفات سجل الخادم (الأخطاء وأوقاتها) بدون الحاجة إلى SSH.',
     'superadmin_events_tests_desc' => 'تشغيل الاختبارات الآلية لوحدة الفعاليات.',
     'superadmin_system_tests_desc' => 'تشغيل خطوط اختبار النظام المصنَّفة وعرض التقرير.',
     'superadmin_scheduled_tasks_desc' => 'مراقبة مهام الكرون، تعديل الجداول، التشغيل اليدوي، ومراجعة المخرجات.',

@@ -424,6 +424,7 @@ return [
     'superadmin_security_title'   => 'Security tools',
     'superadmin_security_desc'    => 'Force logout all users or preview the portal as another account.',
     'superadmin_audit_desc'       => 'Review activity logs and login trial records.',
+    'superadmin_server_logs_desc' => 'Read the server log files (errors and their timestamps) without SSH access.',
     'superadmin_events_tests_desc' => 'Run automated tests for the events module.',
     'superadmin_system_tests_desc' => 'Run the categorized system-wide test pipelines and view the report.',
     'superadmin_scheduled_tasks_desc' => 'Monitor cron jobs, adjust schedules, run tasks manually, and review outputs.',
