@@ -2,16 +2,22 @@
 
 namespace Tests\Feature;
 
+use App\Mail\NotificationMail;
 use App\Models\PortalSettings;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Services\ProfilePhotoGateService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\EventModuleTestCase;
 
 class ProfilePhotoAdminTest extends EventModuleTestCase
 {
     public function test_admin_can_approve_pending_photo(): void
     {
+        Mail::fake();
+
         $adminRole = $this->createRole('admin');
         $studentRole = $this->createRole('student');
 
@@ -31,6 +37,11 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
 
         $student->refresh();
         $this->assertTrue($student->isProfilePhotoApproved());
+
+        Mail::assertSent(\App\Mail\ProfilePhotoApprovedMail::class, function ($mail) use ($student) {
+            return $mail->hasTo($student->email)
+                && $mail->dashboardUrl === route('dashboard');
+        });
     }
 
     public function test_admin_can_reset_grace_and_clear_photo(): void
@@ -119,7 +130,9 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             ->assertOk()
             ->assertSee(__('profile_photos.report_title'))
             ->assertSee(__('profile_photos.status_pending_review'))
-            ->assertSee(__('profile_photos.status_overdue'));
+            ->assertSee(__('profile_photos.status_overdue'))
+            ->assertSee('id="profilePhotoReviewModal"', false)
+            ->assertSee('data-bs-target="#profilePhotoReviewModal"', false);
     }
 
     public function test_admin_report_tolerates_legacy_zero_dates(): void
@@ -294,5 +307,145 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
 
         $this->assertFalse($student->isProfilePhotoPending());
         $this->assertFalse($student->needsProfilePhotoReview());
+    }
+
+    public function test_admin_actions_match_compliance_status(): void
+    {
+        $gate = app(ProfilePhotoGateService::class);
+
+        $approved = $this->createUser([
+            'email' => 'actions-approved@example.com',
+            'profile_photo' => 'profile_photos/ok.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
+        ]);
+        $this->assertSame(
+            ['approve_reject' => false, 'extend_deadline' => false, 'reset_grace' => false],
+            $gate->adminActions($approved)
+        );
+
+        $pending = $this->createUser([
+            'email' => 'actions-pending@example.com',
+            'profile_photo' => 'profile_photos/pending.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+        ]);
+        $this->assertSame(
+            ['approve_reject' => true, 'extend_deadline' => false, 'reset_grace' => false],
+            $gate->adminActions($pending)
+        );
+
+        $rejected = $this->createUser([
+            'email' => 'actions-rejected@example.com',
+            'profile_photo' => '',
+            'profile_photo_status' => User::PHOTO_STATUS_REJECTED,
+            'profile_photo_grace_started_at' => now()->subDay(),
+        ]);
+        $this->assertSame(
+            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => true],
+            $gate->adminActions($rejected)
+        );
+
+        $notStarted = $this->createUser([
+            'email' => 'actions-not-started@example.com',
+            'profile_photo' => '',
+        ]);
+        $this->assertSame(
+            ['approve_reject' => false, 'extend_deadline' => true, 'reset_grace' => false],
+            $gate->adminActions($notStarted)
+        );
+    }
+
+    public function test_approved_students_do_not_see_extend_or_reset_actions(): void
+    {
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'approved-actions-admin@example.com']);
+        $student = $this->createUser([
+            'email' => 'approved-actions-student@example.com',
+            'profile_photo' => 'profile_photos/approved.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
+        ]);
+        $course = $this->createCourse(['title' => 'Approved Actions Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.profile-photos.index', ['filter' => 'approved']))
+            ->assertOk()
+            ->assertSee(__('profile_photos.no_actions_for_status'))
+            ->assertSee('data-can-extend="0"', false)
+            ->assertSee('data-can-reset="0"', false)
+            ->assertDontSee('data-extend-url=', false)
+            ->assertDontSee('data-reset-url=', false);
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.reset-grace', $student))
+            ->assertStatus(422);
+    }
+
+    public function test_photo_upload_notifies_course_admins_via_portal_and_email(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+
+        $adminRole = $this->createRole('admin');
+        $instructorRole = $this->createRole('instructor');
+        $studentRole = $this->createRole('student');
+
+        $adminA = $this->createUser(['email' => 'photo-notify-admin-a@example.com']);
+        $adminB = $this->createUser(['email' => 'photo-notify-admin-b@example.com']);
+        $instructor = $this->createUser(['email' => 'photo-notify-instructor@example.com']);
+        $student = $this->createUser([
+            'email' => 'photo-notify-student@example.com',
+            'first_name' => 'نور',
+            'second_name' => 'مراد',
+            'third_name' => 'حبيب',
+            'profile_photo' => '',
+            'registration_completed' => true,
+        ]);
+
+        $course = $this->createCourse(['title' => 'Photo Notify Course']);
+        $this->assignCourseRole($adminA, $course, $adminRole);
+        $this->assignCourseRole($adminB, $course, $adminRole);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($student)
+            ->put(route('profile.picture.update'), [
+                'profile_photo' => UploadedFile::fake()->image('urgent.jpg', 400, 400),
+            ])
+            ->assertRedirect(route('profile'));
+
+        $student->refresh();
+        $this->assertTrue($student->isProfilePhotoPending());
+
+        foreach ([$adminA, $adminB] as $admin) {
+            $notification = UserNotification::query()
+                ->where('user_id', $admin->user_id)
+                ->where('type', 'profile_photo_pending_review')
+                ->first();
+
+            $this->assertNotNull($notification, "Expected portal notification for {$admin->email}");
+            $this->assertSame(UserNotification::PRIORITY_HIGH, $notification->priority);
+            $this->assertStringContainsString('filter=pending_review', (string) $notification->action_url);
+            $this->assertStringContainsString($student->displayName(), $notification->body);
+        }
+
+        $this->assertSame(
+            0,
+            UserNotification::query()
+                ->where('user_id', $instructor->user_id)
+                ->where('type', 'profile_photo_pending_review')
+                ->count()
+        );
+
+        Mail::assertSent(NotificationMail::class, function (NotificationMail $mail) use ($adminA) {
+            return $mail->hasTo($adminA->email);
+        });
+        Mail::assertSent(NotificationMail::class, function (NotificationMail $mail) use ($adminB) {
+            return $mail->hasTo($adminB->email);
+        });
+        Mail::assertNotSent(NotificationMail::class, function (NotificationMail $mail) use ($instructor) {
+            return $mail->hasTo($instructor->email);
+        });
     }
 }

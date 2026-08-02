@@ -43,4 +43,13 @@ return [
     'rejection_email_body' => 'الصورة التي رفعتها لا تستوفي متطلبات البوابة (قد تكون غير واضحة أو ليست صورتك الشخصية الحقيقية).',
     'rejection_email_action' => 'يرجى تسجيل الدخول ورفع صورة واضحة جديدة لك. النظام بانتظار صورتك الجديدة.',
     'rejection_email_button' => 'رفع صورة جديدة',
+    'notification_pending_title' => 'عاجل: صورة شخصية تحتاج اعتماد',
+    'notification_pending_body' => 'رفع :name صورة شخصية ويحتاج اعتماداً عاجلاً حتى لا يبقى منتظراً.',
+    'approval_email_subject' => 'تم اعتماد صورتك الشخصية',
+    'approval_email_header' => 'اعتماد الصورة الشخصية',
+    'approval_email_greeting' => 'مرحباً :name،',
+    'approval_email_body' => 'تم اعتماد صورتك الشخصية. يمكنك الآن استخدام البوابة بالكامل مرة أخرى.',
+    'approval_email_action' => 'افتح لوحة التحكم للمتابعة من حيث توقفت.',
+    'approval_email_button' => 'الذهاب إلى لوحة التحكم',
+    'no_actions_for_status' => 'لا توجد إجراءات إدارية لهذه الحالة.',
 ];
