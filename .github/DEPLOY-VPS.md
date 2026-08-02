@@ -126,12 +126,22 @@ curl -sIL --max-redirs 10 -o /dev/null \
   -w 'final=%{http_code} redirects=%{num_redirects}\n' https://avapakhomios.com/
 
 # 2) Which cache dirs www-data cannot write?
-sudo -u www-data find /var/www/avapakhomios/storage/framework/cache/data \
+#    cd /tmp first: www-data cannot read /home/deploy, and find then fails to
+#    restore its working directory.
+cd /tmp && sudo -u www-data find /var/www/avapakhomios/storage/framework/cache/data \
   -type d ! -writable -printf '%p %u:%g %m\n'
 
 # 3) Matching errors in the log
-grep -E 'Permission denied|chmod\(\)' /var/www/avapakhomios/storage/logs/laravel.log | tail
+grep -E 'Permission denied|chmod\(\)|mkdir\(\)' /var/www/avapakhomios/storage/logs/laravel.log | tail
 ```
+
+A line such as `.../cache/data/02/50 root:www-data 2755` is the signature: owner `root`
+and mode `2755` (setgid set, **group-write missing**) means an artisan command ran as
+root under `umask 0022`. `www-data` can then neither write into that shard nor create a
+missing one — the log shows `file_put_contents(...): Permission denied` for shards that
+exist and `mkdir(): Permission denied` for shards that do not.
+
+Run artisan as the deploy user (or `sudo -u www-data`) with `umask 0002`, never as root.
 
 Recovery is the same permission heal as above:
 
