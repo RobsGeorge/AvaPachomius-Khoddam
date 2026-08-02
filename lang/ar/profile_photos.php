@@ -56,4 +56,10 @@ return [
     'waiting_hours' => 'بانتظار :count ساعات',
     'waiting_days' => 'بانتظار :count أيام',
     'waiting_unknown' => 'بانتظار (وقت الرفع غير معروف)',
+    'bulk_select_all' => 'تحديد الكل في الصفحة',
+    'bulk_approve' => 'اعتماد المحدد',
+    'bulk_reject' => 'رفض المحدد',
+    'bulk_approved' => 'تم اعتماد :approved صورة؛ تم تخطي :skipped.',
+    'bulk_rejected' => 'تم رفض :rejected صورة؛ تم تخطي :skipped.',
+    'confirm_bulk_reject' => 'رفض كل الصور المحددة؟ سيتم إخطار الطلاب ويجب عليهم الرفع من جديد.',
 ];

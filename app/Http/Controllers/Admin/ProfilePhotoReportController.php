@@ -80,4 +80,39 @@ class ProfilePhotoReportController extends Controller
 
         return back()->with('success', __('profile_photos.rejected', ['name' => $user->displayName()]));
     }
+
+    public function bulkApprove(Request $request)
+    {
+        $data = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer',
+        ]);
+
+        $result = $this->adminService->approveMany($data['user_ids'], Auth::user());
+
+        return back()->with('success', __('profile_photos.bulk_approved', [
+            'approved' => $result['approved'],
+            'skipped' => $result['skipped'],
+        ]));
+    }
+
+    public function bulkReject(Request $request)
+    {
+        $data = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer',
+            'profile_photo_rejection_note' => 'nullable|string|max:1000',
+        ]);
+
+        $result = $this->adminService->rejectMany(
+            $data['user_ids'],
+            Auth::user(),
+            $data['profile_photo_rejection_note'] ?? null
+        );
+
+        return back()->with('success', __('profile_photos.bulk_rejected', [
+            'rejected' => $result['rejected'],
+            'skipped' => $result['skipped'],
+        ]));
+    }
 }
