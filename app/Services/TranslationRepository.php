@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Translation;
+use App\Support\ResilientCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 
@@ -14,7 +15,7 @@ class TranslationRepository
             return;
         }
 
-        $lines = Cache::remember(Translation::cacheKey($locale), 3600, function () use ($locale) {
+        $lines = ResilientCache::remember(Translation::cacheKey($locale), 3600, function () use ($locale) {
             return Translation::query()
                 ->where('locale', $locale)
                 ->get()

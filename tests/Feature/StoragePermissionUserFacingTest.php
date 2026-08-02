@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use Tests\Support\EventModuleTestCase;
 
 /**
- * Users must never see a raw 500 for deploy/www-data storage permission races.
+ * Users must never see a raw 500 for deploy/www-data storage permission races,
+ * and never a redirect: the retry target runs on the same broken storage, which
+ * produced an ERR_TOO_MANY_REDIRECTS loop between `/` and `/login` in production.
  */
 class StoragePermissionUserFacingTest extends EventModuleTestCase
 {
@@ -25,13 +27,14 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $payload = json_decode($response->getContent(), true);
         $this->assertSame('storage_unavailable', $payload['error'] ?? null);
         $this->assertSame(__('app.storage_unavailable'), $payload['message'] ?? null);
+        $this->assertSame('60', $response->headers->get('Retry-After'));
         $this->assertSame(
             'If this keeps happening, contact support or your church administrator.',
             __('app.storage_unavailable_contact', [], 'en')
         );
     }
 
-    public function test_handler_web_flashes_error_toast_instead_of_500(): void
+    public function test_handler_web_renders_terminal_page_instead_of_redirect(): void
     {
         $request = \Illuminate\Http\Request::create('/profile', 'GET');
         $session = $this->app['session']->driver();
@@ -47,15 +50,16 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
                 )
             );
 
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame(__('app.storage_unavailable'), $session->get('error'));
-        $this->assertNotSame(500, $response->getStatusCode());
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertNull($response->headers->get('Location'));
+        $this->assertStringContainsString(__('app.storage_unavailable'), $response->getContent());
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
     }
 
     public function test_handler_falls_back_to_dedicated_page_when_session_unavailable(): void
     {
         $request = \Illuminate\Http\Request::create('/login', 'GET');
-        // No session bound — flash redirect must not be used.
+        // No session bound — the page must still render without touching the session.
 
         $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
             ->render($request, new ErrorException('chmod(): Operation not permitted'));
@@ -68,7 +72,7 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $this->assertStringNotContainsString('Server Error', $html);
     }
 
-    public function test_authenticated_user_redirect_targets_profile_fallback(): void
+    public function test_authenticated_user_also_gets_terminal_page(): void
     {
         $user = $this->createUser(['email' => 'storage-perm@example.com']);
         Auth::login($user);
@@ -78,15 +82,13 @@ class StoragePermissionUserFacingTest extends EventModuleTestCase
         $session = $this->app['session']->driver();
         $session->start();
         $request->setLaravelSession($session);
-        // previous == current → fallback to profile
         $request->headers->set('referer', url('/dashboard'));
 
         $response = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class)
             ->render($request, new ErrorException('chmod(): Operation not permitted'));
 
-        $this->assertSame(302, $response->getStatusCode());
-        $this->assertSame(route('profile'), $response->headers->get('Location'));
-        $this->assertSame(__('app.storage_unavailable'), $session->get('error'));
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertNull($response->headers->get('Location'));
     }
 
     public function test_arabic_copy_is_localized(): void
