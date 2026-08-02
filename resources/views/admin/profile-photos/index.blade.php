@@ -58,10 +58,42 @@
         @endforeach
     </div>
 
+    @if($filter === 'pending_review' && $students->isNotEmpty())
+        <div class="app-card card shadow-sm mb-3" id="profilePhotoBulkBar">
+            <div class="card-body d-flex flex-column flex-lg-row gap-2 align-items-lg-end">
+                <div class="form-check me-lg-3">
+                    <input class="form-check-input" type="checkbox" id="profilePhotoSelectAll">
+                    <label class="form-check-label" for="profilePhotoSelectAll">{{ __('profile_photos.bulk_select_all') }}</label>
+                </div>
+                <form method="POST" action="{{ route('admin.profile-photos.bulk-approve') }}" id="profilePhotoBulkApproveForm" class="d-inline">
+                    @csrf
+                    <div id="profilePhotoBulkApproveIds"></div>
+                    <button type="submit" class="btn btn-sm btn-success" id="profilePhotoBulkApproveBtn" disabled>
+                        <i class="bi bi-check-lg"></i> {{ __('profile_photos.bulk_approve') }}
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.profile-photos.bulk-reject') }}" id="profilePhotoBulkRejectForm"
+                      class="d-flex flex-column flex-sm-row gap-1 flex-grow-1"
+                      data-confirm="{{ __('profile_photos.confirm_bulk_reject') }}">
+                    @csrf
+                    <div id="profilePhotoBulkRejectIds"></div>
+                    <input type="text" name="profile_photo_rejection_note" class="form-control form-control-sm"
+                           placeholder="{{ __('profile_photos.rejection_note') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap" id="profilePhotoBulkRejectBtn" disabled>
+                        <i class="bi bi-x-lg"></i> {{ __('profile_photos.bulk_reject') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
+
     <div class="table-responsive d-none d-lg-block admin-table-desktop app-card card shadow-sm">
         <table class="table table-hover mb-0 align-middle">
             <thead>
                 <tr>
+                    @if($filter === 'pending_review')
+                        <th style="width:2.5rem"></th>
+                    @endif
                     <th>{{ __('profile_photos.student') }}</th>
                     <th>{{ __('profile_photos.status') }}</th>
                     <th>{{ __('profile_photos.grace_started') }}</th>
@@ -79,6 +111,13 @@
                         $uploadedAt = $gate->safeDate($student, 'profile_photo_uploaded_at');
                     @endphp
                     <tr>
+                        @if($filter === 'pending_review')
+                            <td>
+                                <input type="checkbox" class="form-check-input profile-photo-bulk-check"
+                                       value="{{ $student->user_id }}"
+                                       @disabled(! $student->isProfilePhotoPending())>
+                            </td>
+                        @endif
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 @include('admin.profile-photos.partials.photo-trigger', ['student' => $student, 'size' => 40])
@@ -109,7 +148,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="text-center text-muted-theme py-4">{{ __('profile_photos.no_students') }}</td>
+                        <td colspan="{{ $filter === 'pending_review' ? 7 : 6 }}" class="text-center text-muted-theme py-4">{{ __('profile_photos.no_students') }}</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -330,6 +369,41 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.removeAttribute('inert');
         }
     });
+
+    const selectAll = document.getElementById('profilePhotoSelectAll');
+    const approveIds = document.getElementById('profilePhotoBulkApproveIds');
+    const rejectIds = document.getElementById('profilePhotoBulkRejectIds');
+    const approveBtn = document.getElementById('profilePhotoBulkApproveBtn');
+    const rejectBtn = document.getElementById('profilePhotoBulkRejectBtn');
+
+    function selectedChecks() {
+        return Array.from(document.querySelectorAll('.profile-photo-bulk-check:checked:not(:disabled)'));
+    }
+
+    function syncBulkIds() {
+        const checks = selectedChecks();
+        const html = checks.map(function (el) {
+            return '<input type="hidden" name="user_ids[]" value="' + el.value + '">';
+        }).join('');
+        if (approveIds) approveIds.innerHTML = html;
+        if (rejectIds) rejectIds.innerHTML = html;
+        const enabled = checks.length > 0;
+        if (approveBtn) approveBtn.disabled = !enabled;
+        if (rejectBtn) rejectBtn.disabled = !enabled;
+    }
+
+    document.querySelectorAll('.profile-photo-bulk-check').forEach(function (el) {
+        el.addEventListener('change', syncBulkIds);
+    });
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.profile-photo-bulk-check:not(:disabled)').forEach(function (el) {
+                el.checked = selectAll.checked;
+            });
+            syncBulkIds();
+        });
+    }
+    syncBulkIds();
 });
 </script>
 @endpush

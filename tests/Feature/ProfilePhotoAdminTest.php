@@ -198,6 +198,50 @@ class ProfilePhotoAdminTest extends EventModuleTestCase
             ->assertSee(__('profile_photos.waiting_days', ['count' => 2]), false);
     }
 
+    public function test_admin_can_bulk_approve_pending_photos(): void
+    {
+        Mail::fake();
+
+        $adminRole = $this->createRole('admin');
+        $studentRole = $this->createRole('student');
+        $admin = $this->createUser(['email' => 'bulk-admin@example.com']);
+        $course = $this->createCourse(['title' => 'Bulk Course']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $a = $this->createUser([
+            'email' => 'bulk-a@example.com',
+            'profile_photo' => 'profile_photos/a.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+        ]);
+        $b = $this->createUser([
+            'email' => 'bulk-b@example.com',
+            'profile_photo' => 'profile_photos/b.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_PENDING,
+        ]);
+        $approved = $this->createUser([
+            'email' => 'bulk-already@example.com',
+            'profile_photo' => 'profile_photos/ok.jpg',
+            'profile_photo_status' => User::PHOTO_STATUS_APPROVED,
+        ]);
+        $this->assignCourseRole($a, $course, $studentRole);
+        $this->assignCourseRole($b, $course, $studentRole);
+        $this->assignCourseRole($approved, $course, $studentRole);
+
+        $this->actingAs($admin)
+            ->post(route('admin.profile-photos.bulk-approve'), [
+                'user_ids' => [$a->user_id, $b->user_id, $approved->user_id],
+            ])
+            ->assertRedirect();
+
+        $this->assertTrue($a->fresh()->isProfilePhotoApproved());
+        $this->assertTrue($b->fresh()->isProfilePhotoApproved());
+        $this->assertTrue($approved->fresh()->isProfilePhotoApproved());
+
+        $this->assertDatabaseHas('activity_logs', [
+            'route_name' => 'profile_photo.bulk_approved',
+        ]);
+    }
+
     public function test_admin_report_tolerates_legacy_zero_dates(): void
     {
         $adminRole = $this->createRole('admin');

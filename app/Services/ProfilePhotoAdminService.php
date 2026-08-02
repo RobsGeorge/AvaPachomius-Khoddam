@@ -250,6 +250,89 @@ class ProfilePhotoAdminService
     }
 
     /**
+     * @param  list<int|string>  $userIds
+     * @return array{approved: int, skipped: int}
+     */
+    public function approveMany(array $userIds, User $admin): array
+    {
+        $approved = 0;
+        $skipped = 0;
+
+        foreach (array_unique(array_map('intval', $userIds)) as $userId) {
+            if ($userId < 1) {
+                continue;
+            }
+
+            $student = User::query()->where('user_id', $userId)->first();
+            if (! $student || ! $this->gate->adminActions($student)['approve_reject']) {
+                $skipped++;
+
+                continue;
+            }
+
+            try {
+                $this->approve($student, $admin);
+                $approved++;
+            } catch (\Throwable) {
+                $skipped++;
+            }
+        }
+
+        if ($approved > 0) {
+            AuditLogService::recordEvent('profile_photo.bulk_approved', [
+                'actor_user_id' => $admin->user_id,
+                'approved_count' => $approved,
+                'skipped_count' => $skipped,
+                'requested_ids' => array_values(array_unique(array_map('intval', $userIds))),
+            ]);
+        }
+
+        return compact('approved', 'skipped');
+    }
+
+    /**
+     * @param  list<int|string>  $userIds
+     * @return array{rejected: int, skipped: int}
+     */
+    public function rejectMany(array $userIds, User $admin, ?string $note = null): array
+    {
+        $rejected = 0;
+        $skipped = 0;
+
+        foreach (array_unique(array_map('intval', $userIds)) as $userId) {
+            if ($userId < 1) {
+                continue;
+            }
+
+            $student = User::query()->where('user_id', $userId)->first();
+            if (! $student || ! $this->gate->adminActions($student)['approve_reject']) {
+                $skipped++;
+
+                continue;
+            }
+
+            try {
+                $this->reject($student, $admin, $note);
+                $rejected++;
+            } catch (\Throwable) {
+                $skipped++;
+            }
+        }
+
+        if ($rejected > 0) {
+            AuditLogService::recordEvent('profile_photo.bulk_rejected', [
+                'actor_user_id' => $admin->user_id,
+                'rejected_count' => $rejected,
+                'skipped_count' => $skipped,
+                'has_note' => filled($note),
+                'requested_ids' => array_values(array_unique(array_map('intval', $userIds))),
+            ]);
+        }
+
+        return compact('rejected', 'skipped');
+    }
+
+    /**
      * Notify course admins (portal + email) that a student photo awaits urgent review.
      */
     public function notifyAdminsOfPendingPhoto(User $student): void
