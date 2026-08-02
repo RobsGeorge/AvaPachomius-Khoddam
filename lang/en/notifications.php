@@ -64,6 +64,7 @@ return [
         'below_passing_grade' => 'Students below passing grade',
         'custom_reminder' => 'Custom reminders',
         'course_application_submitted' => 'New course application',
+        'profile_photo_pending_review' => 'Profile photo awaiting approval',
         'course_graduation_announced' => 'Course grades announced',
         'role_assigned' => 'Role assignments',
     ],

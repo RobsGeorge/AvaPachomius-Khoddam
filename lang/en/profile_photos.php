@@ -43,4 +43,13 @@ return [
     'rejection_email_body' => 'Your uploaded profile photo does not meet the portal requirements (for example, it may be unclear or not a real personal photo).',
     'rejection_email_action' => 'Please sign in and upload a new clear photo of yourself. The portal is waiting for your new photo.',
     'rejection_email_button' => 'Upload a new photo',
+    'notification_pending_title' => 'Urgent: profile photo needs approval',
+    'notification_pending_body' => ':name uploaded a profile photo and needs urgent approval so they are not left waiting.',
+    'approval_email_subject' => 'Your profile photo was approved',
+    'approval_email_header' => 'Profile photo approved',
+    'approval_email_greeting' => 'Hello :name,',
+    'approval_email_body' => 'Your profile photo has been approved. You have full access to the portal again.',
+    'approval_email_action' => 'Open the dashboard to continue where you left off.',
+    'approval_email_button' => 'Go to dashboard',
+    'no_actions_for_status' => 'No admin actions for this status.',
 ];
