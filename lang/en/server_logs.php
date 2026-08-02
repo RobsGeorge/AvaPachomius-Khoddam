@@ -7,12 +7,10 @@ return [
 
     'file' => 'Log file',
     'no_files' => 'No log files were found on the server yet.',
-    'file_size' => 'Size',
-    'file_modified' => 'Last written',
 
     'level' => 'Level',
     'all_levels' => 'All levels',
-    'level_unparsed' => 'Unparsed',
+    'level_none' => 'No level',
     'search' => 'Search',
     'search_placeholder' => 'Part of the error message…',
     'filter' => 'Filter',
@@ -22,10 +20,10 @@ return [
     'time' => 'Time',
     'message' => 'Message',
     'no_time' => 'No timestamp',
-    'details' => 'Details',
     'show_details' => 'Stack trace / context',
 
     'summary' => 'Showing :matches of :scanned entries read from :file.',
     'truncated' => 'Only the most recent part of this file is shown (the tail, up to :size). Older entries stay on the server.',
     'no_entries' => 'No log entries match the current filter.',
+    'file_empty' => 'This log file has no entries yet.',
 ];

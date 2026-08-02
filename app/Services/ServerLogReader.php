@@ -9,10 +9,12 @@ use Illuminate\Support\Carbon;
  * superadmin console can surface errors without SSH access.
  *
  * Parsing is deliberately shallow: the standard Laravel line prefix
- * `[2026-08-02 00:12:34] production.ERROR: message` is split into a timestamp,
- * a level and the message; everything that follows on subsequent lines (stack
+ * `[2026-08-02 00:12:34] production.ERROR: message` (and PHP's own
+ * `[02-Aug-2026 00:12:34 UTC]` error_log prefix) is split into a timestamp, a
+ * level and the message; everything that follows on subsequent lines (stack
  * traces, JSON context) is kept verbatim as the entry detail. Lines that do not
- * carry a timestamp prefix are still surfaced, unparsed.
+ * carry a timestamp prefix are still surfaced, unparsed, one per line — cron and
+ * artisan output land here.
  */
 class ServerLogReader
 {
@@ -22,12 +24,22 @@ class ServerLogReader
     /** Upper bound on entries handed to the UI, newest kept. */
     public const MAX_ENTRIES = 2000;
 
-    private const ENTRY_PATTERN = '/^\[(?<time>\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\]\s*(?:(?<env>[^\s\.\[\]]+)\.(?<level>[A-Za-z]+)\s*:)?\s?(?<message>.*)$/';
+    /** Monolog `2026-08-02 00:12:34(.123)(+02:00)` or PHP error_log `02-Aug-2026 00:12:34 UTC`. */
+    private const TIMESTAMP = '\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?'
+        .'|\d{2}-[A-Za-z]{3}-\d{4} \d{2}:\d{2}:\d{2}(?:\s+[A-Za-z][\w\/+\-]*)?';
+
+    private const ENTRY_PATTERN = '/^\[(?<time>'.self::TIMESTAMP.')\]\s*(?:(?<env>[^\s\.\[\]]+)\.(?<level>[A-Za-z]+)\s*:)?\s?(?<message>.*)$/';
 
     /** Severity order used to sort the level filter, most severe first. */
     private const LEVEL_ORDER = [
         'emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug',
     ];
+
+    /** Bucket key for entries whose line carries no `env.LEVEL:` prefix. */
+    public const LEVEL_NONE = 'none';
+
+    /** @var list<array{name: string, size: int, modified_at: Carbon}>|null */
+    private ?array $files = null;
 
     /** Directory holding the server log files. */
     public function directory(): string
@@ -46,29 +58,49 @@ class ServerLogReader
      */
     public function availableFiles(): array
     {
-        $directory = $this->directory();
+        if ($this->files !== null) {
+            return $this->files;
+        }
 
-        if (! is_dir($directory)) {
-            return [];
+        $directory = realpath($this->directory());
+
+        if ($directory === false || ! is_dir($directory)) {
+            return $this->files = [];
         }
 
         $files = [];
 
         foreach (glob(rtrim($directory, '/').'/*.log') ?: [] as $path) {
-            if (! is_file($path) || ! is_readable($path)) {
+            $real = realpath($path);
+
+            // Containment check: a symlink dropped in the log directory must not
+            // turn this page into an arbitrary file reader.
+            if ($real === false || ! str_starts_with($real, $directory.DIRECTORY_SEPARATOR)) {
+                continue;
+            }
+
+            if (! is_file($real) || ! is_readable($real)) {
+                continue;
+            }
+
+            // Rotation can unlink a file between the glob and the stat.
+            $size = @filesize($real);
+            $modified = @filemtime($real);
+
+            if ($size === false || $modified === false) {
                 continue;
             }
 
             $files[] = [
-                'name' => basename($path),
-                'size' => (int) filesize($path),
-                'modified_at' => Carbon::createFromTimestamp((int) filemtime($path), config('app.timezone')),
+                'name' => basename($real),
+                'size' => (int) $size,
+                'modified_at' => Carbon::createFromTimestamp((int) $modified, config('app.timezone')),
             ];
         }
 
         usort($files, fn (array $a, array $b) => $b['modified_at']->getTimestamp() <=> $a['modified_at']->getTimestamp());
 
-        return array_values($files);
+        return $this->files = array_values($files);
     }
 
     /** Whether the given name is one of the readable log files (guards path traversal). */
@@ -95,9 +127,7 @@ class ServerLogReader
      *     entries: list<array{time: ?Carbon, level: ?string, environment: ?string, message: string, detail: ?string}>,
      *     level_counts: array<string, int>,
      *     total_scanned: int,
-     *     truncated: bool,
-     *     file_size: int,
-     *     bytes_read: int
+     *     truncated: bool
      * }
      */
     public function read(string $name, array $filters = []): array
@@ -107,8 +137,6 @@ class ServerLogReader
             'level_counts' => [],
             'total_scanned' => 0,
             'truncated' => false,
-            'file_size' => 0,
-            'bytes_read' => 0,
         ];
 
         if (! $this->isReadableFile($name)) {
@@ -116,12 +144,12 @@ class ServerLogReader
         }
 
         $path = rtrim($this->directory(), '/').'/'.basename($name);
-        $size = (int) filesize($path);
+        $size = (int) @filesize($path);
         $truncated = $size > self::TAIL_BYTES;
         $contents = $this->tail($path, $size);
 
         if ($contents === '') {
-            return array_merge($empty, ['file_size' => $size]);
+            return $empty;
         }
 
         $entries = $this->parse($contents, $truncated);
@@ -140,8 +168,6 @@ class ServerLogReader
             'level_counts' => $levelCounts,
             'total_scanned' => $totalScanned,
             'truncated' => $truncated,
-            'file_size' => $size,
-            'bytes_read' => strlen($contents),
         ];
     }
 
@@ -207,6 +233,8 @@ class ServerLogReader
                 return '';
             }
 
+            // A file rotated between the stat and the seek leaves the handle at
+            // offset 0, which is the right place to start reading anyway.
             fseek($handle, -$length, SEEK_END);
             $contents = stream_get_contents($handle);
         } finally {
@@ -257,11 +285,16 @@ class ServerLogReader
             $entries[] = $this->finalise($current);
         }
 
-        // Lines before the first timestamp are either a log entry the tail cut in half
-        // (dropped) or output from a tool that does not use Laravel's format (kept).
-        if (! $tailWasCut && $preamble !== []) {
-            $unparsed = array_values(array_filter($preamble, fn (string $line) => trim($line) !== ''));
+        // Lines before the first timestamp come from a tool that does not use
+        // Laravel's format (cron, artisan) and are surfaced one per line. Only the
+        // very first line is dropped when the tail cut it in half.
+        if ($tailWasCut) {
+            array_shift($preamble);
+        }
 
+        $unparsed = array_values(array_filter($preamble, fn (string $line) => trim($line) !== ''));
+
+        if ($unparsed !== []) {
             $entries = array_merge(array_map(fn (string $line) => [
                 'time' => null,
                 'level' => null,
@@ -298,7 +331,7 @@ class ServerLogReader
         $counts = [];
 
         foreach ($entries as $entry) {
-            $level = $entry['level'] ?? 'unparsed';
+            $level = $entry['level'] ?? self::LEVEL_NONE;
             $counts[$level] = ($counts[$level] ?? 0) + 1;
         }
 
@@ -322,7 +355,7 @@ class ServerLogReader
         $term = is_string($term) && $term !== '' ? mb_strtolower($term) : null;
 
         return array_values(array_filter($entries, function (array $entry) use ($level, $term) {
-            if ($level !== null && $level !== '' && ($entry['level'] ?? 'unparsed') !== $level) {
+            if ($level !== null && $level !== '' && ($entry['level'] ?? self::LEVEL_NONE) !== $level) {
                 return false;
             }
 

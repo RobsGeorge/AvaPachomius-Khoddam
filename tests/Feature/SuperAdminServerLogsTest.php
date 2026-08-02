@@ -22,7 +22,9 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
 
         $this->logDirectory = storage_path('framework/testing/server-logs-'.uniqid());
         File::ensureDirectoryExists($this->logDirectory);
-        config(['logging.channels.single.path' => $this->logDirectory.'/laravel.log']);
+        // Point the logger at a name no fixture uses, so a stray Log:: call during a
+        // request cannot alter the file under assertion.
+        config(['logging.channels.single.path' => $this->logDirectory.'/app-under-test.log']);
     }
 
     protected function tearDown(): void
@@ -147,6 +149,58 @@ class SuperAdminServerLogsTest extends EventModuleTestCase
 
         $this->assertFalse(app(ServerLogReader::class)->isReadableFile('../../.env'));
         $this->assertSame([], app(ServerLogReader::class)->read('../../.env')['entries']);
+    }
+
+    public function test_a_file_without_laravel_formatted_lines_is_still_shown_when_larger_than_the_tail_cap(): void
+    {
+        // scheduler-cron.log is plain artisan output and grows past the tail cap in a
+        // few days of cron ticks; every surviving line must still be listed.
+        $line = str_pad('Running [scheduler:heartbeat] ... DONE', 120, '.').PHP_EOL;
+        $this->writeLog('scheduler-cron.log', str_repeat($line, (int) ceil(ServerLogReader::TAIL_BYTES / 120) + 50));
+
+        $result = app(ServerLogReader::class)->read('scheduler-cron.log');
+
+        $this->assertTrue($result['truncated']);
+        $this->assertGreaterThan(1000, count($result['entries']));
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'scheduler-cron.log']))
+            ->assertOk()
+            ->assertSee('Running [scheduler:heartbeat]')
+            ->assertDontSee(__('server_logs.no_entries'));
+    }
+
+    public function test_php_error_log_timestamps_are_parsed_and_trace_lines_attach_to_the_entry(): void
+    {
+        $this->writeLog('php-fpm.log', <<<'LOG'
+        [02-Aug-2026 09:14:02 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Church::slugg() in /var/www/app.php:31
+        Stack trace:
+        #0 /var/www/index.php(9): handle()
+        #1 {main}
+          thrown in /var/www/app.php on line 31
+
+        LOG);
+
+        $result = app(ServerLogReader::class)->read('php-fpm.log');
+
+        $this->assertCount(1, $result['entries']);
+        $entry = $result['entries'][0];
+
+        $this->assertSame('2026-08-02 09:14:02', $entry['time']->format('Y-m-d H:i:s'));
+        $this->assertStringContainsString('Call to undefined method', $entry['message']);
+        $this->assertStringContainsString('#0 /var/www/index.php(9)', $entry['detail']);
+    }
+
+    public function test_a_level_carried_over_from_another_file_stays_selectable(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
+        $this->writeLog('quiet.log', "[2026-08-01 08:00:00] production.INFO: Nothing to report\n");
+
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index', ['file' => 'quiet.log', 'level' => 'error']))
+            ->assertOk()
+            ->assertSee('value="error" selected', false)
+            ->assertSee(__('server_logs.no_entries'));
     }
 
     public function test_page_renders_when_no_log_files_exist(): void

@@ -49,7 +49,7 @@
                             <option value="">{{ __('server_logs.all_levels') }}</option>
                             @foreach($levels as $option)
                                 <option value="{{ $option }}" @selected($level === $option)>
-                                    {{ $option === 'unparsed' ? __('server_logs.level_unparsed') : strtoupper($option) }}
+                                    {{ $option === \App\Services\ServerLogReader::LEVEL_NONE ? __('server_logs.level_none') : strtoupper($option) }}
                                     ({{ $levelCounts[$option] }})
                                 </option>
                             @endforeach
@@ -109,7 +109,7 @@
                                         @if($entry['level'])
                                             <span class="badge bg-{{ $entry['variant'] }}">{{ strtoupper($entry['level']) }}</span>
                                         @else
-                                            <span class="badge bg-light text-dark">{{ __('server_logs.level_unparsed') }}</span>
+                                            <span class="badge bg-light text-dark">{{ __('server_logs.level_none') }}</span>
                                         @endif
                                     </td>
                                     <td style="word-break:break-word;">
@@ -125,7 +125,9 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3" class="text-center py-4 text-muted">{{ __('server_logs.no_entries') }}</td>
+                                    <td colspan="3" class="text-center py-4 text-muted">
+                                        {{ $isFiltered ? __('server_logs.no_entries') : __('server_logs.file_empty') }}
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -147,7 +149,7 @@
                                         @if($entry['level'])
                                             <span class="badge bg-{{ $entry['variant'] }}">{{ strtoupper($entry['level']) }}</span>
                                         @else
-                                            <span class="badge bg-light text-dark">{{ __('server_logs.level_unparsed') }}</span>
+                                            <span class="badge bg-light text-dark">{{ __('server_logs.level_none') }}</span>
                                         @endif
                                     </dd>
                                 </div>
@@ -161,7 +163,9 @@
                             @endif
                         </article>
                     @empty
-                        <p class="text-center py-4 text-muted mb-0">{{ __('server_logs.no_entries') }}</p>
+                        <p class="text-center py-4 text-muted mb-0">
+                            {{ $isFiltered ? __('server_logs.no_entries') : __('server_logs.file_empty') }}
+                        </p>
                     @endforelse
                 </div>
             </div>

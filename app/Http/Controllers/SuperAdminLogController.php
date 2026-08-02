@@ -32,6 +32,13 @@ class SuperAdminLogController extends Controller
         // read() returns an empty result for an unknown name, which covers "no log files yet".
         $result = $this->reader->read($selectedFile ?? '', ['level' => $level, 'q' => $search]);
 
+        $levelCounts = $result['level_counts'];
+        // Keep a level carried over from another file selectable, so the dropdown
+        // never claims "all levels" while the table is filtered to nothing.
+        if ($level !== null && ! array_key_exists($level, $levelCounts)) {
+            $levelCounts[$level] = 0;
+        }
+
         return view('superadmin.logs.index', [
             'files' => array_map(function (array $file) {
                 $file['size_label'] = ServerLogReader::humanSize($file['size']);
@@ -41,10 +48,11 @@ class SuperAdminLogController extends Controller
             'selectedFile' => $selectedFile,
             'level' => $level,
             'search' => $search,
-            'levels' => $this->reader->orderLevels($result['level_counts']),
-            'levelCounts' => $result['level_counts'],
+            'levels' => $this->reader->orderLevels($levelCounts),
+            'levelCounts' => $levelCounts,
             'totalScanned' => $result['total_scanned'],
             'matchCount' => count($result['entries']),
+            'isFiltered' => $level !== null || $search !== null,
             'truncated' => $result['truncated'],
             'tailLimitLabel' => ServerLogReader::humanSize(ServerLogReader::TAIL_BYTES),
             'entries' => $this->paginate($result['entries'], $request),
