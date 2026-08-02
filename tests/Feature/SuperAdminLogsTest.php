@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\SuperAdminLogController;
 use App\Models\User;
+use ReflectionMethod;
 use Tests\Support\EventModuleTestCase;
 
 class SuperAdminLogsTest extends EventModuleTestCase
@@ -107,6 +109,45 @@ class SuperAdminLogsTest extends EventModuleTestCase
             ->assertOk()
             ->assertSee('Payment gateway timeout', false)
             ->assertDontSee('Unrelated failure', false);
+    }
+
+    public function test_page_beyond_last_page_clamps_to_last_page_instead_of_showing_empty(): void
+    {
+        $super = $this->superadmin(['email' => 'logs-page@example.com']);
+
+        $lines = '';
+        for ($i = 1; $i <= 5; $i++) {
+            $lines .= sprintf("[2026-05-01 09:%02d:00] local.ERROR: Entry number %d\n", $i, $i);
+        }
+        $this->writeLog($lines);
+
+        $this->actingAs($super)
+            ->get(route('superadmin.logs.index', ['file' => $this->logFilename(), 'page' => 999]))
+            ->assertOk()
+            ->assertSee('Entry number 1', false)
+            ->assertDontSee(__('pages.server_logs_no_entries'), false);
+    }
+
+    public function test_tail_does_not_drop_a_complete_entry_starting_at_the_read_window_boundary(): void
+    {
+        $line1 = "[2027-01-01 00:00:00] local.INFO: first entry\n";
+        $line2 = "[2027-01-01 00:00:01] local.INFO: second entry\n";
+        $this->writeLog($line1.$line2);
+
+        $controller = new SuperAdminLogController;
+        $tail = new ReflectionMethod($controller, 'tail');
+        $tail->setAccessible(true);
+
+        // Window sized to start exactly at the beginning of $line2 — a clean newline
+        // boundary — so that complete entry must be kept in full, not dropped.
+        $aligned = $tail->invoke($controller, $this->logPath, strlen($line2));
+        $this->assertSame($line2, $aligned);
+
+        // Window sized to start a few bytes into $line1 — a genuinely partial line —
+        // which should still be dropped as before.
+        $misaligned = $tail->invoke($controller, $this->logPath, strlen($line2) + 5);
+        $this->assertStringContainsString('second entry', $misaligned);
+        $this->assertStringNotContainsString('first entry', $misaligned);
     }
 
     public function test_non_superadmin_cannot_access_logs_dashboard(): void

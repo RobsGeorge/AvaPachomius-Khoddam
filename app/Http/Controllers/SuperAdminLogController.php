@@ -45,7 +45,8 @@ class SuperAdminLogController extends Controller
             ))
             ->values();
 
-        $page = max(1, (int) $request->query('page', 1));
+        $lastPage = max(1, (int) ceil($filtered->count() / self::PER_PAGE));
+        $page = min(max(1, (int) $request->query('page', 1)), $lastPage);
         $slice = $filtered->slice(($page - 1) * self::PER_PAGE, self::PER_PAGE)->values();
 
         $paginatedEntries = new LengthAwarePaginator(
@@ -63,7 +64,8 @@ class SuperAdminLogController extends Controller
             'search' => $search,
             'levels' => $this->knownLevels(),
             'entries' => $paginatedEntries,
-            'totalEntries' => $entries->count(),
+            'shownCount' => $paginatedEntries->count(),
+            'matchedEntries' => $filtered->count(),
         ]);
     }
 
@@ -145,14 +147,23 @@ class SuperAdminLogController extends Controller
             return '';
         }
 
-        fseek($handle, -$maxBytes, SEEK_END);
+        $offset = $size - $maxBytes;
+
+        // If the byte right before our window is a newline, the window already starts
+        // on a clean line boundary and its first line must not be discarded.
+        fseek($handle, $offset - 1, SEEK_SET);
+        $startsOnLineBoundary = fread($handle, 1) === "\n";
+
+        fseek($handle, $offset, SEEK_SET);
         $contents = stream_get_contents($handle) ?: '';
         fclose($handle);
 
-        // The read window likely starts mid-entry; drop that partial first line.
-        $firstBreak = strpos($contents, "\n[");
-        if ($firstBreak !== false) {
-            $contents = substr($contents, $firstBreak + 1);
+        if (! $startsOnLineBoundary) {
+            // Otherwise the window most likely starts mid-line; drop that partial line.
+            $firstBreak = strpos($contents, "\n[");
+            if ($firstBreak !== false) {
+                $contents = substr($contents, $firstBreak + 1);
+            }
         }
 
         return $contents;

@@ -58,7 +58,7 @@
         </div>
 
         <p class="text-muted small">
-            {{ __('pages.server_logs_showing_count', ['shown' => $entries->total(), 'total' => $totalEntries, 'file' => $selectedFile]) }}
+            {{ __('pages.server_logs_showing_count', ['shown' => $shownCount, 'total' => $matchedEntries, 'file' => $selectedFile]) }}
         </p>
 
         <div class="app-card card shadow-sm">

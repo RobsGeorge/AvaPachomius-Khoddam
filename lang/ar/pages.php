@@ -804,7 +804,7 @@ return [
     'server_logs_message'             => 'الرسالة',
     'server_logs_no_files'            => 'لم يتم العثور على ملفات سجل في storage/logs.',
     'server_logs_no_entries'          => 'لا توجد سجلات مطابقة للتصفية الحالية.',
-    'server_logs_showing_count'       => 'عرض :shown من :total سجل من :file (الأحدث أولاً).',
+    'server_logs_showing_count'       => 'عرض :shown من :total سجل مطابق من :file (الأحدث أولاً).',
     'print'                           => 'طباعة',
 
     // Feedback / survey (ar parity burn-down for F-13)

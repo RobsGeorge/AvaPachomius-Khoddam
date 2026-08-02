@@ -804,7 +804,7 @@ return [
     'server_logs_message'             => 'Message',
     'server_logs_no_files'            => 'No log files were found in storage/logs.',
     'server_logs_no_entries'          => 'No log entries match the current filters.',
-    'server_logs_showing_count'       => 'Showing :shown of :total entries from :file (newest first).',
+    'server_logs_showing_count'       => 'Showing :shown of :total matching entries from :file (newest first).',
     'print'                           => 'Print',
     'no_activity_logs'                => 'No activity recorded yet.',
     'no_login_trials'                 => 'No login trials recorded yet.',
