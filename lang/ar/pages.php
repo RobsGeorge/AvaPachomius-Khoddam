@@ -1044,5 +1044,9 @@ return [
     'profile_photo_required_link'     => 'رفع الصورة الآن',
     'profile_photo_required_locked'   => 'صورتك الشخصية مطلوبة. ارفعها لفتح المنصة.',
     'profile_photo_modal_title'       => 'الصورة الشخصية',
+    'profile_photo_upload_tip'        => 'استخدم صورة واضحة لوجهك. تجنّب الصور الجماعية أو القص الحاد.',
+    'profile_photo_warn_small'        => 'الصورة تبدو صغيرة (أقل من 200 بكسل). صورة أوضح تسهّل الاعتماد.',
+    'profile_photo_warn_aspect'       => 'نسبة أبعاد الصورة غير معتادة. صورة شخصية عادية أفضل.',
+    'profile_photo_warn_continue'     => 'رفع على أي حال؟',
     'view_photo'                      => 'عرض الصورة',
 ];
