@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ProfilePhotoAdminService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\Storage;
 
 class MeController extends Controller
 {
+    public function __construct(
+        private ProfilePhotoAdminService $photoAdmin,
+    ) {}
+
     public function show(Request $request): JsonResponse
     {
         /** @var User $user */
@@ -61,8 +66,11 @@ class MeController extends Controller
         $user->profile_photo_rejection_note = null;
         $user->save();
 
+        $user = $user->fresh();
+        $this->photoAdmin->notifyAdminsOfPendingPhoto($user);
+
         return response()->json([
-            'data' => $this->serialize($user->fresh()),
+            'data' => $this->serialize($user),
             'message' => __('pages.profile_photo_updated_pending'),
         ]);
     }

@@ -24,6 +24,8 @@ return [
             'session_unclosed',
             'course_graduation_announced',
             'role_assigned',
+            'profile_photo_pending_review',
+            'profile_photo_reupload_reminder',
         ],
         'events' => [
             'event_nearby',
@@ -216,6 +218,28 @@ return [
             'label' => 'notifications.types.course_application_submitted',
             'category' => 'academic',
             'audience' => ['admin', 'instructor'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'profile_photo_pending_review' => [
+            'label' => 'notifications.types.profile_photo_pending_review',
+            'category' => 'academic',
+            'audience' => ['admin'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'profile_photo_reupload_reminder' => [
+            'label' => 'notifications.types.profile_photo_reupload_reminder',
+            'category' => 'academic',
+            'audience' => ['student'],
             'defaults' => [
                 'portal_enabled' => true,
                 'email_enabled' => true,

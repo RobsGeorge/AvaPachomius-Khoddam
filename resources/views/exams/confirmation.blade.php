@@ -19,14 +19,18 @@
             @if($result)
                 <div class="alert alert-light border mb-4">
                     <div class="fw-semibold">{{ __('exams.your_score') }}</div>
-                    @if($result->isCheater())
+                    @if(! empty($canViewScore) && $result->isCheater())
                         <div class="fs-2 fw-bold text-danger">0%</div>
                         <small class="text-muted">{{ __('exams.instructor_review_cheater') }}</small>
-                    @elseif($result->score !== null && $result->status === \App\Models\ExamResult::STATUS_GRADED)
+                    @elseif(! empty($canViewScore) && $result->score !== null && $result->status === \App\Models\ExamResult::STATUS_GRADED)
                         <div class="fs-2 fw-bold text-primary">{{ number_format($result->score, 1) }}%</div>
                         @if($schedule->exam->passing_score)
                             <small class="text-muted">{{ __('exams.passing_score') }}: {{ $schedule->exam->passing_score }}%</small>
                         @endif
+                    @elseif(($scoreHideReason ?? '') === 'pending_feedback')
+                        <div class="text-muted">{{ __('exams.score_pending_feedback') }}</div>
+                    @elseif(($scoreHideReason ?? '') === 'pending_announcement')
+                        <div class="text-muted">{{ __('exams.score_pending_announcement') }}</div>
                     @else
                         <div class="text-muted">{{ __('exams.score_pending') }}</div>
                     @endif

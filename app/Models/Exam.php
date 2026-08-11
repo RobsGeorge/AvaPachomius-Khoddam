@@ -36,14 +36,17 @@ class Exam extends Model
         'total_points',
         'shuffle_questions',
         'allow_late_entry',
+        'results_announced_at',
+        'results_announced_by_user_id',
     ];
 
     protected $casts = [
-        'passing_score'     => 'integer',
-        'is_published'      => 'boolean',
-        'total_points'      => 'decimal:2',
-        'shuffle_questions' => 'boolean',
-        'allow_late_entry'  => 'boolean',
+        'passing_score'          => 'integer',
+        'is_published'           => 'boolean',
+        'total_points'           => 'decimal:2',
+        'shuffle_questions'      => 'boolean',
+        'allow_late_entry'       => 'boolean',
+        'results_announced_at'   => 'datetime',
     ];
 
     public function course(): BelongsTo
@@ -85,6 +88,16 @@ class Exam extends Model
     public function isOffline(): bool
     {
         return $this->delivery_mode === self::MODE_OFFLINE;
+    }
+
+    public function resultsAnnouncer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'results_announced_by_user_id', 'user_id');
+    }
+
+    public function areResultsAnnounced(): bool
+    {
+        return $this->results_announced_at !== null;
     }
 
     public function recalculateTotalPoints(): void

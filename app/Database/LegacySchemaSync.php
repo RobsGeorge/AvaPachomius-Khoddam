@@ -106,6 +106,8 @@ final class LegacySchemaSync
         foreach ([
             'course_id' => 'BIGINT UNSIGNED NULL',
             'module_id' => 'BIGINT UNSIGNED NULL',
+            'results_announced_at' => 'TIMESTAMP NULL',
+            'results_announced_by_user_id' => 'BIGINT UNSIGNED NULL',
         ] as $column => $definition) {
             self::addMysqlColumnIfMissing('exams', $column, $definition);
         }
@@ -194,11 +196,19 @@ final class LegacySchemaSync
             MigrationSupport::addColumn('portal_settings', 'profile_photo_gate_enabled_at', function (Blueprint $table) {
                 $table->timestamp('profile_photo_gate_enabled_at')->nullable();
             });
+            MigrationSupport::addColumn('portal_settings', 'profile_photo_reupload_reminder_days', function (Blueprint $table) {
+                $table->unsignedTinyInteger('profile_photo_reupload_reminder_days')->default(2);
+            });
 
             return;
         }
 
         self::addMysqlColumnIfMissing('portal_settings', 'profile_photo_gate_enabled_at', 'TIMESTAMP NULL');
+        self::addMysqlColumnIfMissing(
+            'portal_settings',
+            'profile_photo_reupload_reminder_days',
+            'TINYINT UNSIGNED NOT NULL DEFAULT 2'
+        );
     }
 
     private static function ensureOtpCodeTable(): void

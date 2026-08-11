@@ -131,6 +131,7 @@ return [
         'notifications_scan_instructor' => 'Instructor alerts',
         'notifications_scan_grades_risk' => 'Below-passing grade alerts',
         'notifications_fire_reminders' => 'Fire custom reminders',
+        'photos_send_reupload_reminders' => 'Profile photo re-upload reminders',
     ],
     'scheduler_heartbeat_desc' => 'Internal every-minute tick that proves OS cron is calling schedule:run. Used for the health banner above.',
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
@@ -142,4 +143,5 @@ return [
     'notifications_scan_instructor_desc' => 'Alerts instructors about unclosed sessions, absent streaks, and ungraded work.',
     'notifications_scan_grades_risk_desc' => 'Weekly scan for students below passing grade thresholds.',
     'notifications_fire_reminders_desc' => 'Dispatches due custom user reminders every five minutes.',
+    'photos_send_reupload_reminders_desc' => 'Reminds rejected students to re-upload a profile photo after the configured delay.',
 ];

@@ -30,12 +30,14 @@ class ProfilePhotoReportController extends Controller
     {
         $data = $request->validate([
             'profile_photo_grace_days' => 'required|integer|min:1|max:90',
+            'profile_photo_reupload_reminder_days' => 'required|integer|min:1|max:30',
             'profile_photo_gate_enabled' => 'sometimes|boolean',
         ]);
 
         $this->adminService->updateSettings(
             (int) $data['profile_photo_grace_days'],
-            $request->boolean('profile_photo_gate_enabled')
+            $request->boolean('profile_photo_gate_enabled'),
+            (int) $data['profile_photo_reupload_reminder_days']
         );
 
         return back()->with('success', __('profile_photos.settings_saved'));
@@ -66,8 +68,12 @@ class ProfilePhotoReportController extends Controller
     public function approve(User $user)
     {
         $this->adminService->approve($user, Auth::user());
+        $nextId = $this->adminService->nextPendingUserIdAfter($user);
 
-        return back()->with('success', __('profile_photos.approved', ['name' => $user->displayName()]));
+        return redirect()->route('admin.profile-photos.index', array_filter([
+            'filter' => 'pending_review',
+            'focus' => $nextId,
+        ]))->with('success', __('profile_photos.approved', ['name' => $user->displayName()]));
     }
 
     public function reject(Request $request, User $user)
@@ -77,7 +83,57 @@ class ProfilePhotoReportController extends Controller
         ]);
 
         $this->adminService->reject($user, Auth::user(), $data['profile_photo_rejection_note'] ?? null);
+        $nextId = $this->adminService->nextPendingUserIdAfter($user);
 
-        return back()->with('success', __('profile_photos.rejected', ['name' => $user->displayName()]));
+        return redirect()->route('admin.profile-photos.index', array_filter([
+            'filter' => 'pending_review',
+            'focus' => $nextId,
+        ]))->with('success', __('profile_photos.rejected', ['name' => $user->displayName()]));
+    }
+
+    public function revoke(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'profile_photo_rejection_note' => 'required|string|max:1000',
+        ]);
+
+        $this->adminService->revoke($user, Auth::user(), $data['profile_photo_rejection_note']);
+
+        return back()->with('success', __('profile_photos.revoked', ['name' => $user->displayName()]));
+    }
+
+    public function bulkApprove(Request $request)
+    {
+        $data = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer',
+        ]);
+
+        $result = $this->adminService->approveMany($data['user_ids'], Auth::user());
+
+        return back()->with('success', __('profile_photos.bulk_approved', [
+            'approved' => $result['approved'],
+            'skipped' => $result['skipped'],
+        ]));
+    }
+
+    public function bulkReject(Request $request)
+    {
+        $data = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer',
+            'profile_photo_rejection_note' => 'nullable|string|max:1000',
+        ]);
+
+        $result = $this->adminService->rejectMany(
+            $data['user_ids'],
+            Auth::user(),
+            $data['profile_photo_rejection_note'] ?? null
+        );
+
+        return back()->with('success', __('profile_photos.bulk_rejected', [
+            'rejected' => $result['rejected'],
+            'skipped' => $result['skipped'],
+        ]));
     }
 }

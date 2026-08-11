@@ -12,12 +12,31 @@
                 {{ $exam->isOnline() ? __('exams.online_auto_graded') : __('exams.offline_grade_entry') }}
                 · {{ __('exams.total_points') }}: {{ $exam->total_points }}
             </p>
+            @if($exam->areResultsAnnounced())
+                <p class="small text-success mb-0 mt-1">
+                    <i class="bi bi-megaphone"></i>
+                    {{ __('exams.results_announced_at', ['when' => $exam->results_announced_at->format('Y-m-d H:i')]) }}
+                </p>
+            @else
+                <p class="small text-muted mb-0 mt-1">{{ __('exams.results_not_announced_yet') }}</p>
+            @endif
         </div>
-        @if($exam->isOnline())
-            <a href="{{ route('exams.builder', $exam) }}" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-pencil-square"></i> {{ __('exams.design_exam') }}
-            </a>
-        @endif
+        <div class="d-flex flex-wrap gap-2">
+            @unless($exam->areResultsAnnounced())
+                <form method="POST" action="{{ route('exams.grades.announce', $exam) }}"
+                      onsubmit="return confirm(@json(__('exams.confirm_announce_results')))">
+                    @csrf
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-megaphone"></i> {{ __('exams.announce_results') }}
+                    </button>
+                </form>
+            @endunless
+            @if($exam->isOnline())
+                <a href="{{ route('exams.builder', $exam) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-pencil-square"></i> {{ __('exams.design_exam') }}
+                </a>
+            @endif
+        </div>
     </div>
 
 @foreach($exam->schedules as $schedule)
