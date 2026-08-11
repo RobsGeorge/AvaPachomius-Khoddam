@@ -391,7 +391,7 @@ class RoleTemplateService
             'communications.report',
             'roster.view', 'roster.announce', 'session.notify',
             'graduation.view', 'graduation.configure', 'course.close', 'certificate.manage',
-            'feedback.view', 'feedback.manage', 'feedback.report',
+            'feedback.view', 'feedback.manage', 'feedback.report', 'feedback.identity.request',
             'live_quiz.play', 'live_quiz.host', 'live_quiz.manage',
             'events.view', 'events.reserve',
         ];

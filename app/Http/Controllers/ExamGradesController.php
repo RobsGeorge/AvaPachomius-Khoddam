@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Exam;
 use App\Models\ExamResult;
+use App\Services\AuditLogService;
 use App\Services\ExamGradingService;
 use App\Services\ExamProctorService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ExamGradesController extends Controller
 {
@@ -25,9 +27,31 @@ class ExamGradesController extends Controller
             'schedules.results.attempt.answers.question',
             'schedules.attempts.answers.question',
             'questions',
+            'resultsAnnouncer',
         ]);
 
         return view('exams.grades', compact('exam'));
+    }
+
+    public function announce(Exam $exam)
+    {
+        abort_if($exam->areResultsAnnounced(), 409, __('exams.results_already_announced'));
+
+        $actor = Auth::user();
+
+        $exam->update([
+            'results_announced_at' => now(),
+            'results_announced_by_user_id' => $actor?->user_id,
+        ]);
+
+        AuditLogService::recordEvent('exam.results_announced', [
+            'actor_user_id' => $actor?->user_id,
+            'exam_id' => $exam->exam_id,
+            'course_id' => $exam->course_id,
+            'module_id' => $exam->module_id,
+        ]);
+
+        return back()->with('success', __('exams.results_announced'));
     }
 
     public function storeOffline(Request $request, Exam $exam)
