@@ -115,4 +115,12 @@ return [
     'clear_cheater_flag'        => 'إلغاء علامة الغش واستعادة الدرجة',
     'cheater_flag_cleared'      => 'تم إلغاء علامة الغش وتحديث الدرجة.',
     'override_score'            => 'درجة جديدة اختيارية %',
+    'announce_results'          => 'إعلان النتائج',
+    'confirm_announce_results'  => 'إعلان النتائج للطلاب؟ تبقى الدرجات مخفية حتى يكمل كل طالب استبيان التقييم الإلزامي للوحدة إن وُجد.',
+    'results_announced'         => 'تم إعلان نتائج الامتحان.',
+    'results_already_announced' => 'تم إعلان النتائج مسبقاً.',
+    'results_announced_at'      => 'أُعلنت النتائج :when',
+    'results_not_announced_yet' => 'النتائج غير ظاهرة للطلاب حتى يتم إعلانها.',
+    'score_pending_announcement'=> 'ستظهر النتائج بعد الإعلان.',
+    'score_pending_feedback'    => 'أكمل استبيان تقييم الوحدة لعرض درجتك.',
 ];

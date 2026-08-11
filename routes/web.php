@@ -437,6 +437,7 @@ Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(funct
     Route::post('/exams/{exam}/publish', [ExamBuilderController::class, 'publish'])->name('exams.publish');
 
     Route::get('/exams/{exam}/grades', [ExamGradesController::class, 'show'])->name('exams.grades');
+    Route::post('/exams/{exam}/grades/announce', [ExamGradesController::class, 'announce'])->name('exams.grades.announce');
     Route::post('/exams/{exam}/grades/offline', [ExamGradesController::class, 'storeOffline'])->name('exams.grades.offline');
     Route::put('/exams/{exam}/grades/{result}', [ExamGradesController::class, 'updateManual'])->name('exams.grades.update');
     Route::post('/exams/{exam}/grades/{result}/clear-cheater', [ExamGradesController::class, 'clearCheater'])->name('exams.grades.clear-cheater');
@@ -685,6 +686,10 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/scheduled-tasks/{taskKey}', [SuperAdminScheduledTaskController::class, 'destroy'])->where('taskKey', '.+')->name('scheduled-tasks.destroy');
     Route::get('/scheduled-tasks/runs/{scheduledTaskRun}', [SuperAdminScheduledTaskController::class, 'show'])->name('scheduled-tasks.show');
 
+    Route::get('/feedback-reveal', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'index'])->name('feedback-reveal.index');
+    Route::post('/feedback-reveal/{revealRequest}/approve', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'approve'])->name('feedback-reveal.approve')->whereNumber('revealRequest');
+    Route::post('/feedback-reveal/{revealRequest}/deny', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'deny'])->name('feedback-reveal.deny')->whereNumber('revealRequest');
+
     Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');
     Route::put('/templates/{role}',         [SystemRoleController::class, 'updateTemplate'])->name('templates.update');
     Route::get('/group-visibility',         [SystemRoleController::class, 'groupVisibility'])->name('group-visibility.index');
@@ -746,6 +751,8 @@ Route::middleware(['auth', 'capability:feedback'])->prefix('feedback')->name('fe
         Route::delete('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'destroy'])->name('surveys.destroy')->whereNumber('survey');
         Route::get('/surveys/{survey}/report', [FeedbackReportController::class, 'show'])->name('surveys.report')->whereNumber('survey');
         Route::get('/surveys/{survey}/report/questions/{question}', [FeedbackReportController::class, 'byQuestion'])->name('surveys.report.question')->whereNumber(['survey', 'question']);
+        Route::get('/surveys/{survey}/report/submissions/{submission}', [FeedbackReportController::class, 'bySubmission'])->name('surveys.report.submission')->whereNumber(['survey', 'submission']);
+        Route::post('/surveys/{survey}/report/submissions/{submission}/reveal', [FeedbackReportController::class, 'requestReveal'])->name('surveys.report.reveal')->whereNumber(['survey', 'submission']);
         Route::get('/surveys/{survey}/report/students/{user}', [FeedbackReportController::class, 'byStudent'])->name('surveys.report.student')->whereNumber(['survey', 'user']);
     });
 

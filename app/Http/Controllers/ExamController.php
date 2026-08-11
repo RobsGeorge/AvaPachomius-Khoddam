@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamResult;
 use App\Models\Module;
+use App\Services\ExamResultsVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,14 @@ use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
 {
+    public function __construct(
+        private ExamResultsVisibilityService $resultsVisibility
+    ) {}
+
     public function index()
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user?->user_id;
         $query = Exam::with([
             'module',
             'course',
@@ -37,7 +43,15 @@ class ExamController extends Controller
 
         $exams = $query->get();
 
-        return view('exams.index', compact('exams'));
+        $scoreVisibility = [];
+        foreach ($exams as $exam) {
+            $scoreVisibility[$exam->exam_id] = [
+                'can_view' => $user ? $this->resultsVisibility->canStudentViewScore($user, $exam) : false,
+                'reason' => $user ? $this->resultsVisibility->hideReason($user, $exam) : 'pending_announcement',
+            ];
+        }
+
+        return view('exams.index', compact('exams', 'scoreVisibility'));
     }
 
     public function dashboard()
