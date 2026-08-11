@@ -3,18 +3,33 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\ApplicationLogReaderService;
 use Illuminate\Support\Facades\File;
 use Tests\Support\EventModuleTestCase;
 
+/**
+ * Superadmin server-log viewer: reads storage/logs/*.log and renders the message
+ * plus its timestamp. The log directory is redirected to a scratch folder so the
+ * suite never touches (or depends on) the real application log.
+ */
 class SuperadminApplicationLogTest extends EventModuleTestCase
 {
-    private ?string $logPath = null;
+    private string $logDirectory;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->logDirectory = storage_path('framework/testing/server-logs-'.uniqid());
+        File::ensureDirectoryExists($this->logDirectory);
+        // Point the logger at a name no fixture uses, so a stray Log:: call during a
+        // request cannot alter the file under assertion.
+        config(['logging.channels.single.path' => $this->logDirectory.'/app-under-test.log']);
+    }
 
     protected function tearDown(): void
     {
-        if ($this->logPath !== null && File::exists($this->logPath)) {
-            File::delete($this->logPath);
-        }
+        File::deleteDirectory($this->logDirectory);
 
         parent::tearDown();
     }
@@ -23,134 +38,235 @@ class SuperadminApplicationLogTest extends EventModuleTestCase
     {
         return $this->createUser([
             'is_superadmin' => true,
-            'email' => 'app-logs-super@example.com',
-            'registration_completed' => true,
+            'email' => 'server-logs-super@example.com',
         ]);
     }
 
-    private function seedLogFile(string $contents): void
+    private function writeLog(string $name, string $contents): void
     {
-        $dir = storage_path('logs');
-        File::ensureDirectoryExists($dir);
-        $this->logPath = $dir.'/laravel.log';
-        File::put($this->logPath, $contents);
+        File::put($this->logDirectory.'/'.$name, $contents);
     }
 
-    public function test_superadmin_can_view_application_log_entries(): void
+    private function sampleLog(): string
     {
-        $this->seedLogFile(
-            "[2026-08-02 10:15:30] testing.ERROR: Payment webhook failed {\"order_id\":42}\n".
-            "[2026-08-02 10:16:01] testing.INFO: Scheduler heartbeat recorded\n"
-        );
+        return <<<'LOG'
+        [2026-08-01 10:15:00] production.INFO: Scheduler heartbeat recorded
+        [2026-08-01 11:20:31] production.ERROR: Undefined church for tenant resolution {"exception":"[object] (RuntimeException(code: 0))"}
+        #0 /var/www/app/Tenancy/TenantContext.php(52): resolve()
+        #1 {main}
+        [2026-08-01 12:00:05] production.WARNING: Payment gateway retry scheduled
+
+        LOG;
+    }
+
+    public function test_superadmin_sees_log_messages_with_their_time(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
 
         $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => 'laravel.log']))
-            ->assertOk()
-            ->assertSee(__('pages.application_logs_title'), false)
-            ->assertSee('2026-08-02 10:15:30', false)
-            ->assertSee('Payment webhook failed', false)
-            ->assertSee('ERROR', false);
-    }
-
-    public function test_non_superadmin_cannot_view_application_logs(): void
-    {
-        $this->seedLogFile("[2026-08-02 10:15:30] testing.ERROR: Hidden failure\n");
-
-        $this->actingAs($this->createUser(['email' => 'app-logs-plain@example.com']))
             ->get(route('superadmin.logs.index'))
-            ->assertForbidden();
-    }
-
-    public function test_invalid_log_file_parameter_is_ignored(): void
-    {
-        $this->seedLogFile("[2026-08-02 10:15:30] testing.ERROR: Safe entry\n");
-
-        $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => '../../../.env']))
             ->assertOk()
-            ->assertSee('Safe entry', false)
-            ->assertDontSee('.env', false);
+            ->assertSee(__('pages.application_logs_title'))
+            ->assertSee('laravel.log')
+            ->assertSee('Undefined church for tenant resolution')
+            ->assertSee('2026-08-01 11:20:31')
+            ->assertSee('Scheduler heartbeat recorded')
+            ->assertSee('ERROR');
     }
 
-    public function test_plain_scheduler_cron_lines_are_shown(): void
+    public function test_entries_are_ordered_newest_first(): void
     {
-        $dir = storage_path('logs');
-        File::ensureDirectoryExists($dir);
-        $this->logPath = $dir.'/scheduler-cron.log';
-        File::put($this->logPath, "Running scheduled command: inspire\nCompleted successfully.\n");
+        $this->writeLog('laravel.log', $this->sampleLog());
+
+        $body = $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index'))
+            ->assertOk()
+            ->getContent();
+
+        $newest = strpos($body, 'Payment gateway retry scheduled');
+        $oldest = strpos($body, 'Scheduler heartbeat recorded');
+
+        $this->assertNotFalse($newest);
+        $this->assertNotFalse($oldest);
+        $this->assertLessThan($oldest, $newest, 'The most recent entry should render before older ones.');
+    }
+
+    public function test_level_and_search_filters_narrow_the_entries(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
+        $admin = $this->superadmin();
+
+        $this->actingAs($admin)
+            ->get(route('superadmin.logs.index', ['level' => 'error']))
+            ->assertOk()
+            ->assertSee('Undefined church for tenant resolution')
+            ->assertDontSee('Scheduler heartbeat recorded');
+
+        $this->actingAs($admin)
+            ->get(route('superadmin.logs.index', ['q' => 'payment gateway']))
+            ->assertOk()
+            ->assertSee('Payment gateway retry scheduled')
+            ->assertDontSee('Undefined church for tenant resolution');
+
+        $this->actingAs($admin)
+            ->get(route('superadmin.logs.index', ['q' => 'nothing matches this']))
+            ->assertOk()
+            ->assertSee(__('pages.application_logs_empty'));
+    }
+
+    public function test_stack_trace_lines_are_kept_with_their_entry(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
+
+        $result = app(ApplicationLogReaderService::class)->read('laravel.log', ['level' => 'error']);
+
+        $this->assertCount(1, $result['entries']);
+        $entry = $result['entries'][0];
+
+        $this->assertSame('error', $entry['level']);
+        $this->assertSame('2026-08-01 11:20:31', $entry['time']->format('Y-m-d H:i:s'));
+        $this->assertStringContainsString('Undefined church for tenant resolution', $entry['message']);
+        $this->assertStringContainsString('TenantContext.php', $entry['detail']);
+    }
+
+    public function test_a_specific_file_can_be_selected_and_unknown_files_are_rejected(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
+        $this->writeLog('scheduler-cron.log', "[2026-08-01 09:00:00] production.NOTICE: Cron tick\n");
+
+        $admin = $this->superadmin();
+
+        $this->actingAs($admin)
+            ->get(route('superadmin.logs.index', ['file' => 'scheduler-cron.log']))
+            ->assertOk()
+            ->assertSee('Cron tick')
+            ->assertDontSee('Undefined church for tenant resolution');
+
+        // Path traversal / unknown names fall back to the newest readable file.
+        $this->actingAs($admin)
+            ->get(route('superadmin.logs.index', ['file' => '../../.env']))
+            ->assertOk();
+
+        $this->assertFalse(app(ApplicationLogReaderService::class)->isReadableFile('../../.env'));
+        $this->assertSame([], app(ApplicationLogReaderService::class)->read('../../.env')['entries']);
+    }
+
+    public function test_a_file_without_laravel_formatted_lines_is_still_shown_when_larger_than_the_tail_cap(): void
+    {
+        // scheduler-cron.log is plain artisan output and grows past the tail cap in a
+        // few days of cron ticks; every surviving line must still be listed.
+        $line = str_pad('Running [scheduler:heartbeat] ... DONE', 120, '.').PHP_EOL;
+        $this->writeLog('scheduler-cron.log', str_repeat($line, (int) ceil(ApplicationLogReaderService::TAIL_BYTES / 120) + 50));
+
+        $result = app(ApplicationLogReaderService::class)->read('scheduler-cron.log');
+
+        $this->assertTrue($result['truncated']);
+        $this->assertCount(ApplicationLogReaderService::MAX_ENTRIES, $result['entries']);
 
         $this->actingAs($this->superadmin())
             ->get(route('superadmin.logs.index', ['file' => 'scheduler-cron.log']))
             ->assertOk()
-            ->assertSee('Running scheduled command: inspire', false)
-            ->assertSee('Completed successfully.', false);
+            ->assertSee('Running [scheduler:heartbeat]')
+            ->assertDontSee(__('pages.application_logs_empty'));
     }
 
-    public function test_search_filters_entries_by_message_text(): void
+    public function test_only_the_half_cut_first_line_is_dropped_from_a_truncated_tail(): void
     {
-        $this->seedLogFile(
-            "[2026-08-02 10:00:00] testing.ERROR: Payment gateway timeout\n".
-            "[2026-08-02 10:01:00] testing.ERROR: Unrelated failure\n"
-        );
-
-        $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'q' => 'payment']))
-            ->assertOk()
-            ->assertSee('Payment gateway timeout', false)
-            ->assertDontSee('Unrelated failure', false);
-    }
-
-    public function test_pagination_pages_back_through_older_entries(): void
-    {
-        // The page size is clamped to a minimum of 10, so use enough entries to span
-        // two pages of the smallest allowed page size.
+        // 64 bytes per line, so the 512 KB window starts mid-line and every whole
+        // line after it must survive.
+        $total = (int) (ApplicationLogReaderService::TAIL_BYTES / 64) + 30;
         $lines = '';
-        for ($i = 1; $i <= 12; $i++) {
-            $lines .= sprintf("[2026-08-02 09:%02d:00] testing.ERROR: Entry number %d\n", $i, $i);
+        for ($i = 1; $i <= $total; $i++) {
+            $lines .= str_pad(sprintf('cron line %06d', $i), 63, ' ').PHP_EOL;
         }
-        $this->seedLogFile($lines);
+        $this->writeLog('scheduler-cron.log', $lines);
 
-        // Page 1 (newest first) shows the ten most recent entries. ("Entry number 2" is
-        // used for the absence check, not "1", since "Entry number 1" is a substring
-        // of "Entry number 12"/"11"/"10" which legitimately are on this page.)
-        $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'lines' => 10]))
-            ->assertOk()
-            ->assertSee('Entry number 12', false)
-            ->assertSee('Entry number 3', false)
-            ->assertDontSee('Entry number 2', false);
+        $entries = app(ApplicationLogReaderService::class)->read('scheduler-cron.log')['entries'];
 
-        // Page 2 pages back to the two oldest, remaining entries.
-        $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'lines' => 10, 'page' => 2]))
-            ->assertOk()
-            ->assertSee('Entry number 1', false)
-            ->assertSee('Entry number 2', false)
-            ->assertDontSee('Entry number 12', false);
+        // Newest first, and the newest whole line is the last one written.
+        $this->assertStringContainsString(sprintf('cron line %06d', $total), $entries[0]['message']);
+
+        $expectedOldest = $total - ApplicationLogReaderService::MAX_ENTRIES + 1;
+        $this->assertStringContainsString(
+            sprintf('cron line %06d', $expectedOldest),
+            $entries[array_key_last($entries)]['message']
+        );
     }
 
-    public function test_out_of_range_page_clamps_to_the_last_page_instead_of_showing_empty(): void
+    public function test_a_symlink_out_of_the_log_directory_is_not_readable(): void
     {
-        $this->seedLogFile("[2026-08-02 09:00:00] testing.ERROR: Only entry\n");
+        $secret = storage_path('framework/testing/server-logs-secret-'.uniqid().'.txt');
+        File::put($secret, 'APP_KEY=base64:SUPERSECRET');
+        symlink($secret, $this->logDirectory.'/escape.log');
 
-        $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => 'laravel.log', 'page' => 999]))
-            ->assertOk()
-            ->assertSee('Only entry', false)
-            ->assertDontSee(__('pages.application_logs_empty'), false);
+        try {
+            $reader = app(ApplicationLogReaderService::class);
+
+            $this->assertSame([], array_column($reader->availableFiles(), 'name'));
+            $this->assertFalse($reader->isReadableFile('escape.log'));
+            $this->assertSame([], $reader->read('escape.log')['entries']);
+
+            $this->actingAs($this->superadmin())
+                ->get(route('superadmin.logs.index', ['file' => 'escape.log']))
+                ->assertOk()
+                ->assertDontSee('SUPERSECRET');
+        } finally {
+            File::delete($secret);
+        }
     }
 
-    public function test_discovers_a_custom_log_file_beyond_the_fixed_whitelist(): void
+    public function test_php_error_log_timestamps_are_parsed_and_trace_lines_attach_to_the_entry(): void
     {
-        $dir = storage_path('logs');
-        File::ensureDirectoryExists($dir);
-        $this->logPath = $dir.'/custom-worker.log';
-        File::put($this->logPath, "[2026-08-02 10:00:00] testing.INFO: Custom worker tick\n");
+        $this->writeLog('php-fpm.log', <<<'LOG'
+        [02-Aug-2026 09:14:02 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Church::slugg() in /var/www/app.php:31
+        Stack trace:
+        #0 /var/www/index.php(9): handle()
+        #1 {main}
+          thrown in /var/www/app.php on line 31
+
+        LOG);
+
+        $result = app(ApplicationLogReaderService::class)->read('php-fpm.log');
+
+        $this->assertCount(1, $result['entries']);
+        $entry = $result['entries'][0];
+
+        $this->assertSame('2026-08-02 09:14:02', $entry['time']->format('Y-m-d H:i:s'));
+        $this->assertStringContainsString('Call to undefined method', $entry['message']);
+        $this->assertStringContainsString('#0 /var/www/index.php(9)', $entry['detail']);
+    }
+
+    public function test_a_level_carried_over_from_another_file_stays_selectable(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
+        $this->writeLog('quiet.log', "[2026-08-01 08:00:00] production.INFO: Nothing to report\n");
 
         $this->actingAs($this->superadmin())
-            ->get(route('superadmin.logs.index', ['file' => 'custom-worker.log']))
+            ->get(route('superadmin.logs.index', ['file' => 'quiet.log', 'level' => 'error']))
             ->assertOk()
-            ->assertSee('custom-worker.log', false)
-            ->assertSee('Custom worker tick', false);
+            ->assertSee('value="error" selected', false)
+            ->assertSee(__('pages.application_logs_empty'));
+    }
+
+    public function test_page_renders_when_no_log_files_exist(): void
+    {
+        $this->actingAs($this->superadmin())
+            ->get(route('superadmin.logs.index'))
+            ->assertOk()
+            ->assertSee(__('pages.application_logs_no_files'));
+    }
+
+    public function test_non_superadmin_cannot_read_application_logs(): void
+    {
+        $this->writeLog('laravel.log', $this->sampleLog());
+
+        $this->actingAs($this->createUser())
+            ->get(route('superadmin.logs.index'))
+            ->assertForbidden();
+    }
+
+    public function test_guest_is_redirected_to_login(): void
+    {
+        $this->get(route('superadmin.logs.index'))->assertRedirect(route('login'));
     }
 }
