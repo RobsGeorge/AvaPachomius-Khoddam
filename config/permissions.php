@@ -563,6 +563,18 @@ return [
                     'sacraments.correct.store',
                 ],
             ],
+            'documents.view' => [
+                'label_en' => 'View pastoral / custodial documents',
+                'label_ar' => 'عرض المستندات الرعوية والإدارية',
+                'type' => 'both',
+                'routes' => [],
+            ],
+            'documents.upload' => [
+                'label_en' => 'Upload documents (incl. sensitive)',
+                'label_ar' => 'رفع المستندات (بما فيها الحساسة)',
+                'type' => 'both',
+                'routes' => [],
+            ],
             'people.recovery.assist' => [
                 'label_en' => 'Assist account recovery (vouch only)',
                 'label_ar' => 'المساعدة في استعادة الحساب (تزكية فقط)',
