@@ -55,7 +55,7 @@
 
 <p style="margin:0;font-size:13px;color:#64748b;">
     {{ __('students.mail_footer_before') }}
-    <a href="{{ $rosterUrl }}" style="color:#114b4f;font-weight:600;text-decoration:none;">
+    <a href="{{ $rosterUrl }}" style="color:#7c3aed;font-weight:600;text-decoration:none;">
         {{ __('students.mail_footer_link') }}
     </a>{{ __('students.mail_footer_after') }}
 </p>

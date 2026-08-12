@@ -12,7 +12,7 @@
     min-width: 160px;
     padding: .85rem 1.1rem;
     border-radius: .75rem;
-    background: var(--kh-primary, #0d3d40);
+    background: var(--kh-primary, #6d28d9);
     color: #fff;
     box-shadow: 0 8px 24px rgba(0,0,0,.25);
     text-align: center;
