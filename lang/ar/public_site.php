@@ -39,6 +39,7 @@ return [
     'branding_save' => 'حفظ الهوية',
     'branding_contrast_error' => 'اللون الأساسي ونصّه يحتاجان تبايناً أعلى.',
     'palette' => 'لوحة ألوان جاهزة',
+    'palette_khoddam' => 'خدام (بنفسجي وذهبي)',
     'palette_deaconia' => 'دياكونيا (تركواز وذهبي)',
     'palette_nile' => 'النيل',
     'palette_olive' => 'زيتوني',

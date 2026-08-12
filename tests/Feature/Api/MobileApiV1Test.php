@@ -17,7 +17,7 @@ class MobileApiV1Test extends EventModuleTestCase
     {
         $this->getJson('/api/v1/design-tokens')
             ->assertOk()
-            ->assertJsonPath('meta.name', 'deaconia')
+            ->assertJsonPath('meta.name', 'khoddam')
             ->assertJsonStructure(['light' => ['primary'], 'dark' => ['primary']]);
     }
 
