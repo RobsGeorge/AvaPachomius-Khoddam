@@ -33,7 +33,8 @@ Contract phase for Khedma multi-church (master-plan §7 T7 / P6 pilot).
 
 **Checklist:** [`staging-acceptance-checklist.md`](staging-acceptance-checklist.md) (T7 + T8 + T10c)  
 **Automated gate:** `php artisan tenancy:acceptance-check --expect-multi-tenant --repair-orgs`  
-**T10c only:** `php artisan tenancy:acceptance-check --t10c` after `permissions:sync`
+**T10c only:** `php artisan tenancy:acceptance-check --t10c` after `permissions:sync`  
+**Moving to a new Deaconia VPS (app + DB):** [`runbooks/deaconia-vps-cutover.md`](runbooks/deaconia-vps-cutover.md) — platform cutover first; Tier‑1 diocese `CREATE DATABASE` only after that runbook §8.
 
 ## Production
 
