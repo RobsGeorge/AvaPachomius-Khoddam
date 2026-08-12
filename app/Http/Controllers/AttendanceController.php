@@ -11,6 +11,7 @@ use App\Models\Session;
 use App\Models\Attendance;
 use App\Models\Module;
 use App\Services\AttendanceCloseService;
+use App\Services\AttendanceLatePolicyService;
 use App\Services\AuditLogService;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
@@ -48,6 +49,7 @@ class AttendanceController extends Controller
 
     public function __construct(
         private AttendanceCloseService $attendanceClose,
+        private AttendanceLatePolicyService $latePolicy,
         private CoursePermissionResolver $permissions,
     ) {}
 
@@ -631,6 +633,15 @@ class AttendanceController extends Controller
             'previous_status' => $previousStatus,
             'new_status'      => $attendance->status,
         ]);
+
+        $attendance->loadMissing('session');
+        if ($attendance->session) {
+            $this->latePolicy->syncAttendanceGradeForRecord(
+                $attendance->session,
+                $attendance,
+                (int) auth()->user()->user_id,
+            );
+        }
 
         return response()->json([
             'success' => true,
