@@ -94,6 +94,7 @@
                                     data-study-resources="{{ e($exam->study_resources ?? '') }}"
                                     data-exam-description="{{ e($exam->exam_description ?? '') }}"
                                     data-passing-score="{{ $exam->passing_score ?? '' }}"
+                                    data-total-points="{{ $exam->total_points ?? '' }}"
                                     data-course-id="{{ $exam->course_id }}"
                                     data-module-id="{{ $exam->module_id }}"
                                     data-update-url="{{ route('exams.update', $exam->exam_id) }}">
@@ -218,9 +219,17 @@
                         <label class="form-label">{{ __('exams.instructions') }}</label>
                         <textarea name="exam_description" class="form-control" rows="2">{{ old('exam_description') }}</textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ __('exams.passing_score') }} (%)</label>
-                        <input type="number" name="passing_score" class="form-control" min="0" max="100" value="{{ old('passing_score') }}">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.total_points') }} *</label>
+                            <input type="number" name="total_points" class="form-control" min="0.01" max="9999.99" step="0.01"
+                                   value="{{ old('total_points') }}" required>
+                            <div class="form-text">{{ __('exams.total_points_hint') }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.passing_score') }} (%)</label>
+                            <input type="number" name="passing_score" class="form-control" min="0" max="100" value="{{ old('passing_score') }}">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -329,9 +338,16 @@
                         <label class="form-label">{{ __('exams.instructions') }}</label>
                         <textarea name="exam_description" id="editExamDescription" class="form-control" rows="2"></textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">{{ __('exams.passing_score') }} (%)</label>
-                        <input type="number" name="passing_score" id="editExamPassingScore" class="form-control" min="0" max="100">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.total_points') }} *</label>
+                            <input type="number" name="total_points" id="editExamTotalPoints" class="form-control" min="0.01" max="9999.99" step="0.01" required>
+                            <div class="form-text">{{ __('exams.total_points_hint') }}</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ __('exams.passing_score') }} (%)</label>
+                            <input type="number" name="passing_score" id="editExamPassingScore" class="form-control" min="0" max="100">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -383,6 +399,7 @@
             document.getElementById('editExamResources').value = btn.dataset.studyResources || '';
             document.getElementById('editExamDescription').value = btn.dataset.examDescription || '';
             document.getElementById('editExamPassingScore').value = btn.dataset.passingScore || '';
+            document.getElementById('editExamTotalPoints').value = btn.dataset.totalPoints || '';
             document.getElementById('editExamCourse').value = btn.dataset.courseId || '';
             filterEditModules(btn.dataset.moduleId || '');
             bootstrap.Modal.getOrCreateInstance(editModalEl).show();

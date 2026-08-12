@@ -63,6 +63,19 @@ class ExamGradesController extends Controller
         return back()->with('success', __('exams.results_announced'));
     }
 
+    public function updateTotalPoints(Request $request, Exam $exam)
+    {
+        $data = $request->validate([
+            'total_points' => 'required|numeric|min:0.01|max:9999.99',
+        ], [
+            'total_points.required' => __('exams.total_points_required'),
+        ]);
+
+        $exam->update(['total_points' => $data['total_points']]);
+
+        return back()->with('success', __('exams.total_points_saved'));
+    }
+
     public function storeOffline(Request $request, Exam $exam)
     {
         abort_unless($exam->isOffline(), 403);

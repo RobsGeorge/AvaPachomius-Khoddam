@@ -149,6 +149,39 @@ class OfflineExamGradesTest extends EventModuleTestCase
         $this->assertEquals(90.0, (float) $result->fresh()->score);
     }
 
+    public function test_grades_page_can_update_exam_total_points(): void
+    {
+        [$admin, , $exam] = $this->offlineSetup();
+        $exam->update(['total_points' => 0]);
+
+        $this->actingAs($admin)
+            ->put(route('exams.grades.total-points', $exam), [
+                'total_points' => 20,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertEquals(20.0, (float) $exam->fresh()->total_points);
+
+        $response = $this->actingAs($admin)->get(route('exams.grades', $exam));
+        $response->assertOk();
+        $response->assertSee('name="total_points"', false);
+        $response->assertSee(__('exams.save_total_points'), false);
+    }
+
+    public function test_grades_page_rejects_zero_total_points(): void
+    {
+        [$admin, , $exam] = $this->offlineSetup();
+
+        $this->actingAs($admin)
+            ->from(route('exams.grades', $exam))
+            ->put(route('exams.grades.total-points', $exam), [
+                'total_points' => 0,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('total_points');
+    }
+
     /** @return array{0: \App\Models\User, 1: \App\Models\User, 2: Exam, 3: ExamSchedule} */
     private function offlineSetup(): array
     {

@@ -83,6 +83,7 @@ class ExamController extends Controller
             'exam_type'        => 'required|in:exam,quiz',
             'delivery_mode'    => 'required|in:online,offline',
             'duration_minutes' => 'required|integer|min:1',
+            'total_points'     => 'required|numeric|min:0.01|max:9999.99',
             'study_resources'  => 'nullable|string',
             'exam_description' => 'nullable|string',
             'passing_score'    => 'nullable|integer|min:0|max:100',
@@ -92,6 +93,7 @@ class ExamController extends Controller
             'module_id'        => 'required|exists:modules,module_id',
         ], [
             'module_id.required' => __('pages.module_required_for_exam'),
+            'total_points.required' => __('exams.total_points_required'),
         ]);
 
         $this->assertModuleBelongsToCourse(
@@ -116,6 +118,7 @@ class ExamController extends Controller
             'exam_type'        => 'required|in:exam,quiz',
             'delivery_mode'    => 'required|in:online,offline',
             'duration_minutes' => 'required|integer|min:1',
+            'total_points'     => 'required|numeric|min:0.01|max:9999.99',
             'study_resources'  => 'nullable|string',
             'exam_description' => 'nullable|string',
             'passing_score'    => 'nullable|integer|min:0|max:100',
@@ -125,6 +128,7 @@ class ExamController extends Controller
             'module_id'        => 'required|exists:modules,module_id',
         ], [
             'module_id.required' => __('pages.module_required_for_exam'),
+            'total_points.required' => __('exams.total_points_required'),
         ]);
 
         $this->assertModuleBelongsToCourse(
