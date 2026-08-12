@@ -149,7 +149,10 @@ class AttendanceCloseService
             $attributes,
         );
 
-        return $attendance->fresh(['user', 'takenBy', 'session']);
+        $fresh = $attendance->fresh(['user', 'takenBy', 'session']);
+        $this->latePolicy->syncAttendanceGradeForRecord($session, $fresh, $actorId);
+
+        return $fresh;
     }
 
     /** @return Collection<int, int> */
