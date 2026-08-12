@@ -47,6 +47,9 @@ use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdminApplicationLogController;
+use App\Http\Controllers\ChurchRegistrationController;
+use App\Http\Controllers\SuperAdmin\ChurchApplicationController as SuperAdminChurchApplicationController;
+use App\Http\Controllers\SuperAdmin\ChurchBillingController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
 use App\Http\Controllers\SuperAdmin\ServiceBillingController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
@@ -412,14 +415,10 @@ Route::post('recovery/confirm', [RecoveryConfirmController::class, 'store'])->na
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
 // Public landing — guests must not bounce / → /login → / (redirect loop when session storage fails).
-Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::get('login/otp', [LoginController::class, 'showOtpForm'])->name('login.otp.show');
 Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login'])->middleware('throttle:10,1');
-Route::post('login/otp', [LoginController::class, 'verifyOtp'])->name('login.otp.verify')->middleware('throttle:20,1');
-Route::post('login/otp/resend', [LoginController::class, 'resendOtp'])->name('login.otp.resend')->middleware('throttle:5,1');
 
 // PAC5 — tokenized ICS feeds. No session/auth: external calendar apps poll these
 // with just the opaque token in the URL. Tenant resolution still applies (host-based).
@@ -959,6 +958,12 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/feedback-reveal', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'index'])->name('feedback-reveal.index');
     Route::post('/feedback-reveal/{revealRequest}/approve', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'approve'])->name('feedback-reveal.approve')->whereNumber('revealRequest');
     Route::post('/feedback-reveal/{revealRequest}/deny', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'deny'])->name('feedback-reveal.deny')->whereNumber('revealRequest');
+
+    // Public church-registration review queue (manual provision after approve).
+    Route::get('/church-applications', [SuperAdminChurchApplicationController::class, 'index'])->name('church-applications.index');
+    Route::get('/church-applications/{churchApplication}', [SuperAdminChurchApplicationController::class, 'show'])->name('church-applications.show');
+    Route::post('/church-applications/{churchApplication}/approve', [SuperAdminChurchApplicationController::class, 'approve'])->name('church-applications.approve');
+    Route::post('/church-applications/{churchApplication}/reject', [SuperAdminChurchApplicationController::class, 'reject'])->name('church-applications.reject');
 
     Route::get('/templates',                [SystemRoleController::class, 'templates'])->name('templates.index');
     Route::put('/templates/{role}',         [SystemRoleController::class, 'updateTemplate'])->name('templates.update');
