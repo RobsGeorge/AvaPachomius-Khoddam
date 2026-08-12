@@ -54,4 +54,17 @@ class AttendancePolicy extends Model
 
         return $policy;
     }
+
+    /**
+     * Weighted attendance credit for a Late status (0–1).
+     * Used by graduation eligibility and the attendance report rate.
+     */
+    public function lateAttendanceFactor(): float
+    {
+        if (! $this->is_enabled) {
+            return 0.0;
+        }
+
+        return max(0.0, min(1.0, $this->late_grade_percentage / 100));
+    }
 }
