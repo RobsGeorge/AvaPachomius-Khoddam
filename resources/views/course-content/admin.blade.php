@@ -287,6 +287,12 @@
                                 <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
                                 </a>
+                                @if($status === 'ended' && auth()->user()?->canInCourse('student_assessment.view', $course))
+                                    <a href="{{ route('module-assessments.index', [$course, $module]) }}"
+                                       class="btn btn-sm btn-outline-theme">
+                                        <i class="bi bi-clipboard-check"></i> {{ __('pages.manage_module_assessments') }}
+                                    </a>
+                                @endif
                             </div>
 
                             @if(!($pivot->feedback_open ?? false))

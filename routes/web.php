@@ -91,6 +91,8 @@ use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\SuperAdminSystemTestController;
 use App\Http\Controllers\SuperAdminScheduledTaskController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ModuleStudentAssessmentController;
+use App\Http\Controllers\StudentInstructorNoteController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
@@ -796,6 +798,17 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
     Route::get('/students/roster/export',                       [StudentRosterController::class, 'exportCsv'])->name('students.roster.export');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
+
+    Route::middleware('capability:curriculum')->group(function () {
+        Route::get('/courses/{course}/modules/{module}/assessments', [ModuleStudentAssessmentController::class, 'index'])
+            ->name('module-assessments.index')->whereNumber(['course', 'module']);
+        Route::get('/courses/{course}/modules/{module}/assessments/{user}', [ModuleStudentAssessmentController::class, 'edit'])
+            ->name('module-assessments.edit')->whereNumber(['course', 'module', 'user']);
+        Route::put('/courses/{course}/modules/{module}/assessments/{user}', [ModuleStudentAssessmentController::class, 'update'])
+            ->name('module-assessments.update')->whereNumber(['course', 'module', 'user']);
+        Route::post('/courses/{course}/students/{user}/notes', [StudentInstructorNoteController::class, 'store'])
+            ->name('student-notes.store')->whereNumber(['course', 'user']);
+    });
 
     Route::prefix('announcements/manage')->name('announcements.manage.')->group(function () {
         Route::get('/', [AnnouncementManageController::class, 'index'])->name('index');

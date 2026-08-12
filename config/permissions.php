@@ -364,6 +364,39 @@ return [
         ],
     ],
 
+    'student_assessment' => [
+        'scope' => 'course',
+        'label_en' => 'Student module assessment',
+        'label_ar' => 'تقييم الطالب للوحدة',
+        'sort' => 105,
+        'permissions' => [
+            'student_assessment.view' => [
+                'label_en' => 'View module student assessments',
+                'label_ar' => 'عرض تقييمات الطلاب للوحدة',
+                'type' => 'both',
+                'routes' => ['module-assessments.index', 'module-assessments.edit'],
+            ],
+            'student_assessment.manage' => [
+                'label_en' => 'Manage module student assessments',
+                'label_ar' => 'إدارة تقييمات الطلاب للوحدة',
+                'type' => 'both',
+                'routes' => ['module-assessments.index', 'module-assessments.edit', 'module-assessments.update'],
+            ],
+            'student_notes.view' => [
+                'label_en' => 'View private student notes',
+                'label_ar' => 'عرض ملاحظات الطلاب الخاصة',
+                'type' => 'endpoint',
+                'routes' => ['module-assessments.edit'],
+            ],
+            'student_notes.manage' => [
+                'label_en' => 'Add private student notes',
+                'label_ar' => 'إضافة ملاحظات طلاب خاصة',
+                'type' => 'endpoint',
+                'routes' => ['student-notes.store'],
+            ],
+        ],
+    ],
+
     'live_quiz' => [
         'scope' => 'course',
         'label_en' => 'Live Quiz',

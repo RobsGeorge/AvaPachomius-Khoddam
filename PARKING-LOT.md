@@ -278,6 +278,18 @@ PAC1–PAC4 already landed. **PAC5 (tokenized ICS)** is unblocked to proceed —
 dependency. **PAC6 (OAuth)** is still blocked separately on its own ops prerequisite: Google
 + Microsoft OAuth app registration must exist before that code is useful.
 
+## Student module assessment + private instructor notes (SMA)
+
+**Design:** [`docs/product/use-cases/student-module-assessment.md`](docs/product/use-cases/student-module-assessment.md)
+
+| Step | Slice | Status |
+|------|--------|--------|
+| **SMA0** | Docs | Landed |
+| **SMA1** | Schema + RBAC | Landed |
+| **SMA2** | Assess UX | Landed |
+| **SMA3** | Notes (anonymous UI) | Landed |
+| **SMA4** | Church criteria editor + multi-assessor averages | Still parked |
+
 ## Platform observability — ops + usage + infra (in progress 2026-07-28)
 
 **Requested:** Full logging/reporting for system errors, crashes, DB errors, login
