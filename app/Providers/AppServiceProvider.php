@@ -3,14 +3,29 @@
 namespace App\Providers;
 
 use App\Cache\ResilientFileStore;
+use App\Contracts\TenantSecretStore;
 use App\Filesystem\SoftChmodFilesystem;
 use App\Database\LegacySchemaSync;
 use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
 use App\Http\View\Composers\AppLayoutComposer;
+use App\Models\Contact;
+use App\Models\Person;
+use App\Models\Residence;
+use App\Observability\Adapters\LocalProcFsAdapter;
+use App\Observability\Adapters\NullInfraMetricsAdapter;
+use App\Observability\AlertNotifier;
+use App\Observability\Contracts\ErrorSink;
+use App\Observability\Contracts\InfraMetricsAdapter;
+use App\Observability\ObservabilityRecorder;
+use App\Observability\Sinks\LogErrorSink;
+use App\Observability\Sinks\NullErrorSink;
+use App\Observability\Sinks\SentryErrorSink;
+use App\Services\Tenancy\EncryptedConfigTenantSecretStore;
 use App\Tenancy\TenantContext;
 use App\Validation\SafeValidator;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Events\MigrationsStarted;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Blade;
@@ -36,6 +51,31 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Tenancy\TenantContext::class, fn () => new \App\Tenancy\TenantContext());
         $this->app->singleton(\App\Services\ScheduledTaskRunner::class);
         $this->app->singleton(\App\Services\SchedulerHealthService::class);
+        $this->app->singleton(TenantSecretStore::class, EncryptedConfigTenantSecretStore::class);
+
+        $this->app->singleton(ErrorSink::class, function () {
+            return match (config('observability.error_sink', 'log')) {
+                'null' => new NullErrorSink(),
+                'sentry' => new SentryErrorSink(),
+                default => new LogErrorSink(),
+            };
+        });
+
+        $this->app->singleton(InfraMetricsAdapter::class, function () {
+            return match (config('observability.infra_adapter', 'null')) {
+                'local_proc' => new LocalProcFsAdapter(),
+                default => new NullInfraMetricsAdapter(),
+            };
+        });
+
+        $this->app->singleton(AlertNotifier::class, fn () => new AlertNotifier());
+
+        $this->app->singleton(ObservabilityRecorder::class, function ($app) {
+            return new ObservabilityRecorder(
+                $app->make(ErrorSink::class),
+                $app->make(AlertNotifier::class),
+            );
+        });
 
         // Override before any cache store is resolved (production CACHE_DRIVER=file).
         // SoftChmodFilesystem: deploy-owned cache nodes must not 500 on chmod().
@@ -73,6 +113,12 @@ class AppServiceProvider extends ServiceProvider
         // T2 — @capability('exams') ... @endcapability. Returns true when no church is
         // bound (tenancy dormant) so nav renders unchanged in production until cutover.
         Blade::if('capability', fn (string $key) => TenantContext::current()?->hasCapability($key) ?? true);
+
+        // Contact morph aliases (ADR §24): short types person|residence, not FQCN.
+        Relation::morphMap([
+            Contact::CONTACTABLE_PERSON => Person::class,
+            Contact::CONTACTABLE_RESIDENCE => Residence::class,
+        ]);
     }
 
     /**
