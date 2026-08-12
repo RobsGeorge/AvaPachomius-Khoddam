@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Billing\QuotaGuard;
 use App\Http\Controllers\Controller;
 use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
+use App\Models\StructureTemplate;
 use App\Services\RoleTemplateService;
+use App\Services\Structure\StructureAnchorResolver;
+use App\Support\Structure\ProgressionPolicy;
 use App\Support\SuperadminWorkspace;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -21,7 +26,7 @@ class ServiceManagementController extends Controller
         $requiresChurch = SuperadminWorkspace::requiresExplicitChurchScope();
 
         $services = ChurchService::query()
-            ->with('church')
+            ->with(['church', 'structureTemplate'])
             ->withCount(['courses', 'userServiceRoles'])
             ->when($requiresChurch, fn ($q) => $q->withoutTenancy())
             ->orderBy('church_id')
@@ -34,7 +39,22 @@ class ServiceManagementController extends Controller
             ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
             : collect();
 
-        return view('admin.services.index', compact('services', 'groupedServices', 'churches', 'requiresChurch'));
+        $structureTemplates = StructureTemplate::query()
+            ->orderBy('name_en')
+            ->get();
+
+        $progressionPolicies = ProgressionPolicy::all();
+        $resolver = app(StructureAnchorResolver::class);
+
+        return view('admin.services.index', compact(
+            'services',
+            'groupedServices',
+            'churches',
+            'requiresChurch',
+            'structureTemplates',
+            'progressionPolicies',
+            'resolver',
+        ));
     }
 
     public function store(Request $request)
@@ -55,7 +75,32 @@ class ServiceManagementController extends Controller
             $rules['church_id'] = 'required|integer|exists:church,church_id';
         }
 
+        if (Schema::hasColumn('service', 'structure_template_id')) {
+            $rules['structure_template_id'] = [
+                'required',
+                'integer',
+                Rule::exists('structure_templates', 'structure_template_id'),
+            ];
+        }
+
+        if (Schema::hasColumn('service', 'progression_policy')) {
+            $rules['progression_policy'] = ['nullable', 'string', Rule::in(ProgressionPolicy::all())];
+        }
+
         $validated = $request->validate($rules);
+
+        $churchForQuota = null;
+        if ($requiresChurch) {
+            $churchForQuota = Church::query()->find((int) $validated['church_id']);
+        } elseif (config('tenancy.enabled')) {
+            $churchForQuota = app(\App\Tenancy\TenantContext::class)->church();
+        } else {
+            $churchForQuota = Church::main();
+        }
+
+        if ($churchForQuota) {
+            app(QuotaGuard::class)->enforce($churchForQuota, 'max_services', 1);
+        }
 
         $payload = [
             'title' => $validated['title'],
@@ -66,20 +111,26 @@ class ServiceManagementController extends Controller
             'permissions_version' => 0,
         ];
 
-        $service = new ChurchService([
-            'title' => $payload['title'],
-            'title_ar' => $payload['title_ar'],
-            'title_en' => $payload['title_en'],
-            'description' => $payload['description'],
-            'status' => $payload['status'],
-            'permissions_version' => $payload['permissions_version'],
-        ]);
+        if (Schema::hasColumn('service', 'structure_template_id')) {
+            $payload['structure_template_id'] = $validated['structure_template_id'];
+        }
+
+        if (Schema::hasColumn('service', 'progression_policy')) {
+            $policy = $validated['progression_policy'] ?? null;
+            $payload['progression_policy'] = ProgressionPolicy::isValid($policy) ? $policy : null;
+        }
+
+        $service = new ChurchService($payload);
 
         if ($requiresChurch) {
             $service->church_id = (int) $validated['church_id'];
         }
 
         $service->save();
+
+        if ($churchForQuota) {
+            app(QuotaGuard::class)->syncServiceCount($churchForQuota->fresh());
+        }
 
         if ($request->boolean('clone_templates', true)) {
             app(RoleTemplateService::class)->cloneTemplatesIntoService($service);
@@ -113,20 +164,49 @@ class ServiceManagementController extends Controller
             ->orderBy('title')
             ->get();
 
-        return view('admin.services.edit', compact('service', 'courses'));
+        $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
+        $progressionPolicies = ProgressionPolicy::all();
+        $resolver = app(StructureAnchorResolver::class);
+
+        return view('admin.services.edit', compact(
+            'service',
+            'courses',
+            'structureTemplates',
+            'progressionPolicies',
+            'resolver',
+        ));
     }
 
     public function update(Request $request, ChurchService $service)
     {
         abort_unless(ChurchService::tableReady(), 404);
 
-        $validated = $request->validate([
+        $rules = [
             'title' => 'required|string|max:120',
             'title_ar' => 'nullable|string|max:120',
             'title_en' => 'nullable|string|max:120',
             'description' => 'nullable|string|max:2000',
             'status' => ['required', Rule::in([ChurchService::STATUS_ACTIVE, ChurchService::STATUS_ARCHIVED])],
-        ]);
+        ];
+
+        if (Schema::hasColumn('service', 'structure_template_id')) {
+            $rules['structure_template_id'] = [
+                'required',
+                'integer',
+                Rule::exists('structure_templates', 'structure_template_id'),
+            ];
+        }
+
+        if (Schema::hasColumn('service', 'progression_policy')) {
+            $request->merge([
+                'progression_policy' => $request->filled('progression_policy')
+                    ? $request->input('progression_policy')
+                    : null,
+            ]);
+            $rules['progression_policy'] = ['nullable', 'string', Rule::in(ProgressionPolicy::all())];
+        }
+
+        $validated = $request->validate($rules);
 
         $service->update($validated);
 
@@ -172,6 +252,13 @@ class ServiceManagementController extends Controller
 
         $service->status = ChurchService::STATUS_ARCHIVED;
         $service->save();
+
+        if ($service->church_id) {
+            $church = Church::query()->find($service->church_id);
+            if ($church) {
+                app(QuotaGuard::class)->syncServiceCount($church);
+            }
+        }
 
         return $this->redirectAfterMutation($request)
             ->with('success', __('service.archived'));

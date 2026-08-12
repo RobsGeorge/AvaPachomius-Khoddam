@@ -156,6 +156,7 @@ class RoleTemplateService
                 'service.view', 'service.manage',
                 'service.member.add', 'service.member.remove', 'service.member.add_cross',
                 'service.role.manage', 'service.user.assign_role',
+                'service.roster.status', 'service.progression.run',
                 'service_application.review', 'service_application.form_builder',
                 'people.view', 'people.create', 'people.import', 'people.invite', 'people.invite_bulk', 'people.place',
                 'announcement.view', 'announcement.manage', 'announcement.publish',
@@ -216,13 +217,18 @@ class RoleTemplateService
     {
         $templates = [
             'church-admin' => [
-                'church.configure', 'church.members.manage', 'church.role.manage',
+                'church.configure', 'church.members.manage', 'church.registration_qr.manage', 'church.role.manage',
                 'people.view', 'people.create', 'people.update', 'people.import',
                 'people.invite', 'people.invite_bulk', 'people.place',
+                'people.guardian_visibility.manage',
                 'priest.manage', 'priest.view',
-                'confession.manage', 'confession.view', 'confession.book',
+                'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
+                'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',
                 'home_visit.manage', 'home_visit.view',
-                'finance.payroll.manage', 'finance.payroll.view',
+                'church.cycle.view', 'church.cycle.manage',
+                'public_site.profile', 'public_site.theme',
+                'public_site.manage', 'public_site.publish',
+                'finance.payroll.manage', 'finance.payroll.view', 'finance.payroll.approve',
                 'finance.money_in.manage', 'finance.money_in.view',
                 'role.manage', 'user.assign_role',
                 'announcement.view', 'announcement.manage', 'announcement.publish',
@@ -231,13 +237,23 @@ class RoleTemplateService
             ],
             'priest' => [
                 'priest.view',
+                'people.guardian_visibility.manage',
                 'confession.manage', 'confession.view',
+                'appointment.manage', 'appointment.view',
                 'home_visit.manage', 'home_visit.view',
+                'announcement.view',
+                'roster.view',
+            ],
+            'secretary' => [
+                'priest.view',
+                'confession.view', 'confession.manage_delegated', 'confession.book_on_behalf',
+                'appointment.view', 'appointment.manage_delegated', 'appointment.book_on_behalf',
                 'announcement.view',
                 'roster.view',
             ],
             'servant' => [
                 'confession.view', 'confession.book',
+                'appointment.view', 'appointment.book',
                 'home_visit.manage', 'home_visit.view',
                 'announcement.view',
                 'roster.view',
@@ -259,6 +275,7 @@ class RoleTemplateService
                     'role_name' => match ($slug) {
                         'church-admin' => 'Church Admin',
                         'priest' => 'Priest',
+                        'secretary' => 'Secretary',
                         default => 'Servant',
                     },
                     'role_decription' => $slug,
@@ -287,7 +304,7 @@ class RoleTemplateService
             ->whereNull('service_id')
             ->whereNull('church_id')
             ->where('is_template', true)
-            ->whereIn('slug', ['church-admin', 'priest', 'servant'])
+            ->whereIn('slug', ['church-admin', 'priest', 'secretary', 'servant'])
             ->get();
 
         $enabledPermKeys = $this->permissionKeysForChurchCapabilities($church);
@@ -358,6 +375,120 @@ class RoleTemplateService
         return $candidate;
     }
 
+    /**
+     * Expand-only: attach any template keys missing on the church's cloned roles.
+     * Does not remove permissions already on the clone.
+     */
+    public function mergeTemplatePermissionsIntoChurchClones(Church $church): int
+    {
+        $this->ensureChurchTemplates();
+
+        $templates = Role::withoutTenancy()
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->whereNull('church_id')
+            ->where('is_template', true)
+            ->whereIn('slug', ['church-admin', 'priest', 'secretary', 'servant'])
+            ->get()
+            ->keyBy(fn (Role $r) => $r->effectiveSlug());
+
+        $merged = 0;
+
+        $clones = Role::withoutTenancy()
+            ->where('church_id', $church->church_id)
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->where('is_template', false)
+            ->get();
+
+        foreach ($clones as $clone) {
+            $slug = $clone->effectiveSlug();
+            // church clones may use uniqueSlugForChurch → church-admin-1; match prefix
+            $templateSlug = collect(['church-admin', 'priest', 'secretary', 'servant'])
+                ->first(fn (string $s) => $slug === $s || str_starts_with($slug, $s.'-'));
+            if (! $templateSlug || ! isset($templates[$templateSlug])) {
+                continue;
+            }
+
+            $template = $templates[$templateSlug];
+            $templateKeys = $template->permissions()->pluck('permissions.key');
+            $keys = $templateKeys->filter(
+                fn (string $key) => $this->resolver->permissionAllowedByCapabilities($key, $church)
+            );
+            if ($templateSlug === 'church-admin') {
+                $keys = $keys->merge($this->permissionKeysForChurchCapabilities($church))->unique();
+            }
+
+            $existing = $clone->permissions()->pluck('permissions.key');
+            $combined = $existing->merge($keys)->unique()->values();
+            if ($combined->count() === $existing->count() && $combined->diff($existing)->isEmpty()) {
+                continue;
+            }
+
+            $ids = Permission::whereIn('key', $combined)->pluck('permission_id');
+            $clone->permissions()->sync($ids);
+            $merged++;
+        }
+
+        if ($merged > 0) {
+            $this->resolver->bumpChurchPermissionsVersion($church);
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Expand-only: merge service-admin / service-member template keys onto service clones.
+     */
+    public function mergeTemplatePermissionsIntoServiceClones(): int
+    {
+        $this->ensureServiceTemplates();
+
+        $templates = Role::query()
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->where('is_template', true)
+            ->whereIn('slug', ['service-admin', 'service-member'])
+            ->get()
+            ->keyBy('slug');
+
+        $merged = 0;
+        $clones = Role::query()
+            ->whereNotNull('service_id')
+            ->where('is_template', false)
+            ->get()
+            ->filter(function (Role $clone) {
+                $slug = $clone->effectiveSlug();
+
+                return $slug === 'service-admin'
+                    || $slug === 'service-member'
+                    || str_starts_with($slug, 'service-admin-')
+                    || str_starts_with($slug, 'service-member-');
+            });
+
+        foreach ($clones as $clone) {
+            $slug = $clone->effectiveSlug();
+            $templateSlug = str_starts_with($slug, 'service-admin') ? 'service-admin' : 'service-member';
+            if (! isset($templates[$templateSlug])) {
+                continue;
+            }
+
+            $templateKeys = $templates[$templateSlug]->permissions()->pluck('permissions.key');
+            $existing = $clone->permissions()->pluck('permissions.key');
+            $missing = $templateKeys->diff($existing);
+            if ($missing->isEmpty()) {
+                continue;
+            }
+
+            $combined = $existing->merge($templateKeys)->unique()->values();
+            $ids = Permission::whereIn('key', $combined)->pluck('permission_id');
+            $clone->permissions()->sync($ids);
+            $merged++;
+        }
+
+        return $merged;
+    }
+
     private function permissionKeysForChurchCapabilities(Church $church): Collection
     {
         $keys = collect();
@@ -392,6 +523,8 @@ class RoleTemplateService
             'roster.view', 'roster.announce', 'session.notify',
             'graduation.view', 'graduation.configure', 'course.close', 'certificate.manage',
             'feedback.view', 'feedback.manage', 'feedback.report', 'feedback.identity.request',
+            'student_assessment.view', 'student_assessment.manage',
+            'student_notes.view', 'student_notes.manage',
             'live_quiz.play', 'live_quiz.host', 'live_quiz.manage',
             'events.view', 'events.reserve',
         ];

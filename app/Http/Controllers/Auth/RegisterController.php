@@ -11,8 +11,13 @@ use App\Models\Course;
 use App\Models\Role;
 use App\Mail\SendOTPEmail;
 use App\Services\AuditLogService;
+use App\Services\Auth\ChurchRegistrationQrService;
+use App\Services\RegistrationEnrollmentService;
 use App\Services\PendingRegistrationService;
 use App\Services\People\PersonDuplicateDetector;
+use App\Services\Maturity\AgePolicyResolver;
+use App\Models\Church;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
@@ -28,14 +33,39 @@ use Illuminate\Database\QueryException;
 
 class RegisterController extends Controller
 {
+    public function __construct(
+        private RegistrationEnrollmentService $enrollment,
+        private ChurchRegistrationQrService $registrationQr,
+    ) {}
+
     public function showRegistrationForm()
     {
+        // Drop a stale QR session so open self-serve does not inherit an expired token.
+        if (session()->has(ChurchRegistrationQrService::SESSION_TOKEN_ID)
+            && ! $this->registrationQr->sessionToken()) {
+            $this->registrationQr->clearSession();
+        }
+
         return view('auth.register');
     }
 
     public function register(Request $request)
     {
         $this->validator($request->all())->validate();
+
+        // QR lane: token must still be valid at submit (session bound by scan endpoint).
+        if (session(ChurchRegistrationQrService::SESSION_LANE) === User::REGISTRATION_LANE_QR
+            && ! $this->registrationQr->sessionToken()) {
+            $this->registrationQr->clearSession();
+
+            return back()
+                ->withErrors(['general' => __('register.qr_token_invalid')])
+                ->withInput();
+        }
+
+        if ($redirect = $this->redirectIfBelowDigitalConsent($request)) {
+            return $redirect;
+        }
 
         LegacySchemaSync::ensureRegistrationSchema();
         PendingRegistrationService::purgeStale();
@@ -84,6 +114,43 @@ class RegisterController extends Controller
         }
 
         return $this->createAndSendOtp($request);
+    }
+
+    public function showAskParent()
+    {
+        return view('auth.register-ask-parent');
+    }
+
+    /**
+     * Independent self-registration below digital-consent age → ask a parent (never hostile block).
+     * Does not create/update any Person or User.
+     */
+    protected function redirectIfBelowDigitalConsent(Request $request)
+    {
+        $dob = $request->input('date_of_birth');
+        if (! $dob) {
+            return null;
+        }
+
+        try {
+            $birth = Carbon::parse($dob);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $church = Church::main();
+        $policy = app(AgePolicyResolver::class)->forChurch($church);
+        $age = $birth->age;
+
+        if ($age >= (int) $policy['digital_consent_age']) {
+            return null;
+        }
+
+        // Existing person records for the same national_id / mobile must stay untouched —
+        // we never write here; only redirect.
+        return redirect()
+            ->route('register.ask-parent')
+            ->with('maturity_under_age', true);
     }
 
     // ── Re-registration (unverified user exists) ──────────────────────────────
@@ -171,7 +238,7 @@ class RegisterController extends Controller
                 'registration_completed' => false,
                 'created_at'             => now(),
                 'updated_at'             => now(),
-            ]));
+            ], $this->registrationLaneAttributes()));
 
             $otp = rand(100000, 999999);
             OtpCode::create([
@@ -207,6 +274,29 @@ class RegisterController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /** @return array{registration_lane?: string, registration_qr_token_id?: int|null} */
+    private function registrationLaneAttributes(): array
+    {
+        if (! Schema::hasColumn('user', 'registration_lane')) {
+            return [];
+        }
+
+        $qrToken = $this->registrationQr->sessionToken();
+        if ($qrToken) {
+            return [
+                'registration_lane' => User::REGISTRATION_LANE_QR,
+                'registration_qr_token_id' => Schema::hasColumn('user', 'registration_qr_token_id')
+                    ? $qrToken->church_registration_qr_token_id
+                    : null,
+            ];
+        }
+
+        return [
+            'registration_lane' => User::REGISTRATION_LANE_OPEN,
+            'registration_qr_token_id' => null,
+        ];
+    }
 
     private function userProfileAttributes(Request $request, ?string $profilePhotoPath = null): array
     {
@@ -412,8 +502,11 @@ class RegisterController extends Controller
         }
 
         $user->password               = Hash::make($request->password);
-        PendingRegistrationService::markCompleted($user);
+        $user->save();
 
+        session([
+            PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY => $user->user_id,
+        ]);
         session()->forget(PendingRegistrationService::SESSION_PASSWORD_USER_KEY);
 
         AuditLogService::setPasswordResult($request, [
@@ -422,6 +515,120 @@ class RegisterController extends Controller
             'email'   => $user->email,
         ]);
 
-        return redirect()->route('login')->with('success', 'تم تعيين كلمة المرور بنجاح! يمكنك الآن تسجيل الدخول.');
+        return redirect()
+            ->route('register.enrollment', ['user_id' => $user->user_id])
+            ->with('success', __('register.password_saved_continue_enrollment'));
+    }
+
+    // ── Enrollment intent ─────────────────────────────────────────────────────
+
+    public function showEnrollmentForm(int|string $user_id)
+    {
+        $user = User::where('user_id', $user_id)->firstOrFail();
+
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY) != $user->user_id) {
+            return redirect()
+                ->route('password.set', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.complete_password_first')]);
+        }
+
+        $services = $this->enrollment->eligibleServices();
+
+        if ($services->isEmpty()) {
+            return redirect()
+                ->route('password.set', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.enrollment_no_courses_available')]);
+        }
+
+        $coursesByService = [];
+        foreach ($services as $service) {
+            $coursesByService[$service->service_id] = $this->enrollment
+                ->eligibleCoursesForService($service->service_id)
+                ->map(fn ($course) => [
+                    'id' => $course->course_id,
+                    'title' => $course->title,
+                ])
+                ->values()
+                ->all();
+        }
+
+        $selectedServiceId = (int) old('service_id', $services->first()->service_id);
+        $selectedCourseId = old('course_id');
+
+        if ($services->count() === 1 && count($coursesByService[$services->first()->service_id] ?? []) === 1) {
+            $selectedServiceId = $services->first()->service_id;
+            $selectedCourseId = $selectedCourseId
+                ?? $coursesByService[$selectedServiceId][0]['id'];
+        }
+
+        return view('auth.register_enrollment', [
+            'user_id' => $user->user_id,
+            'services' => $services,
+            'coursesByService' => $coursesByService,
+            'selectedServiceId' => $selectedServiceId,
+            'selectedCourseId' => $selectedCourseId,
+        ]);
+    }
+
+    public function enrollmentCourses(Request $request)
+    {
+        if (! session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY)) {
+            abort(403, __('register.complete_password_first'));
+        }
+
+        $request->validate([
+            'service_id' => ['required', 'integer'],
+        ]);
+
+        $courses = $this->enrollment
+            ->eligibleCoursesForService((int) $request->service_id)
+            ->map(fn ($course) => [
+                'id' => $course->course_id,
+                'title' => $course->title,
+            ])
+            ->values();
+
+        return response()->json(['courses' => $courses]);
+    }
+
+    public function storeEnrollment(Request $request)
+    {
+        $request->validate([
+            'user_id' => ['required', 'exists:user,user_id'],
+            'service_id' => ['required', 'integer'],
+            'course_id' => ['required', 'integer'],
+        ]);
+
+        $user = User::where('user_id', $request->user_id)->firstOrFail();
+
+        if ($user->registration_completed) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY) != $user->user_id) {
+            return redirect()
+                ->route('password.set', ['user_id' => $user->user_id])
+                ->withErrors(['general' => __('register.complete_password_first')]);
+        }
+
+        try {
+            $this->enrollment->completeWithEnrollment(
+                $user,
+                (int) $request->service_id,
+                (int) $request->course_id,
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors())->withInput();
+        }
+
+        session()->forget(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY);
+
+        return redirect()
+            ->route('login')
+            ->with('success', __('register.enrollment_submitted_success'));
     }
 }

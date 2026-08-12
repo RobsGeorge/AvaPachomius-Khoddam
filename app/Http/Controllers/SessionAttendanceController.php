@@ -38,26 +38,56 @@ class SessionAttendanceController extends Controller
     public function store(Request $request, Session $session): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
-            'user_id' => 'required|integer|exists:user,user_id',
+            'person_id' => 'nullable|integer|exists:people,person_id',
+            'user_id' => 'nullable|integer|exists:user,user_id',
             'status' => 'required|in:Present,Absent,Late,Permission',
             'permission_reason' => 'required_if:status,Permission|nullable|string|max:255',
             'allow_non_enrolled' => 'sometimes|boolean',
         ]);
 
-        $attendance = $this->attendanceClose->createOrUpdateRecord(
-            $session,
-            (int) $validated['user_id'],
-            $validated['status'],
-            (int) auth()->user()->user_id,
-            $validated['permission_reason'] ?? null,
-            (bool) ($validated['allow_non_enrolled'] ?? false),
-        );
+        if (empty($validated['person_id']) && empty($validated['user_id'])) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => __('pages.student_not_found'),
+                ], 422);
+            }
+
+            return redirect()->back()->withErrors([
+                'person_id' => __('pages.student_not_found'),
+            ]);
+        }
+
+        $allowNonEnrolled = (bool) ($validated['allow_non_enrolled'] ?? false);
+        $actorId = (int) auth()->user()->user_id;
+
+        if (! empty($validated['person_id'])) {
+            $attendance = $this->attendanceClose->createOrUpdateForPerson(
+                $session,
+                (int) $validated['person_id'],
+                $validated['status'],
+                $actorId,
+                $validated['permission_reason'] ?? null,
+                $allowNonEnrolled,
+            );
+        } else {
+            $attendance = $this->attendanceClose->createOrUpdateRecord(
+                $session,
+                (int) $validated['user_id'],
+                $validated['status'],
+                $actorId,
+                $validated['permission_reason'] ?? null,
+                $allowNonEnrolled,
+            );
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => __('pages.attendance_record_saved'),
                 'attendance_id' => $attendance->attendance_id,
+                'person_id' => $attendance->person_id,
+                'user_id' => $attendance->user_id,
             ]);
         }
 
@@ -76,14 +106,30 @@ class SessionAttendanceController extends Controller
             'include_non_enrolled' => 'sometimes|boolean',
         ]);
 
+        $includeNonEnrolled = (bool) ($validated['include_non_enrolled'] ?? false);
+
+        $people = $this->attendanceClose->searchPeopleForSession(
+            $session,
+            $validated['q'],
+            $includeNonEnrolled,
+        );
+
+        if ($people->isNotEmpty()) {
+            return response()->json([
+                'results' => $people->values(),
+            ]);
+        }
+
+        // Legacy user search fallback when people table empty / no matches.
         $users = $this->attendanceClose->searchStudentsForSession(
             $session,
             $validated['q'],
-            (bool) ($validated['include_non_enrolled'] ?? false),
+            $includeNonEnrolled,
         );
 
         return response()->json([
             'results' => $users->map(fn ($user) => [
+                'person_id' => $user->person_id ? (int) $user->person_id : null,
                 'user_id' => $user->user_id,
                 'label' => trim($user->first_name.' '.$user->second_name.' '.($user->third_name ?? '')),
                 'mobile_number' => $user->mobile_number,

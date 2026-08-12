@@ -203,4 +203,265 @@ class QaCourseTestersCommandTest extends EventModuleTestCase
 
         $this->assertSame(0, User::where('email', 'like', 'qa.matrix.%@dry.test')->count());
     }
+
+    public function test_unknown_course_id_fails_without_writing(): void
+    {
+        $this->artisan('qa:course-testers', [
+            '--course' => 999999,
+            '--domain' => 'missing.test',
+        ])->assertFailed();
+
+        $this->assertSame(0, User::where('email', 'like', 'qa.matrix.%@missing.test')->count());
+    }
+
+    public function test_invalid_course_tokens_are_rejected(): void
+    {
+        $this->artisan('qa:course-testers', [
+            '--courses' => 'abc,0,-3,1.5',
+            '--domain' => 'badid.test',
+        ])->assertFailed();
+
+        $this->assertSame(0, User::where('email', 'like', 'qa.matrix.%@badid.test')->count());
+    }
+
+    public function test_empty_domain_is_rejected(): void
+    {
+        $this->artisan('qa:course-testers', [
+            '--domain' => ' ',
+            '--dry-run' => true,
+        ])->assertFailed();
+    }
+
+    public function test_domain_with_at_sign_is_rejected(): void
+    {
+        $this->artisan('qa:course-testers', [
+            '--domain' => 'user@evil.test',
+            '--dry-run' => true,
+        ])->assertFailed();
+    }
+
+    public function test_invalid_hostname_domain_is_rejected(): void
+    {
+        $this->artisan('qa:course-testers', [
+            '--domain' => 'not_a_valid_host',
+            '--dry-run' => true,
+        ])->assertFailed();
+    }
+
+    public function test_short_password_is_rejected(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $course = $this->createCourse(['title' => 'QA Short Pass Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $this->artisan('qa:course-testers', [
+            '--course' => (string) $course->course_id,
+            '--admins' => '1',
+            '--instructors' => '0',
+            '--students' => '0',
+            '--password' => 'short',
+            '--domain' => 'shortpass.test',
+        ])->assertFailed();
+
+        $this->assertSame(0, User::where('email', 'like', 'qa.matrix.%@shortpass.test')->count());
+    }
+
+    public function test_course_without_required_roles_is_rejected(): void
+    {
+        // Intentionally skip RoleTemplateService clone — no admin/instructor/student.
+        $course = $this->createCourse(['title' => 'QA Bare Course']);
+
+        $this->artisan('qa:course-testers', [
+            '--course' => (string) $course->course_id,
+            '--domain' => 'noroles.test',
+        ])->assertFailed();
+    }
+
+    public function test_wipe_with_no_matching_users_succeeds(): void
+    {
+        $this->artisan('qa:course-testers', [
+            '--wipe' => true,
+            '--domain' => 'emptywipe.test',
+        ])->assertSuccessful();
+    }
+
+    public function test_production_with_force_allows_dry_run(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $course = $this->createCourse(['title' => 'QA Force Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $previous = $this->app['env'];
+        $this->app['env'] = 'production';
+
+        try {
+            $this->artisan('qa:course-testers', [
+                '--course' => $course->course_id,
+                '--force' => true,
+                '--dry-run' => true,
+                '--domain' => 'forceprod.test',
+            ])->assertSuccessful();
+        } finally {
+            $this->app['env'] = $previous;
+        }
+
+        $this->assertSame(0, User::where('email', 'like', 'qa.matrix.%@forceprod.test')->count());
+    }
+
+    public function test_wipe_dry_run_does_not_delete(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $course = $this->createCourse(['title' => 'QA Wipe Dry Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $this->artisan('qa:course-testers', [
+            '--course' => $course->course_id,
+            '--admins' => 1,
+            '--instructors' => 0,
+            '--students' => 1,
+            '--password' => 'QaWipeDry1!',
+            '--domain' => 'wipedry.test',
+        ])->assertSuccessful();
+
+        $this->assertSame(2, User::where('email', 'like', 'qa.matrix.%@wipedry.test')->count());
+
+        $this->artisan('qa:course-testers', [
+            '--wipe' => true,
+            '--dry-run' => true,
+            '--domain' => 'wipedry.test',
+        ])->assertSuccessful();
+
+        $this->assertSame(2, User::where('email', 'like', 'qa.matrix.%@wipedry.test')->count());
+    }
+
+    public function test_reprovision_updates_existing_accounts_and_password(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $course = $this->createCourse(['title' => 'QA Reprovision Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $this->artisan('qa:course-testers', [
+            '--course' => $course->course_id,
+            '--admins' => 1,
+            '--instructors' => 0,
+            '--students' => 1,
+            '--password' => 'QaFirstPass1!',
+            '--domain' => 'repro.test',
+        ])->assertSuccessful();
+
+        $email = 'qa.matrix.admin1@repro.test';
+        $firstId = User::where('email', $email)->value('user_id');
+        $this->assertNotNull($firstId);
+
+        $this->artisan('qa:course-testers', [
+            '--course' => $course->course_id,
+            '--admins' => 1,
+            '--instructors' => 0,
+            '--students' => 1,
+            '--password' => 'QaSecondPass2!',
+            '--domain' => 'repro.test',
+        ])->assertSuccessful();
+
+        $user = User::where('email', $email)->firstOrFail();
+        $this->assertSame((int) $firstId, (int) $user->user_id);
+        $this->assertTrue(Hash::check('QaSecondPass2!', $user->password));
+        $this->assertFalse(Hash::check('QaFirstPass1!', $user->password));
+        $this->assertSame(2, User::where('email', 'like', 'qa.matrix.%@repro.test')->count());
+    }
+
+    public function test_duplicate_course_ids_in_options_are_deduped(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $course = $this->createCourse(['title' => 'QA Dedup Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $this->artisan('qa:course-testers', [
+            '--courses' => $course->course_id.','.$course->course_id.','.$course->course_id,
+            '--admins' => 1,
+            '--instructors' => 0,
+            '--students' => 1,
+            '--password' => 'QaDedupPass1!',
+            '--domain' => 'dedup.test',
+            '--dry-run' => true,
+        ])->assertSuccessful();
+    }
+
+    public function test_courses_option_takes_precedence_over_course(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $wanted = $this->createCourse(['title' => 'QA Wanted Course']);
+        $ignored = $this->createCourse(['title' => 'QA Ignored Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($wanted);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($ignored);
+
+        $this->artisan('qa:course-testers', [
+            '--courses' => (string) $wanted->course_id,
+            '--course' => (string) $ignored->course_id,
+            '--admins' => 1,
+            '--instructors' => 0,
+            '--students' => 0,
+            '--password' => 'QaPreferPass1!',
+            '--domain' => 'prefer.test',
+        ])->assertSuccessful();
+
+        $admin = User::where('email', 'qa.matrix.admin1@prefer.test')->firstOrFail();
+        $courseIds = UserCourseRole::where('user_id', $admin->user_id)->pluck('course_id')->all();
+        $this->assertEquals([(int) $wanted->course_id], array_map('intval', $courseIds));
+    }
+
+    public function test_auto_generated_password_is_emitted_and_usable(): void
+    {
+        app(RoleTemplateService::class)->ensureSystemTemplates();
+        $course = $this->createCourse(['title' => 'QA Autogen Course']);
+        app(RoleTemplateService::class)->cloneTemplatesIntoCourse($course);
+
+        $this->artisan('qa:course-testers', [
+            '--course' => $course->course_id,
+            '--admins' => 1,
+            '--instructors' => 0,
+            '--students' => 0,
+            '--domain' => 'autogen.test',
+        ])
+            ->expectsOutputToContain('Shared password:')
+            ->assertSuccessful();
+
+        $path = storage_path('app/'.QaCourseTestersService::CREDENTIALS_RELATIVE_PATH);
+        $this->assertFileExists($path);
+        $contents = (string) file_get_contents($path);
+        $this->assertMatchesRegularExpression('/Shared password:\s+(\S+)/', $contents);
+        preg_match('/Shared password:\s+(\S+)/', $contents, $m);
+        $password = $m[1];
+
+        $user = User::where('email', 'qa.matrix.admin1@autogen.test')->firstOrFail();
+        $this->assertTrue(Hash::check($password, $user->password));
+    }
+
+    public function test_wipe_also_removes_legacy_qa_course_emails(): void
+    {
+        User::create([
+            'first_name' => 'Legacy',
+            'second_name' => 'QA',
+            'third_name' => 'Course',
+            'email' => 'qa.course.admin@legacy.test',
+            'password' => Hash::make('LegacyPass1!'),
+            'national_id' => '29901019998888',
+            'mobile_number' => '01099998888',
+            'job' => 'QA',
+            'date_of_birth' => '1990-01-01',
+            'profile_photo' => '',
+            'is_verified' => true,
+            'is_superadmin' => false,
+            'registration_completed' => true,
+            'application_status' => User::APPLICATION_STATUS_APPROVED,
+        ]);
+
+        $this->assertSame(1, User::where('email', 'qa.course.admin@legacy.test')->count());
+
+        $this->artisan('qa:course-testers', [
+            '--wipe' => true,
+            '--domain' => 'legacy.test',
+        ])->assertSuccessful();
+
+        $this->assertSame(0, User::where('email', 'qa.course.admin@legacy.test')->count());
+    }
 }

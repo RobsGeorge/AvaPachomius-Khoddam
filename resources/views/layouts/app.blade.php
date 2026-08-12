@@ -28,12 +28,15 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260724a">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260729-auth">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" referrerpolicy="no-referrer">
 
+    @if(!empty($churchBrandingCss))
+        <style>{!! $churchBrandingCss !!}</style>
+    @endif
     @if(!empty($courseBrandingCss))
         <style>{!! $courseBrandingCss !!}</style>
     @endif
@@ -41,7 +44,7 @@
     @stack('styles')
 </head>
 
-<body class="app-body theme-{{ $theme }} min-vh-100 d-flex flex-column"
+<body class="app-body theme-{{ $theme }} @if($eventThemeActive ?? false) event-liturgical @endif min-vh-100-dvh d-flex flex-column @yield('body_class')"
       x-data="{ navOpen: false, navScrollY: 0 }"
       x-effect="if (navOpen && window.matchMedia('(max-width: 767.98px)').matches) {
           navScrollY = window.scrollY;
@@ -53,6 +56,7 @@
           if (navScrollY) window.scrollTo(0, navScrollY);
       }">
     <a class="skip-link visually-hidden-focusable" href="#app-main">{{ __('a11y.skip_to_content') }}</a>
+    @include('layouts.partials.page-loader')
     {{-- Polite live region: JS mirrors toast/flash messages here so screen readers announce them. --}}
     <div id="khoddam-live-region" class="visually-hidden" aria-live="polite" role="status"></div>
     <div class="app-shell d-flex flex-column flex-grow-1">
@@ -82,7 +86,9 @@
     {{-- Pin Alpine exactly: floating @3.x.x is a supply-chain risk (auto-pulls any new 3.x). --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
     <script src="{{ asset('js/csrf-heal.js') }}?v=20260727a"></script>
+    <script src="{{ asset('js/kh-loader.js') }}?v=20260728a"></script>
     <script src="{{ asset('js/khoddam-ui.js') }}?v=20260727a"></script>
+    <script src="{{ asset('js/observability-beacon.js') }}?v=20260728a"></script>
     @stack('scripts')
 </body>
 </html>

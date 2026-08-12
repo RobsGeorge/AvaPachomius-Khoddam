@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Person extends Model
 {
@@ -29,13 +30,17 @@ class Person extends Model
         'national_id',
         'email',
         'gender',
+        'is_minor',
         'retired_at',
+        'deceased_at',
         'merged_into_person_id',
     ];
 
     protected $casts = [
         'date_of_birth' => 'date',
+        'is_minor' => 'boolean',
         'retired_at' => 'datetime',
+        'deceased_at' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -74,6 +79,9 @@ class Person extends Model
         return $this->hasMany(User::class, 'person_id', 'person_id');
     }
 
+    /**
+     * @deprecated Soft-deprecated with Family/FamilyMember — prefer residenceMemberships().
+     */
     public function familyMemberships(): HasMany
     {
         return $this->hasMany(FamilyMember::class, 'person_id', 'person_id');
@@ -82,6 +90,16 @@ class Person extends Model
     public function relationships(): HasMany
     {
         return $this->hasMany(Relationship::class, 'person_id', 'person_id');
+    }
+
+    public function residenceMemberships(): HasMany
+    {
+        return $this->hasMany(ResidenceMember::class, 'person_id', 'person_id');
+    }
+
+    public function contacts(): MorphMany
+    {
+        return $this->morphMany(Contact::class, 'contactable');
     }
 
     public function placements(): HasMany
@@ -94,8 +112,23 @@ class Person extends Model
         return $this->hasMany(Invitation::class, 'person_id', 'person_id');
     }
 
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'person_id', 'person_id');
+    }
+
+    public function sacraments(): HasMany
+    {
+        return $this->hasMany(Sacrament::class, 'person_id', 'person_id');
+    }
+
     public function isRetired(): bool
     {
         return $this->retired_at !== null;
+    }
+
+    public function isDeceased(): bool
+    {
+        return $this->deceased_at !== null;
     }
 }

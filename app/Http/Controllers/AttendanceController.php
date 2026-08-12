@@ -7,6 +7,7 @@ use App\Models\Role;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use App\Models\Person;
 use App\Models\Session;
 use App\Models\Attendance;
 use App\Models\Module;
@@ -123,16 +124,37 @@ class AttendanceController extends Controller
             ->get();
     }
 
-    /** QR scan landing: today's session(s) + student confirmation. */
+    /** QR scan landing: today's session(s) + student confirmation (person_id preferred). */
     public function showTodaySessions(Request $request)
     {
+        $personId = $request->query('person_id');
         $userId = $request->query('user_id');
 
-        if (! $userId || ! User::find($userId)) {
+        $person = null;
+        $student = null;
+
+        if ($personId) {
+            if (! $request->hasValidSignature()) {
+                abort(403, __('pages.attendance_qr_invalid'));
+            }
+            $person = Person::withoutTenancy()->active()->find($personId);
+            if (! $person) {
+                abort(404, __('pages.student_not_found'));
+            }
+            $student = User::query()->where('person_id', $person->person_id)->orderBy('user_id')->first();
+            $userId = $student?->user_id;
+        } elseif ($userId) {
+            $student = User::find($userId);
+            if (! $student) {
+                abort(404, __('pages.student_not_found'));
+            }
+            if ($student->person_id) {
+                $person = Person::withoutTenancy()->find($student->person_id);
+            }
+        } else {
             abort(404, __('pages.student_not_found'));
         }
 
-        $student = User::find($userId);
         $today = now()->toDateString();
 
         $sessions = $this->scopeSessionsToCurrentCourse(Session::with('course'))
@@ -142,16 +164,29 @@ class AttendanceController extends Controller
 
         $existingAttendance = collect();
         if ($sessions->isNotEmpty()) {
-            $existingAttendance = Attendance::with('takenBy')
-                ->where('user_id', $userId)
-                ->whereIn('session_id', $sessions->pluck('session_id'))
-                ->get()
-                ->keyBy('session_id');
+            $sessionIds = $sessions->pluck('session_id');
+            $existingQuery = Attendance::with('takenBy')
+                ->whereIn('session_id', $sessionIds);
+
+            if ($person && Schema::hasColumn('attendance', 'person_id')) {
+                $existingQuery->where(function ($q) use ($person, $userId) {
+                    $q->where('person_id', $person->person_id);
+                    if ($userId) {
+                        $q->orWhere('user_id', $userId);
+                    }
+                });
+            } else {
+                $existingQuery->where('user_id', $userId);
+            }
+
+            $existingAttendance = $existingQuery->get()->keyBy('session_id');
         }
 
         return view('attendance.sessions', [
             'user' => $student,
+            'person' => $person,
             'userId' => $userId,
+            'personId' => $person?->person_id,
             'today' => $today,
             'sessions' => $sessions,
             'existingAttendance' => $existingAttendance,
@@ -160,9 +195,10 @@ class AttendanceController extends Controller
 
     public function recordAttendance(Request $request, Session $session)
     {
+        $personId = $request->input('student_person_id');
         $studentUserId = $request->input('student_user_id');
 
-        if (! $studentUserId || ! User::find($studentUserId)) {
+        if (! $personId && (! $studentUserId || ! User::find($studentUserId))) {
             return redirect()->back()->with('error', __('pages.student_not_found'));
         }
 
@@ -174,22 +210,40 @@ class AttendanceController extends Controller
             return redirect()->back()->with('error', __('pages.attendance_session_closed'));
         }
 
-        $exists = Attendance::where('session_id', $session->session_id)
-            ->where('user_id', $studentUserId)
-            ->exists();
-
-        if ($exists) {
-            return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
-        }
-
         try {
-            Attendance::create([
-                'session_id' => $session->session_id,
-                'user_id' => $studentUserId,
-                'taken_by_id' => auth()->user()->user_id,
-                'status' => 'Present',
-                'attendance_time' => now(),
-            ]);
+            if ($personId && Schema::hasColumn('attendance', 'person_id')) {
+                $existing = Attendance::query()
+                    ->where('session_id', $session->session_id)
+                    ->where('person_id', $personId)
+                    ->exists();
+                if ($existing) {
+                    return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
+                }
+
+                $this->attendanceClose->createOrUpdateForPerson(
+                    $session,
+                    (int) $personId,
+                    'Present',
+                    (int) auth()->user()->user_id,
+                    allowNonEnrolled: true,
+                );
+            } else {
+                $exists = Attendance::where('session_id', $session->session_id)
+                    ->where('user_id', $studentUserId)
+                    ->exists();
+
+                if ($exists) {
+                    return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
+                }
+
+                $this->attendanceClose->createOrUpdateRecord(
+                    $session,
+                    (int) $studentUserId,
+                    'Present',
+                    (int) auth()->user()->user_id,
+                    allowNonEnrolled: true,
+                );
+            }
         } catch (QueryException $e) {
             report($e);
 
@@ -616,13 +670,55 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'status' => 'required|in:Present,Absent,Late,Permission',
-            'permission_reason' => 'required_if:status,Permission|nullable|string|max:255'
+            'permission_reason' => 'required_if:status,Permission|nullable|string|max:255',
+            'lock_version' => 'nullable|integer|min:0',
         ]);
 
         $attendance = $this->authorizeAttendanceRecord($id);
         $previousStatus = $attendance->status;
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'lock_version')
+            && $request->filled('lock_version')
+        ) {
+            $expected = (int) $request->input('lock_version');
+            $affected = Attendance::query()
+                ->where('attendance_id', $attendance->attendance_id)
+                ->where('lock_version', $expected)
+                ->update([
+                    'status' => $request->status,
+                    'permission_reason' => $request->permission_reason,
+                    'lock_version' => $expected + 1,
+                    'updated_at' => now(),
+                ]);
+
+            if ($affected === 0) {
+                throw new \App\Exceptions\OptimisticLockException(
+                    __('structure.optimistic_lock_conflict'),
+                    $attendance->fresh()?->lock_version
+                );
+            }
+
+            AuditLogService::recordEvent('attendance.status_updated', [
+                'attendance_id'   => $attendance->attendance_id ?? $attendance->getKey(),
+                'user_id'         => $attendance->user_id,
+                'session_id'      => $attendance->session_id,
+                'course_id'       => $attendance->session?->course_id,
+                'previous_status' => $previousStatus,
+                'new_status'      => $request->status,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => __('pages.status_updated'),
+                'lock_version' => $expected + 1,
+            ]);
+        }
+
         $attendance->status = $request->status;
         $attendance->permission_reason = $request->permission_reason;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'lock_version')) {
+            $attendance->lock_version = (int) $attendance->lock_version + 1;
+        }
         $attendance->save();
 
         AuditLogService::recordEvent('attendance.status_updated', [
@@ -646,6 +742,7 @@ class AttendanceController extends Controller
         return response()->json([
             'success' => true,
             'message' => __('pages.status_updated'),
+            'lock_version' => $attendance->lock_version ?? null,
         ]);
     }
 

@@ -6,10 +6,14 @@
 >
     <!--
       Categorized, independently runnable pipelines. Each testsuite can be run in
-      isolation with:  php artisan test [[testsuite]]=Name
+      isolation with: php artisan test (testsuite=Name).
       The System test dashboard (SuperAdmin) and CI run them in the sequence below.
-      The broad "Feature" suite excludes the categorized subfolders so tests are
+      The broad Feature suite excludes the categorized subfolders so tests are
       never counted or executed twice.
+
+      force=true on env entries: staging/prod shells export APP_ENV, DB_*, MULTI_TENANT,
+      APP_URL. Without force, PHPUnit keeps those and TrustHosts + live MySQL leak into
+      the suite (Untrusted Host, FK to organizations, RefreshDatabase against staging).
     -->
     <testsuites>
         <testsuite name="Unit">
@@ -52,17 +56,18 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_KEY" value="base64:QpqWBoNnyF/v8SmlRC/DzLq9d75hjncrv55mbjLWsVc="/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="CACHE_DRIVER" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="MULTI_TENANT" value="false"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_KEY" value="base64:QpqWBoNnyF/v8SmlRC/DzLq9d75hjncrv55mbjLWsVc=" force="true"/>
+        <env name="APP_URL" value="http://localhost" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="CACHE_DRIVER" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="sqlite" force="true"/>
+        <env name="DB_DATABASE" value=":memory:" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="MULTI_TENANT" value="false" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="TELESCOPE_ENABLED" value="false" force="true"/>
     </php>
 </phpunit>

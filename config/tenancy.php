@@ -25,7 +25,13 @@ return [
 
     'main_name' => env('TENANCY_MAIN_NAME', 'كنيسة الأنبا باخوميوس'),
 
-    'console_host' => env('TENANCY_CONSOLE_HOST', 'admin.localhost'),
+    // Prefer an explicit TENANCY_CONSOLE_HOST. When unset, derive admin.{TENANCY_BASE_DOMAIN}
+    // so staging/prod never silently fall back to admin.localhost from .env.example.
+    'console_host' => env('TENANCY_CONSOLE_HOST') ?: (
+        filled(env('TENANCY_BASE_DOMAIN'))
+            ? 'admin.'.ltrim((string) env('TENANCY_BASE_DOMAIN'), '.')
+            : 'admin.localhost'
+    ),
 
     // Apex / cookie parent domain (without leading dot). Used to build {slug}.{base} URLs
     // (T4 ChurchHost). Falls back to parse_url(APP_URL).host when unset.
@@ -36,6 +42,8 @@ return [
     */
     'tenant_tables_nullable_church_id' => [
         'roles',
+        'observability_events',
+        'usage_rollups',
     ],
 
     /*
@@ -73,10 +81,14 @@ return [
         'student_grades',
         'lectures',
         'lecture_materials',
+        'media_assets',
         // Ops / audit
         'activity_logs',
+        'observability_events',
+        'usage_rollups',
         // Service layer
         'service',
+        'service_units',
         'user_service_role',
         'service_application_forms',
         'service_applications',
@@ -98,10 +110,14 @@ return [
         'people',
         'families',
         'relationships',
-        // Church management (T5)
+        // Church management (T5) + priest appointment calendar (PAC1)
         'priest',
+        'priest_secretary',
         'confession_slot',
         'confession_booking',
+        'appointment_type',
+        'appointment_slot',
+        'appointment_booking',
         'home_visit',
         // Finance (T6)
         'payroll_run',

@@ -39,17 +39,30 @@
                         @endif
                     </td>
                     <td class="text-center">
-                        @if($lecture->slides_link)
-                            <a href="{{ $lecture->slides_link }}" target="_blank"
-                               class="btn btn-sm btn-outline-primary py-0 px-1">
-                                <i class="bi bi-file-earmark-slides"></i>
+                        @if($lecture->hasSlides())
+                            <a href="{{ $lecture->slidesUrl() }}" target="_blank"
+                               class="btn btn-sm btn-outline-primary py-0 px-1"
+                               title="{{ $lecture->hasHostedSlides() ? __('curriculum.hosted_file_badge') : __('curriculum.external_link_badge') }}">
+                                <i class="bi bi-{{ $lecture->hasHostedSlides() ? 'cloud-download' : 'file-earmark-slides' }}"></i>
                             </a>
                         @else
                             <span class="text-muted">—</span>
                         @endif
                     </td>
                     <td>
-                        <span class="text-muted-theme small">{{ __('pages.links_count', ['count' => $lecture->materials->count()]) }}</span>
+                        @php
+                            $hostedCount = $lecture->materials->filter(fn ($m) => $m->isHostedFile())->count();
+                            $linkCount = $lecture->materials->filter(fn ($m) => $m->isExternalLink())->count();
+                        @endphp
+                        <span class="text-muted-theme small">
+                            {{ __('pages.links_count', ['count' => $lecture->materials->count()]) }}
+                            @if($hostedCount > 0)
+                                <span class="badge bg-primary-subtle text-primary-emphasis ms-1" title="{{ __('curriculum.hosted_file_badge') }}">{{ $hostedCount }}</span>
+                            @endif
+                            @if($linkCount > 0)
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1" title="{{ __('curriculum.external_link_badge') }}">{{ $linkCount }}</span>
+                            @endif
+                        </span>
                     </td>
                     <td>
                         <div class="d-flex gap-1">
@@ -99,9 +112,9 @@
                             <i class="bi bi-play-fill"></i> {{ __('pages.video_col') }}
                         </a>
                     @endif
-                    @if($lecture->slides_link)
-                        <a href="{{ $lecture->slides_link }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                            <i class="bi bi-file-earmark-slides"></i> {{ __('pages.slides_col') }}
+                    @if($lecture->hasSlides())
+                        <a href="{{ $lecture->slidesUrl() }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-{{ $lecture->hasHostedSlides() ? 'cloud-download' : 'file-earmark-slides' }}"></i> {{ __('pages.slides_col') }}
                         </a>
                     @endif
                     <span class="badge bg-white text-dark border align-self-center">

@@ -28,8 +28,16 @@ class ConfessionBooking extends Model
     protected $fillable = [
         'confession_slot_id',
         'user_id',
+        'booked_by_user_id',
+        'rescheduled_from_booking_id',
         'status',
         'notes',
+        'cancelled_at',
+        'cancelled_by_user_id',
+    ];
+
+    protected $casts = [
+        'cancelled_at' => 'datetime',
     ];
 
     public function slot(): BelongsTo
@@ -40,5 +48,20 @@ class ConfessionBooking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
+    }
+
+    public function bookedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'booked_by_user_id', 'user_id');
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by_user_id', 'user_id');
+    }
+
+    public function rescheduledFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'rescheduled_from_booking_id', 'confession_booking_id');
     }
 }

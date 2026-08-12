@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ChurchPlace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -19,13 +20,65 @@ class Church extends Model
 
     protected $primaryKey = 'church_id';
 
-    protected $fillable = ['slug', 'name', 'domain', 'status', 'settings', 'permissions_version', 'organization_id'];
+    protected $fillable = [
+        'slug',
+        'name',
+        'short_name',
+        'domain',
+        'status',
+        'settings',
+        'permissions_version',
+        'organization_id',
+        'place_street',
+        'place_district',
+        'place_region',
+        'place_governorate',
+        'place_country_code',
+        'place_key',
+    ];
 
     protected $casts = ['settings' => 'array', 'permissions_version' => 'integer'];
 
     public function getRouteKeyName(): string
     {
         return 'church_id';
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Church $church) {
+            if (($church->short_name === null || $church->short_name === '') && $church->name) {
+                $church->short_name = ChurchPlace::shortName(null, $church->name);
+            }
+        });
+    }
+
+    /** Preferred nav / chrome label (max 40). */
+    public function preferredShortName(): string
+    {
+        return ChurchPlace::shortName($this->short_name, $this->name);
+    }
+
+    /** Disambiguated label including place (admin lists / pickers). */
+    public function shownName(): string
+    {
+        return ChurchPlace::shownName([
+            'short_name' => $this->short_name,
+            'name' => $this->name,
+            'place_district' => $this->place_district,
+            'place_governorate' => $this->place_governorate,
+            'place_country_code' => $this->place_country_code,
+        ]);
+    }
+
+    public function recomputePlaceKey(): ?string
+    {
+        return ChurchPlace::placeKey([
+            'name' => $this->name,
+            'place_country_code' => $this->place_country_code,
+            'place_governorate' => $this->place_governorate,
+            'place_district' => $this->place_district,
+        ]);
     }
 
     /** Bump to invalidate all cached effective-permission entries for this church (T3-enforce). */
@@ -59,6 +112,41 @@ class Church extends Model
     public function roles(): HasMany
     {
         return $this->hasMany(Role::class, 'church_id', 'church_id');
+    }
+
+    public function subscription(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ChurchSubscription::class, 'church_id', 'church_id');
+    }
+
+    public function entitlementSnapshot(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ChurchEntitlementSnapshot::class, 'church_id', 'church_id');
+    }
+
+    public function entitlementOverrides(): HasMany
+    {
+        return $this->hasMany(ChurchEntitlementOverride::class, 'church_id', 'church_id');
+    }
+
+    public function isSubscriptionManaged(): bool
+    {
+        $subscription = $this->subscription;
+        if (! $subscription) {
+            return false;
+        }
+
+        return $subscription->isSubscriptionManaged();
+    }
+
+    public function entitlementValue(string $featureKey): mixed
+    {
+        return app(\App\Billing\EntitlementResolver::class)->value($this, $featureKey);
+    }
+
+    public function hasEntitlement(string $featureKey): bool
+    {
+        return (bool) app(\App\Billing\EntitlementResolver::class)->booleanValue($this, $featureKey);
     }
 
     /** Enabled capabilities keyed by capability_key (memoized on the instance). */

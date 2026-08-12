@@ -60,11 +60,35 @@ final class ChurchHost
         return $host;
     }
 
+    /**
+     * Effective superadmin console host.
+     *
+     * Prefer TENANCY_CONSOLE_HOST when it is a real (non-local) host. If staging/prod
+     * still has the .env.example leftover `admin.localhost` while TENANCY_BASE_DOMAIN
+     * (or APP_URL) is public, derive `admin.{base}` so nav links and ResolveTenant
+     * stay on the live console host.
+     */
+    public static function consoleHost(): string
+    {
+        $configured = trim((string) config('tenancy.console_host'));
+        $base = self::baseHost();
+
+        if ($configured !== '' && ! self::isLocalDevHost($configured)) {
+            return $configured;
+        }
+
+        if ($base !== '' && ! self::isLocalDevHost($base)) {
+            return 'admin.'.$base;
+        }
+
+        return $configured !== '' ? $configured : 'admin.localhost';
+    }
+
     public static function isConsoleHost(?string $host = null): bool
     {
         $host ??= request()->getHost();
 
-        return $host === config('tenancy.console_host');
+        return strcasecmp((string) $host, self::consoleHost()) === 0;
     }
 
     public static function consoleUrl(string $path = '/'): string
@@ -74,7 +98,18 @@ final class ChurchHost
         $portSuffix = $port ? ':'.$port : '';
         $path = '/'.ltrim($path, '/');
 
-        return $scheme.'://'.config('tenancy.console_host').$portSuffix.($path === '/' ? '/' : $path);
+        return $scheme.'://'.self::consoleHost().$portSuffix.($path === '/' ? '/' : $path);
+    }
+
+    private static function isLocalDevHost(string $host): bool
+    {
+        $host = strtolower(trim($host));
+
+        return $host === 'localhost'
+            || $host === '127.0.0.1'
+            || $host === '::1'
+            || Str::endsWith($host, '.localhost')
+            || Str::endsWith($host, '.local');
     }
 
     public static function pathPreservingUrl(Church $church): string
@@ -100,14 +135,16 @@ final class ChurchHost
     ): string {
         $expiration ??= now()->addMinutes(5);
         $params = is_array($parameters) ? $parameters : ['church' => $parameters];
-        $signed = URL::temporarySignedRoute($routeName, $expiration, $params);
-        $parts = parse_url($signed) ?: [];
-        $path = $parts['path'] ?? '/';
-        $query = $parts['query'] ?? '';
-        $scheme = parse_url((string) config('app.url'), PHP_URL_SCHEME) ?: 'http';
-        $port = parse_url((string) config('app.url'), PHP_URL_PORT);
-        $portSuffix = $port ? ':'.$port : '';
 
-        return $scheme.'://'.self::hostFor($church).$portSuffix.$path.($query !== '' ? '?'.$query : '');
+        // Sign against the church host — Laravel validates the full URL, not just path/query.
+        $churchRoot = rtrim(self::url($church), '/');
+        $appRoot = rtrim((string) config('app.url'), '/');
+
+        URL::forceRootUrl($churchRoot);
+        try {
+            return URL::temporarySignedRoute($routeName, $expiration, $params);
+        } finally {
+            URL::forceRootUrl($appRoot !== '' ? $appRoot : null);
+        }
     }
 }

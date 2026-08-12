@@ -16,6 +16,52 @@
         <div class="alert alert-warning">{{ __('notifications.whatsapp_not_configured') }}</div>
     @endif
 
+    @if($mobileVerificationReady)
+        <div class="app-card card shadow-sm mb-3">
+            <div class="card-body">
+                <h2 class="h6 mb-2">{{ __('notifications.mobile_verify_title') }}</h2>
+                <p class="small text-muted-theme mb-2">{{ __('notifications.mobile_verify_intro') }}</p>
+
+                @if($user->mobile_number)
+                    <p class="mb-3">
+                        <span class="fw-semibold">{{ $user->mobile_number }}</span>
+                        @if($user->mobile_verified_at)
+                            <span class="badge bg-success-subtle text-success border ms-2">
+                                <i class="bi bi-check-circle"></i> {{ __('notifications.mobile_verified_badge') }}
+                            </span>
+                        @else
+                            <span class="badge bg-warning-subtle text-warning border ms-2">{{ __('notifications.mobile_unverified_badge') }}</span>
+                        @endif
+                    </p>
+
+                    @unless($user->mobile_verified_at)
+                        <div class="d-flex flex-wrap gap-3 align-items-end">
+                            <form method="POST" action="{{ route('notifications.settings.mobile.send-code') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-primary btn-sm">{{ __('notifications.mobile_send_code') }}</button>
+                            </form>
+
+                            <form method="POST" action="{{ route('notifications.settings.mobile.verify') }}" class="d-flex flex-wrap gap-2 align-items-end">
+                                @csrf
+                                <div>
+                                    <label class="form-label small mb-1" for="mobile-code">{{ __('notifications.mobile_code_label') }}</label>
+                                    <input type="text" name="code" id="mobile-code" maxlength="6" class="form-control form-control-sm" style="max-width:8rem;">
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" class="form-check-input" name="whatsapp_capable" value="1" id="whatsapp-capable" @checked(old('whatsapp_capable', $user->whatsapp_capable))>
+                                    <label class="form-check-label small" for="whatsapp-capable">{{ __('notifications.whatsapp_capable_label') }}</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">{{ __('notifications.mobile_verify_button') }}</button>
+                            </form>
+                        </div>
+                    @endunless
+                @else
+                    <p class="text-muted-theme small mb-0">{{ __('notifications.mobile_verify_missing_number') }}</p>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('notifications.settings.update') }}">
         @csrf
         @method('PUT')

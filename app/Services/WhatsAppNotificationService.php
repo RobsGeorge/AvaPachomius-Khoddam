@@ -109,6 +109,87 @@ class WhatsAppNotificationService
         return $delivery->fresh();
     }
 
+    /**
+     * Raw WhatsApp text send outside the UserNotification pipeline — used for
+     * mobile-number self-verification codes (Contact Verification CV1 slice).
+     *
+     * @return array{ok: bool, provider_message_id?: string|null, error?: string}
+     */
+    public function sendRawText(User $user, string $body): array
+    {
+        return $this->dispatchRawTextToMobile((string) $user->mobile_number, $body, $user);
+    }
+
+    /**
+     * Send WhatsApp text to an arbitrary mobile (e.g. recovery rebind to a NEW number).
+     */
+    public function sendRawTextToMobile(string $mobileNumber, string $body, ?User $relatedUser = null): bool
+    {
+        return (bool) ($this->dispatchRawTextToMobile($mobileNumber, $body, $relatedUser)['ok'] ?? false);
+    }
+
+    /**
+     * @return array{ok: bool, provider_message_id?: string|null, error?: string}
+     */
+    private function dispatchRawTextToMobile(string $mobileNumber, string $body, ?User $relatedUser = null): array
+    {
+        $log = $this->communicationLogs->record([
+            'user' => $relatedUser,
+            'channel' => CommunicationLog::CHANNEL_WHATSAPP,
+            'subject' => __('notifications.mobile_verification_subject'),
+            'body_preview' => $body,
+            'related_type' => $relatedUser ? User::class : null,
+            'related_id' => $relatedUser?->user_id,
+            'metadata' => ['type' => 'mobile_verification'],
+        ]);
+
+        $phone = $this->normalizePhone($mobileNumber);
+        if ($phone === null) {
+            $this->communicationLogs->markFailed($log, __('communications.missing_mobile'));
+
+            return ['ok' => false, 'error' => 'missing_mobile'];
+        }
+
+        if (! $this->isConfigured()) {
+            $this->communicationLogs->markFailed($log, 'WhatsApp API not configured');
+
+            return ['ok' => false, 'error' => 'not_configured'];
+        }
+
+        if ($log) {
+            $log->update(['recipient_mobile' => $phone]);
+        }
+
+        try {
+            $url = rtrim((string) config('notifications.whatsapp.api_url'), '/')
+                .'/'.config('notifications.whatsapp.phone_number_id').'/messages';
+
+            $response = Http::withToken((string) config('notifications.whatsapp.api_token'))
+                ->post($url, [
+                    'messaging_product' => 'whatsapp',
+                    'to' => $phone,
+                    'type' => 'text',
+                    'text' => ['body' => $body],
+                ]);
+
+            if ($response->successful()) {
+                $providerId = $response->json('messages.0.id');
+                $this->communicationLogs->markSent($log, $providerId);
+
+                return ['ok' => true, 'provider_message_id' => $providerId];
+            }
+
+            $this->communicationLogs->markFailed($log, $response->body());
+
+            return ['ok' => false, 'error' => $response->body()];
+        } catch (\Throwable $e) {
+            Log::warning('WhatsApp mobile verification send failed', ['error' => $e->getMessage()]);
+            $this->communicationLogs->markFailed($log, $e->getMessage());
+
+            return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
     private function normalizePhone(?string $mobile): ?string
     {
         if (! filled($mobile)) {

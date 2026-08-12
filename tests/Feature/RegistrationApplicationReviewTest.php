@@ -90,10 +90,7 @@ class RegistrationApplicationReviewTest extends EventModuleTestCase
     {
         $applicant = $this->createPendingApplicant(['email' => 'pending-login@example.com']);
 
-        $this->post(route('login'), [
-            'email' => 'pending-login@example.com',
-            'password' => 'password',
-        ])->assertRedirect(route('application.status'));
+        $this->loginWithOtp($applicant)->assertRedirect(route('application.status'));
 
         $this->assertAuthenticatedAs($applicant);
     }

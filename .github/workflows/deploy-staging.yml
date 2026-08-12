@@ -99,6 +99,10 @@ jobs:
             step "migrations"
             $PHP_BIN artisan migrate:deploy --force
 
+            step "permissions catalog + role templates"
+            $PHP_BIN artisan permissions:sync
+            $PHP_BIN artisan roles:sync-templates
+
             step "optimize"
             # Staging does NOT cache config/routes/views — you want .env edits to take
             # effect immediately while developing.

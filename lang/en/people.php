@@ -4,7 +4,7 @@ return [
     'nav_merge' => 'People merge',
     'nav_merge_desc' => 'Review normalized-name collisions and merge duplicate people.',
     'merge_title' => 'Merge people',
-    'merge_intro' => 'Pick a survivor person_id and soft-retire the duplicate. Users, family links, and relationships are re-pointed; enrollments and attendance stay on user_id.',
+    'merge_intro' => 'Pick a survivor person_id and soft-retire the duplicate. Users and relationships are re-pointed; enrollments and attendance stay on user_id.',
     'search_placeholder' => 'Search by name or email…',
     'search' => 'Search',
     'merge_form_title' => 'Merge duplicate into survivor',
@@ -20,4 +20,8 @@ return [
     'no_results' => 'No people matched.',
     'collision_groups' => 'Normalized-name collisions',
     'no_collisions' => 'No active normalized-name collisions.',
+    'errors' => [
+        'self_marriage' => 'A person cannot be married to themselves.',
+        'not_active_resident' => 'This person is not an active member of that residence.',
+    ],
 ];

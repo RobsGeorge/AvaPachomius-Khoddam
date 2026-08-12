@@ -16,6 +16,7 @@ class ApiSurfaceTest extends EventModuleTestCase
     /** @var list<string> */
     private const PUBLIC_API_URIS = [
         'api/v1/login',
+        'api/v1/login/verify',
         'api/v1/design-tokens',
     ];
 

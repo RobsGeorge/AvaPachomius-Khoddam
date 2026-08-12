@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Tenancy\BelongsToChurch;
 
 use App\Database\CourseModulePivot;
+use App\Services\Structure\ServiceUnitDualWrite;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +28,24 @@ class Course extends Model
     public const STATUS_CLOSED = 'closed';
 
     public const STATUS_ARCHIVED = 'archived';
+
+    protected static function booted(): void
+    {
+        static::saved(function (Course $course) {
+            try {
+                app(ServiceUnitDualWrite::class)->syncFromCourse($course);
+            } catch (\Throwable) {
+                // Dual-write must not break course persistence during mid-migrate.
+            }
+        });
+
+        static::deleted(function (Course $course) {
+            try {
+                app(ServiceUnitDualWrite::class)->removeForCourse($course);
+            } catch (\Throwable) {
+            }
+        });
+    }
 
     public const GRACE_MODE_MANUAL = 'manual';
 

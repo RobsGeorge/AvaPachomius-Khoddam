@@ -92,7 +92,10 @@ class RequirePermission
     private function canInResolvedChurch($user, string $permission): bool
     {
         $church = TenantContext::current();
-        if (! $church && Schema::hasTable('church')) {
+        // When MULTI_TENANT is on, never fall back to Tenant Zero — console host is
+        // unbound on purpose (superadmin only). Falling back caused demo priests/
+        // members on admin.* to be checked against the wrong church → 403.
+        if (! $church && ! config('tenancy.enabled') && Schema::hasTable('church')) {
             $church = Church::query()->where('slug', config('tenancy.main_slug'))->first();
         }
 

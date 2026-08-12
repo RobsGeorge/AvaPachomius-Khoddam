@@ -50,8 +50,10 @@ class CurriculumController extends Controller
         }
 
         $course = Course::with([
-            'modules.courseSessions.lectures.materials',
-            'modules.lectures.materials',
+            'modules.courseSessions.lectures.materials.media',
+            'modules.courseSessions.lectures.slidesMedia',
+            'modules.lectures.materials.media',
+            'modules.lectures.slidesMedia',
             'modules.exams.schedules',
         ])->findOrFail($courseId);
 
@@ -86,8 +88,10 @@ class CurriculumController extends Controller
     public function admin(string $courseId)
     {
         $course = Course::with([
-            'modules.courseSessions.lectures.materials',
-            'modules.lectures.materials',
+            'modules.courseSessions.lectures.materials.media',
+            'modules.courseSessions.lectures.slidesMedia',
+            'modules.lectures.materials.media',
+            'modules.lectures.slidesMedia',
             'modules.exams',
             'sessions',
         ])->findOrFail($courseId);

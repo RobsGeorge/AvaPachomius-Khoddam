@@ -70,6 +70,21 @@ class ServiceContextController extends Controller
             ->with('success', __('service.system_wide_mode'));
     }
 
+    /**
+     * T8b — canonical slug entry: /s/{service:slug} sets context and opens the service hub.
+     */
+    public function hub(ChurchService $service)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        if ($this->serviceContext->userCanSelectService($user, $service)) {
+            $this->serviceContext->setCurrentService($user, $service);
+        }
+
+        return redirect()->route('hubs.service');
+    }
+
     private function isSafeLocalRedirect(string $url): bool
     {
         if (! str_starts_with($url, '/')) {

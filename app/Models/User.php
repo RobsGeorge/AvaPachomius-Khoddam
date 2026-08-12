@@ -40,6 +40,13 @@ class User extends Authenticatable
 
     public const APPLICATION_STATUS_PENDING_REVIEW = 'pending_review';
 
+    /** Registration trust lanes (open self-serve / QR / invite). */
+    public const REGISTRATION_LANE_OPEN = 'open_self_serve';
+
+    public const REGISTRATION_LANE_QR = 'qr_token';
+
+    public const REGISTRATION_LANE_INVITE = 'invite';
+
     public const APPLICATION_STATUS_NEEDS_CORRECTION = 'needs_correction';
 
     public const APPLICATION_STATUS_APPROVED = 'approved';
@@ -62,9 +69,11 @@ class User extends Authenticatable
         'national_id', 'mobile_number',
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
-        'registration_completed', 'application_status', 'communication_locale',
+        'registration_completed', 'application_status', 'registration_intent_course_id', 'communication_locale',
+        'registration_lane', 'registration_qr_token_id',
         'person_id',
         'email_verified_at', 'mobile_verified_at', 'whatsapp_capable',
+        'is_minor', 'safeguarding_restricted',
         'created_at', 'updated_at',
     ];
 
@@ -74,6 +83,8 @@ class User extends Authenticatable
         'is_superadmin' => 'boolean',
         'registration_completed' => 'boolean',
         'whatsapp_capable' => 'boolean',
+        'is_minor' => 'boolean',
+        'safeguarding_restricted' => 'boolean',
         'email_verified_at' => 'datetime',
         'mobile_verified_at' => 'datetime',
         'profile_photo_grace_started_at' => 'datetime',
@@ -88,11 +99,29 @@ class User extends Authenticatable
 
     protected static function booted(): void
     {
+        static::saving(function (User $user) {
+            if ($user->isDirty('mobile_number')
+                && Schema::hasColumn('user', 'mobile_verified_at')
+                && ! $user->isDirty('mobile_verified_at')
+            ) {
+                $user->mobile_verified_at = null;
+            }
+        });
+
         static::created(function (User $user) {
             if (! Schema::hasTable('people') || ! Schema::hasColumn('user', 'person_id')) {
                 return;
             }
             if ($user->person_id) {
+                return;
+            }
+
+            // Open / QR self-serve: defer Person until admin approval (trust-lane ADR).
+            // Invite already sets person_id before User::create. Completed/factory users still sync.
+            $completed = Schema::hasColumn('user', 'registration_completed')
+                ? (bool) $user->registration_completed
+                : (bool) $user->is_verified;
+            if (! $completed) {
                 return;
             }
 
@@ -403,6 +432,40 @@ class User extends Authenticatable
         return app(CoursePermissionResolver::class)
             ->canAnyInAnyCourse($this, ['course_application.form_builder'])
             || $this->isAdmin();
+    }
+
+    /**
+     * Review service applications queue / actions.
+     * Honors system grants and service-role grants (roles hub → service admin).
+     */
+    public function canAccessAdminServiceApplications(?ChurchService $service = null): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
+            return true;
+        }
+
+        if ($this->canInSystem('service_application.review')) {
+            return true;
+        }
+
+        if ($service) {
+            return $this->canInService('service_application.review', $service);
+        }
+
+        return app(CoursePermissionResolver::class)
+            ->canAnyInAnyService($this, ['service_application.review']);
+    }
+
+    /**
+     * Review platform church-registration applications (superadmin / system_only key).
+     */
+    public function canAccessAdminChurchApplications(): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($this)) {
+            return true;
+        }
+
+        return $this->canInSystem('platform.church_applications');
     }
 
     public function isBeingImpersonated(): bool

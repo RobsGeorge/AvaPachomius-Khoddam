@@ -60,10 +60,10 @@
                                 @endif
                             </ul>
                         </div>
-                    @elseif(!empty($showChurchContextLabel) && !empty($currentChurch))
+                    @elseif(!empty($showChurchContextLabel) && !empty($labeledChurch))
                         <span class="brand-link" title="{{ __('tenancy.current_church') }}">
                             <i class="bi bi-building ms-1"></i>
-                            {{ $currentChurch->name }}
+                            {{ $labeledChurch->name }}
                         </span>
                     @endif
 
@@ -223,9 +223,19 @@
                             {{ $currentCourse->localizedTitle() }}
                         </span>
                     @else
-                        <a href="{{ route('dashboard') }}" class="brand-link">
-                            <i class="bi bi-mortarboard-fill ms-1"></i>
-                            {{ __('app.name') }}
+                        <a href="{{ route('dashboard') }}" class="brand-link brand-lockup">
+                            @if(!empty($churchLogoUrl))
+                                <img src="{{ $churchLogoUrl }}" alt="" class="brand-mark" style="object-fit:contain;">
+                                <span class="brand-names">
+                                    <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
+                                    <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                                </span>
+                            @else
+                                <span class="brand-logotype-wrap">
+                                    <x-deaconia-logotype class="brand-logotype" aria-hidden="true" />
+                                    <span class="brand-subtitle">{{ $brandedChurchName ?? __('app.institute_name') }}</span>
+                                </span>
+                            @endif
                         </a>
                     @endif
                     @elseif(($navUser->is_superadmin ?? false) && !empty($isConsoleHost))
@@ -241,9 +251,19 @@
                     @endif
 
                 @else
-                    <a href="{{ route('login') }}" class="brand-link">
-                        <i class="bi bi-mortarboard-fill ms-1"></i>
-                        {{ __('app.name') }}
+                    <a href="{{ route('login') }}" class="brand-link brand-lockup">
+                        @if(!empty($churchLogoUrl))
+                            <img src="{{ $churchLogoUrl }}" alt="" class="brand-mark" style="object-fit:contain;">
+                            <span class="brand-names">
+                                <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
+                                <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                            </span>
+                        @else
+                            <span class="brand-logotype-wrap">
+                                <x-deaconia-logotype class="brand-logotype" aria-hidden="true" />
+                                <span class="brand-subtitle">{{ $brandedChurchName ?? __('app.institute_name') }}</span>
+                            </span>
+                        @endif
                     </a>
                 @endauth
 

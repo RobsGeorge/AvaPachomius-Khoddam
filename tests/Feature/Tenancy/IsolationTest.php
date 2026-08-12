@@ -5,6 +5,7 @@ namespace Tests\Feature\Tenancy;
 use App\Models\Church;
 use App\Models\ChurchUser;
 use App\Models\Course;
+use App\Models\MediaAsset;
 use App\Models\Organization;
 use App\Tenancy\BelongsToChurch;
 use App\Tenancy\ResolveTenant;
@@ -74,7 +75,7 @@ class IsolationTest extends EventModuleTestCase
     {
         config(['tenancy.enabled' => true, 'tenancy.base_domain' => 'example.test']);
 
-        $church = Church::create(['slug' => 'api-claim-church', 'name' => 'API Claim', 'status' => 'active']);
+        $church = $this->createChurch(['slug' => 'api-claim-church', 'name' => 'API Claim', 'status' => 'active']);
         $user = $this->createUser(['email' => 'api-claim@example.com']);
         ChurchUser::create([
             'church_id' => $church->church_id,
@@ -103,11 +104,12 @@ class IsolationTest extends EventModuleTestCase
         $this->assertTrue(trait_exists(BelongsToChurch::class));
 
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'isol-b', 'name' => 'Isolation B', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'isol-b', 'name' => 'Isolation B', 'status' => 'active']);
 
+        // course.title is varchar(30) — keep markers short (MySQL enforces length).
         TenantContext::set($churchA);
         $courseA = Course::create([
-            'title' => 'ISOLATION_MARKER_A_'.uniqid(),
+            'title' => 'ISO_A_'.substr(uniqid(), -8),
             'description' => 'x',
             'year' => 2026,
         ]);
@@ -115,7 +117,7 @@ class IsolationTest extends EventModuleTestCase
 
         TenantContext::set($churchB);
         $courseB = Course::create([
-            'title' => 'ISOLATION_MARKER_B_'.uniqid(),
+            'title' => 'ISO_B_'.substr(uniqid(), -8),
             'description' => 'x',
             'year' => 2026,
         ]);
@@ -132,9 +134,9 @@ class IsolationTest extends EventModuleTestCase
         config(['tenancy.enabled' => true, 'tenancy.base_domain' => 'example.test']);
 
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'isol-web-b', 'name' => 'Web B', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'isol-web-b', 'name' => 'Web B', 'status' => 'active']);
 
-        $markerB = 'ISOLATION_ENDPOINT_MARKER_B_'.uniqid();
+        $markerB = 'ISO_EP_B_'.substr(uniqid(), -8);
 
         TenantContext::set($churchB);
         Course::create(['title' => $markerB, 'description' => 'secret-b', 'year' => 2026]);
@@ -207,5 +209,40 @@ class IsolationTest extends EventModuleTestCase
 
         $this->assertSame((int) $churchA->church_id, (int) $course->church_id);
         $this->assertSame((int) $churchA->church_id, (int) app(TenantContext::class)->churchId());
+    }
+
+    public function test_media_assets_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'media-isol-b', 'name' => 'Media B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $assetA = MediaAsset::create([
+            'church_id' => $churchA->church_id,
+            'disk' => 'curriculum',
+            'path' => 'churches/'.$churchA->church_id.'/test/a.pdf',
+            'original_filename' => 'a.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 100,
+            'context' => MediaAsset::CONTEXT_CURRICULUM,
+        ]);
+
+        TenantContext::set($churchB);
+        $assetB = MediaAsset::create([
+            'church_id' => $churchB->church_id,
+            'disk' => 'curriculum',
+            'path' => 'churches/'.$churchB->church_id.'/test/b.pdf',
+            'original_filename' => 'b.pdf',
+            'mime_type' => 'application/pdf',
+            'size_bytes' => 200,
+            'context' => MediaAsset::CONTEXT_CURRICULUM,
+        ]);
+
+        $this->assertNull(MediaAsset::find($assetA->media_id));
+        $this->assertNotNull(MediaAsset::find($assetB->media_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(MediaAsset::find($assetA->media_id));
+        $this->assertNull(MediaAsset::find($assetB->media_id));
     }
 }

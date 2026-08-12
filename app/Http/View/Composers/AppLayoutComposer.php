@@ -15,6 +15,8 @@ use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\RegistrationApplication;
 use App\Support\ChurchHost;
+use App\Support\EventTheme;
+use App\Support\PublicSite\ChurchBranding;
 use App\Support\SuperadminWorkspace;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Schema;
@@ -35,6 +37,8 @@ class AppLayoutComposer
 
     public function compose(View $view): void
     {
+        $this->composeChurchBranding($view);
+
         $user = Auth::user();
 
         if (! $user) {
@@ -47,6 +51,36 @@ class AppLayoutComposer
         $this->composeNotifications($view, $user);
         $this->composeOnboarding($view, $user);
         $this->composeContextSwitchers($view, $user);
+    }
+
+    private function composeChurchBranding(View $view): void
+    {
+        try {
+            $church = TenantContext::current();
+            if (! $church && Schema::hasTable('church')) {
+                $church = Church::query()->where('slug', config('tenancy.main_slug'))->first();
+            }
+
+            if (! $church) {
+                $view->with('churchBrandingCss', null);
+                $view->with('churchLogoUrl', null);
+                $view->with('eventThemeActive', false);
+
+                return;
+            }
+
+            $branding = ChurchBranding::fromSettings($church->settings);
+            $view->with('churchBrandingCss', ChurchBranding::portalCss($branding));
+            $view->with('churchLogoUrl', ChurchBranding::logoUrl($branding));
+            $view->with('brandedChurchName', $church->preferredShortName());
+            $view->with('eventThemeActive', EventTheme::isActive(EventTheme::fromSettings($church->settings)));
+        } catch (\Throwable $e) {
+            report($e);
+            $view->with('churchBrandingCss', null);
+            $view->with('churchLogoUrl', null);
+            $view->with('brandedChurchName', null);
+            $view->with('eventThemeActive', false);
+        }
     }
 
     private function composeProfilePhotoGate(View $view, $user): void
@@ -158,6 +192,8 @@ class AppLayoutComposer
             );
             $showServiceContextLabel = $showsMemberChrome && (bool) $currentService && ! $supportsServiceSwitcher;
 
+            // Church switcher (T4): host-based links, only when MULTI_TENANT is on.
+            // Dropdown only when the user can reach 2+ churches — a single church is a label.
             $tenancyOn = (bool) config('tenancy.enabled');
             $currentChurch = TenantContext::current();
             $selectableChurches = collect();
@@ -174,7 +210,9 @@ class AppLayoutComposer
                 $selectableChurches->count() > 1
                 || ($isSuper && $selectableChurches->isNotEmpty())
             );
-            $showChurchContextLabel = $showsMemberChrome && $tenancyOn && (bool) $currentChurch && ! $supportsChurchSwitcher;
+            $labeledChurch = $currentChurch
+                ?? ($selectableChurches->count() === 1 ? $selectableChurches->first() : null);
+            $showChurchContextLabel = $showsMemberChrome && $tenancyOn && ! $supportsChurchSwitcher && (bool) $labeledChurch;
 
             $currentCourse = current_course() ?? $this->courseContext->currentCourse($user);
             $requiresCourseContext = $this->courseContext->requiresCourseContext($user);
@@ -199,6 +237,7 @@ class AppLayoutComposer
             $view->with('selectableServices', $selectableServices);
 
             $view->with('currentChurch', $currentChurch);
+            $view->with('labeledChurch', $labeledChurch);
             $view->with('supportsChurchSwitcher', $supportsChurchSwitcher);
             $view->with('showChurchContextLabel', $showChurchContextLabel);
             $view->with('selectableChurches', $selectableChurches);
@@ -221,6 +260,7 @@ class AppLayoutComposer
             $view->with('showServiceContextLabel', false);
             $view->with('selectableServices', collect());
             $view->with('currentChurch', TenantContext::current());
+            $view->with('labeledChurch', null);
             $view->with('supportsChurchSwitcher', false);
             $view->with('showChurchContextLabel', false);
             $view->with('selectableChurches', collect());

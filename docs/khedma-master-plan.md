@@ -110,10 +110,12 @@ are indicative — finalized per phase.
 
 ## 7. Current phase & roadmap  ← CLAUDE.md reads this section
 
-**Current phase: T7 in progress (contract).** T0–T6 landed. T7 = `NOT NULL church_id`,
-pilot church tooling, and staging cutover runbook (`docs/tenancy-cutover.md`).
-Keep `MULTI_TENANT=false` in production until staging pilot is signed off.
-Polymorphic applications / public church-registration remain parked (§13 / §17.4).
+**Current phase: post-T10c ops sign-off.** T0–T10c landed on staging (structure templates,
+service cycles, public profile/branding/homepage CMS, observability W0–W6). **Next:** complete
+[`staging-acceptance-checklist.md`](staging-acceptance-checklist.md) (T7 + T8 + T10c) before
+production `MULTI_TENANT=true`. T8 residual (UCR contract), T9 people-only / staff reassign,
+and **T10d** multi-page stay parked. Public church-registration + polymorphic applications hub
+landed (§13 / §17.4; RegistrationApplication still out of the hub).
 
 **Do not build ahead of the phase you are in.** Phase order (each its own PR, app works at every step):
 
@@ -126,17 +128,46 @@ Polymorphic applications / public church-registration remain parked (§13 / §17
 | **T4** *(=P4/P5)* ✅ | Subdomains + provisioning | real tenants | Superadmin church CRUD + switcher; **church registration / polymorphic apps deferred** |
 | **T5** ✅ | Church management module | new feature | priest **confession calendars** (§9), **home-visit schedules** (§10) |
 | **T6** ✅ | Financial module | new feature | payroll + money-in (§11), integer minor units |
-| **T7** *(contract)* | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
-| **T8** *(scheduled — after T7 sign-off)* | Structure templates + service wrap | template-driven levels | See §15; full scope in `PARKING-LOT.md` “Structure template engine…” |
+| **T7** *(contract)* ✅ | Cutover | `MULTI_TENANT=true` (staging) | `NOT NULL church_id`, second church pilot (P6) |
+| **T8** *(expand)* | Structure templates + service wrap | template-driven levels | **T8a:** templates/anchors/`service_units`/`servants-prep`. **T8b:** slug routes, enrollments, attendance lock |
+| **T9** *(expand)* ✅ | Service cycle progression | End-of-Cycle wizard | **T9a:** progression policy + roster status. **T9b:** propose/confirm wizard. **T9c:** church school year + dashboard |
+| **T10** *(expand)* ✅ | Public Church Presence | public homepage CMS | **T10a:** profile. **T10b:** branding. **T10c:** curated homepage — see `docs/public-church-cms.md` |
 
 Rule 10: anything requested that is ahead of the current phase goes to `PARKING-LOT.md`, not code.
 
-**T8 (do not start until T7 staging pilot is signed off):** structure template engine
-(`structure_templates`, anchors, `service_units`), seed `educational_standard` /
-`meeting_flat` / `care_sector`, wrap AvaPachomius as service slug `servants-prep`,
-reversible data migration, `/{service:slug}/…` routes + legacy 301s. Expand-only;
-builds on the existing Service-above-Course layer. Detail remains in `PARKING-LOT.md`
-until a T8 kickoff PR opens.
+**T8a (landed):** `structure_templates` seeded (`educational_standard`, `meeting_flat`,
+`care_sector`), `StructureAnchorResolver`, expand `service` (`slug`, `structure_template_id`,
+level overrides), `service_units` dual-write from `course`, Tenant Zero default service →
+`servants-prep` + educational template.
+
+**T8b (landed):** slug route key + `/s/{service}` hub + numeric→slug 301s;
+`enrollments` table dual-write from `user_course_role` (UCR still source of truth for reads);
+attendance `lock_version` CAS; NavigationHub incremental filter via structure anchors.
+Residual (UCR contract, broader slug tree) in `PARKING-LOT.md`.
+
+**T9a (landed):** template `anchors.progression.policy` defaults; service
+`progression_policy` / `progression_config` overrides; enrollment + `user_service_role`
+roster statuses (`active` / `inactive` / `left` / `pastoral_hold`); resolver + create/edit UX;
+eligibility helper (inactive excluded from propose). **No silent auto-promote.**
+
+**T9b (landed / stacked):** End-of-Cycle wizard — propose eligible actives via ladder edges,
+admin confirm (promote / skip / mark inactive), transactional UCR dual-write apply, audit +
+service-admin notify. People-only placements remain parked.
+
+**T9c (landed):** `church_school_year` season (planned → active → closing → closed);
+Church Cycle Dashboard (Ready / Blocked / Done / Skipped per service); **Start promotion season**
+notifies service admins — **no** one-button church-wide upgrade. Residual people-only / staff
+reassign stay parked.
+
+**T10a (landed):** public church profile in `church.settings.public`; capability
+`public_site` + `public_site.profile`; admin UI + guest `/about`.
+
+**T10b (landed):** church branding in `church.settings.branding` (logo + palette +
+fonts); `public_site.theme`; CSS vars on `/about` and optional portal chrome.
+
+**T10c (landed):** curated homepage CMS — `church_site*` tables, draft/publish editor,
+publish-gate `GET /`. Detail in [`docs/public-church-cms.md`](public-church-cms.md).
+Feature-gap **F-20**. **T10d** multi-page remains parked.
 
 ## 8. Church management module
 
@@ -153,6 +184,12 @@ home-visit scheduling, and finance. Gated by capability (disabled ⇒ 404) and b
 - The **served** may view a priest's open slots and (optionally) book — `confession_booking`.
 - All slots/bookings are church-scoped; a priest in Church A is invisible to Church B.
 - Localized ar/en, RTL-first; times stored UTC, displayed in church timezone.
+
+**Parked upgrade (post-T8, does not claim T9/T10):** Calendly-like confession UX + separate
+pastoral-appointment calendar, secretary delegation, book-on-behalf, configurable notifications
+(ICS then OAuth). Design locked in [`priest-appointment-calendar.md`](priest-appointment-calendar.md);
+parking entry in root `PARKING-LOT.md`; feature-gap **F-21**. No product code until PAC1 after
+T8 residual smoke-check.
 
 ## 10. Home-visit schedules
 
@@ -174,7 +211,10 @@ home-visit scheduling, and finance. Gated by capability (disabled ⇒ 404) and b
 Out-of-phase items captured, not built now (root [`PARKING-LOT.md`](../PARKING-LOT.md)): the full
 Church-layer request (recorded 2026-07-14); richer finance (reporting/approvals/reconciliation);
 Service application richer form builder; `course.service_id` / `church_id` `NOT NULL` contractions
-(only in the contract phase); config/security debt.
+(only in the contract phase); config/security debt; **T10 Public Church Presence / Homepage CMS**
+(after T8; design in [`docs/public-church-cms.md`](public-church-cms.md)); **priest appointment
+calendar / Calendly-like upgrade** (after T8; design in
+[`docs/priest-appointment-calendar.md`](priest-appointment-calendar.md); feature-gap **F-21**).
 
 ## 13. Church registration & the polymorphic applications center
 
@@ -224,5 +264,16 @@ students" needs no code changes.
    separate entities? (Leaning: roles + a thin `priest` link row.)
 3. **Confession booking:** do the served *book* slots, or do priests just publish availability?
 4. **Church registration provisioning:** auto-create tenant on approval, or superadmin finishes setup?
+   **Decided 2026-07-30:** superadmin manually finishes setup after approval. Also decided:
+   the applications-center refactor (§13) into one polymorphic Church|Service|Course queue
+   should be built once the registration panel ships.
+   **Built:** read-side hub (`admin.applications-hub` / `ApplicationsHubQuery`) over existing
+   per-type tables — no storage merge; RegistrationApplication excluded; approve/reject stay on
+   each type’s existing show/service. Auth-scope hardened so service rows re-derive visibility
+   via service/church scope (not system-grant-only), and church rows require
+   `platform.church_applications` (superadmin bypass).
 5. **Finance scope for T6:** currencies in play, payroll cadence, who approves runs.
+   **Decided 2026-07-30:** all four T6-residual items approved — multi-currency catalogs,
+   payroll cadence automation, approval workflows before finalize, and reporting/
+   reconciliation exports (not built yet — see `PARKING-LOT.md`).
 6. **Timezone per church** (confession/visits) — store on `church.settings`.

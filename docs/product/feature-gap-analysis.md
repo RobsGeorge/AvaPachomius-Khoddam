@@ -24,11 +24,13 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 | F-05 | **Global search** (users, courses, services, content) | Admins, staff | Navigating by menus does not scale; admins need to jump to a person/course/service fast. |
 | F-06 | **Calendar + iCal/Google export** for sessions, exams, events | Student, Instructor | ✅ **M3** — `CalendarService` renders an RFC 5545 `.ics` feed (`/calendar.ics`) of upcoming sessions/exams/events; linked from My learning. Tests `CalendarExportTest`. |
 | F-07 | **Print / offline** for certificates, grade reports, attendance reports | Student, Instructor | ✅ **M4** — global `print.css` (media="print") + print buttons on final-grades & My learning. Tests `AuditVisibilityTest`. |
-| F-08 | **Admin bulk tooling**: user & enrollment import/export, gradebook export | Course/Service Admin | ✅ **People Onboarding** — CSV template/import batches + bulk invite (email/WhatsApp) + roster CSV export. Gradebook export still open. |
+| F-08 | **Admin bulk tooling**: user & enrollment import/export, gradebook export | Course/Service Admin | ✅ **People Onboarding** — CSV import/invite + roster export; **gradebook CSV** (`grades.export`) + **enrollment CSV** (`students.roster.export`). |
 | F-09 | **Audit-log visibility & filters for admins** | SuperAdmin/Admin | ✅ **M4** — added date-range filter + CSV export (filter-aware, streamed) to the activity log. Tests `AuditVisibilityTest`. |
 | F-10 | **Notification preference completeness** (per-category, per-channel, digest) | all | Reduce noise; let users pick email vs WhatsApp vs portal per category, with a daily digest option. |
 | F-11 | **Empty states & guided onboarding/tooltips** | new users, all | Blank lists give no next action; first-run guidance improves activation. |
 | F-12 | **Exam experience hardening**: autosave, connection-loss recovery, accommodations (extra time) | Student | Timed exams with no autosave risk lost work; also the biggest test-coverage gap. |
+| F-20 | **Public Church Presence / Homepage CMS** (curated sections, theme, BYO domain) | Church Admin, public visitors | ✅ **T10c** — `church_site*` draft/publish editor, publish-gate `/`, tenant isolation tests. Sign-off: `docs/staging-acceptance-checklist.md` Part C. **T10d** multi-page still parked. |
+| F-21 | **Priest appointment calendar** (Calendly-like confessions + pastoral appointments) | Priest, Secretary, church members | Design `docs/priest-appointment-calendar.md`. **PAC1–PAC4 landed** (schema, confession + pastoral UX, portal/email notifications + reminders; WA gated on CV1). PAC5 ICS / PAC6 OAuth still parked — `PARKING-LOT.md`. |
 
 ## P2 — polish / operational
 
@@ -40,6 +42,8 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 | F-16 | **Config/security debt** | ops | ✅ **M5** — CORS scoped to `api/*`, origins env-driven (`CORS_ALLOWED_ORIGINS`, empty/locked by default), removing the hardcoded `localhost:3000` prod leak. |
 | F-17 | **Nullable profile columns** | ops/tests | `user` NOT NULL profile columns force placeholder data and complicate admin/self-service creation. (PARKING-LOT; migrates to `people` in tenancy phase.) |
 | F-18 | **Fresh-environment bootstrap** | ops/tenancy | Migrations cannot bootstrap an empty DB (legacy columns e.g. `roles.course_id`); needed to stand up new staging/tenant churches. |
+| F-19 | **Service cycle progression** (End-of-Cycle wizard) | Service/Church Admin, servants | ✅ **T9** — policy + roster status, End-of-Cycle wizard, church school-year dashboard. Residual people-only / staff reassign parked. |
+| F-20 | **Public Church Presence / homepage CMS** | Church Admin, visitors | ✅ **T10c** — curated homepage per church host. **T10d** multi-page parked. |
 
 ## Suggested sequencing
 1. F-03 account center + F-01 dashboards (touch every persona, reuse existing data).
@@ -47,3 +51,4 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 3. F-12 exam hardening + close the exam **test** gap together.
 4. F-06/F-07 calendar & print; F-08/F-09 admin tooling.
 5. F-16/F-17/F-18 operational/tenancy debt alongside the multi-tenant migration.
+6. F-19 (T9) ✅ delivered; F-20 (T10c) ✅ delivered — T10d multi-page optional next.

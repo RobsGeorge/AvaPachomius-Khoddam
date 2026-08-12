@@ -77,8 +77,8 @@ class NavigationEntryPointsTest extends EventModuleTestCase
             }
         }
 
-        // Pastoral / finance must not be silently dropped when present.
-        $churchCats = collect($links)->pluck('category')->unique()->intersect(['pastoral', 'finance']);
+        // Pastoral / finance / public_site must not be silently dropped when present.
+        $churchCats = collect($links)->pluck('category')->unique()->intersect(['pastoral', 'finance', 'public_site']);
         foreach ($churchCats as $cat) {
             $this->assertTrue(
                 collect($sections)->contains('key', $cat),

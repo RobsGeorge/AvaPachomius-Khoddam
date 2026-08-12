@@ -8,6 +8,7 @@ use App\Models\PayrollLine;
 use App\Models\PayrollRun;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\Finance\PayrollCadenceService;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,6 +32,23 @@ class PayrollController extends Controller
     public function create()
     {
         return view('church.finance.payroll.create');
+    }
+
+    public function generateNext(PayrollCadenceService $cadence)
+    {
+        $church = $this->resolveChurch();
+        $result = $cadence->generateNextPeriod($church);
+
+        return match ($result['status']) {
+            PayrollCadenceService::STATUS_GENERATED => redirect()
+                ->route('church.finance.payroll.show', $result['run'])
+                ->with('success', __('finance.next_period_generated')),
+            PayrollCadenceService::STATUS_NO_PREVIOUS_RUN => back()
+                ->with('info', __('finance.next_period_no_prior_run')),
+            PayrollCadenceService::STATUS_ALREADY_EXISTS => back()
+                ->with('info', __('finance.next_period_already_exists')),
+            default => back(),
+        };
     }
 
     public function store(Request $request)
@@ -65,7 +83,7 @@ class PayrollController extends Controller
 
     public function show(PayrollRun $run)
     {
-        $run->load(['lines.user']);
+        $run->load(['lines.user', 'submittedBy', 'approvedBy', 'rejectedBy']);
 
         return view('church.finance.payroll.show', compact('run'));
     }
@@ -154,6 +172,69 @@ class PayrollController extends Controller
         return redirect()
             ->route('church.finance.payroll.show', $run)
             ->with('success', __('finance.run_finalized'));
+    }
+
+    public function submitForApproval(PayrollRun $run)
+    {
+        abort_unless($run->isDraft(), 422, __('finance.run_locked'));
+        abort_unless($run->lines()->exists(), 422, __('finance.run_empty'));
+
+        $run->update([
+            'status' => PayrollRun::STATUS_PENDING_APPROVAL,
+            'submitted_at' => now(),
+            'submitted_by_id' => auth()->id(),
+        ]);
+
+        AuditLogService::recordEvent('payroll_run.submitted_for_approval', [
+            'payroll_run_id' => $run->payroll_run_id,
+        ]);
+
+        return redirect()
+            ->route('church.finance.payroll.show', $run)
+            ->with('success', __('finance.run_submitted'));
+    }
+
+    public function approve(PayrollRun $run)
+    {
+        abort_unless($run->isPendingApproval(), 422, __('finance.run_not_pending'));
+
+        $run->update([
+            'status' => PayrollRun::STATUS_FINALIZED,
+            'approved_at' => now(),
+            'approved_by_id' => auth()->id(),
+        ]);
+
+        AuditLogService::recordEvent('payroll_run.approved', [
+            'payroll_run_id' => $run->payroll_run_id,
+        ]);
+
+        return redirect()
+            ->route('church.finance.payroll.show', $run)
+            ->with('success', __('finance.run_approved'));
+    }
+
+    public function reject(Request $request, PayrollRun $run)
+    {
+        abort_unless($run->isPendingApproval(), 422, __('finance.run_not_pending'));
+
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $run->update([
+            'status' => PayrollRun::STATUS_DRAFT,
+            'rejected_at' => now(),
+            'rejected_by_id' => auth()->id(),
+            'rejection_reason' => $validated['rejection_reason'],
+        ]);
+
+        AuditLogService::recordEvent('payroll_run.rejected', [
+            'payroll_run_id' => $run->payroll_run_id,
+        ]);
+
+        return redirect()
+            ->route('church.finance.payroll.show', $run)
+            ->with('success', __('finance.run_rejected'));
     }
 
     public function destroy(PayrollRun $run)

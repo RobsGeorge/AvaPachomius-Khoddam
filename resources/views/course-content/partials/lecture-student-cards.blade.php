@@ -4,10 +4,11 @@
     @foreach($lectures as $i => $lecture)
         @php
             $hasVideo = filled($lecture->video_link);
-            $hasSlides = filled($lecture->slides_link);
+            $hasSlides = $lecture->hasSlides();
+            $slidesUrl = $lecture->slidesUrl();
             $notesText = trim((string) ($lecture->notes ?? ''));
             $hasNotes = $notesText !== '';
-            $extraMaterials = $lecture->materials->filter(fn ($material) => filled($material->link));
+            $extraMaterials = $lecture->materials->filter(fn ($material) => $material->hasContent());
             $hasLinks = $hasVideo || $hasSlides || $extraMaterials->isNotEmpty();
             $hasMaterials = $hasLinks || $hasNotes;
             $notesPreviewLimit = 160;
@@ -45,18 +46,18 @@
                                     <span>{{ __('pages.watch_video') }}</span>
                                 </a>
                             @endif
-                            @if($hasSlides)
-                                <a href="{{ $lecture->slides_link }}" target="_blank" rel="noopener noreferrer"
+                            @if($hasSlides && $slidesUrl)
+                                <a href="{{ $slidesUrl }}" target="_blank" rel="noopener noreferrer"
                                    class="btn btn-sm btn-primary">
-                                    <i class="bi bi-file-earmark-slides-fill"></i>
+                                    <i class="bi bi-file-earmark-{{ $lecture->hasHostedSlides() ? 'arrow-down' : 'slides' }}-fill"></i>
                                     <span>{{ __('pages.download_slides') }}</span>
                                 </a>
                             @endif
                             @foreach($extraMaterials as $material)
-                                <a href="{{ $material->link }}" target="_blank" rel="noopener noreferrer"
+                                <a href="{{ $material->accessUrl() }}" target="_blank" rel="noopener noreferrer"
                                    class="btn btn-sm btn-outline-theme"
-                                   title="{{ $material->link }}">
-                                    <i class="bi bi-link-45deg"></i>
+                                   title="{{ $material->isHostedFile() ? ($material->media->original_filename ?? '') : $material->link }}">
+                                    <i class="bi bi-{{ $material->isHostedFile() ? 'cloud-download' : 'link-45deg' }}"></i>
                                     <span>{{ $material->title ?: __('pages.additional_materials') }}</span>
                                 </a>
                             @endforeach

@@ -223,6 +223,9 @@ class InvitationService
                 'registration_completed' => true,
                 'is_verified' => true,
                 'application_status' => User::APPLICATION_STATUS_APPROVED,
+                'registration_lane' => Schema::hasColumn('user', 'registration_lane')
+                    ? User::REGISTRATION_LANE_INVITE
+                    : $user->registration_lane,
             ])->save();
 
             if (Schema::hasColumn('user', 'email_verified_at') && $emailChannel && filled($invitation->email)) {
@@ -375,7 +378,12 @@ class InvitationService
                     'third_name' => $person->third_name ?: $existing->third_name,
                     'email' => $email ?: $existing->email,
                     'mobile_number' => $mobile ?: $existing->mobile_number,
+                    'registration_lane' => Schema::hasColumn('user', 'registration_lane')
+                        ? User::REGISTRATION_LANE_INVITE
+                        : $existing->registration_lane,
                 ])->save();
+            } elseif (Schema::hasColumn('user', 'registration_lane') && ! $existing->registration_lane) {
+                $existing->forceFill(['registration_lane' => User::REGISTRATION_LANE_INVITE])->save();
             }
 
             return $existing;
@@ -383,6 +391,10 @@ class InvitationService
 
         $linked = User::query()->where('person_id', $person->person_id)->first();
         if ($linked) {
+            if (Schema::hasColumn('user', 'registration_lane') && ! $linked->registration_lane) {
+                $linked->forceFill(['registration_lane' => User::REGISTRATION_LANE_INVITE])->save();
+            }
+
             return $linked;
         }
 
@@ -404,7 +416,7 @@ class InvitationService
             $placeholderNationalId = 'INV'.Str::upper(Str::random(11));
         }
 
-        return User::create([
+        $attrs = [
             'first_name' => $person->first_name ?: 'Invited',
             'second_name' => $person->second_name ?: 'Person',
             'third_name' => $person->third_name ?: '',
@@ -419,7 +431,13 @@ class InvitationService
             'is_superadmin' => false,
             'registration_completed' => false,
             'person_id' => $person->person_id,
-        ]);
+        ];
+
+        if (Schema::hasColumn('user', 'registration_lane')) {
+            $attrs['registration_lane'] = User::REGISTRATION_LANE_INVITE;
+        }
+
+        return User::create($attrs);
     }
 
     private function ensureInvitedMembership(Church $church, User $user): void

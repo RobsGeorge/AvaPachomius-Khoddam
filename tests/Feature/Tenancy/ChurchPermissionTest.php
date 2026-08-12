@@ -65,7 +65,7 @@ class ChurchPermissionTest extends EventModuleTestCase
     public function test_different_roles_in_different_churches_resolve_independently(): void
     {
         $main = Church::main();
-        $other = Church::create(['slug' => 'stmark-rbac', 'name' => 'St Mark', 'status' => 'active']);
+        $other = $this->createChurch(['slug' => 'stmark-rbac', 'name' => 'St Mark', 'status' => 'active']);
         foreach (['announcements', 'reporting', 'church_management'] as $key) {
             ChurchCapability::create([
                 'church_id' => $other->church_id,
@@ -108,7 +108,7 @@ class ChurchPermissionTest extends EventModuleTestCase
 
     public function test_capability_ceiling_blocks_permission_when_feature_disabled(): void
     {
-        $church = Church::create(['slug' => 'no-exams-rbac', 'name' => 'No Exams', 'status' => 'active']);
+        $church = $this->createChurch(['slug' => 'no-exams-rbac', 'name' => 'No Exams', 'status' => 'active']);
         ChurchCapability::create([
             'church_id' => $church->church_id,
             'capability_key' => 'announcements',
@@ -157,14 +157,19 @@ class ChurchPermissionTest extends EventModuleTestCase
     public function test_church_templates_are_platform_null_and_clone_respects_capabilities(): void
     {
         $templates = app(RoleTemplateService::class)->ensureChurchTemplates();
-        $this->assertCount(3, $templates);
+        // PAC1 added platform `secretary` alongside church-admin / priest / servant.
+        $this->assertCount(4, $templates);
+        $this->assertEqualsCanonicalizing(
+            ['church-admin', 'priest', 'secretary', 'servant'],
+            $templates->pluck('slug')->all()
+        );
         foreach ($templates as $role) {
             $this->assertTrue((bool) $role->is_template);
             $this->assertNull($role->church_id);
             $this->assertNull($role->course_id);
         }
 
-        $sparse = Church::create(['slug' => 'sparse-rbac', 'name' => 'Sparse', 'status' => 'active']);
+        $sparse = $this->createChurch(['slug' => 'sparse-rbac', 'name' => 'Sparse', 'status' => 'active']);
         ChurchCapability::create([
             'church_id' => $sparse->church_id,
             'capability_key' => 'church_management',
@@ -173,6 +178,7 @@ class ChurchPermissionTest extends EventModuleTestCase
 
         $cloned = app(RoleTemplateService::class)->cloneTemplatesIntoChurch($sparse);
         $this->assertArrayHasKey('church-admin', $cloned);
+        $this->assertArrayHasKey('secretary', $cloned);
         $this->assertEquals($sparse->church_id, $cloned['church-admin']->church_id);
 
         // church-admin still gets church.* keys; announcement.* only if capability enabled.

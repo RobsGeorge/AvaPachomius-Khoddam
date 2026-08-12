@@ -39,7 +39,7 @@ return [
     'academic_hub_desc'      => 'Learning, assessment, people tools, and community events for your courses.',
     'open_academic'          => 'Open academic hub',
     'service_hub'            => 'Service hub',
-    'service_hub_desc'       => 'Your service memberships in the church',
+    'service_hub_desc'       => 'Service roster and roles, pastoral care, finance, and public-site tools for your church.',
     'system_hub'             => 'System settings',
     'system_hub_desc'        => 'Roles, reviews, translations, and platform configuration.',
     'superadmin_hub'         => 'Super admin',

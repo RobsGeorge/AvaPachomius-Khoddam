@@ -610,6 +610,41 @@ class CoursePermissionResolver
         return false;
     }
 
+    /**
+     * True when the user has any of the given permissions on at least one service
+     * (via user_service_role), ignoring course/system grants.
+     */
+    public function canAnyInAnyService(User $user, array $permissions): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return true;
+        }
+
+        if (! $this->courseRbacReady() || ! Schema::hasTable('user_service_role')) {
+            return false;
+        }
+
+        $serviceIds = UserServiceRole::where('user_id', $user->user_id)
+            ->pluck('service_id')
+            ->unique()
+            ->filter()
+            ->values();
+
+        if ($serviceIds->isEmpty()) {
+            return false;
+        }
+
+        foreach (ChurchService::query()->withoutGlobalScope('church')->whereIn('service_id', $serviceIds)->get() as $service) {
+            foreach ($permissions as $permission) {
+                if ($this->canInService($user, $permission, $service)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function isStaffAnywhere(User $user): bool
     {
         return $this->canAnyInAnyCourse($user, self::STAFF_PERMISSION_KEYS);

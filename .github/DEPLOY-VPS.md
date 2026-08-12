@@ -161,6 +161,10 @@ The deploy user should own the project (or at least `storage/` and `bootstrap/ca
 ```bash
 sudo chown -R deploy:www-data /var/www/avapakhomios
 sudo chmod -R ug+rwx /var/www/avapakhomios/storage /var/www/avapakhomios/bootstrap/cache
+
+# Staging (same pattern):
+sudo chown -R deploy:www-data /var/www/khedma-staging/storage /var/www/khedma-staging/bootstrap/cache
+sudo chmod -R ug+rwx /var/www/khedma-staging/storage /var/www/khedma-staging/bootstrap/cache
 ```
 
 Deploy scripts reclaim `storage/` + `bootstrap/cache/` ownership **before** `git reset --hard`,
@@ -169,7 +173,6 @@ because PHP-FPM (`www-data`) creates cache/session files that otherwise block gi
 
 If a deploy fails on git sync with that error, run the chown above once as root (or as a
 sudoer), then re-run the failed GitHub Actions deploy job.
-
 Add deploy to the `www-data` group if needed:
 
 ```bash
@@ -260,3 +263,17 @@ php8.2 artisan schedule:list | grep -E 'heartbeat|birthdays'
 php8.2 artisan schedule:run
 # Superadmin → Scheduled tasks should show a healthy heartbeat within 1–2 minutes.
 ```
+
+## Curriculum private uploads (`storage/app/curriculum`)
+
+Hosted curriculum files (PDFs/slides) are stored on the **`curriculum`** disk (`storage/app/curriculum/`), not under `public/`. After deploy, ensure the directory exists and is writable:
+
+```bash
+sudo mkdir -p /var/www/avapakhomios/storage/app/curriculum
+sudo chown -R deploy:www-data /var/www/avapakhomios/storage/app/curriculum
+sudo chmod -R ug+rwx /var/www/avapakhomios/storage/app/curriculum
+```
+
+Repeat for staging (`/var/www/khedma-staging/storage/app/curriculum`). Confirm PHP `upload_max_filesize` / `post_max_size` and Nginx `client_max_body_size` are at least **20M** (see `config/curriculum.php`).
+
+Reconcile per-church usage if needed: `php8.2 artisan church:reconcile-storage`.

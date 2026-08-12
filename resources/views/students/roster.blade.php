@@ -10,13 +10,18 @@
             <p class="text-muted-theme mb-0">{{ __('students.roster_intro') }}</p>
         </div>
         @if($course)
-            <form method="POST" action="{{ route('students.roster.announce', $course) }}"
-                  data-confirm="{{ __('students.confirm_announce') }}">
-                @csrf
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-envelope-heart"></i> {{ __('students.send_announcement') }}
-                </button>
-            </form>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ route('students.roster.export', ['course' => $course->course_id]) }}" class="btn btn-outline-theme">
+                    <i class="bi bi-download"></i> {{ __('students.export_enrollments_csv') }}
+                </a>
+                <form method="POST" action="{{ route('students.roster.announce', $course) }}"
+                      data-confirm="{{ __('students.confirm_announce') }}">
+                    @csrf
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-envelope-heart"></i> {{ __('students.send_announcement') }}
+                    </button>
+                </form>
+            </div>
         @endif
     </div>
 

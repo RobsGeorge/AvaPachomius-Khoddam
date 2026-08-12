@@ -6,6 +6,8 @@ use App\Tenancy\BelongsToChurch;
 use App\Tenancy\StampsMainChurchWhenDormant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class HomeVisit extends Model
 {
@@ -29,6 +31,8 @@ class HomeVisit extends Model
 
     protected $fillable = [
         'assigned_user_id',
+        'subject_type',
+        'subject_id',
         'subject_name',
         'address',
         'scheduled_at',
@@ -45,5 +49,22 @@ class HomeVisit extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id', 'user_id');
+    }
+
+    /**
+     * Linked subject (person|residence). Free-text subject_name/address remain for legacy rows.
+     */
+    public function subject(): MorphTo
+    {
+        return $this->morphTo(__FUNCTION__, 'subject_type', 'subject_id');
+    }
+
+    /**
+     * Unfiltered relation for persistence only — NEVER eager-load into family-facing views.
+     * Use {@see VisitNoteVisibility::visibleNotesFor()} for reads.
+     */
+    public function pastoralNotes(): HasMany
+    {
+        return $this->hasMany(VisitNote::class, 'home_visit_id', 'home_visit_id');
     }
 }

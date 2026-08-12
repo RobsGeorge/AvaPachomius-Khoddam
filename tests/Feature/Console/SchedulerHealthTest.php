@@ -137,4 +137,20 @@ class SchedulerHealthTest extends EventModuleTestCase
         $this->assertMatchesRegularExpression('/\*\s+\*\s+\*\s+\*\s+\*/', $line);
         $this->assertStringContainsString(basename(base_path()), $line);
     }
+
+    public function test_ensure_cron_detects_legacy_unquoted_cd_path(): void
+    {
+        $command = $this->app->make(EnsureSchedulerCronCommand::class);
+        $base = base_path();
+
+        $this->assertTrue($command->isExistingSchedulerLine(
+            "* * * * * cd {$base} && php8.2 artisan schedule:run >> /tmp/sched.log 2>&1"
+        ));
+        $this->assertTrue($command->isExistingSchedulerLine(
+            $command->buildCronLine('php8.2')
+        ));
+        $this->assertFalse($command->isExistingSchedulerLine(
+            '* * * * * cd /other/app && php8.2 artisan schedule:run >> /tmp/sched.log 2>&1'
+        ));
+    }
 }

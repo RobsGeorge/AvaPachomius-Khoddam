@@ -1,11 +1,18 @@
 @extends('layouts.app')
 
+@section('body_class', 'auth-form-page')
+
 @section('title', __('auth.login_title'))
 
 @section('content')
 <div class="container py-5 animate-in" style="max-width:460px;">
 
     <div class="text-center mb-4">
+        <a href="{{ url('/') }}" class="d-inline-flex flex-column align-items-center text-decoration-none mb-3">
+            <x-deaconia-logotype class="brand-logotype-lg" aria-hidden="true" />
+            <span class="brand-wordmark-ar mt-2">دياكونيا</span>
+            <span class="text-muted-theme small mt-1">{{ __('app.institute_name') }}</span>
+        </a>
         <h2 class="page-title mb-1">{{ __('auth.login_title') }}</h2>
         <p class="text-muted-theme small">{{ __('app.tagline') }}</p>
     </div>
@@ -23,28 +30,15 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label for="email" class="form-label">{{ __('auth.email') }}</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}"
-                           class="form-control @error('email') is-invalid @enderror"
+                    <label for="identifier" class="form-label">{{ __('auth.identifier') }}</label>
+                    <input id="identifier" type="text" name="identifier" value="{{ old('identifier') }}"
+                           class="form-control @error('identifier') is-invalid @enderror"
+                           placeholder="{{ __('auth.identifier_placeholder') }}"
                            required autofocus>
-                    @error('email')
+                    @error('identifier')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
-                </div>
-
-                <div class="mb-3">
-                    <label for="password" class="form-label">{{ __('auth.password') }}</label>
-                    <input id="password" type="password" name="password"
-                           class="form-control @error('password') is-invalid @enderror"
-                           required>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-3 d-flex align-items-center gap-2">
-                    <input type="checkbox" name="remember" id="remember" class="form-check-input">
-                    <label for="remember" class="form-check-label">{{ __('auth.remember') }}</label>
+                    <div class="form-text">{{ __('auth.login_identifier_hint') }}</div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 py-2">

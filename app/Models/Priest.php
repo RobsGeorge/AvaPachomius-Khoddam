@@ -42,6 +42,21 @@ class Priest extends Model
         return $this->hasMany(ConfessionSlot::class, 'priest_id', 'priest_id');
     }
 
+    public function appointmentSlots(): HasMany
+    {
+        return $this->hasMany(AppointmentSlot::class, 'priest_id', 'priest_id');
+    }
+
+    public function secretaries(): HasMany
+    {
+        return $this->hasMany(PriestSecretary::class, 'priest_id', 'priest_id');
+    }
+
+    public function activeSecretaries(): HasMany
+    {
+        return $this->secretaries()->where('status', PriestSecretary::STATUS_ACTIVE);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', self::STATUS_ACTIVE);

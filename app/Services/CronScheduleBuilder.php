@@ -24,6 +24,7 @@ class CronScheduleBuilder
     public function frequencies(): array
     {
         return [
+            self::FREQUENCY_EVERY_MINUTE,
             self::FREQUENCY_EVERY_FIVE_MINUTES,
             self::FREQUENCY_HOURLY,
             self::FREQUENCY_DAILY_AT,
@@ -44,6 +45,7 @@ class CronScheduleBuilder
         $frequency = (string) ($schedule['frequency'] ?? self::FREQUENCY_DAILY_AT);
 
         return match ($frequency) {
+            self::FREQUENCY_EVERY_MINUTE => '* * * * *',
             self::FREQUENCY_EVERY_FIVE_MINUTES => '*/5 * * * *',
             self::FREQUENCY_HOURLY => '0 * * * *',
             self::FREQUENCY_DAILY_AT => sprintf(

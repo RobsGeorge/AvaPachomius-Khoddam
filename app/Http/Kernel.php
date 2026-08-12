@@ -36,11 +36,15 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\AssignRequestId::class,
+            \App\Http\Middleware\RecordUsageMetrics::class,
             \App\Http\Middleware\PreventSessionPageCache::class,
+            \App\Http\Middleware\RedirectNumericServiceToSlug::class,
             \App\Http\Middleware\SetLocale::class,
             \App\Tenancy\ResolveTenant::class,
             \App\Tenancy\EnsureChurchMember::class,
             \App\Http\Middleware\RedirectSuperadminWithoutTenantWorkflow::class,
+            \App\Http\Middleware\RedirectChurchUserFromConsole::class,
             \App\Http\Middleware\LogUserActivity::class,
             \App\Http\Middleware\RequireMandatoryFeedback::class,
             \App\Http\Middleware\RequireProfilePhoto::class,
@@ -55,8 +59,13 @@ class Kernel extends HttpKernel
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Illuminate\Routing\Middleware\ThrottleRequests::class.':api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\AssignRequestId::class,
             \App\Tenancy\ResolveTenant::class,
-            \App\Tenancy\EnsureChurchMember::class,
+            // NOTE: the church-membership gate must run AFTER authentication. On the API,
+            // auth is `auth:sanctum` route middleware (runs after this group), so a bearer
+            // token isn't resolved here yet — `$request->user()` (default web guard) is null
+            // and the gate would no-op. It is applied via the `church.member` alias inside
+            // the `auth:sanctum` groups in routes/api.php instead.
         ],
     ];
 
@@ -84,7 +93,9 @@ class Kernel extends HttpKernel
         'role'       => \App\Http\Middleware\RoleMiddleware::class,
         'permission' => \App\Http\Middleware\RequirePermission::class,
         'church.member' => \App\Tenancy\EnsureChurchMember::class,
+        'token.church' => \App\Tenancy\EnsureTokenChurch::class,
         'capability' => \App\Tenancy\RequireCapability::class,
+        'breakglass' => \App\Http\Middleware\EnsureBreakGlassGrant::class,
         'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         'impersonator.stop' => \App\Http\Middleware\AllowImpersonatorStop::class,
         'attendance.staff' => \App\Http\Middleware\AttendanceStaffMiddleware::class,

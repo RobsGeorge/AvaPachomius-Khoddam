@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Mail\SendOTPEmail;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -36,7 +37,12 @@ class RegistrationTest extends TestCase
         $this->assertDatabaseHas('user', [
             'email' => 'newservant@example.co',
             'is_verified' => false,
+            'registration_lane' => User::REGISTRATION_LANE_OPEN,
         ]);
+
+        $user = User::where('email', 'newservant@example.co')->first();
+        $this->assertNotNull($user);
+        $this->assertNull($user->person_id);
 
         Mail::assertSent(SendOTPEmail::class);
         $this->assertGuest();

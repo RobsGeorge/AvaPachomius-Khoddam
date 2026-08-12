@@ -25,6 +25,16 @@ class NotificationPreferenceService
         return $types;
     }
 
+    /**
+     * Whether a notification type applies to this user, i.e. the user's roles intersect the
+     * type's audience. Notifications must never be generated for a user outside the audience
+     * (they have no preference row for the type, and requesting one would 500).
+     */
+    public function appliesTo(User $user, string $type): bool
+    {
+        return array_key_exists($type, $this->typesForUser($user));
+    }
+
     public function ensureDefaults(User $user): void
     {
         foreach ($this->typesForUser($user) as $type => $definition) {

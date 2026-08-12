@@ -35,6 +35,11 @@ class QaCourseTestersCommand extends Command
         }
 
         $domain = (string) ($this->option('domain') ?: QaCourseTestersService::DEFAULT_EMAIL_DOMAIN);
+        if (($domainError = $this->validateDomain($domain)) !== null) {
+            $this->error($domainError);
+
+            return self::FAILURE;
+        }
 
         if ($this->option('wipe')) {
             return $this->wipe($qa, $domain);
@@ -45,11 +50,24 @@ class QaCourseTestersCommand extends Command
 
     private function provision(QaCourseTestersService $qa, string $domain): int
     {
-        $courseIds = $this->parseCourseIds();
+        try {
+            $courseIds = $this->parseCourseIds();
+        } catch (ValidationException $e) {
+            $this->error(collect($e->errors())->flatten()->implode(' '));
+
+            return self::FAILURE;
+        }
+
         $admins = max(1, (int) $this->option('admins'));
         $instructors = max(0, (int) $this->option('instructors'));
         $students = max(0, (int) $this->option('students'));
         $password = $this->option('password') ? (string) $this->option('password') : null;
+
+        if ($password !== null && ($passwordError = $this->validatePassword($password)) !== null) {
+            $this->error($passwordError);
+
+            return self::FAILURE;
+        }
 
         try {
             $courses = $qa->resolveCourses($courseIds);
@@ -158,13 +176,53 @@ class QaCourseTestersCommand extends Command
         }
 
         $ids = [];
+        $invalid = [];
         foreach (preg_split('/\s*,\s*/', $raw) as $part) {
             if ($part === '') {
+                continue;
+            }
+            // Reject "0", negatives, and non-numeric tokens that cast to 0.
+            if (! preg_match('/^[1-9]\d*$/', $part)) {
+                $invalid[] = $part;
                 continue;
             }
             $ids[] = (int) $part;
         }
 
-        return $ids === [] ? null : $ids;
+        if ($invalid !== []) {
+            throw ValidationException::withMessages([
+                'course' => 'Invalid course_id(s): '.implode(', ', $invalid).'. Use positive integers.',
+            ]);
+        }
+
+        return $ids === [] ? null : array_values(array_unique($ids));
+    }
+
+    private function validateDomain(string $domain): ?string
+    {
+        $domain = trim($domain);
+        if ($domain === '') {
+            return 'Email domain cannot be empty.';
+        }
+
+        if (str_contains($domain, '@') || str_contains($domain, ' ')) {
+            return 'Email domain must not include @ or spaces.';
+        }
+
+        // Allow reserved TLDs used in tests (.test / .qa) and normal DNS labels.
+        if (! preg_match('/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i', $domain)) {
+            return 'Email domain is not a valid hostname (e.g. avapakhomios.qa).';
+        }
+
+        return null;
+    }
+
+    private function validatePassword(string $password): ?string
+    {
+        if (strlen($password) < 8) {
+            return 'Password must be at least 8 characters when provided.';
+        }
+
+        return null;
     }
 }

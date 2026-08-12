@@ -6,6 +6,7 @@ use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\Role;
+use App\Models\StructureTemplate;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\AuditLogService;
@@ -18,6 +19,7 @@ use App\Services\RolePreviewService;
 use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
 use App\Support\NavigationHub;
+use App\Support\Structure\ProgressionPolicy;
 use App\Support\SuperadminWorkspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -117,6 +119,9 @@ class SuperAdminController extends Controller
         $supportsLocalizedFields = Schema::hasColumn('course', 'title_ar')
             && Schema::hasColumn('course', 'title_en');
 
+        $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
+        $progressionPolicies = ProgressionPolicy::all();
+
         return view('superadmin.courses', compact(
             'courses',
             'services',
@@ -126,6 +131,8 @@ class SuperAdminController extends Controller
             'requiresChurch',
             'showChurchColumn',
             'supportsLocalizedFields',
+            'structureTemplates',
+            'progressionPolicies',
         ));
     }
 

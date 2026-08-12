@@ -21,6 +21,8 @@ return [
             'course.access', 'course.view',
             'curriculum.view', 'curriculum.manage',
             'session.notify',
+            'student_assessment.view', 'student_assessment.manage',
+            'student_notes.view', 'student_notes.manage',
         ],
         'config' => ['modules' => true, 'recurring_years' => false],
     ],
@@ -62,7 +64,10 @@ return [
 
     'assessments' => [
         'label' => 'capabilities.assessments',
-        'permissions' => [],
+        'permissions' => [
+            'student_assessment.view', 'student_assessment.manage',
+            'student_notes.view', 'student_notes.manage',
+        ],
         'config' => [],
     ],
 
@@ -110,11 +115,25 @@ return [
         'label' => 'capabilities.church_management',
         'permissions' => [
             'church.configure', 'church.members.manage', 'church.role.manage',
+            'church.observability.view', 'church.observability.export',
             'priest.manage', 'priest.view',
-            'confession.manage', 'confession.view', 'confession.book',
+            'confession.manage', 'confession.manage_delegated', 'confession.view', 'confession.book', 'confession.book_on_behalf',
+            'appointment.manage', 'appointment.manage_delegated', 'appointment.view', 'appointment.book', 'appointment.book_on_behalf',
             'home_visit.manage', 'home_visit.view',
+            'church.cycle.view', 'church.cycle.manage',
             'finance.payroll.manage', 'finance.payroll.view',
             'finance.money_in.manage', 'finance.money_in.view',
+        ],
+        'config' => [],
+    ],
+
+    'public_site' => [
+        'label' => 'capabilities.public_site',
+        'permissions' => [
+            'public_site.profile',
+            'public_site.theme',
+            'public_site.manage',
+            'public_site.publish',
         ],
         'config' => [],
     ],

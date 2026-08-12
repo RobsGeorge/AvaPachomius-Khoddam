@@ -16,7 +16,8 @@
                         <div id="student-search-results" class="list-group mt-2"></div>
                     </div>
 
-                    <input type="hidden" name="user_id" id="selected-student-id" required>
+                    <input type="hidden" name="person_id" id="selected-person-id">
+                    <input type="hidden" name="user_id" id="selected-student-id">
 
                     <div class="mb-3">
                         <label for="add-attendance-status" class="form-label">{{ __('pages.status') }}</label>
@@ -55,6 +56,7 @@
 (function () {
     const searchInput = document.getElementById('student-search-input');
     const resultsEl = document.getElementById('student-search-results');
+    const selectedPersonInput = document.getElementById('selected-person-id');
     const selectedIdInput = document.getElementById('selected-student-id');
     const statusSelect = document.getElementById('add-attendance-status');
     const permissionWrap = document.getElementById('add-permission-reason-wrap');
@@ -81,7 +83,12 @@
             btn.className = 'list-group-item list-group-item-action';
             btn.textContent = item.label + (item.mobile_number ? ' — ' + item.mobile_number : '');
             btn.addEventListener('click', function () {
-                selectedIdInput.value = item.user_id;
+                if (selectedPersonInput) {
+                    selectedPersonInput.value = item.person_id || '';
+                }
+                if (selectedIdInput) {
+                    selectedIdInput.value = item.user_id || '';
+                }
                 if (searchInput) {
                     searchInput.value = item.label;
                 }
@@ -112,7 +119,8 @@
 
     if (searchInput) {
         searchInput.addEventListener('input', function () {
-            selectedIdInput.value = '';
+            if (selectedPersonInput) selectedPersonInput.value = '';
+            if (selectedIdInput) selectedIdInput.value = '';
             clearTimeout(searchTimer);
             searchTimer = setTimeout(runSearch, 300);
         });

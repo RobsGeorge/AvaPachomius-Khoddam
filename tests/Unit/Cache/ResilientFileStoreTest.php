@@ -154,17 +154,6 @@ class ResilientFileStoreTest extends TestCase
         }
     }
 
-    private function wipeHashDirectories(): void
-    {
-        if (! is_dir($this->directory)) {
-            return;
-        }
-
-        foreach ($this->files->directories($this->directory) as $directory) {
-            $this->files->deleteDirectory($directory);
-        }
-    }
-
     public function test_put_recovers_when_hash_subdirectory_is_not_writable(): void
     {
         $this->assertTrue($this->store->put('perm-key', 'v1', 60));
@@ -380,6 +369,17 @@ class ResilientFileStoreTest extends TestCase
             }
             $this->assertTrue($this->store->put('cycle-'.$i, 'v'.$i.'-b', 30));
             $this->assertSame('v'.$i.'-b', $this->store->get('cycle-'.$i));
+        }
+    }
+
+    private function wipeHashDirectories(): void
+    {
+        if (! is_dir($this->directory)) {
+            return;
+        }
+
+        foreach ($this->files->directories($this->directory) as $directory) {
+            $this->files->deleteDirectory($directory);
         }
     }
 }

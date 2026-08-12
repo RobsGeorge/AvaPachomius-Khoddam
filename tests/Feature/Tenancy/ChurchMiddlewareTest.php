@@ -25,7 +25,11 @@ class ChurchMiddlewareTest extends EventModuleTestCase
 
     public function test_resolve_tenant_binds_main_when_enabled(): void
     {
-        config(['tenancy.enabled' => true]);
+        config([
+            'tenancy.enabled' => true,
+            'tenancy.base_domain' => 'staging.example.test',
+            'app.url' => 'https://staging.example.test',
+        ]);
 
         $response = (new ResolveTenant())->handle(Request::create('http://localhost/'), fn () => 'ok');
 
@@ -94,7 +98,7 @@ class ChurchMiddlewareTest extends EventModuleTestCase
     public function test_church_switcher_query_excludes_inactive_memberships(): void
     {
         $main = Church::main();
-        $other = Church::create(['slug' => 'inactive-member-church', 'name' => 'Inactive Member', 'status' => 'active']);
+        $other = $this->createChurch(['slug' => 'inactive-member-church', 'name' => 'Inactive Member', 'status' => 'active']);
         $user = $this->createUser(['email' => 'switcher-member@example.com']);
 
         ChurchUser::create([

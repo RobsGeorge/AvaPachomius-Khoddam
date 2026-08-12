@@ -1,0 +1,42 @@
+<?php
+
+return [
+    'title' => 'Sacraments',
+    'title_for' => 'Sacraments — :name',
+    'record' => 'Record sacrament',
+    'correct' => 'Correct record',
+    'correct_title' => 'Correct sacrament',
+    'recorded' => 'Sacrament recorded.',
+    'corrected' => 'Correction recorded. The original entry is unchanged.',
+    'empty' => 'No sacraments recorded yet.',
+    'back_to_person' => 'Back to person',
+    'back_to_list' => 'Back to sacraments',
+    'original' => 'Corrects original #:id',
+    'fields' => [
+        'type' => 'Type',
+        'date' => 'Date',
+        'date_precision' => 'Date precision',
+        'location_text' => 'Location (text)',
+        'location_church_id' => 'Location church ID',
+        'officiant_person_id' => 'Officiant person ID',
+        'second_person_id' => 'Second person ID (spouse / witness)',
+        'recorded_at' => 'Recorded at',
+    ],
+    'precision' => [
+        'day' => 'Exact day',
+        'month' => 'Month only',
+        'year' => 'Year only',
+    ],
+    'types' => [
+        'baptism' => 'Baptism',
+        'chrismation' => 'Chrismation',
+        'eucharist_first' => 'First Eucharist',
+        'marriage' => 'Marriage (إكليل)',
+        'repose' => 'Repose (نياحة)',
+        'ordination' => 'Ordination',
+    ],
+    'date_year' => ':year',
+    'date_month' => ':ym',
+    'date_day' => ':ymd',
+    'deceased_badge' => 'Deceased',
+];

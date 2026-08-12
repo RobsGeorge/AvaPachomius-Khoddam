@@ -7,9 +7,11 @@ use App\Models\ChurchUser;
 use App\Models\Organization;
 use App\Models\User;
 use App\Models\UserChurchRole;
+use App\Services\BreakGlass\BreakGlassService;
 use App\Services\ChurchProvisioningService;
 use App\Support\ChurchHost;
 use App\Tenancy\TenantContext;
+use App\Tenancy\TenantDatabaseResolver;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\EventModuleTestCase;
@@ -171,21 +173,58 @@ class ChurchProvisioningTest extends EventModuleTestCase
         $this->assertSame('custom.example.org', ChurchHost::hostFor($church));
     }
 
+    public function test_console_host_heals_admin_localhost_using_base_domain(): void
+    {
+        config([
+            'app.url' => 'https://staging.avapakhomios.com',
+            'tenancy.base_domain' => 'staging.avapakhomios.com',
+            'tenancy.console_host' => 'admin.localhost',
+        ]);
+
+        $this->assertSame('admin.staging.avapakhomios.com', ChurchHost::consoleHost());
+        $this->assertSame(
+            'https://admin.staging.avapakhomios.com/superadmin/churches',
+            ChurchHost::consoleUrl('/superadmin/churches')
+        );
+        $this->assertTrue(ChurchHost::isConsoleHost('admin.staging.avapakhomios.com'));
+        $this->assertFalse(ChurchHost::isConsoleHost('admin.localhost'));
+    }
+
+    public function test_console_host_respects_explicit_non_local_override(): void
+    {
+        config([
+            'app.url' => 'https://staging.avapakhomios.com',
+            'tenancy.base_domain' => 'staging.avapakhomios.com',
+            'tenancy.console_host' => 'console.staging.avapakhomios.com',
+        ]);
+
+        $this->assertSame('console.staging.avapakhomios.com', ChurchHost::consoleHost());
+    }
+
+    public function test_console_host_keeps_local_default_for_localhost_base(): void
+    {
+        config([
+            'app.url' => 'http://localhost',
+            'tenancy.base_domain' => 'localhost',
+            'tenancy.console_host' => 'admin.localhost',
+        ]);
+
+        $this->assertSame('admin.localhost', ChurchHost::consoleHost());
+        $this->assertSame('http://admin.localhost/superadmin/churches', ChurchHost::consoleUrl('/superadmin/churches'));
+    }
+
     public function test_login_rejects_non_member_when_tenancy_enabled_and_church_bound(): void
     {
         config(['tenancy.enabled' => true]);
-        // ResolveTenant falls back to main; outsider has no church_user row.
-        $this->createUser([
+        $outsider = $this->createUser([
             'email' => 'outsider@example.com',
-            'password' => Hash::make('password'),
         ]);
 
-        $response = $this->from('/login')->post('/login', [
-            'email' => 'outsider@example.com',
-            'password' => 'password',
-        ]);
+        $this->from('/login')
+            ->loginWithOtp($outsider)
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('identifier');
 
-        $response->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
@@ -243,6 +282,10 @@ class ChurchProvisioningTest extends EventModuleTestCase
         $church = Church::main();
         $super = $this->createUser(['email' => 'switcher-super@example.com', 'is_superadmin' => true]);
 
+        $org = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        $this->assertNotNull($org);
+        app(BreakGlassService::class)->grant($super, $super, $org, 'Switcher test platform access', 60);
+
         TenantContext::set($church);
 
         $this->actingAs($super)
@@ -251,5 +294,28 @@ class ChurchProvisioningTest extends EventModuleTestCase
 
         $html = $this->actingAs($super)->get('/dashboard')->assertOk()->getContent();
         $this->assertStringContainsString(__('tenancy.switch_church'), $html);
+    }
+
+    public function test_single_church_shows_static_label_not_dropdown(): void
+    {
+        config(['tenancy.enabled' => true]);
+        // Remove any extra churches seeded elsewhere so only Tenant Zero is active.
+        Church::query()->where('slug', '!=', config('tenancy.main_slug'))->delete();
+
+        $user = $this->createUser(['email' => 'one-church@example.com']);
+        ChurchUser::create([
+            'church_id' => Church::main()->church_id,
+            'user_id' => $user->user_id,
+            'status' => 'active',
+            'joined_at' => now(),
+        ]);
+
+        $html = $this->actingAs($user)->get('/dashboard')->assertOk()->getContent();
+
+        $this->assertStringContainsString(Church::main()->name, $html);
+        $this->assertDoesNotMatchRegularExpression(
+            '/aria-label="'.preg_quote(__('tenancy.switch_church'), '/').'"/',
+            $html
+        );
     }
 }

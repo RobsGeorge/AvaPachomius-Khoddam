@@ -3,6 +3,7 @@
 return [
     'roster_title'              => 'Student directory',
     'roster_intro'              => 'Contact details and upcoming birthdays for enrolled students.',
+    'export_enrollments_csv'    => 'Export enrollments CSV',
     'birthdays_title'           => 'Birthdays',
     'birthdays_intro'           => 'Classmates with birthdays this month and next. Tap call or WhatsApp to reach out.',
     'no_courses'                => 'No courses are available for your account.',

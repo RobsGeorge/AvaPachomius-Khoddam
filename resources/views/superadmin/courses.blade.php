@@ -17,6 +17,8 @@
         'groupedServices' => $groupedServices,
         'churches' => $churches,
         'requiresChurch' => $requiresChurch ?? false,
+        'structureTemplates' => $structureTemplates ?? collect(),
+        'progressionPolicies' => $progressionPolicies ?? [],
         'embedFrom' => 'courses',
     ])
 

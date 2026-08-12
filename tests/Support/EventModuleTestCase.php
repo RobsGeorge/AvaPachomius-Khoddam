@@ -5,6 +5,7 @@ namespace Tests\Support;
 use App\Models\Course;
 use App\Models\Event;
 use App\Models\EventAdmin;
+use App\Models\Church;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
@@ -14,6 +15,7 @@ use Tests\TestCase;
 
 abstract class EventModuleTestCase extends TestCase
 {
+    use LogsInWithOtp;
     use RefreshDatabase;
 
     protected static int $userCounter = 0;
@@ -44,6 +46,7 @@ abstract class EventModuleTestCase extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Tenancy\TenantDatabaseResolver::reset();
         $this->seed(\Database\Seeders\RbacSeeder::class);
     }
 
@@ -66,6 +69,43 @@ abstract class EventModuleTestCase extends TestCase
         }
 
         return $role;
+    }
+
+    /**
+     * Create a church and link a numerically aligned organizations row.
+     * Tenant `church_id` FKs target organizations.organization_id (P1.1); bare
+     * Church::create leaves orphans that fail under MySQL foreign keys.
+     */
+    protected function createChurch(array $overrides = []): Church
+    {
+        static $churchCounter = 0;
+        $churchCounter++;
+
+        $defaults = [
+            'slug' => 'test-church-'.$churchCounter,
+            'name' => 'Test Church '.$churchCounter,
+            'status' => 'active',
+            'place_country_code' => 'EG',
+            'place_governorate' => 'Test Governorate',
+            'place_district' => 'Test District',
+        ];
+        if (! array_key_exists('short_name', $overrides)) {
+            $defaults['short_name'] = mb_substr($defaults['name'], 0, 40);
+        }
+        if (! array_key_exists('place_key', $overrides)) {
+            $defaults['place_key'] = \App\Support\ChurchPlace::placeKey([
+                'name' => $overrides['name'] ?? $defaults['name'],
+                'place_country_code' => $overrides['place_country_code'] ?? $defaults['place_country_code'],
+                'place_governorate' => $overrides['place_governorate'] ?? $defaults['place_governorate'],
+                'place_district' => $overrides['place_district'] ?? $defaults['place_district'],
+            ]);
+        }
+
+        $church = Church::create(array_merge($defaults, $overrides));
+
+        app(\App\Services\ChurchProvisioningService::class)->ensureOrganizationLinked($church->fresh());
+
+        return $church->fresh();
     }
 
     protected function createCourse(array $overrides = []): Course

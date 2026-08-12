@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('body_class', 'auth-form-page')
+
 @section('title', __('auth.recover_title'))
 
 @section('content')

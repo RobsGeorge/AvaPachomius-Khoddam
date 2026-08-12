@@ -1,5 +1,14 @@
 <?php
 
+$mailMailer = env('MAIL_MAILER', 'smtp');
+$mailHost = env('MAIL_HOST');
+
+// Mailpit is a local Docker/Sail hostname only. Staging boxes copied from
+// .env.example otherwise fail DNS resolution for "mailpit" on password reset.
+if (env('APP_ENV') === 'staging' && $mailHost === 'mailpit' && $mailMailer === 'smtp') {
+    $mailMailer = 'log';
+}
+
 return [
 
     /*
@@ -13,7 +22,7 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', 'smtp'),
+    'default' => $mailMailer,
 
     /*
     |--------------------------------------------------------------------------

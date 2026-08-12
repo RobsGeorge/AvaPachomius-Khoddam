@@ -7,6 +7,7 @@ use App\Services\BirthdayNotificationService;
 use App\Services\CourseContextService;
 use App\Services\StudentRosterService;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentRosterController extends Controller
 {
@@ -55,6 +56,59 @@ class StudentRosterController extends Controller
             'nextMonthBirthdays' => $this->rosterService->studentsWithBirthdayInMonth($students, $nextMonth->month),
             'thisMonthLabel' => $now->translatedFormat('F Y'),
             'nextMonthLabel' => $nextMonth->translatedFormat('F Y'),
+        ]);
+    }
+
+    /** F-08 — CSV export of course enrollments (student roster). */
+    public function exportCsv(Request $request): StreamedResponse
+    {
+        $user = auth()->user();
+        $courses = $this->rosterService->accessibleCourses($user);
+        abort_if($courses->isEmpty(), 403);
+
+        $requestedCourseId = $request->input('course');
+        $course = $this->courseContext->resolveAccessibleCourse(
+            $user,
+            $courses,
+            $requestedCourseId !== null ? (string) $requestedCourseId : null,
+        );
+        $this->rosterService->authorizeCourse($user, $course->course_id);
+
+        $students = $this->rosterService->enrolledStudents($course);
+        $filename = 'enrollments-'.$course->course_id.'-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($students, $course) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, [
+                'course_id',
+                'course_title',
+                'national_id',
+                'first_name',
+                'second_name',
+                'third_name',
+                'email',
+                'mobile_number',
+                'date_of_birth',
+            ]);
+
+            foreach ($students as $student) {
+                fputcsv($out, [
+                    $course->course_id,
+                    $course->title,
+                    $student->national_id,
+                    $student->first_name,
+                    $student->second_name,
+                    $student->third_name,
+                    $student->email,
+                    $student->mobile_number,
+                    optional($student->date_of_birth)?->format('Y-m-d') ?? $student->date_of_birth,
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 

@@ -30,7 +30,7 @@ class TenantIsolationTest extends EventModuleTestCase
         $this->assertTrue(trait_exists(\App\Tenancy\BelongsToChurch::class));
 
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stmark', 'name' => 'St Mark', 'status' => 'active']);
 
         // Write: each row is auto-stamped with the church active at creation time.
         TenantContext::set($churchA);
@@ -62,7 +62,7 @@ class TenantIsolationTest extends EventModuleTestCase
     public function test_church_management_models_are_isolated_by_church(): void
     {
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stmina-t5', 'name' => 'St Mina', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stmina-t5', 'name' => 'St Mina', 'status' => 'active']);
 
         $userA = $this->createUser(['email' => 'priest-a@example.com']);
         $userB = $this->createUser(['email' => 'priest-b@example.com']);
@@ -94,10 +94,58 @@ class TenantIsolationTest extends EventModuleTestCase
         $this->assertSame(2, \App\Models\Priest::whereIn('priest_id', [$priestA->priest_id, $priestB->priest_id])->count());
     }
 
+    public function test_pac1_appointment_models_are_isolated_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = Church::create(['slug' => 'stmina-pac1-iso', 'name' => 'St Mina PAC1 iso', 'status' => 'active']);
+
+        $userA = $this->createUser(['email' => 'pac1-iso-a@example.com']);
+        $userB = $this->createUser(['email' => 'pac1-iso-b@example.com']);
+
+        TenantContext::set($churchA);
+        $priestA = \App\Models\Priest::create([
+            'user_id' => $userA->user_id,
+            'status' => \App\Models\Priest::STATUS_ACTIVE,
+        ]);
+        $typeA = \App\Models\AppointmentType::create([
+            'slug' => 'meet',
+            'name_ar' => 'لقاء',
+            'status' => \App\Models\AppointmentType::STATUS_ACTIVE,
+        ]);
+        $secA = \App\Models\PriestSecretary::create([
+            'priest_id' => $priestA->priest_id,
+            'user_id' => $userA->user_id,
+            'status' => \App\Models\PriestSecretary::STATUS_ACTIVE,
+        ]);
+
+        TenantContext::set($churchB);
+        $priestB = \App\Models\Priest::create([
+            'user_id' => $userB->user_id,
+            'status' => \App\Models\Priest::STATUS_ACTIVE,
+        ]);
+        \App\Models\AppointmentType::create([
+            'slug' => 'meet',
+            'name_ar' => 'لقاء',
+            'status' => \App\Models\AppointmentType::STATUS_ACTIVE,
+        ]);
+        \App\Models\PriestSecretary::create([
+            'priest_id' => $priestB->priest_id,
+            'user_id' => $userB->user_id,
+            'status' => \App\Models\PriestSecretary::STATUS_ACTIVE,
+        ]);
+
+        $this->assertNull(\App\Models\AppointmentType::find($typeA->appointment_type_id));
+        $this->assertNull(\App\Models\PriestSecretary::find($secA->priest_secretary_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(\App\Models\AppointmentType::find($typeA->appointment_type_id));
+        $this->assertNotNull(\App\Models\PriestSecretary::find($secA->priest_secretary_id));
+    }
+
     public function test_finance_models_are_isolated_by_church(): void
     {
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stmark-t6', 'name' => 'St Mark T6', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stmark-t6', 'name' => 'St Mark T6', 'status' => 'active']);
 
         TenantContext::set($churchA);
         $runA = \App\Models\PayrollRun::create([
@@ -128,7 +176,7 @@ class TenantIsolationTest extends EventModuleTestCase
     public function test_a_foreign_church_id_cannot_be_mass_assigned(): void
     {
         $churchA = Church::main();
-        $churchB = Church::create(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
+        $churchB = $this->createChurch(['slug' => 'stgeorge', 'name' => 'St George', 'status' => 'active']);
 
         // church_id is not mass-assignable; passing another church's id is ignored and the
         // row is stamped to the active church, so a write can never land in another tenant.

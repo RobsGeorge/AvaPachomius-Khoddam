@@ -41,7 +41,9 @@ class NewPasswordController extends Controller
                 ])->save();
 
                 if ($wasPending) {
-                    PendingRegistrationService::markCompleted($user);
+                    session([
+                        PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY => $user->user_id,
+                    ]);
                 }
 
                 event(new PasswordReset($user));
@@ -54,6 +56,14 @@ class NewPasswordController extends Controller
         ]);
 
         if ($status === Password::PASSWORD_RESET) {
+            $enrollmentUserId = session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY);
+
+            if ($enrollmentUserId) {
+                return redirect()
+                    ->route('register.enrollment', ['user_id' => $enrollmentUserId])
+                    ->with('success', __('register.password_saved_continue_enrollment'));
+            }
+
             return redirect()
                 ->route('login')
                 ->with('success', __('auth.password_reset_success'));

@@ -16,10 +16,12 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\ContentController;
 use App\Http\Controllers\SessionController;
 use App\Http\Controllers\SessionAttendanceController;
+use App\Http\Controllers\GuardianAttendanceController;
 use App\Http\Controllers\CourseAssessmentController;
 use App\Http\Controllers\UserAssessmentController;
 use App\Http\Controllers\UserCourseRoleController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ChurchRegistrationQrController;
 use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +36,9 @@ use App\Http\Controllers\ServiceRosterController;
 use App\Http\Controllers\HubController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\RecoveryConfirmController;
+use App\Http\Controllers\People\AccountRecoveryAssistController;
+use App\Http\Controllers\SuperAdmin\AccountRecoveryController as SuperAdminAccountRecoveryController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\ExamBuilderController;
 use App\Http\Controllers\ExamAttemptController;
@@ -43,10 +48,23 @@ use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdminApplicationLogController;
 use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchController;
+use App\Http\Controllers\SuperAdmin\ServiceBillingController;
+use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
 use App\Http\Controllers\Church\PriestController;
+use App\Http\Controllers\Church\AppointmentController;
 use App\Http\Controllers\Church\ConfessionController;
+use App\Http\Controllers\Church\PastoralIcsController;
 use App\Http\Controllers\Church\HomeVisitController;
+use App\Http\Controllers\Church\ChurchCycleController;
+use App\Http\Controllers\Church\BrandingController;
+use App\Http\Controllers\Church\EventThemeController;
+use App\Http\Controllers\Church\PublicProfileController;
+use App\Http\Controllers\Church\HomepageEditorController;
+use App\Http\Controllers\Church\ChurchMediaController;
+use App\Http\Controllers\Church\MembersController;
+use App\Http\Controllers\PublicSite\ChurchPublicProfileController;
+use App\Http\Controllers\PublicSite\HomepageController;
 use App\Http\Controllers\Church\PayrollController;
 use App\Http\Controllers\Church\MoneyInController;
 use App\Http\Controllers\CurriculumController;
@@ -61,6 +79,7 @@ use App\Http\Controllers\GradeItemController;
 use App\Http\Controllers\StudentGradeController;
 use App\Http\Controllers\GraduationController;
 use App\Http\Controllers\CertificateDownloadController;
+use App\Http\Controllers\CurriculumMediaController;
 use App\Http\Controllers\FinalGradesController;
 use App\Http\Controllers\AttendanceSettingsController;
 use App\Http\Controllers\EventController;
@@ -70,6 +89,8 @@ use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\SuperAdminSystemTestController;
 use App\Http\Controllers\SuperAdminScheduledTaskController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ModuleStudentAssessmentController;
+use App\Http\Controllers\StudentInstructorNoteController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
@@ -81,6 +102,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\Admin\TranslationController;
 use App\Http\Controllers\Admin\ProfilePhotoReportController;
 use App\Http\Controllers\Admin\RegistrationApplicationController;
+use App\Http\Controllers\Admin\ApplicationsHubController;
 use App\Http\Controllers\Admin\CourseApplicationController;
 use App\Http\Controllers\Admin\CourseApplicationFormController;
 use App\Http\Controllers\Admin\ServiceApplicationController as AdminServiceApplicationController;
@@ -102,6 +124,7 @@ use App\Http\Controllers\FaviconController;
 use App\Http\Controllers\People\PeopleHubController;
 use App\Http\Controllers\People\PeopleImportController;
 use App\Http\Controllers\People\InvitationClaimController;
+use App\Http\Controllers\Sacraments\SacramentController;
 
 
 
@@ -144,9 +167,30 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/import/{batch}/bulk-invite', [PeopleImportController::class, 'bulkInvite'])->name('import.bulk-invite');
             Route::post('/{person}/invite', [PeopleHubController::class, 'invite'])->name('invite');
         });
+        Route::middleware(['permission:people.recovery.assist'])->group(function () {
+            Route::get('/{person}/recovery', [AccountRecoveryAssistController::class, 'create'])->name('recovery.create');
+            Route::post('/{person}/recovery', [AccountRecoveryAssistController::class, 'store'])->name('recovery.store');
+        });
+        Route::middleware(['permission:sacraments.view,sacraments.record'])->group(function () {
+            Route::get('/{person}/sacraments', [SacramentController::class, 'index'])->name('sacraments.index');
+        });
+        Route::middleware(['permission:sacraments.record'])->group(function () {
+            Route::get('/{person}/sacraments/create', [SacramentController::class, 'create'])->name('sacraments.create');
+            Route::post('/{person}/sacraments', [SacramentController::class, 'store'])->name('sacraments.store');
+        });
         Route::get('/{person}', [PeopleHubController::class, 'show'])->name('show');
     });
 
+    Route::middleware(['permission:sacraments.view,sacraments.record'])->group(function () {
+        Route::get('/sacraments/{sacrament}', [SacramentController::class, 'show'])->name('sacraments.show');
+    });
+    Route::middleware(['permission:sacraments.record'])->group(function () {
+        Route::get('/sacraments/{sacrament}/correct', [SacramentController::class, 'correctForm'])->name('sacraments.correct');
+        Route::post('/sacraments/{sacrament}/correct', [SacramentController::class, 'correct'])->name('sacraments.correct.store');
+    });
+
+    // T8b — canonical slug hub (+ legacy numeric /services/{id}/… 301 via middleware).
+    Route::get('/s/{service}', [ServiceContextController::class, 'hub'])->name('services.hub');
     Route::get('/services/{service}/apply', [ServiceApplicationController::class, 'apply'])->name('services.apply');
     Route::post('/services/{service}/apply', [ServiceApplicationController::class, 'store'])->name('services.apply.store');
     Route::get('/services/{service}/application/status', [ServiceApplicationController::class, 'status'])->name('services.application.status');
@@ -163,18 +207,69 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/priests/{priest}', [PriestController::class, 'update'])->name('priests.update');
         });
 
-        Route::middleware(['permission:confession.view,confession.manage,confession.book'])->group(function () {
+        Route::middleware(['permission:confession.view,confession.manage,confession.manage_delegated,confession.book,confession.book_on_behalf'])->group(function () {
             Route::get('/confession', [ConfessionController::class, 'index'])->name('confession.index');
+            Route::get('/confession/my-bookings', [ConfessionController::class, 'myBookings'])->name('confession.my-bookings');
         });
-        Route::middleware(['permission:confession.manage'])->group(function () {
+        Route::middleware(['permission:confession.manage,confession.manage_delegated'])->group(function () {
             Route::get('/confession/slots/create', [ConfessionController::class, 'create'])->name('confession.create');
             Route::post('/confession/slots', [ConfessionController::class, 'store'])->name('confession.store');
+            Route::get('/confession/slots/generate', [ConfessionController::class, 'generateForm'])->name('confession.generate');
+            Route::post('/confession/slots/generate', [ConfessionController::class, 'generate'])->name('confession.generate.store');
             Route::get('/confession/slots/{slot}/edit', [ConfessionController::class, 'edit'])->name('confession.edit');
             Route::put('/confession/slots/{slot}', [ConfessionController::class, 'update'])->name('confession.update');
+            Route::post('/confession/slots/{slot}/status', [ConfessionController::class, 'setStatus'])->name('confession.status');
         });
-        Route::middleware(['permission:confession.book'])->group(function () {
+        Route::middleware(['permission:confession.book,confession.book_on_behalf'])->group(function () {
             Route::post('/confession/slots/{slot}/book', [ConfessionController::class, 'book'])->name('confession.book');
+            Route::get('/confession/slots/{slot}/book-on-behalf', [ConfessionController::class, 'bookOnBehalfForm'])->name('confession.book-on-behalf');
+            Route::post('/confession/slots/{slot}/book-on-behalf', [ConfessionController::class, 'bookOnBehalf'])->name('confession.book-on-behalf.store');
             Route::post('/confession/bookings/{booking}/cancel', [ConfessionController::class, 'cancelBooking'])->name('confession.bookings.cancel');
+            Route::post('/confession/bookings/{booking}/notes', [ConfessionController::class, 'updateBookingNotes'])->name('confession.bookings.notes');
+            Route::get('/confession/bookings/{booking}/reschedule', [ConfessionController::class, 'rescheduleForm'])->name('confession.bookings.reschedule');
+            Route::post('/confession/bookings/{booking}/reschedule', [ConfessionController::class, 'reschedule'])->name('confession.bookings.reschedule.store');
+        });
+        Route::middleware(['permission:priest.view,priest.manage'])->group(function () {
+            Route::get('/priests/{priest}/secretaries', [ConfessionController::class, 'secretaries'])->name('priests.secretaries');
+            Route::post('/priests/{priest}/secretaries', [ConfessionController::class, 'storeSecretary'])->name('priests.secretaries.store');
+            Route::post('/priests/{priest}/secretaries/{secretary}/remove', [ConfessionController::class, 'removeSecretary'])->name('priests.secretaries.remove');
+        });
+
+        Route::middleware(['permission:appointment.view,appointment.manage,appointment.manage_delegated,appointment.book,appointment.book_on_behalf'])->group(function () {
+            Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+            Route::get('/appointments/my-bookings', [AppointmentController::class, 'myBookings'])->name('appointments.my-bookings');
+        });
+        Route::middleware(['permission:appointment.manage,appointment.manage_delegated'])->group(function () {
+            Route::get('/appointments/types', [AppointmentController::class, 'typesIndex'])->name('appointments.types.index');
+            Route::get('/appointments/types/create', [AppointmentController::class, 'typesCreate'])->name('appointments.types.create');
+            Route::post('/appointments/types', [AppointmentController::class, 'typesStore'])->name('appointments.types.store');
+            Route::get('/appointments/types/{type}/edit', [AppointmentController::class, 'typesEdit'])->name('appointments.types.edit');
+            Route::put('/appointments/types/{type}', [AppointmentController::class, 'typesUpdate'])->name('appointments.types.update');
+            Route::get('/appointments/slots/create', [AppointmentController::class, 'create'])->name('appointments.create');
+            Route::post('/appointments/slots', [AppointmentController::class, 'store'])->name('appointments.store');
+            Route::get('/appointments/slots/generate', [AppointmentController::class, 'generateForm'])->name('appointments.generate');
+            Route::post('/appointments/slots/generate', [AppointmentController::class, 'generate'])->name('appointments.generate.store');
+            Route::get('/appointments/slots/{slot}/edit', [AppointmentController::class, 'edit'])->name('appointments.edit');
+            Route::put('/appointments/slots/{slot}', [AppointmentController::class, 'update'])->name('appointments.update');
+            Route::post('/appointments/slots/{slot}/status', [AppointmentController::class, 'setStatus'])->name('appointments.status');
+        });
+        Route::middleware(['permission:appointment.book,appointment.book_on_behalf'])->group(function () {
+            Route::post('/appointments/slots/{slot}/book', [AppointmentController::class, 'book'])->name('appointments.book');
+            Route::get('/appointments/slots/{slot}/book-on-behalf', [AppointmentController::class, 'bookOnBehalfForm'])->name('appointments.book-on-behalf');
+            Route::post('/appointments/slots/{slot}/book-on-behalf', [AppointmentController::class, 'bookOnBehalf'])->name('appointments.book-on-behalf.store');
+            Route::post('/appointments/bookings/{booking}/cancel', [AppointmentController::class, 'cancelBooking'])->name('appointments.bookings.cancel');
+            Route::post('/appointments/bookings/{booking}/notes', [AppointmentController::class, 'updateBookingNotes'])->name('appointments.bookings.notes');
+            Route::get('/appointments/bookings/{booking}/reschedule', [AppointmentController::class, 'rescheduleForm'])->name('appointments.bookings.reschedule');
+            Route::post('/appointments/bookings/{booking}/reschedule', [AppointmentController::class, 'reschedule'])->name('appointments.bookings.reschedule.store');
+        });
+
+        // PAC5 — regenerate my own tokenized "my bookings" ICS link (self-scoped only).
+        Route::middleware(['permission:confession.view,confession.book,confession.manage,confession.manage_delegated,confession.book_on_behalf,appointment.view,appointment.book,appointment.manage,appointment.manage_delegated,appointment.book_on_behalf'])->group(function () {
+            Route::post('/ics/my-bookings/regenerate', [PastoralIcsController::class, 'regenerateMyBookings'])->name('ics.my-bookings.regenerate');
+        });
+        // PAC5 — regenerate a specific priest's agenda ICS link (own priest or active delegate; controller re-checks per-priest).
+        Route::middleware(['permission:confession.manage,confession.manage_delegated,appointment.manage,appointment.manage_delegated'])->group(function () {
+            Route::post('/priests/{priest}/ics-agenda/regenerate', [PastoralIcsController::class, 'regeneratePriestAgenda'])->name('ics.priest-agenda.regenerate');
         });
 
         Route::middleware(['permission:home_visit.view,home_visit.manage'])->group(function () {
@@ -185,6 +280,30 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/home-visits', [HomeVisitController::class, 'store'])->name('home-visits.store');
             Route::get('/home-visits/{visit}/edit', [HomeVisitController::class, 'edit'])->name('home-visits.edit');
             Route::put('/home-visits/{visit}', [HomeVisitController::class, 'update'])->name('home-visits.update');
+            Route::post('/home-visits/{visit}/notes', [HomeVisitController::class, 'storeNote'])->name('home-visits.notes.store');
+        });
+
+        // T9c — Church Cycle Dashboard (school year season; no global promote)
+        Route::middleware(['permission:church.cycle.view,church.cycle.manage'])->group(function () {
+            Route::get('/cycle', [ChurchCycleController::class, 'index'])->name('cycle.index');
+        });
+        Route::middleware(['permission:church.cycle.manage'])->group(function () {
+            Route::post('/cycle/years', [ChurchCycleController::class, 'storeYear'])->name('cycle.years.store');
+            Route::post('/cycle/years/{year}/start-promotion', [ChurchCycleController::class, 'startPromotion'])->name('cycle.years.start-promotion');
+            Route::post('/cycle/years/{year}/close', [ChurchCycleController::class, 'closeYear'])->name('cycle.years.close');
+            Route::post('/cycle/years/{year}/services/{service}/done', [ChurchCycleController::class, 'markServiceDone'])->name('cycle.years.services.done');
+        });
+
+        // T4 — church-admin members self-service (add existing or invite-by-email)
+        Route::middleware(['permission:church.members.manage'])->group(function () {
+            Route::get('/members', [MembersController::class, 'index'])->name('members.index');
+            Route::post('/members', [MembersController::class, 'store'])->name('members.store');
+            Route::delete('/members/{user}', [MembersController::class, 'destroy'])->name('members.destroy');
+        });
+
+        Route::middleware(['permission:church.registration_qr.manage'])->group(function () {
+            Route::post('/registration-qr', [ChurchRegistrationQrController::class, 'mint'])
+                ->name('registration_qr.mint');
         });
 
         // T6 — finance (first cut)
@@ -196,10 +315,16 @@ Route::middleware(['auth'])->group(function () {
             Route::middleware(['permission:finance.payroll.manage'])->group(function () {
                 Route::get('/payroll-create', [PayrollController::class, 'create'])->name('payroll.create');
                 Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+                Route::post('/payroll/generate-next', [PayrollController::class, 'generateNext'])->name('payroll.generate-next');
                 Route::post('/payroll/{run}/lines', [PayrollController::class, 'storeLine'])->name('payroll.lines.store');
                 Route::delete('/payroll/{run}/lines/{line}', [PayrollController::class, 'destroyLine'])->name('payroll.lines.destroy');
                 Route::post('/payroll/{run}/finalize', [PayrollController::class, 'finalize'])->name('payroll.finalize');
                 Route::delete('/payroll/{run}', [PayrollController::class, 'destroy'])->name('payroll.destroy');
+                Route::post('/payroll/{run}/submit-for-approval', [PayrollController::class, 'submitForApproval'])->name('payroll.submit-for-approval');
+            });
+            Route::middleware(['permission:finance.payroll.approve'])->group(function () {
+                Route::post('/payroll/{run}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+                Route::post('/payroll/{run}/reject', [PayrollController::class, 'reject'])->name('payroll.reject');
             });
 
             Route::middleware(['permission:finance.money_in.view,finance.money_in.manage'])->group(function () {
@@ -212,6 +337,38 @@ Route::middleware(['auth'])->group(function () {
                 Route::put('/money-in/{entry}', [MoneyInController::class, 'update'])->name('money-in.update');
                 Route::delete('/money-in/{entry}', [MoneyInController::class, 'destroy'])->name('money-in.destroy');
             });
+        });
+    });
+
+    // T10a/T10b — public church profile + branding (own capability; not under church_management)
+    Route::middleware(['capability:public_site'])->prefix('church')->name('church.')->group(function () {
+        Route::middleware(['permission:public_site.profile'])->group(function () {
+            Route::get('/public-profile', [PublicProfileController::class, 'edit'])->name('public-profile.edit');
+            Route::put('/public-profile', [PublicProfileController::class, 'update'])->name('public-profile.update');
+        });
+        Route::middleware(['permission:public_site.theme'])->group(function () {
+            Route::get('/branding', [BrandingController::class, 'edit'])->name('branding.edit');
+            Route::put('/branding', [BrandingController::class, 'update'])->name('branding.update');
+            Route::get('/event-theme', [EventThemeController::class, 'edit'])->name('event-theme.edit');
+            Route::put('/event-theme', [EventThemeController::class, 'update'])->name('event-theme.update');
+        });
+    });
+
+    // T10c — homepage CMS editor (capability public_site)
+    Route::middleware(['capability:public_site'])->prefix('site')->name('site.')->group(function () {
+        Route::middleware(['permission:public_site.manage'])->group(function () {
+            Route::get('/homepage', [HomepageEditorController::class, 'edit'])->name('homepage.edit');
+            Route::post('/homepage/sections', [HomepageEditorController::class, 'storeSection'])->name('homepage.sections.store');
+            Route::put('/homepage/sections/{section}', [HomepageEditorController::class, 'updateSection'])->name('homepage.sections.update');
+            Route::delete('/homepage/sections/{section}', [HomepageEditorController::class, 'destroySection'])->name('homepage.sections.destroy');
+            Route::post('/homepage/sections/reorder', [HomepageEditorController::class, 'reorder'])->name('homepage.sections.reorder');
+            Route::get('/preview', [HomepageEditorController::class, 'preview'])->name('preview');
+            Route::post('/media', [ChurchMediaController::class, 'store'])->name('media.store');
+            Route::delete('/media/{media}', [ChurchMediaController::class, 'destroy'])->name('media.destroy');
+        });
+        Route::middleware(['permission:public_site.publish'])->group(function () {
+            Route::post('/homepage/publish', [HomepageEditorController::class, 'publish'])->name('homepage.publish');
+            Route::post('/homepage/unpublish', [HomepageEditorController::class, 'unpublish'])->name('homepage.unpublish');
         });
     });
 
@@ -232,19 +389,61 @@ Route::middleware(['auth', 'admin'])->group(function () {
 });
 
 Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-Route::post('register', [RegisterController::class, 'register'])->name('register.store');
+Route::post('register', [RegisterController::class, 'register'])
+    ->middleware('throttle:30,1')
+    ->name('register.store');
+Route::get('register/qr/{token}', [ChurchRegistrationQrController::class, 'scan'])
+    ->middleware('throttle:60,1')
+    ->name('register.qr.scan');
+Route::get('register/ask-parent', [RegisterController::class, 'showAskParent'])->name('register.ask-parent');
 
 Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('password/reset/{token}', [NewPasswordController::class, 'create'])->name('password.reset');
 Route::post('password/reset', [NewPasswordController::class, 'store'])->name('password.update');
 
+Route::get('recovery/rebind', [ForgotPasswordController::class, 'showRebindForm'])->name('recovery.rebind');
+Route::post('recovery/rebind', [ForgotPasswordController::class, 'startSelfServeRebind'])->name('recovery.rebind.start')->middleware('throttle:10,1');
+Route::get('recovery/otp', [ForgotPasswordController::class, 'showRecoveryOtpForm'])->name('recovery.otp.show');
+Route::post('recovery/otp', [ForgotPasswordController::class, 'verifyRecoveryOtp'])->name('recovery.otp.verify')->middleware('throttle:20,1');
+Route::get('recovery/confirm', [RecoveryConfirmController::class, 'show'])->name('recovery.confirm');
+Route::post('recovery/confirm', [RecoveryConfirmController::class, 'store'])->name('recovery.confirm.store')->middleware('throttle:20,1');
+
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
 // Public landing — guests must not bounce / → /login → / (redirect loop when session storage fails).
 Route::get('/', [LoginController::class, 'showLoginForm'])->name('home');
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::post('login', [LoginController::class, 'login']);
+Route::get('login/otp', [LoginController::class, 'showOtpForm'])->name('login.otp.show');
+Route::get('/', [HomepageController::class, 'show'])->name('home');
+Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
+Route::post('login', [LoginController::class, 'login'])->middleware('throttle:10,1');
+Route::post('login/otp', [LoginController::class, 'verifyOtp'])->name('login.otp.verify')->middleware('throttle:20,1');
+Route::post('login/otp/resend', [LoginController::class, 'resendOtp'])->name('login.otp.resend')->middleware('throttle:5,1');
+
+// PAC5 — tokenized ICS feeds. No session/auth: external calendar apps poll these
+// with just the opaque token in the URL. Tenant resolution still applies (host-based).
+Route::get('/ics/bookings/{token}', [PastoralIcsController::class, 'bookings'])->name('ics.bookings');
+Route::get('/ics/priest-agenda/{token}', [PastoralIcsController::class, 'priestAgenda'])->name('ics.priest-agenda');
+
+Route::post('/observability/client-errors', [\App\Http\Controllers\ClientErrorController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('observability.client-errors');
+
+// Public church registration (lead capture → superadmin queue; no auto-provision).
+Route::get('/register-church', [ChurchRegistrationController::class, 'create'])->name('church-registration');
+Route::post('/register-church', [ChurchRegistrationController::class, 'store'])
+    ->middleware('throttle:30,1')
+    ->name('church-registration.store');
+Route::get('/register-church/thanks', [ChurchRegistrationController::class, 'thanks'])->name('church-registration.thanks');
+Route::get('/register-church/verify/{token}', [ChurchRegistrationController::class, 'verify'])
+    ->middleware('throttle:60,1')
+    ->where('token', '[A-Za-z0-9]{16,64}')
+    ->name('church-registration.verify');
+Route::get('/register-church/status/{token}', [ChurchRegistrationController::class, 'status'])
+    ->middleware('throttle:60,1')
+    ->where('token', '[A-Za-z0-9]{16,64}')
+    ->name('church-registration.status');
 
 Route::get('/verify-otp', [OTPController::class, 'showForm'])->name('otp.verify');
 Route::post('/verify-otp', [OTPController::class, 'verify']);
@@ -252,6 +451,9 @@ Route::post('/resend-otp', [OTPController::class, 'resend'])->name('otp.resend')
 
 Route::get('/set-password/{user_id}', [RegisterController::class, 'showSetPasswordForm'])->name('password.set');
 Route::post('/set-password', [RegisterController::class, 'storePassword'])->name('password.set.store');
+Route::get('/register/enrollment/courses', [RegisterController::class, 'enrollmentCourses'])->name('register.enrollment.courses');
+Route::get('/register/enrollment/{user_id}', [RegisterController::class, 'showEnrollmentForm'])->name('register.enrollment');
+Route::post('/register/enrollment', [RegisterController::class, 'storeEnrollment'])->name('register.enrollment.store');
 
 Route::get('/communications/t/{token}.gif', [CommunicationReportController::class, 'trackOpen'])
     ->name('communications.track-open')
@@ -265,6 +467,13 @@ Route::middleware(['auth', 'permission:communications.report'])->group(function 
 Route::middleware(['auth', 'attendance.staff'])->group(function () {
     Route::get('/attendance/sessions', [AttendanceController::class, 'showTodaySessions'])->name('attendance.sessions');
     Route::post('/attendance/record/{session}', [AttendanceController::class, 'recordAttendance'])->name('attendance.record');
+});
+
+// Guardian-mediated check-in — writes the ward's person_id (custodial visibility).
+Route::middleware(['auth'])->group(function () {
+    Route::post('/attendance/guardian/{session}/check-in', [GuardianAttendanceController::class, 'store'])
+        ->name('attendance.guardian.check-in')
+        ->whereNumber('session');
 });
 
 Route::middleware(['auth', 'permission:staff'])->group(function () {
@@ -295,6 +504,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
     Route::put('/notifications/settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
+    Route::post('/notifications/settings/mobile/send-code', [NotificationSettingsController::class, 'sendMobileCode'])->name('notifications.settings.mobile.send-code');
+    Route::post('/notifications/settings/mobile/verify', [NotificationSettingsController::class, 'verifyMobileCode'])->name('notifications.settings.mobile.verify');
     Route::post('/notifications/reminders', [NotificationSettingsController::class, 'storeReminder'])->name('notifications.reminders.store');
     Route::delete('/notifications/reminders/{reminder}', [NotificationSettingsController::class, 'destroyReminder'])->name('notifications.reminders.destroy');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
@@ -349,6 +560,19 @@ Route::middleware(['auth', 'permission:platform.service_crud'])->prefix('admin/s
     Route::put('/{service}', [ServiceManagementController::class, 'update'])->name('update');
     Route::post('/{service}/link-course', [ServiceManagementController::class, 'linkCourse'])->name('link-course');
     Route::post('/{service}/archive', [ServiceManagementController::class, 'archive'])->name('archive');
+    Route::get('/{service}/cycle', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'show'])->name('cycle.show');
+    Route::post('/{service}/cycle/edges', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'saveEdges'])->name('cycle.edges');
+    Route::post('/{service}/cycle/confirm', [\App\Http\Controllers\Admin\CycleProgressionController::class, 'confirm'])->name('cycle.confirm');
+});
+
+// Church-scoped observability at /admin/observability (permission-gated; not AdminMiddleware).
+Route::middleware(['auth', 'capability:church_management'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/observability', [\App\Http\Controllers\Admin\ObservabilityController::class, 'index'])
+        ->middleware('permission:church.observability.view')
+        ->name('observability.index');
+    Route::get('/observability/export', [\App\Http\Controllers\Admin\ObservabilityController::class, 'export'])
+        ->middleware('permission:church.observability.export')
+        ->name('observability.export');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -385,6 +609,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/course-applications/{application}/approve', [CourseApplicationController::class, 'approve'])->name('course-applications.approve');
     Route::post('/course-applications/{application}/reject', [CourseApplicationController::class, 'reject'])->name('course-applications.reject');
     Route::post('/course-applications/{application}/restore', [CourseApplicationController::class, 'restore'])->name('course-applications.restore');
+
+    // §13 applications center — shared index; approve/reject stay on per-type show pages.
+    Route::get('/applications-hub', [ApplicationsHubController::class, 'index'])->name('applications-hub.index');
 
     Route::get('/service-applications', [AdminServiceApplicationController::class, 'index'])->name('service-applications.index');
     Route::get('/service-applications/{serviceApplication}', [AdminServiceApplicationController::class, 'show'])->name('service-applications.show');
@@ -506,6 +733,7 @@ Route::middleware(['auth', 'course.application'])->group(function () {
     Route::get('/courses/{course}/grades',          [StudentGradeController::class, 'show'])->name('grades.show');
     Route::get('/courses/{course}/final-grades',   [FinalGradesController::class, 'show'])->name('courses.final-grades');
     Route::get('/certificates/{uuid}',              [CertificateDownloadController::class, 'download'])->name('certificates.download');
+    Route::get('/curriculum/media/{media}',         [CurriculumMediaController::class, 'download'])->name('curriculum.media.download');
 });
 
 // Curriculum & grades — admin/instructor management
@@ -544,6 +772,7 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     // Grades management
     Route::get('/courses/{course}/grades/manage',               [GradeCategoryController::class, 'admin'])->name('grades.admin');
     Route::get('/courses/{course}/grades/report',               [StudentGradeController::class, 'courseReport'])->name('grades.report');
+    Route::get('/courses/{course}/grades/export',               [StudentGradeController::class, 'exportCsv'])->name('grades.export');
     Route::post('/courses/{course}/grade-categories',           [GradeCategoryController::class, 'store'])->name('grade-categories.store');
     Route::put('/grade-categories/{category}',                  [GradeCategoryController::class, 'update'])->name('grade-categories.update');
     Route::delete('/grade-categories/{category}',               [GradeCategoryController::class, 'destroy'])->name('grade-categories.destroy');
@@ -569,7 +798,19 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::post('/courses/{course}/email-templates/preview', [CourseEmailTemplateController::class, 'preview'])->name('courses.email-templates.preview');
 
     Route::get('/students/roster',                              [StudentRosterController::class, 'index'])->name('students.roster');
+    Route::get('/students/roster/export',                       [StudentRosterController::class, 'exportCsv'])->name('students.roster.export');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
+
+    Route::middleware('capability:curriculum')->group(function () {
+        Route::get('/courses/{course}/modules/{module}/assessments', [ModuleStudentAssessmentController::class, 'index'])
+            ->name('module-assessments.index')->whereNumber(['course', 'module']);
+        Route::get('/courses/{course}/modules/{module}/assessments/{user}', [ModuleStudentAssessmentController::class, 'edit'])
+            ->name('module-assessments.edit')->whereNumber(['course', 'module', 'user']);
+        Route::put('/courses/{course}/modules/{module}/assessments/{user}', [ModuleStudentAssessmentController::class, 'update'])
+            ->name('module-assessments.update')->whereNumber(['course', 'module', 'user']);
+        Route::post('/courses/{course}/students/{user}/notes', [StudentInstructorNoteController::class, 'store'])
+            ->name('student-notes.store')->whereNumber(['course', 'user']);
+    });
 
     Route::prefix('announcements/manage')->name('announcements.manage.')->group(function () {
         Route::get('/', [AnnouncementManageController::class, 'index'])->name('index');
@@ -635,10 +876,15 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
     Route::get('/logs',                      [SuperAdminApplicationLogController::class, 'index'])->name('logs.index');
 
+    Route::get('/observability', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'index'])->name('observability.index');
+    Route::get('/observability/export', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'export'])->name('observability.export');
+
     // T4 — church tenant provisioning (also reachable on the console host).
     Route::get('/churches', [SuperAdminChurchController::class, 'index'])->name('churches.index');
     Route::get('/churches/create', [SuperAdminChurchController::class, 'create'])->name('churches.create');
     Route::post('/churches', [SuperAdminChurchController::class, 'store'])->name('churches.store');
+    Route::get('/churches/suggest-slug', [SuperAdminChurchController::class, 'suggestSlug'])->name('churches.suggest-slug');
+    Route::get('/churches/search-places', [SuperAdminChurchController::class, 'searchPlaces'])->name('churches.search-places');
     Route::get('/churches/{church}', [SuperAdminChurchController::class, 'show'])->name('churches.show');
     Route::get('/churches/{church}/edit', [SuperAdminChurchController::class, 'edit'])->name('churches.edit');
     Route::put('/churches/{church}', [SuperAdminChurchController::class, 'update'])->name('churches.update');
@@ -646,6 +892,8 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::post('/churches/{church}/activate', [SuperAdminChurchController::class, 'activate'])->name('churches.activate');
     Route::post('/churches/{church}/members', [SuperAdminChurchController::class, 'addMember'])->name('churches.members.store');
     Route::delete('/churches/{church}/members/{user}', [SuperAdminChurchController::class, 'removeMember'])->name('churches.members.destroy');
+    Route::post('/churches/{church}/break-glass', [SuperAdminChurchController::class, 'storeBreakGlassGrant'])->name('churches.break-glass.store');
+    Route::post('/churches/{church}/break-glass/{grant}/revoke', [SuperAdminChurchController::class, 'revokeBreakGlassGrant'])->name('churches.break-glass.revoke');
     Route::post('/churches/{church}/platform-enter', [SuperAdminChurchController::class, 'platformEnter'])->name('churches.platform-enter');
     Route::get('/churches/{church}/platform-enter/start', [SuperAdminChurchController::class, 'platformEnterSigned'])
         ->middleware('signed')
@@ -655,8 +903,29 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
         ->middleware('signed')
         ->name('churches.view-as.start');
 
+    // T9 — platform billing & entitlements
+    Route::get('/plans', [SubscriptionPlanController::class, 'index'])->name('plans.index');
+    Route::get('/plans/create', [SubscriptionPlanController::class, 'create'])->name('plans.create');
+    Route::post('/plans', [SubscriptionPlanController::class, 'store'])->name('plans.store');
+    Route::get('/plans/{plan}', [SubscriptionPlanController::class, 'show'])->name('plans.show');
+    Route::get('/plans/{plan}/edit', [SubscriptionPlanController::class, 'edit'])->name('plans.edit');
+    Route::put('/plans/{plan}', [SubscriptionPlanController::class, 'update'])->name('plans.update');
+
+    Route::get('/churches/{church}/billing', [ChurchBillingController::class, 'show'])->name('churches.billing');
+    Route::post('/churches/{church}/billing/plan', [ChurchBillingController::class, 'assignPlan'])->name('churches.billing.assign');
+    Route::post('/churches/{church}/billing/overrides', [ChurchBillingController::class, 'storeOverride'])->name('churches.billing.overrides.store');
+    Route::delete('/churches/{church}/billing/overrides/{featureKey}', [ChurchBillingController::class, 'destroyOverride'])->name('churches.billing.overrides.destroy');
+
+    Route::get('/services/{service}/billing', [ServiceBillingController::class, 'show'])->name('services.billing');
+    Route::post('/services/{service}/billing/plan', [ServiceBillingController::class, 'assignPlan'])->name('services.billing.assign');
+    Route::post('/services/{service}/billing/overrides', [ServiceBillingController::class, 'storeOverride'])->name('services.billing.overrides.store');
+    Route::delete('/services/{service}/billing/overrides/{featureKey}', [ServiceBillingController::class, 'destroyOverride'])->name('services.billing.overrides.destroy');
+
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
+
+    Route::get('/recovery', [SuperAdminAccountRecoveryController::class, 'index'])->name('recovery.index');
+    Route::post('/recovery', [SuperAdminAccountRecoveryController::class, 'store'])->name('recovery.store');
 
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/sessions/flush-users',    [SuperAdminController::class, 'flushSelectedUsers'])->name('sessions.flush-users');

@@ -4,8 +4,6 @@ namespace Tests\Feature\People;
 
 use App\Models\Attendance;
 use App\Models\Church;
-use App\Models\Family;
-use App\Models\FamilyMember;
 use App\Models\Person;
 use App\Models\Session;
 use App\Models\User;
@@ -151,16 +149,6 @@ class PeopleRegistryTest extends EventModuleTestCase
         $survivor = Person::withoutTenancy()->findOrFail($survivorUser->person_id);
         $duplicate = Person::withoutTenancy()->findOrFail($duplicateUser->person_id);
 
-        $family = Family::withoutTenancy()->create([
-            'church_id' => Church::main()->church_id,
-            'name' => 'Test Family',
-        ]);
-        FamilyMember::create([
-            'family_id' => $family->family_id,
-            'person_id' => $duplicate->person_id,
-            'role' => 'member',
-        ]);
-
         $summary = app(PersonMergeService::class)->merge($survivor, $duplicate, $admin);
 
         $duplicateUser->refresh();
@@ -172,12 +160,7 @@ class PeopleRegistryTest extends EventModuleTestCase
         $this->assertSame(1, $summary['attendance_intact']);
         $this->assertGreaterThanOrEqual(1, $summary['enrollments_intact']);
         $this->assertSame(1, Attendance::query()->where('user_id', $duplicateUser->user_id)->count());
-        $this->assertTrue(
-            FamilyMember::query()
-                ->where('family_id', $family->family_id)
-                ->where('person_id', $survivor->person_id)
-                ->exists()
-        );
+        $this->assertArrayNotHasKey('family_members_repointed', $summary);
     }
 
     public function test_person_is_church_scoped(): void

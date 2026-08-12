@@ -13,4 +13,5 @@ return [
     'announcements' => 'الإعلانات',
     'reporting' => 'التقارير',
     'church_management' => 'إدارة الكنيسة',
+    'public_site' => 'الحضور العام للكنيسة',
 ];

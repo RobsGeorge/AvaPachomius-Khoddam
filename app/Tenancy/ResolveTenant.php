@@ -3,6 +3,7 @@
 namespace App\Tenancy;
 
 use App\Models\Church;
+use App\Support\ChurchHost;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -13,6 +14,10 @@ use Illuminate\Http\Request;
  *   church; since all production data is church_id=1, behavior matches pre-tenancy.
  * - MULTI_TENANT=true  → web: subdomain / custom domain; api: token claim / header /
  *   Host. Unknown tenant → 404. Console host stays unbound (superadmin).
+ *
+ * After TenantContext::set(), {@see TenantDatabaseResolver} may repoint the
+ * `tenant` connection when the church's placement organization is db_isolated;
+ * shared placement (the default) is a no-op.
  */
 class ResolveTenant
 {
@@ -34,7 +39,7 @@ class ResolveTenant
 
         $host = $request->getHost();
 
-        if ($host === config('tenancy.console_host')) {
+        if (ChurchHost::isConsoleHost($host)) {
             TenantContext::clear();
 
             return $next($request);
@@ -112,9 +117,15 @@ class ResolveTenant
 
     private function isApexHost(string $host): bool
     {
+        // Local dev + PHPUnit always resolve to Tenant Zero when MULTI_TENANT=true,
+        // even if TENANCY_BASE_DOMAIN / APP_URL point at staging/production.
+        if (in_array($host, ['localhost', '127.0.0.1'], true)) {
+            return true;
+        }
+
         $base = config('tenancy.base_domain') ?: parse_url((string) config('app.url'), PHP_URL_HOST);
         if (! $base) {
-            return in_array($host, ['localhost', '127.0.0.1'], true);
+            return false;
         }
 
         return strcasecmp($host, $base) === 0
