@@ -31,14 +31,16 @@
         </div>
     </div>
 </div>
+@endsection
 
+@push('modals')
 @unless($canSeeIdentity || $pendingRequest)
-    <div class="modal fade" id="revealSubmissionModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+    <div class="modal fade" id="revealSubmissionModal" tabindex="-1" aria-labelledby="revealSubmissionModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
             <form method="POST" action="{{ route('feedback.surveys.report.reveal', [$survey, $submission]) }}" class="modal-content">
                 @csrf
                 <div class="modal-header">
-                    <h5 class="modal-title">{{ __('pages.feedback_request_identity') }}</h5>
+                    <h5 class="modal-title" id="revealSubmissionModalLabel">{{ __('pages.feedback_request_identity') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
                 </div>
                 <div class="modal-body">
@@ -54,4 +56,4 @@
         </div>
     </div>
 @endunless
-@endsection
+@endpush

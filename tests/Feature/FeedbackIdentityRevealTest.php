@@ -21,6 +21,8 @@ class FeedbackIdentityRevealTest extends EventModuleTestCase
             ->get(route('feedback.surveys.report', $survey))
             ->assertOk()
             ->assertSee(__('pages.feedback_anonymous_response', ['id' => $submission->submission_id]), false)
+            ->assertSee(__('pages.feedback_request_identity'), false)
+            ->assertDontSee('pages.feedback_request_identity', false)
             ->assertDontSee($student->displayName(), false);
     }
 

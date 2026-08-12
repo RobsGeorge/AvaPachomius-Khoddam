@@ -88,7 +88,9 @@
     </div>
     {{ $answers->links() }}
 </div>
+@endsection
 
+@push('modals')
 @foreach($answers as $answer)
     @php
         $sub = $answer->submission;
@@ -97,13 +99,13 @@
             ?? ($sub ? $pendingBySubmission->get($sub->submission_id) : null);
     @endphp
     @if($sub && ! $revealed && ! $pending)
-        <div class="modal fade" id="revealAnswer{{ $answer->answer_id }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
+        <div class="modal fade" id="revealAnswer{{ $answer->answer_id }}" tabindex="-1" aria-labelledby="revealAnswerLabel{{ $answer->answer_id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
                 <form method="POST" action="{{ route('feedback.surveys.report.reveal', [$survey, $sub]) }}" class="modal-content">
                     @csrf
                     <input type="hidden" name="answer_id" value="{{ $answer->answer_id }}">
                     <div class="modal-header">
-                        <h5 class="modal-title">{{ __('pages.feedback_request_identity') }}</h5>
+                        <h5 class="modal-title" id="revealAnswerLabel{{ $answer->answer_id }}">{{ __('pages.feedback_request_identity') }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
                     </div>
                     <div class="modal-body">
@@ -120,4 +122,4 @@
         </div>
     @endif
 @endforeach
-@endsection
+@endpush

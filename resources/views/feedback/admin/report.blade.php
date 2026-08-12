@@ -121,15 +121,17 @@
     </div>
     {{ $submissions->links() }}
 </div>
+@endsection
 
+@push('modals')
 @foreach($submissions as $sub)
     @unless($activeReveals->has($sub->submission_id) || $pendingRequests->has($sub->submission_id))
-        <div class="modal fade" id="revealModal{{ $sub->submission_id }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
+        <div class="modal fade" id="revealModal{{ $sub->submission_id }}" tabindex="-1" aria-labelledby="revealModalLabel{{ $sub->submission_id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
                 <form method="POST" action="{{ route('feedback.surveys.report.reveal', [$survey, $sub]) }}" class="modal-content">
                     @csrf
                     <div class="modal-header">
-                        <h5 class="modal-title">{{ __('pages.feedback_request_identity') }}</h5>
+                        <h5 class="modal-title" id="revealModalLabel{{ $sub->submission_id }}">{{ __('pages.feedback_request_identity') }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('pages.close') }}"></button>
                     </div>
                     <div class="modal-body">
@@ -146,4 +148,4 @@
         </div>
     @endunless
 @endforeach
-@endsection
+@endpush
