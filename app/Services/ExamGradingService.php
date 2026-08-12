@@ -186,6 +186,28 @@ class ExamGradingService
         return $result;
     }
 
+    /** Convert earned points to a 0–100 percentage using the exam's total_points. */
+    public function pointsToPercent(Exam $exam, float $points): float
+    {
+        $total = max(0.0, (float) $exam->total_points);
+        if ($total <= 0) {
+            return 0.0;
+        }
+
+        return round(($points / $total) * 100, 2);
+    }
+
+    /** Inverse of pointsToPercent for prefilling the offline grades UI. */
+    public function percentToPoints(Exam $exam, float $percent): float
+    {
+        $total = max(0.0, (float) $exam->total_points);
+        if ($total <= 0) {
+            return 0.0;
+        }
+
+        return round(($percent / 100) * $total, 2);
+    }
+
     private function buildResultRecord(ExamAttempt $attempt): ExamResult
     {
         return ExamResult::firstOrCreate(

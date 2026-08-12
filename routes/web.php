@@ -439,6 +439,7 @@ Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(funct
     Route::get('/exams/{exam}/grades', [ExamGradesController::class, 'show'])->name('exams.grades');
     Route::post('/exams/{exam}/grades/announce', [ExamGradesController::class, 'announce'])->name('exams.grades.announce');
     Route::post('/exams/{exam}/grades/offline', [ExamGradesController::class, 'storeOffline'])->name('exams.grades.offline');
+    Route::post('/exams/{exam}/grades/offline/bulk', [ExamGradesController::class, 'storeOfflineBulk'])->name('exams.grades.offline.bulk');
     Route::put('/exams/{exam}/grades/{result}', [ExamGradesController::class, 'updateManual'])->name('exams.grades.update');
     Route::post('/exams/{exam}/grades/{result}/clear-cheater', [ExamGradesController::class, 'clearCheater'])->name('exams.grades.clear-cheater');
 });
