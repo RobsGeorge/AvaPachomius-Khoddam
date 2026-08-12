@@ -6,12 +6,10 @@ use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\ServiceApplication;
 use App\Models\User;
-use App\Services\ApplicationsHubQuery;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
 use App\Services\ServiceContextService;
-use App\Services\Structure\StructureAnchorResolver;
 use App\Services\StudentRosterService;
 
 class NavigationHub
@@ -26,18 +24,18 @@ class NavigationHub
         $links = [];
 
         if (self::canAnyCourse($user, $resolver, ['curriculum.view', 'curriculum.manage'])) {
-            $links[] = self::categorized(self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view', 'curriculum', StructureAnchorResolver::ANCHOR_ENROLLMENT), 'learning');
+            $links[] = self::categorized(self::link('curriculum.index', 'nav.curriculum', 'bi-journal-bookmark', ['curriculum.*'], 'curriculum.view', 'curriculum'), 'learning');
         }
 
         if (self::canAnyCourse($user, $resolver, ['curriculum.manage'])) {
-            $links[] = self::categorized(self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage', 'curriculum', StructureAnchorResolver::ANCHOR_ATTENDANCE), 'learning');
-            $links[] = self::categorized(self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage', 'curriculum', StructureAnchorResolver::ANCHOR_ENROLLMENT), 'learning');
+            $links[] = self::categorized(self::link('sessions.index', 'nav.sessions', 'bi-calendar3', ['sessions.*'], 'curriculum.manage', 'curriculum'), 'learning');
+            $links[] = self::categorized(self::link('modules.index', 'nav.modules', 'bi-collection', ['modules.*'], 'curriculum.manage', 'curriculum'), 'learning');
         }
 
         if (self::canAnyCourse($user, $resolver, ['assignment.view', 'assignment.manage'])) {
             $links[] = self::categorized(self::link('assignments.index', 'dashboard.assignments', 'bi-journal-text', [
                 'assignments.*',
-            ], 'assignment.view', 'assignments', StructureAnchorResolver::ANCHOR_ASSIGNMENT_LEVELS), 'assessment');
+            ], 'assignment.view', 'assignments'), 'assessment');
         }
 
         if (self::canAnyCourse($user, $resolver, ['exam.author', 'exam.grade'])) {
@@ -55,12 +53,12 @@ class NavigationHub
         if (self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
             $links[] = self::categorized(self::link('attendance.all', 'nav.attendance', 'bi-calendar-check', [
                 'attendance.all', 'attendance.user', 'attendance.by-date', 'attendance.user-report',
-            ], 'attendance.view_all', 'attendance', StructureAnchorResolver::ANCHOR_ATTENDANCE), 'people');
-            $links[] = self::categorized(self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report', 'attendance', StructureAnchorResolver::ANCHOR_ATTENDANCE), 'people');
+            ], 'attendance.view_all', 'attendance'), 'people');
+            $links[] = self::categorized(self::link('attendance.report', 'dashboard.attendance_report', 'bi-graph-up', ['attendance.report'], 'attendance.report', 'attendance'), 'people');
         }
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
-            $links[] = self::categorized(self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce'], 'roster.view', null, StructureAnchorResolver::ANCHOR_ENROLLMENT), 'people');
+            $links[] = self::categorized(self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce'], 'roster.view'), 'people');
         }
 
         if (self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
@@ -98,7 +96,7 @@ class NavigationHub
         }
 
         if (self::canAnyCourse($user, $resolver, ['attendance.view_own']) && ! self::canAnyCourse($user, $resolver, ['attendance.view_all'])) {
-            $links[] = self::categorized(self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own', 'attendance', StructureAnchorResolver::ANCHOR_ATTENDANCE), 'people');
+            $links[] = self::categorized(self::link('attendance.my', 'nav.my_attendance', 'bi-calendar-check', ['attendance.my'], 'attendance.view_own', 'attendance'), 'people');
         }
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
@@ -130,7 +128,7 @@ class NavigationHub
             ], 'events.view', 'events'), 'community');
         }
 
-        return self::filterByStructureAnchors(self::filterByCapability($links), $user);
+        return self::filterByCapability($links);
     }
 
     public static function serviceLinks(?User $user): array
@@ -166,7 +164,7 @@ class NavigationHub
             ];
         }
 
-        if ($user->canAccessAdminServiceApplications()) {
+        if ($user->canInSystem('service_application.review')) {
             $links[] = array_merge(self::link(
                 'admin.service-applications.index',
                 'service.applications_admin_title',
@@ -230,12 +228,10 @@ class NavigationHub
             }
         }
 
-        // Bound tenant only when MULTI_TENANT=true (console host stays unbound).
-        // Fall back to Tenant Zero only while tenancy is dormant (production until cutover).
-        $church = \App\Tenancy\TenantContext::current();
-        if (! $church && ! config('tenancy.enabled') && \Illuminate\Support\Facades\Schema::hasTable('church')) {
-            $church = \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first();
-        }
+        $church = \App\Tenancy\TenantContext::current()
+            ?? (\Illuminate\Support\Facades\Schema::hasTable('church')
+                ? \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first()
+                : null);
         $resolver = app(CoursePermissionResolver::class);
         $churchLinks = [];
 
@@ -258,9 +254,7 @@ class NavigationHub
             ($user->is_superadmin ?? false)
             || $resolver->canInChurch($user, 'confession.view', $church)
             || $resolver->canInChurch($user, 'confession.manage', $church)
-            || $resolver->canInChurch($user, 'confession.manage_delegated', $church)
             || $resolver->canInChurch($user, 'confession.book', $church)
-            || $resolver->canInChurch($user, 'confession.book_on_behalf', $church)
         )) {
             $churchLinks[] = array_merge(self::link(
                 'church.confession.index',
@@ -268,24 +262,6 @@ class NavigationHub
                 'bi-calendar2-heart',
                 ['church.confession.*'],
                 'confession.view',
-                'church_management'
-            ), ['category' => 'pastoral']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'appointment.view', $church)
-            || $resolver->canInChurch($user, 'appointment.manage', $church)
-            || $resolver->canInChurch($user, 'appointment.manage_delegated', $church)
-            || $resolver->canInChurch($user, 'appointment.book', $church)
-            || $resolver->canInChurch($user, 'appointment.book_on_behalf', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'church.appointments.index',
-                'nav.appointments',
-                'bi-calendar-check',
-                ['church.appointments.*'],
-                'appointment.view',
                 'church_management'
             ), ['category' => 'pastoral']);
         }
@@ -303,86 +279,6 @@ class NavigationHub
                 'home_visit.view',
                 'church_management'
             ), ['category' => 'pastoral']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'church.members.manage', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'church.members.index',
-                'nav.church_members',
-                'bi-people',
-                ['church.members.*'],
-                'church.members.manage',
-                'church_management'
-            ), ['category' => 'pastoral']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'church.cycle.view', $church)
-            || $resolver->canInChurch($user, 'church.cycle.manage', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'church.cycle.index',
-                'nav.church_cycle',
-                'bi-calendar2-range',
-                ['church.cycle.*'],
-                'church.cycle.view',
-                'church_management'
-            ), ['category' => 'pastoral']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'public_site.profile', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'church.public-profile.edit',
-                'nav.public_profile',
-                'bi-building',
-                ['church.public-profile.*'],
-                'public_site.profile',
-                'public_site'
-            ), ['category' => 'public_site']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'public_site.theme', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'church.branding.edit',
-                'nav.church_branding',
-                'bi-palette',
-                ['church.branding.*'],
-                'public_site.theme',
-                'public_site'
-            ), ['category' => 'public_site']);
-
-            $churchLinks[] = array_merge(self::link(
-                'church.event-theme.edit',
-                'nav.event_theme',
-                'bi-calendar-heart',
-                ['church.event-theme.*'],
-                'public_site.theme',
-                'public_site'
-            ), ['category' => 'public_site']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'public_site.manage', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'site.homepage.edit',
-                'nav.homepage_cms',
-                'bi-house-door',
-                ['site.homepage.*', 'site.preview', 'site.media.*'],
-                'public_site.manage',
-                'public_site'
-            ), ['category' => 'public_site']);
         }
 
         if ($church && (
@@ -413,20 +309,6 @@ class NavigationHub
                 'finance.money_in.view',
                 'church_management'
             ), ['category' => 'finance']);
-        }
-
-        if ($church && (
-            ($user->is_superadmin ?? false)
-            || $resolver->canInChurch($user, 'church.observability.view', $church)
-        )) {
-            $churchLinks[] = array_merge(self::link(
-                'admin.observability.index',
-                'nav.observability',
-                'bi-activity',
-                ['admin.observability.*'],
-                'church.observability.view',
-                'church_management'
-            ), ['category' => 'config']);
         }
 
         return array_merge($links, self::filterByCapability($churchLinks));
@@ -491,10 +373,6 @@ class NavigationHub
             $links[] = self::categorized(self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*'], 'course_application.form_builder'), 'reviews');
         }
 
-        if (app(ApplicationsHubQuery::class)->canAccessHub($user)) {
-            $links[] = self::categorized(self::link('admin.applications-hub.index', 'applications_hub.nav_title', 'bi-inboxes', ['admin.applications-hub.*'], 'applications.hub.view'), 'reviews');
-        }
-
         if ($user->canAccessAdminCourseApplications()) {
             $links[] = self::categorized(self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*'], 'course_application.review'), 'reviews');
         }
@@ -519,9 +397,6 @@ class NavigationHub
 
         $exclusiveLinks = [
             self::hubLink('superadmin.churches.index', 'tenancy.nav_churches', 'tenancy.nav_churches_desc', 'bi-building', ['superadmin.churches.*'], true),
-            self::hubLink('superadmin.church-applications.index', 'church_applications.nav_title', 'church_applications.nav_desc', 'bi-building-add', ['superadmin.church-applications.*'], true),
-            self::hubLink('admin.applications-hub.index', 'applications_hub.nav_title', 'applications_hub.nav_desc', 'bi-inboxes', ['admin.applications-hub.*'], true),
-            self::hubLink('superadmin.plans.index', 'billing.nav_plans', 'billing.nav_plans_desc', 'bi-credit-card', ['superadmin.plans.*'], true),
             self::hubLink('superadmin.people.merge.index', 'people.nav_merge', 'people.nav_merge_desc', 'bi-people', ['superadmin.people.*'], true),
             self::hubLink('superadmin.courses', 'pages.manage_services_and_courses', 'pages.superadmin_services_and_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
             self::hubLink('roles.hub', 'rbac.hub_title', 'rbac.hub_intro', 'bi-shield-check', [
@@ -536,7 +411,8 @@ class NavigationHub
             self::hubLink('superadmin.event-admins', 'events.event_admins_title', 'events.event_admins_hint', 'bi-calendar-event', ['superadmin.event-admins', 'superadmin.event-admins.*'], true),
             self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate', 'superadmin.role-preview'], true),
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
-            self::hubLink('superadmin.observability.index', 'nav.observability', 'pages.superadmin_observability_desc', 'bi-activity', ['superadmin.observability.*'], true),
+            self::hubLink('superadmin.feedback-reveal.index', 'pages.feedback_reveal_queue_title', 'pages.feedback_reveal_queue_desc', 'bi-incognito', ['superadmin.feedback-reveal.*'], true),
+            self::hubLink('superadmin.logs.index', 'nav.application_logs', 'pages.superadmin_application_logs_desc', 'bi-file-earmark-text', ['superadmin.logs.*'], true),
             self::hubLink('superadmin.events.tests.index', 'nav.events_tests', 'pages.superadmin_events_tests_desc', 'bi-bug', ['superadmin.events.tests.*'], true),
             self::hubLink('superadmin.system-tests.index', 'nav.system_tests', 'pages.superadmin_system_tests_desc', 'bi-clipboard2-check', ['superadmin.system-tests.*'], true),
             self::hubLink('superadmin.scheduled-tasks.index', 'nav.scheduled_tasks', 'pages.superadmin_scheduled_tasks_desc', 'bi-clock-history', ['superadmin.scheduled-tasks.*'], true),
@@ -621,17 +497,8 @@ class NavigationHub
             'admin.services.*',
             'church.priests.*',
             'church.confession.*',
-            'church.appointments.*',
             'church.home-visits.*',
-            'church.members.*',
-            'church.cycle.*',
             'church.finance.*',
-            'church.public-profile.*',
-            'church.branding.*',
-            'church.event-theme.*',
-            'site.homepage.*',
-            'site.preview',
-            'site.media.*',
         )) {
             return true;
         }
@@ -693,7 +560,6 @@ class NavigationHub
             'admin' => __('service.hub_section_admin'),
             'pastoral' => __('service.hub_section_pastoral'),
             'finance' => __('service.hub_section_finance'),
-            'public_site' => __('service.hub_section_public_site'),
         ];
     }
 
@@ -765,7 +631,7 @@ class NavigationHub
         return $link;
     }
 
-    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null, ?string $capability = null, ?string $structureAnchor = null): array
+    protected static function link(string $routeName, string $labelKey, string $icon, array $patterns, ?string $permission = null, ?string $capability = null): array
     {
         $course = current_course();
         if ($course && $routeName === 'curriculum.index') {
@@ -777,7 +643,6 @@ class NavigationHub
                     || request()->routeIs('curriculum.show', 'curriculum.admin'),
                 'permission' => $permission,
                 'capability' => $capability,
-                'structure_anchor' => $structureAnchor,
             ];
         }
 
@@ -789,7 +654,6 @@ class NavigationHub
                 'active' => request()->routeIs('graduation.show', 'graduation.export', 'graduation.*'),
                 'permission' => $permission,
                 'capability' => $capability,
-                'structure_anchor' => $structureAnchor,
             ];
         }
 
@@ -800,7 +664,6 @@ class NavigationHub
             'active' => request()->routeIs(...$patterns),
             'permission' => $permission,
             'capability' => $capability,
-            'structure_anchor' => $structureAnchor,
         ];
     }
 
@@ -823,41 +686,6 @@ class NavigationHub
             $capability = $link['capability'] ?? null;
 
             return $capability === null || $church->hasCapability($capability);
-        }));
-    }
-
-    /**
-     * T8b — incremental: when the current service has a structure template, hide links
-     * whose required anchor is absent. Untagged links and services without a template
-     * stay visible (backward compatible).
-     *
-     * @param  array<int, array<string, mixed>>  $links
-     * @return array<int, array<string, mixed>>
-     */
-    protected static function filterByStructureAnchors(array $links, User $user): array
-    {
-        $service = app(ServiceContextService::class)->currentService($user) ?? current_service();
-        if (! $service instanceof ChurchService || ! $service->structure_template_id) {
-            return $links;
-        }
-
-        $resolver = app(StructureAnchorResolver::class);
-        $hasEnrollment = filled($resolver->enrollmentLevel($service));
-        $hasAttendance = filled($resolver->attendanceLevel($service));
-        $hasAssignments = $resolver->assignmentLevels($service) !== [];
-
-        return array_values(array_filter($links, function (array $link) use ($hasEnrollment, $hasAttendance, $hasAssignments) {
-            $anchor = $link['structure_anchor'] ?? null;
-            if ($anchor === null) {
-                return true;
-            }
-
-            return match ($anchor) {
-                StructureAnchorResolver::ANCHOR_ENROLLMENT => $hasEnrollment,
-                StructureAnchorResolver::ANCHOR_ATTENDANCE => $hasAttendance,
-                StructureAnchorResolver::ANCHOR_ASSIGNMENT_LEVELS => $hasAssignments,
-                default => true,
-            };
         }));
     }
 
@@ -984,7 +812,6 @@ class NavigationHub
             $links[] = self::categorized(self::link('admin.attendance-settings.edit', 'pages.attendance_settings_title', 'bi-sliders', ['admin.attendance-settings.*']), 'config');
             $links[] = self::categorized(self::link('admin.profile-photos.index', 'profile_photos.report_title', 'bi-person-badge', ['admin.profile-photos.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.registration-applications.index', 'registration_review.queue_title', 'bi-clipboard-check', ['admin.registration-applications.*']), 'reviews');
-            $links[] = self::categorized(self::link('admin.applications-hub.index', 'applications_hub.nav_title', 'bi-inboxes', ['admin.applications-hub.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.courses.application-forms.index', 'course_applications.builder_index_title', 'bi-ui-checks', ['admin.courses.application-forms.*', 'admin.courses.application-form.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.course-applications.index', 'course_applications.queue_title', 'bi-journal-check', ['admin.course-applications.*']), 'reviews');
             $links[] = self::categorized(self::link('admin.graduation-settings.index', 'pages.graduation_configure_criteria', 'bi-award', ['admin.graduation-settings.*']), 'config');

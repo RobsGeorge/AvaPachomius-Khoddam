@@ -12,6 +12,7 @@ use App\Models\Session;
 use App\Models\Attendance;
 use App\Models\Module;
 use App\Services\AttendanceCloseService;
+use App\Services\AttendanceLatePolicyService;
 use App\Services\AuditLogService;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
@@ -49,6 +50,7 @@ class AttendanceController extends Controller
 
     public function __construct(
         private AttendanceCloseService $attendanceClose,
+        private AttendanceLatePolicyService $latePolicy,
         private CoursePermissionResolver $permissions,
     ) {}
 
@@ -728,6 +730,15 @@ class AttendanceController extends Controller
             'new_status'      => $attendance->status,
         ]);
 
+        $attendance->loadMissing('session');
+        if ($attendance->session) {
+            $this->latePolicy->syncAttendanceGradeForRecord(
+                $attendance->session,
+                $attendance,
+                (int) auth()->user()->user_id,
+            );
+        }
+
         return response()->json([
             'success' => true,
             'message' => __('pages.status_updated'),
@@ -953,6 +964,8 @@ class AttendanceController extends Controller
     {
         $totalSessionsInDB = DB::table('session')->count();
         $studentIds = $this->enrolledStudentIds();
+        // Match GraduationService: Late contributes late_grade_percentage (e.g. 50%) of a session.
+        $lateFactor = \App\Models\AttendancePolicy::current()->lateAttendanceFactor();
 
         $users = DB::table('user')
             ->whereIn('user.user_id', $studentIds)
@@ -968,8 +981,13 @@ class AttendanceController extends Controller
                 DB::raw('COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0) as total_sessions'),
                 DB::raw('CASE 
                     WHEN COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0) > 0 
-                    THEN ROUND((COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0) / 
-                               COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0)) * 100, 2)
+                    THEN ROUND((
+                        (
+                            COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission") THEN 1 ELSE 0 END), 0)
+                            + COALESCE(SUM(CASE WHEN attendance.status = "Late" THEN 1 ELSE 0 END), 0) * '.$lateFactor.'
+                        )
+                        / COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0)
+                    ) * 100, 2)
                     ELSE 0 
                 END as attendance_percentage')
             ])

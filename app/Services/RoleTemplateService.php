@@ -522,7 +522,7 @@ class RoleTemplateService
             'communications.report',
             'roster.view', 'roster.announce', 'session.notify',
             'graduation.view', 'graduation.configure', 'course.close', 'certificate.manage',
-            'feedback.view', 'feedback.manage', 'feedback.report',
+            'feedback.view', 'feedback.manage', 'feedback.report', 'feedback.identity.request',
             'student_assessment.view', 'student_assessment.manage',
             'student_notes.view', 'student_notes.manage',
             'live_quiz.play', 'live_quiz.host', 'live_quiz.manage',

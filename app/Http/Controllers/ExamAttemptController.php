@@ -7,6 +7,7 @@ use App\Models\ExamResult;
 use App\Models\ExamSchedule;
 use App\Services\ExamGradingService;
 use App\Services\ExamProctorService;
+use App\Services\ExamResultsVisibilityService;
 use App\Services\ExamTimerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ class ExamAttemptController extends Controller
         private ExamTimerService $timer,
         private ExamGradingService $grading,
         private ExamProctorService $proctor,
+        private ExamResultsVisibilityService $resultsVisibility,
     ) {}
 
     /** Redirect to pre-exam lobby (one entry point for students). */
@@ -243,6 +245,7 @@ class ExamAttemptController extends Controller
     public function confirmation(ExamSchedule $schedule)
     {
         $schedule->load('exam.module', 'exam.course');
+        $user = Auth::user();
         $result = ExamResult::where('schedule_id', $schedule->schedule_id)
             ->where('user_id', Auth::id())
             ->first();
@@ -251,7 +254,21 @@ class ExamAttemptController extends Controller
             ->where('user_id', Auth::id())
             ->first();
 
-        return view('exams.confirmation', compact('schedule', 'result', 'attempt'));
+        $exam = $schedule->exam;
+        $canViewScore = $user && $exam
+            ? $this->resultsVisibility->canStudentViewScore($user, $exam)
+            : false;
+        $scoreHideReason = $user && $exam
+            ? $this->resultsVisibility->hideReason($user, $exam)
+            : 'pending_announcement';
+
+        return view('exams.confirmation', compact(
+            'schedule',
+            'result',
+            'attempt',
+            'canViewScore',
+            'scoreHideReason'
+        ));
     }
 
     private function activeAttempt(ExamSchedule $schedule): ExamAttempt
