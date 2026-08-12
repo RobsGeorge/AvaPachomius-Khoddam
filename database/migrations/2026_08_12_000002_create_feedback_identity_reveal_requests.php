@@ -23,7 +23,11 @@ return new class extends Migration
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
 
-            $table->index(['requested_by_user_id', 'submission_id', 'status']);
+            // Explicit short name: MySQL caps identifiers at 64 chars.
+            $table->index(
+                ['requested_by_user_id', 'submission_id', 'status'],
+                'fir_requester_sub_status_idx'
+            );
         });
     }
 
