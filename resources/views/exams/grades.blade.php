@@ -15,8 +15,27 @@
             <h1 class="page-title mb-0">{{ __('exams.grades_dashboard') }}: {{ $exam->exam_name }}</h1>
             <p class="text-muted small mb-0">
                 {{ $exam->isOnline() ? __('exams.online_auto_graded') : __('exams.offline_grade_entry') }}
-                · {{ __('exams.total_points') }}: {{ number_format($totalPoints, 1) }}
             </p>
+            <form method="POST" action="{{ route('exams.grades.total-points', $exam) }}"
+                  class="d-flex flex-wrap align-items-end gap-2 mt-2">
+                @csrf
+                @method('PUT')
+                <div>
+                    <label class="form-label small mb-1" for="exam-total-points">{{ __('exams.total_points') }}</label>
+                    <input type="number"
+                           id="exam-total-points"
+                           name="total_points"
+                           class="form-control form-control-sm"
+                           style="width: 8rem;"
+                           min="0.01" max="9999.99" step="0.01"
+                           value="{{ $totalPoints > 0 ? number_format($totalPoints, 2, '.', '') : '' }}"
+                           required>
+                </div>
+                <button type="submit" class="btn btn-sm btn-outline-primary">{{ __('exams.save_total_points') }}</button>
+                @if($exam->isOnline())
+                    <span class="small text-muted align-self-center">{{ __('exams.total_points_online_note') }}</span>
+                @endif
+            </form>
             @if($exam->areResultsAnnounced())
                 <p class="small text-success mb-0 mt-1">
                     <i class="bi bi-megaphone"></i>
