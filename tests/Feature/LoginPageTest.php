@@ -16,6 +16,9 @@ class LoginPageTest extends TestCase
         $this->withSession(['locale' => 'en'])
             ->get(route('login'))
             ->assertOk()
-            ->assertSee(__('auth.login_title', [], 'en'), false);
+            ->assertSee(__('auth.login_title', [], 'en'), false)
+            ->assertSee('name="email"', false)
+            ->assertSee('name="password"', false)
+            ->assertDontSee('name="identifier"', false);
     }
 }

@@ -419,9 +419,6 @@ Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login'])->middleware('throttle:10,1');
-Route::get('login/otp', [LoginController::class, 'showOtpForm'])->name('login.otp.show');
-Route::post('login/otp', [LoginController::class, 'verifyOtp'])->name('login.otp.verify')->middleware('throttle:20,1');
-Route::post('login/otp/resend', [LoginController::class, 'resendOtp'])->name('login.otp.resend')->middleware('throttle:5,1');
 
 // PAC5 — tokenized ICS feeds. No session/auth: external calendar apps poll these
 // with just the opaque token in the URL. Tenant resolution still applies (host-based).

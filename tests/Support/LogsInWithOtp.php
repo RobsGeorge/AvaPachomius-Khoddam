@@ -2,37 +2,25 @@
 
 namespace Tests\Support;
 
-use App\Models\OtpCode;
 use App\Models\User;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
 
+/**
+ * Helper for feature tests that need a real web login (email + password).
+ * Method name kept for call-site compatibility after the OTP login rollback.
+ */
 trait LogsInWithOtp
 {
     protected function loginWithOtp(User $user, ?string $route = null, ?array $params = null): TestResponse
     {
-        Mail::fake();
-
         $params ??= [];
-        $identifier = $params['identifier'] ?? $user->email;
-        unset($params['identifier']);
+        $email = $params['email'] ?? $params['identifier'] ?? $user->email;
+        $password = $params['password'] ?? 'password';
+        unset($params['email'], $params['identifier'], $params['password']);
 
-        $this->post($route ?? route('login'), array_merge([
-            'identifier' => $identifier,
-        ], $params));
-
-        $otp = OtpCode::query()->where('user_id', $user->user_id)->value('code');
-
-        if (! $otp) {
-            $otp = '123456';
-            OtpCode::updateOrCreate(
-                ['user_id' => $user->user_id],
-                ['code' => $otp, 'expires_at' => now()->addMinutes(10)]
-            );
-        }
-
-        return $this->post(route('login.otp.verify'), array_merge([
-            'otp' => (string) $otp,
+        return $this->post($route ?? route('login'), array_merge([
+            'email' => $email,
+            'password' => $password,
         ], $params));
     }
 }
