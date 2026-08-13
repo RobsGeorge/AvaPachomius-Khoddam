@@ -11,6 +11,11 @@ final class ChurchBranding
 
     /** @var array<string, array{primary: string, accent: string, primary_text: string}> */
     public const PALETTES = [
+        'khoddam' => [
+            'primary' => '#7c3aed',
+            'accent' => '#d4af37',
+            'primary_text' => '#ffffff',
+        ],
         'deaconia' => [
             'primary' => '#114b4f',
             'accent' => '#c9a227',
@@ -39,10 +44,10 @@ final class ChurchBranding
     /** @return array<string, mixed> */
     public static function defaults(): array
     {
-        $base = self::PALETTES['deaconia'];
+        $base = self::PALETTES['khoddam'];
 
         return [
-            'palette' => 'deaconia',
+            'palette' => 'khoddam',
             'primary' => $base['primary'],
             'accent' => $base['accent'],
             'primary_text' => $base['primary_text'],
@@ -70,9 +75,9 @@ final class ChurchBranding
     public static function normalizeInput(array $input, ?string $existingLogoPath = null): array
     {
         $base = self::defaults();
-        $paletteKey = (string) ($input['palette'] ?? 'deaconia');
+        $paletteKey = (string) ($input['palette'] ?? 'khoddam');
         if (! array_key_exists($paletteKey, self::PALETTES) && $paletteKey !== 'custom') {
-            $paletteKey = 'deaconia';
+            $paletteKey = 'khoddam';
         }
 
         if ($paletteKey !== 'custom' && isset(self::PALETTES[$paletteKey])) {

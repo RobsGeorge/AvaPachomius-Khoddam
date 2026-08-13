@@ -361,6 +361,45 @@ return [
                 'type' => 'endpoint',
                 'routes' => ['feedback.surveys.report', 'feedback.surveys.report.*'],
             ],
+            'feedback.identity.request' => [
+                'label_en' => 'Request feedback identity reveal',
+                'label_ar' => 'طلب كشف هوية التقييم',
+                'type' => 'endpoint',
+                'routes' => ['feedback.surveys.report.reveal'],
+            ],
+        ],
+    ],
+
+    'student_assessment' => [
+        'scope' => 'course',
+        'label_en' => 'Student module assessment',
+        'label_ar' => 'تقييم الطالب للوحدة',
+        'sort' => 105,
+        'permissions' => [
+            'student_assessment.view' => [
+                'label_en' => 'View module student assessments',
+                'label_ar' => 'عرض تقييمات الطلاب للوحدة',
+                'type' => 'both',
+                'routes' => ['module-assessments.index', 'module-assessments.edit'],
+            ],
+            'student_assessment.manage' => [
+                'label_en' => 'Manage module student assessments',
+                'label_ar' => 'إدارة تقييمات الطلاب للوحدة',
+                'type' => 'both',
+                'routes' => ['module-assessments.index', 'module-assessments.edit', 'module-assessments.update'],
+            ],
+            'student_notes.view' => [
+                'label_en' => 'View private student notes',
+                'label_ar' => 'عرض ملاحظات الطلاب الخاصة',
+                'type' => 'endpoint',
+                'routes' => ['module-assessments.edit'],
+            ],
+            'student_notes.manage' => [
+                'label_en' => 'Add private student notes',
+                'label_ar' => 'إضافة ملاحظات طلاب خاصة',
+                'type' => 'endpoint',
+                'routes' => ['student-notes.store'],
+            ],
         ],
     ],
 
@@ -1045,6 +1084,14 @@ return [
                 'routes' => ['superadmin.observability.export'],
                 'system_only' => true,
             ],
+            'platform.application_logs' => [
+                'label_en' => 'View application logs',
+                'label_ar' => 'عرض سجلات التطبيق',
+                'type' => 'both',
+                'routes' => ['superadmin.logs.*'],
+                'nav' => ['system.application_logs'],
+                'system_only' => true,
+            ],
             'platform.impersonate' => [
                 'label_en' => 'Impersonate users',
                 'label_ar' => 'انتحال هوية المستخدمين',
@@ -1147,6 +1194,13 @@ return [
                 'label_ar' => 'استعادة الحساب من الدعم (تزكية فقط)',
                 'type' => 'both',
                 'routes' => ['superadmin.recovery.*'],
+                'system_only' => true,
+            ],
+            'feedback.identity.reveal' => [
+                'label_en' => 'Approve feedback identity reveals',
+                'label_ar' => 'الموافقة على كشف هوية التقييم',
+                'type' => 'endpoint',
+                'routes' => ['superadmin.feedback-reveal.*'],
                 'system_only' => true,
             ],
         ],

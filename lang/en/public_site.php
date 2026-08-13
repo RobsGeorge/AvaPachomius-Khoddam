@@ -39,6 +39,7 @@ return [
     'branding_save' => 'Save branding',
     'branding_contrast_error' => 'Primary and primary-text colors need more contrast.',
     'palette' => 'Starter palette',
+    'palette_khoddam' => 'Khoddam (purple + gold)',
     'palette_deaconia' => 'Deaconia (teal + gold)',
     'palette_nile' => 'Nile',
     'palette_olive' => 'Olive',

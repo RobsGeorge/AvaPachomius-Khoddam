@@ -17,7 +17,7 @@ class GraduationService
     /** @return Collection<int, float> user_id => attendance percentage */
     public function attendancePercentagesForCourse(Course $course): Collection
     {
-        $lateFactor = $this->lateAttendanceFactor();
+        $lateFactor = \App\Models\AttendancePolicy::current()->lateAttendanceFactor();
 
         $rows = DB::table('attendance')
             ->join('session', 'attendance.session_id', '=', 'session.session_id')
@@ -40,17 +40,6 @@ class GraduationService
 
             return [(int) $row->user_id => $pct];
         });
-    }
-
-    private function lateAttendanceFactor(): float
-    {
-        $policy = \App\Models\AttendancePolicy::current();
-
-        if (! $policy->is_enabled) {
-            return 0.0;
-        }
-
-        return max(0, min(1, $policy->late_grade_percentage / 100));
     }
 
     /**

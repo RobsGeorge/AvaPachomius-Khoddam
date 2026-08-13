@@ -95,22 +95,60 @@ class AttendanceLatePolicyService
         return $lateMarked;
     }
 
+    /**
+     * Re-apply attendance gradebook score for one record after a post-close edit.
+     * No-ops while the session is still open (grades are first created at close).
+     */
+    public function syncAttendanceGradeForRecord(Session $session, Attendance $attendance, int $actorId): int
+    {
+        $session->refresh();
+
+        if (! $session->isAttendanceClosed()) {
+            return 0;
+        }
+
+        if (! $attendance->user_id || ! $session->course_id) {
+            return 0;
+        }
+
+        $policy = AttendancePolicy::current();
+
+        return $this->writeAttendanceGrades(
+            $session,
+            $policy,
+            $actorId,
+            collect([$attendance]),
+        );
+    }
+
     private function syncAttendanceGrades(Session $session, AttendancePolicy $policy, int $closedByUserId): int
     {
         if (! $session->course_id) {
             return 0;
         }
 
+        $attendances = Attendance::where('session_id', $session->session_id)->get();
+        if ($attendances->isEmpty()) {
+            return 0;
+        }
+
+        return $this->writeAttendanceGrades($session, $policy, $closedByUserId, $attendances);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Attendance>  $attendances
+     */
+    private function writeAttendanceGrades(
+        Session $session,
+        AttendancePolicy $policy,
+        int $actorId,
+        $attendances,
+    ): int {
         $categories = GradeCategory::where('course_id', $session->course_id)
             ->where('type', 'attendance')
             ->get();
 
         if ($categories->isEmpty()) {
-            return 0;
-        }
-
-        $attendances = Attendance::where('session_id', $session->session_id)->get();
-        if ($attendances->isEmpty()) {
             return 0;
         }
 
@@ -132,6 +170,10 @@ class AttendanceLatePolicyService
             );
 
             foreach ($attendances as $attendance) {
+                if (! $attendance->user_id) {
+                    continue;
+                }
+
                 $score = $this->scoreForStatus($attendance->status, (float) $item->max_score, $policy);
 
                 StudentGrade::updateOrCreate(
@@ -141,7 +183,7 @@ class AttendanceLatePolicyService
                     ],
                     [
                         'score' => $score,
-                        'graded_by_id' => $closedByUserId,
+                        'graded_by_id' => $actorId,
                         'graded_at' => $now,
                         'notes' => $attendance->status === 'Late' ? 'Late' : null,
                     ]

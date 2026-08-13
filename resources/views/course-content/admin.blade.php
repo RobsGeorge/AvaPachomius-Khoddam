@@ -101,12 +101,12 @@
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold">{{ __('course_context.theme_primary') }}</label>
                     <input type="color" name="branding_primary" class="form-control form-control-color w-100"
-                           value="{{ old('branding_primary', $branding['primary'] ?? '#114b4f') }}">
+                           value="{{ old('branding_primary', $branding['primary'] ?? '#7c3aed') }}">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold">{{ __('course_context.theme_accent') }}</label>
                     <input type="color" name="branding_accent" class="form-control form-control-color w-100"
-                           value="{{ old('branding_accent', $branding['accent'] ?? '#c9a227') }}">
+                           value="{{ old('branding_accent', $branding['accent'] ?? '#d4af37') }}">
                 </div>
                 <div class="col-md-6 d-flex align-items-end">
                     <div class="p-3 rounded border w-100" style="background: var(--color-surface); border-color: var(--color-border) !important;">
@@ -176,7 +176,7 @@
         <div class="card shadow-sm mb-5">
             {{-- Module header --}}
             <div class="card-header d-flex justify-content-between align-items-center py-3"
-                 style="background:linear-gradient(135deg,#114b4f,#0d3d40);color:#fff;">
+                 style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;">
                 <span class="fw-bold fs-5">
                     <i class="bi bi-collection-fill me-2"></i>{{ $module->title }}
                     @if($module->description)
@@ -287,6 +287,12 @@
                                 <a href="{{ route('feedback.index') }}" class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-chat-square-text"></i> {{ __('pages.manage_feedback') }}
                                 </a>
+                                @if($status === 'ended' && auth()->user()?->canInCourse('student_assessment.view', $course))
+                                    <a href="{{ route('module-assessments.index', [$course, $module]) }}"
+                                       class="btn btn-sm btn-outline-theme">
+                                        <i class="bi bi-clipboard-check"></i> {{ __('pages.manage_module_assessments') }}
+                                    </a>
+                                @endif
                             </div>
 
                             @if(!($pivot->feedback_open ?? false))

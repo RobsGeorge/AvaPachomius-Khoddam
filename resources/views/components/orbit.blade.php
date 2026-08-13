@@ -1,4 +1,4 @@
-{{-- Deaconia "Orbit" mark: static Coptic cross + sweeping gold ring. Pure SVG, currentColor-agnostic (colours via CSS vars). --}}
+{{-- Khoddam "Orbit" mark: static cross + sweeping gold ring. Pure SVG; colours via CSS vars. --}}
 @props(['size' => null, 'label' => null])
 <svg {{ $attributes->merge(['class' => 'kh-orbit']) }}
      @if($size) style="--kh-orbit-size: {{ $size }};" @endif

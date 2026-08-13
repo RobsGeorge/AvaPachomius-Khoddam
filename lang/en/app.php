@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name'        => 'Deaconia',
+    'name'        => 'Khoddam Preparation 2026',
     'institute_name' => 'St. Pachomius Church',
     'tagline'     => 'Servants preparation platform',
     'welcome'     => 'Welcome',

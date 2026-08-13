@@ -46,6 +46,7 @@ use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
+use App\Http\Controllers\SuperAdminApplicationLogController;
 use App\Http\Controllers\ChurchRegistrationController;
 use App\Http\Controllers\SuperAdmin\ChurchApplicationController as SuperAdminChurchApplicationController;
 use App\Http\Controllers\SuperAdmin\ChurchBillingController;
@@ -91,6 +92,8 @@ use App\Http\Controllers\SuperAdminEventTestController;
 use App\Http\Controllers\SuperAdminSystemTestController;
 use App\Http\Controllers\SuperAdminScheduledTaskController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ModuleStudentAssessmentController;
+use App\Http\Controllers\StudentInstructorNoteController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
@@ -411,11 +414,12 @@ Route::post('recovery/confirm', [RecoveryConfirmController::class, 'store'])->na
 
 Route::post('otp/send', [OTPController::class, 'sendOtp'])->name('otp.send');
 
+// Public landing — guests must not bounce / → /login → / (redirect loop when session storage fails).
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::get('login/otp', [LoginController::class, 'showOtpForm'])->name('login.otp.show');
 Route::get('/', [HomepageController::class, 'show'])->name('home');
 Route::get('/about', [ChurchPublicProfileController::class, 'show'])->name('public.church.profile');
 Route::post('login', [LoginController::class, 'login'])->middleware('throttle:10,1');
+Route::get('login/otp', [LoginController::class, 'showOtpForm'])->name('login.otp.show');
 Route::post('login/otp', [LoginController::class, 'verifyOtp'])->name('login.otp.verify')->middleware('throttle:20,1');
 Route::post('login/otp/resend', [LoginController::class, 'resendOtp'])->name('login.otp.resend')->middleware('throttle:5,1');
 
@@ -662,7 +666,10 @@ Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(funct
     Route::post('/exams/{exam}/publish', [ExamBuilderController::class, 'publish'])->name('exams.publish');
 
     Route::get('/exams/{exam}/grades', [ExamGradesController::class, 'show'])->name('exams.grades');
+    Route::post('/exams/{exam}/grades/announce', [ExamGradesController::class, 'announce'])->name('exams.grades.announce');
+    Route::put('/exams/{exam}/grades/total-points', [ExamGradesController::class, 'updateTotalPoints'])->name('exams.grades.total-points');
     Route::post('/exams/{exam}/grades/offline', [ExamGradesController::class, 'storeOffline'])->name('exams.grades.offline');
+    Route::post('/exams/{exam}/grades/offline/bulk', [ExamGradesController::class, 'storeOfflineBulk'])->name('exams.grades.offline.bulk');
     Route::put('/exams/{exam}/grades/{result}', [ExamGradesController::class, 'updateManual'])->name('exams.grades.update');
     Route::post('/exams/{exam}/grades/{result}/clear-cheater', [ExamGradesController::class, 'clearCheater'])->name('exams.grades.clear-cheater');
 });
@@ -797,6 +804,17 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/students/roster/export',                       [StudentRosterController::class, 'exportCsv'])->name('students.roster.export');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
 
+    Route::middleware('capability:curriculum')->group(function () {
+        Route::get('/courses/{course}/modules/{module}/assessments', [ModuleStudentAssessmentController::class, 'index'])
+            ->name('module-assessments.index')->whereNumber(['course', 'module']);
+        Route::get('/courses/{course}/modules/{module}/assessments/{user}', [ModuleStudentAssessmentController::class, 'edit'])
+            ->name('module-assessments.edit')->whereNumber(['course', 'module', 'user']);
+        Route::put('/courses/{course}/modules/{module}/assessments/{user}', [ModuleStudentAssessmentController::class, 'update'])
+            ->name('module-assessments.update')->whereNumber(['course', 'module', 'user']);
+        Route::post('/courses/{course}/students/{user}/notes', [StudentInstructorNoteController::class, 'store'])
+            ->name('student-notes.store')->whereNumber(['course', 'user']);
+    });
+
     Route::prefix('announcements/manage')->name('announcements.manage.')->group(function () {
         Route::get('/', [AnnouncementManageController::class, 'index'])->name('index');
         Route::get('/create', [AnnouncementManageController::class, 'create'])->name('create');
@@ -859,6 +877,7 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::get('/event-admins',              [SuperAdminController::class, 'eventAdmins'])->name('event-admins');
     Route::get('/audit',                     [SuperAdminAuditController::class, 'index'])->name('audit.index');
     Route::get('/audit/export',              [SuperAdminAuditController::class, 'exportActivity'])->name('audit.export');
+    Route::get('/logs',                      [SuperAdminApplicationLogController::class, 'index'])->name('logs.index');
 
     Route::get('/observability', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'index'])->name('observability.index');
     Route::get('/observability/export', [\App\Http\Controllers\SuperAdmin\ObservabilityController::class, 'export'])->name('observability.export');
@@ -940,7 +959,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
     Route::delete('/scheduled-tasks/{taskKey}', [SuperAdminScheduledTaskController::class, 'destroy'])->where('taskKey', '.+')->name('scheduled-tasks.destroy');
     Route::get('/scheduled-tasks/runs/{scheduledTaskRun}', [SuperAdminScheduledTaskController::class, 'show'])->name('scheduled-tasks.show');
 
-    // T4 deferred — public church-registration review queue (manual provision after approve).
+    Route::get('/feedback-reveal', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'index'])->name('feedback-reveal.index');
+    Route::post('/feedback-reveal/{revealRequest}/approve', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'approve'])->name('feedback-reveal.approve')->whereNumber('revealRequest');
+    Route::post('/feedback-reveal/{revealRequest}/deny', [\App\Http\Controllers\Admin\FeedbackIdentityRevealController::class, 'deny'])->name('feedback-reveal.deny')->whereNumber('revealRequest');
+
+    // Public church-registration review queue (manual provision after approve).
     Route::get('/church-applications', [SuperAdminChurchApplicationController::class, 'index'])->name('church-applications.index');
     Route::get('/church-applications/{churchApplication}', [SuperAdminChurchApplicationController::class, 'show'])->name('church-applications.show');
     Route::post('/church-applications/{churchApplication}/approve', [SuperAdminChurchApplicationController::class, 'approve'])->name('church-applications.approve');
@@ -1007,6 +1030,8 @@ Route::middleware(['auth', 'capability:feedback'])->prefix('feedback')->name('fe
         Route::delete('/surveys/{survey}', [FeedbackSurveyAdminController::class, 'destroy'])->name('surveys.destroy')->whereNumber('survey');
         Route::get('/surveys/{survey}/report', [FeedbackReportController::class, 'show'])->name('surveys.report')->whereNumber('survey');
         Route::get('/surveys/{survey}/report/questions/{question}', [FeedbackReportController::class, 'byQuestion'])->name('surveys.report.question')->whereNumber(['survey', 'question']);
+        Route::get('/surveys/{survey}/report/submissions/{submission}', [FeedbackReportController::class, 'bySubmission'])->name('surveys.report.submission')->whereNumber(['survey', 'submission']);
+        Route::post('/surveys/{survey}/report/submissions/{submission}/reveal', [FeedbackReportController::class, 'requestReveal'])->name('surveys.report.reveal')->whereNumber(['survey', 'submission']);
         Route::get('/surveys/{survey}/report/students/{user}', [FeedbackReportController::class, 'byStudent'])->name('surveys.report.student')->whereNumber(['survey', 'user']);
     });
 

@@ -2,11 +2,8 @@
 
 namespace App\Services;
 
-use App\Exceptions\OptimisticLockException;
 use App\Models\Attendance;
 use App\Models\Church;
-use App\Models\Person;
-use App\Models\PersonPlacement;
 use App\Models\Role;
 use App\Models\Session;
 use App\Models\User;
@@ -117,8 +114,15 @@ class AttendanceCloseService
         int $actorId,
         ?string $permissionReason = null,
         bool $allowNonEnrolled = false,
-        ?int $expectedLockVersion = null,
     ): Attendance {
+        $this->assertValidStatus($status);
+
+        if ($status === 'Permission' && blank($permissionReason)) {
+            throw ValidationException::withMessages([
+                'permission_reason' => __('pages.enter_permission_reason'),
+            ]);
+        }
+
         $user = User::find($userId);
 
         if (! $user) {
@@ -127,97 +131,7 @@ class AttendanceCloseService
             ]);
         }
 
-        if ($user->person_id && Schema::hasColumn('attendance', 'person_id')) {
-            return $this->createOrUpdateForPerson(
-                $session,
-                (int) $user->person_id,
-                $status,
-                $actorId,
-                $permissionReason,
-                $allowNonEnrolled,
-                $expectedLockVersion,
-            );
-        }
-
-        $this->assertValidStatus($status);
-
-        if ($status === 'Permission' && blank($permissionReason)) {
-            throw ValidationException::withMessages([
-                'permission_reason' => __('pages.enter_permission_reason'),
-            ]);
-        }
-
         $this->assertStudentCanBeRecorded($session, $user, $allowNonEnrolled);
-
-        return $this->persistRecord(
-            $session,
-            $userId,
-            null,
-            $status,
-            $actorId,
-            $permissionReason,
-            $expectedLockVersion,
-        );
-    }
-
-    /**
-     * Person-first attendance write (ADR §28): rung-0 People with no User can be marked present.
-     * Dual-writes user_id when a linked account exists; otherwise user_id stays null.
-     */
-    public function createOrUpdateForPerson(
-        Session $session,
-        int $personId,
-        string $status,
-        int $actorId,
-        ?string $permissionReason = null,
-        bool $allowNonEnrolled = false,
-        ?int $expectedLockVersion = null,
-    ): Attendance {
-        $this->assertValidStatus($status);
-
-        if ($status === 'Permission' && blank($permissionReason)) {
-            throw ValidationException::withMessages([
-                'permission_reason' => __('pages.enter_permission_reason'),
-            ]);
-        }
-
-        $person = Person::withoutTenancy()->active()->find($personId);
-
-        if (! $person) {
-            throw ValidationException::withMessages([
-                'person_id' => __('pages.student_not_found'),
-            ]);
-        }
-
-        $linkedUser = User::query()->where('person_id', $person->person_id)->orderBy('user_id')->first();
-
-        $this->assertPersonCanBeRecorded($session, $person, $linkedUser, $allowNonEnrolled);
-
-        return $this->persistRecord(
-            $session,
-            $linkedUser?->user_id,
-            (int) $person->person_id,
-            $status,
-            $actorId,
-            $permissionReason,
-            $expectedLockVersion,
-        );
-    }
-
-    private function persistRecord(
-        Session $session,
-        ?int $userId,
-        ?int $personId,
-        string $status,
-        int $actorId,
-        ?string $permissionReason,
-        ?int $expectedLockVersion,
-    ): Attendance {
-        if ($userId === null && $personId === null) {
-            throw ValidationException::withMessages([
-                'person_id' => __('pages.student_not_found'),
-            ]);
-        }
 
         $now = now();
         $attributes = [
@@ -227,76 +141,18 @@ class AttendanceCloseService
             'permission_reason' => $status === 'Permission' ? $permissionReason : null,
         ];
 
-        if (Schema::hasColumn('attendance', 'person_id') && $personId !== null) {
-            $attributes['person_id'] = $personId;
-        }
+        $attendance = Attendance::updateOrCreate(
+            [
+                'session_id' => $session->session_id,
+                'user_id' => $userId,
+            ],
+            $attributes,
+        );
 
-        $existing = $this->findExistingRecord($session, $userId, $personId);
+        $fresh = $attendance->fresh(['user', 'takenBy', 'session']);
+        $this->latePolicy->syncAttendanceGradeForRecord($session, $fresh, $actorId);
 
-        if (! $existing) {
-            $attributes['session_id'] = $session->session_id;
-            $attributes['user_id'] = $userId;
-            if (Schema::hasColumn('attendance', 'lock_version')) {
-                $attributes['lock_version'] = 0;
-            }
-
-            return Attendance::create($attributes)->fresh(['user', 'person', 'takenBy', 'session']);
-        }
-
-        // Backfill person_id on legacy rows when resolvable.
-        if (Schema::hasColumn('attendance', 'person_id')
-            && $personId !== null
-            && ! $existing->person_id) {
-            $attributes['person_id'] = $personId;
-        }
-
-        if (Schema::hasColumn('attendance', 'lock_version')) {
-            $expected = $expectedLockVersion ?? (int) $existing->lock_version;
-            $affected = Attendance::query()
-                ->where('attendance_id', $existing->attendance_id)
-                ->where('lock_version', $expected)
-                ->update(array_merge($attributes, [
-                    'lock_version' => $expected + 1,
-                    'updated_at' => $now,
-                ]));
-
-            if ($affected === 0) {
-                $fresh = $existing->fresh();
-                throw new OptimisticLockException(
-                    __('structure.optimistic_lock_conflict'),
-                    $fresh?->lock_version
-                );
-            }
-
-            return $existing->fresh(['user', 'person', 'takenBy', 'session']);
-        }
-
-        $existing->fill($attributes);
-        $existing->save();
-
-        return $existing->fresh(['user', 'person', 'takenBy', 'session']);
-    }
-
-    private function findExistingRecord(Session $session, ?int $userId, ?int $personId): ?Attendance
-    {
-        if ($personId !== null && Schema::hasColumn('attendance', 'person_id')) {
-            $byPerson = Attendance::query()
-                ->where('session_id', $session->session_id)
-                ->where('person_id', $personId)
-                ->first();
-            if ($byPerson) {
-                return $byPerson;
-            }
-        }
-
-        if ($userId !== null) {
-            return Attendance::query()
-                ->where('session_id', $session->session_id)
-                ->where('user_id', $userId)
-                ->first();
-        }
-
-        return null;
+        return $fresh;
     }
 
     /** @return Collection<int, int> */
@@ -426,64 +282,6 @@ class AttendanceCloseService
         return $usersQuery->orderBy('first_name')->orderBy('second_name')->get();
     }
 
-    /**
-     * Search People for roster add (includes rung-0 placements; may have no User).
-     *
-     * @return Collection<int, array{person_id: int, user_id: int|null, label: string, mobile_number: ?string}>
-     */
-    public function searchPeopleForSession(Session $session, string $query, bool $includeNonEnrolled = false): Collection
-    {
-        $query = trim($query);
-
-        if ($query === '' || ! Schema::hasTable('people')) {
-            return collect();
-        }
-
-        $like = '%'.$query.'%';
-        $peopleQuery = Person::query()
-            ->active()
-            ->where(function ($q) use ($like) {
-                $q->where('first_name', 'like', $like)
-                    ->orWhere('second_name', 'like', $like)
-                    ->orWhere('third_name', 'like', $like)
-                    ->orWhere('display_name', 'like', $like)
-                    ->orWhere('mobile_number', 'like', $like)
-                    ->orWhere('national_id', 'like', $like)
-                    ->orWhere('email', 'like', $like);
-            })
-            ->limit(20);
-
-        if (! $includeNonEnrolled && $session->course_id) {
-            $peopleQuery->where(function ($q) use ($session) {
-                $q->whereHas('users', function ($uq) use ($session) {
-                    $uq->whereIn('user_id', $this->enrolledStudentIdsForCourse($session->course_id));
-                });
-                if (Schema::hasTable('person_placements')) {
-                    $q->orWhereIn('person_id', function ($sub) use ($session) {
-                        $sub->select('person_id')
-                            ->from('person_placements')
-                            ->where('course_id', $session->course_id)
-                            ->where('roster_status', 'active');
-                    });
-                }
-            });
-        }
-
-        return $peopleQuery->orderBy('first_name')->orderBy('second_name')->get()
-            ->map(function (Person $person) {
-                $userId = User::query()->where('person_id', $person->person_id)->value('user_id');
-
-                return [
-                    'person_id' => (int) $person->person_id,
-                    'user_id' => $userId !== null ? (int) $userId : null,
-                    'label' => trim(($person->display_name ?: '').' ')
-                        ?: trim($person->first_name.' '.$person->second_name.' '.($person->third_name ?? '')),
-                    'mobile_number' => $person->mobile_number,
-                ];
-            })
-            ->values();
-    }
-
     private function insertMissingRecords(Session $session, int $actorId, string $status): int
     {
         $enrolledStudentIds = $this->enrolledStudentIdsForCourse($session->course_id);
@@ -508,11 +306,7 @@ class AttendanceCloseService
         // attendance.church_id is NOT NULL on MySQL — omit it and close-attendance 500s.
         $churchId = $this->churchIdForBulkAttendanceInsert($session);
         $now = now();
-        $personIdByUser = Schema::hasColumn('attendance', 'person_id')
-            ? User::query()->whereIn('user_id', $missingStudentIds)->pluck('person_id', 'user_id')
-            : collect();
-
-        $records = $missingStudentIds->map(function ($userId) use ($session, $actorId, $status, $now, $churchId, $personIdByUser) {
+        $records = $missingStudentIds->map(function ($userId) use ($session, $actorId, $status, $now, $churchId) {
             $row = [
                 'user_id' => $userId,
                 'session_id' => $session->session_id,
@@ -522,10 +316,6 @@ class AttendanceCloseService
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
-            if (Schema::hasColumn('attendance', 'person_id')) {
-                $pid = $personIdByUser->get($userId);
-                $row['person_id'] = $pid !== null ? (int) $pid : null;
-            }
             if ($churchId !== null) {
                 $row['church_id'] = $churchId;
             }
@@ -593,49 +383,6 @@ class AttendanceCloseService
                 'user_id' => __('pages.attendance_student_not_in_course'),
             ]);
         }
-    }
-
-    private function assertPersonCanBeRecorded(
-        Session $session,
-        Person $person,
-        ?User $linkedUser,
-        bool $allowNonEnrolled,
-    ): void {
-        if ($allowNonEnrolled) {
-            return;
-        }
-
-        if ($linkedUser && $this->isStudentEnrolledInCourse($linkedUser->user_id, $session->course_id)) {
-            return;
-        }
-
-        if ($this->personHasActiveCoursePlacement($person, $session->course_id)) {
-            return;
-        }
-
-        // Linked user with student role but not enrolled — keep legacy messaging path.
-        if ($linkedUser) {
-            $this->assertStudentCanBeRecorded($session, $linkedUser, false);
-
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'person_id' => __('pages.attendance_student_not_in_course'),
-        ]);
-    }
-
-    private function personHasActiveCoursePlacement(Person $person, ?int $courseId): bool
-    {
-        if (! $courseId || ! Schema::hasTable('person_placements')) {
-            return false;
-        }
-
-        return PersonPlacement::query()
-            ->where('person_id', $person->person_id)
-            ->where('course_id', $courseId)
-            ->where('roster_status', 'active')
-            ->exists();
     }
 
     private function assertValidStatus(string $status): void
