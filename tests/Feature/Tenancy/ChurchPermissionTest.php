@@ -184,6 +184,8 @@ class ChurchPermissionTest extends EventModuleTestCase
         // church-admin still gets church.* keys; announcement.* only if capability enabled.
         $keys = $cloned['church-admin']->permissions()->pluck('key');
         $this->assertTrue($keys->contains('church.members.manage'));
+        $this->assertTrue($keys->contains('documents.view'));
+        $this->assertTrue($keys->contains('documents.upload'));
         $this->assertFalse($keys->contains('announcement.manage'));
     }
 
@@ -193,6 +195,10 @@ class ChurchPermissionTest extends EventModuleTestCase
             'church.configure', 'church.members.manage', 'church.role.manage',
             'finance.payroll.view', 'finance.payroll.manage',
             'finance.money_in.view', 'finance.money_in.manage',
+            'documents.view', 'documents.upload',
+            'student_assessment.view', 'student_assessment.manage',
+            'feedback.identity.request', 'feedback.identity.reveal',
+            'platform.application_logs',
         ] as $key) {
             $this->assertTrue(
                 Permission::where('key', $key)->exists(),
