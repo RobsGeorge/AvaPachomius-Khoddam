@@ -7,6 +7,7 @@ use App\Models\Exam;
 use App\Models\ExamSchedule;
 use App\Models\ExamResult;
 use App\Models\Module;
+use App\Services\ExamResultsVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,14 @@ use Illuminate\Validation\ValidationException;
 
 class ExamController extends Controller
 {
+    public function __construct(
+        private ExamResultsVisibilityService $resultsVisibility
+    ) {}
+
     public function index()
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user?->user_id;
         $query = Exam::with([
             'module',
             'course',
@@ -37,7 +43,15 @@ class ExamController extends Controller
 
         $exams = $query->get();
 
-        return view('exams.index', compact('exams'));
+        $scoreVisibility = [];
+        foreach ($exams as $exam) {
+            $scoreVisibility[$exam->exam_id] = [
+                'can_view' => $user ? $this->resultsVisibility->canStudentViewScore($user, $exam) : false,
+                'reason' => $user ? $this->resultsVisibility->hideReason($user, $exam) : 'pending_announcement',
+            ];
+        }
+
+        return view('exams.index', compact('exams', 'scoreVisibility'));
     }
 
     public function dashboard()
@@ -69,6 +83,7 @@ class ExamController extends Controller
             'exam_type'        => 'required|in:exam,quiz',
             'delivery_mode'    => 'required|in:online,offline',
             'duration_minutes' => 'required|integer|min:1',
+            'total_points'     => 'required|numeric|min:0.01|max:9999.99',
             'study_resources'  => 'nullable|string',
             'exam_description' => 'nullable|string',
             'passing_score'    => 'nullable|integer|min:0|max:100',
@@ -78,6 +93,7 @@ class ExamController extends Controller
             'module_id'        => 'required|exists:modules,module_id',
         ], [
             'module_id.required' => __('pages.module_required_for_exam'),
+            'total_points.required' => __('exams.total_points_required'),
         ]);
 
         $this->assertModuleBelongsToCourse(
@@ -102,6 +118,7 @@ class ExamController extends Controller
             'exam_type'        => 'required|in:exam,quiz',
             'delivery_mode'    => 'required|in:online,offline',
             'duration_minutes' => 'required|integer|min:1',
+            'total_points'     => 'required|numeric|min:0.01|max:9999.99',
             'study_resources'  => 'nullable|string',
             'exam_description' => 'nullable|string',
             'passing_score'    => 'nullable|integer|min:0|max:100',
@@ -111,6 +128,7 @@ class ExamController extends Controller
             'module_id'        => 'required|exists:modules,module_id',
         ], [
             'module_id.required' => __('pages.module_required_for_exam'),
+            'total_points.required' => __('exams.total_points_required'),
         ]);
 
         $this->assertModuleBelongsToCourse(

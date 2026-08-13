@@ -13,6 +13,7 @@ use App\Models\UserChurchRole;
 use App\Models\UserCourseRole;
 use App\Models\UserServiceRole;
 use App\Models\UserSystemRole;
+use App\Support\ResilientCache;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -75,7 +76,7 @@ class CoursePermissionResolver
 
         $cacheKey = "perms:{$course->course_id}:{$user->user_id}:{$version}:s{$serviceVersion}:c{$churchVersion}";
 
-        return Cache::remember($cacheKey, 600, function () use ($user, $course) {
+        return ResilientCache::remember($cacheKey, 600, function () use ($user, $course) {
             return $this->resolveCoursePermissions($user, $course);
         });
     }
@@ -96,7 +97,7 @@ class CoursePermissionResolver
 
         $cacheKey = "perms:system:{$user->user_id}";
 
-        return Cache::remember($cacheKey, 600, function () use ($user) {
+        return ResilientCache::remember($cacheKey, 600, function () use ($user) {
             $roleIds = UserSystemRole::where('user_id', $user->user_id)->pluck('role_id');
 
             if ($roleIds->isEmpty()) {
@@ -166,7 +167,7 @@ class CoursePermissionResolver
         $version = (int) ($service->permissions_version ?? 0);
         $cacheKey = "perms:service:{$service->service_id}:{$user->user_id}:{$version}";
 
-        return Cache::remember($cacheKey, 600, function () use ($user, $service) {
+        return ResilientCache::remember($cacheKey, 600, function () use ($user, $service) {
             $roleIds = UserServiceRole::where('user_id', $user->user_id)
                 ->where('service_id', $service->service_id)
                 ->pluck('role_id');
@@ -226,7 +227,7 @@ class CoursePermissionResolver
         $version = (int) ($church->permissions_version ?? 1);
         $cacheKey = "perms:church:{$church->church_id}:{$user->user_id}:{$version}";
 
-        return Cache::remember($cacheKey, 600, function () use ($user, $church) {
+        return ResilientCache::remember($cacheKey, 600, function () use ($user, $church) {
             return $this->resolveChurchPermissions($user, $church);
         });
     }

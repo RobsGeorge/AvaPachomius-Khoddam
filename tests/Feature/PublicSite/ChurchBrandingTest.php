@@ -88,7 +88,7 @@ class ChurchBrandingTest extends EventModuleTestCase
 
         $this->actingAs($admin)
             ->put(route('church.branding.update'), [
-                'palette' => 'deaconia',
+                'palette' => 'khoddam',
                 'font_display' => 'cairo',
                 'font_body' => 'cairo',
                 'apply_to_portal' => '1',
@@ -103,7 +103,7 @@ class ChurchBrandingTest extends EventModuleTestCase
         $this->actingAs($admin)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('--color-primary: #114b4f;', false)
+            ->assertSee('--color-primary: #7c3aed;', false)
             ->assertSee('storage/'.$branding['logo_path'], false);
     }
 

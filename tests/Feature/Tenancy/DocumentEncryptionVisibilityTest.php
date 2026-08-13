@@ -5,11 +5,14 @@ namespace Tests\Feature\Tenancy;
 use App\Models\AccessLedgerEntry;
 use App\Models\Church;
 use App\Models\ChurchUser;
+use App\Models\Contact;
 use App\Models\Document;
+use App\Models\HomeVisit;
 use App\Models\Organization;
 use App\Models\Person;
 use App\Models\Priest;
 use App\Models\Relationship;
+use App\Models\Residence;
 use App\Models\Sacrament;
 use App\Models\User;
 use App\Models\UserChurchRole;
@@ -21,6 +24,7 @@ use App\Services\Maturity\GuardianshipService;
 use App\Services\RoleTemplateService;
 use App\Services\Sacraments\SacramentRepository;
 use App\Tenancy\TenantContext;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -60,6 +64,18 @@ class DocumentEncryptionVisibilityTest extends EventModuleTestCase
     {
         TenantContext::clear();
         parent::tearDown();
+    }
+
+    public function test_morph_map_keeps_contact_and_document_aliases(): void
+    {
+        $map = Relation::morphMap();
+
+        $this->assertSame(Person::class, $map[Contact::CONTACTABLE_PERSON] ?? null);
+        $this->assertSame(Residence::class, $map[Contact::CONTACTABLE_RESIDENCE] ?? null);
+        $this->assertSame(Person::class, $map[Document::DOCUMENTABLE_PERSON] ?? null);
+        $this->assertSame(Residence::class, $map[Document::DOCUMENTABLE_RESIDENCE] ?? null);
+        $this->assertSame(Sacrament::class, $map[Document::DOCUMENTABLE_SACRAMENT] ?? null);
+        $this->assertSame(HomeVisit::class, $map[Document::DOCUMENTABLE_VISIT] ?? null);
     }
 
     public function test_schema_documents_and_org_dek_column(): void

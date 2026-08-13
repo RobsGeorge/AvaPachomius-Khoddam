@@ -21,6 +21,8 @@ return [
             'course.access', 'course.view',
             'curriculum.view', 'curriculum.manage',
             'session.notify',
+            'student_assessment.view', 'student_assessment.manage',
+            'student_notes.view', 'student_notes.manage',
         ],
         'config' => ['modules' => true, 'recurring_years' => false],
     ],
@@ -62,7 +64,10 @@ return [
 
     'assessments' => [
         'label' => 'capabilities.assessments',
-        'permissions' => [],
+        'permissions' => [
+            'student_assessment.view', 'student_assessment.manage',
+            'student_notes.view', 'student_notes.manage',
+        ],
         'config' => [],
     ],
 

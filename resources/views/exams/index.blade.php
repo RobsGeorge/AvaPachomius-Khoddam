@@ -82,10 +82,17 @@
                                 <div class="exam-meta-row">
                                     <dt>{{ __('pages.my_grades') }}</dt>
                                     <dd>
-                                        @if($cheater)
+                                        @php
+                                            $vis = $scoreVisibility[$exam->exam_id] ?? ['can_view' => false, 'reason' => 'pending_announcement'];
+                                        @endphp
+                                        @if($vis['can_view'] && $cheater)
                                             <span class="text-danger small">{{ __('exams.cheater_score_label') }}</span>
-                                        @elseif($result && $result->score !== null && ! $result->isCheater())
+                                        @elseif($vis['can_view'] && $result && $result->score !== null && ! $result->isCheater())
                                             <span class="fw-semibold">{{ number_format($result->score, 1) }}%</span>
+                                        @elseif($done && ($vis['reason'] ?? '') === 'pending_feedback')
+                                            <span class="text-muted small">{{ __('exams.score_pending_feedback') }}</span>
+                                        @elseif($done && ($vis['reason'] ?? '') === 'pending_announcement')
+                                            <span class="text-muted small">{{ __('exams.score_pending_announcement') }}</span>
                                         @elseif($done)
                                             {{ __('exams.score_pending') }}
                                         @elseif(! $online)

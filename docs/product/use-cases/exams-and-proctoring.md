@@ -11,9 +11,9 @@ services `ExamGradingService`, `EssayGradingService`, `ExamTimerService`, `ExamP
 | UC-EXAM-03 | Student | View available exams for current course | Not scheduled/closed hidden | `exam.view` |
 | UC-EXAM-04 | Student | Start an attempt within the window; answer; submit | Timer expiry → auto-submit (`ExamTimerService`); one attempt enforced | `exam.take`; own attempt |
 | UC-EXAM-05 | System/Instructor | Objective questions auto-graded; essays manually graded | Mixed exam: partial auto + pending manual | `exam.grade` for manual |
-| UC-EXAM-06 | Instructor | View & publish exam grades | Unpublished grades hidden from students | `exam.grade` |
+| UC-EXAM-06 | Instructor | View & **announce** exam grades | Announce required before students see scores | `exam.grade` |
 | UC-EXAM-07 | Proctor | Proctoring events logged during attempt (focus/violations) | — | `ExamProctorService` |
-| UC-EXAM-08 | Student | View own result after publish | Before publish → not visible | own attempt + published |
+| UC-EXAM-08 | Student | View own result after announce **and** any mandatory module survey is submitted | Before announce / before survey → score hidden | own attempt + announced + survey gate |
 
 **Coverage gap:** no automated exam tests yet — high priority (see test-case-catalog, `🔲 planned`).
 Authoring/grading routes gated in `AuthorizationMatrixTest`.

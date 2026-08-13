@@ -56,6 +56,9 @@ class PermissionsParityTest extends EventModuleTestCase
         $this->assertFalse($resolver->canInCourse($instructor, 'role.manage', $course));
         $this->assertTrue($resolver->canInCourse($instructor, 'assignment.manage', $course));
         $this->assertTrue($resolver->canInCourse($instructor, 'attendance.record', $course));
+        $this->assertTrue($resolver->canInCourse($instructor, 'student_assessment.manage', $course));
+        $this->assertTrue($resolver->canInCourse($instructor, 'student_notes.manage', $course));
+        $this->assertTrue($resolver->canInCourse($instructor, 'feedback.identity.request', $course));
         $this->assertTrue($instructor->isInstructorOrAdmin((string) $course->course_id));
         $this->assertFalse($instructor->isAdmin((string) $course->course_id));
         $this->assertFalse($instructor->isStudent((string) $course->course_id));

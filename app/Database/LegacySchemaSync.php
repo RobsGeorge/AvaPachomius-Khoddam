@@ -106,6 +106,8 @@ final class LegacySchemaSync
         foreach ([
             'course_id' => 'BIGINT UNSIGNED NULL',
             'module_id' => 'BIGINT UNSIGNED NULL',
+            'results_announced_at' => 'TIMESTAMP NULL',
+            'results_announced_by_user_id' => 'BIGINT UNSIGNED NULL',
         ] as $column => $definition) {
             self::addMysqlColumnIfMissing('exams', $column, $definition);
         }

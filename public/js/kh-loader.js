@@ -1,5 +1,5 @@
 /*!
- * kh-loader.js — Deaconia page navigation loader (Orbit).
+ * kh-loader.js — Khoddam page navigation loader (Orbit).
  * Shows the full-screen overlay the moment an internal navigation or form
  * submit starts, so no page transition is a blank white flash. The overlay
  * is markup in layouts/partials/page-loader.blade.php.

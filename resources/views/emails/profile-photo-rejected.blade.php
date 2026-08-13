@@ -24,7 +24,7 @@
 
 <p style="margin:0;">
     <a href="{{ $profileUrl }}"
-       style="display:inline-block;padding:12px 24px;background:#114b4f;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">
+       style="display:inline-block;padding:12px 24px;background:#7c3aed;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">
         {{ __('profile_photos.rejection_email_button') }}
     </a>
 </p>
