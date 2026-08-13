@@ -2,52 +2,39 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\OtpCode;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
-use Tests\Support\EventModuleTestCase;
+use Tests\TestCase;
 
 /**
- * OTP-based login: identifier → one-time code → session.
+ * The real login flow: email + password via LoginController, which redirects on
+ * success (not a 204) and only keeps a session for a verified, approved,
+ * registration-complete user.
  */
-class AuthenticationTest extends EventModuleTestCase
+class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        Mail::fake();
-
         $user = User::factory()->create();
 
-        $this->post(route('login'), [
-            'identifier' => $user->email,
-        ])->assertRedirect(route('login.otp.show'));
-
-        $otp = OtpCode::query()->where('user_id', $user->user_id)->value('code');
-        $this->assertNotNull($otp);
-
-        $response = $this->post(route('login.otp.verify'), [
-            'otp' => (string) $otp,
+        $response = $this->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'password',
         ]);
 
         $this->assertAuthenticatedAs($user);
         $response->assertRedirect();
     }
 
-    public function test_users_can_not_authenticate_with_invalid_otp(): void
+    public function test_users_can_not_authenticate_with_invalid_password(): void
     {
-        Mail::fake();
-
         $user = User::factory()->create();
 
         $this->post(route('login'), [
-            'identifier' => $user->email,
-        ])->assertRedirect(route('login.otp.show'));
-
-        $this->post(route('login.otp.verify'), [
-            'otp' => '000000',
+            'email' => $user->email,
+            'password' => 'wrong-password',
         ]);
 
         $this->assertGuest();
@@ -55,11 +42,12 @@ class AuthenticationTest extends EventModuleTestCase
 
     public function test_unverified_user_is_not_logged_in(): void
     {
-        Mail::fake();
-
         $user = User::factory()->unverified()->create();
 
-        $this->loginWithOtp($user);
+        $this->post(route('login'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
 
         $this->assertGuest();
     }
