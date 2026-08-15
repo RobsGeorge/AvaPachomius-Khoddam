@@ -98,7 +98,7 @@ class CurriculumLectureStoreTest extends EventModuleTestCase
             ->assertSee(__('pages.empty_module_add_lecture_hint'), false)
             ->assertSee(__('pages.add_session'), false)
             ->assertSee('aria-label="'.e(__('pages.manage_exams')).'"', false)
-            ->assertDontSee('bi-plus-lg', false);
+            ->assertSee('bi-journal-check', false);
     }
 
     /**
