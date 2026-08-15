@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\LocaleController;
 use App\Observability\ObservabilityRecorder;
 use App\Services\AuditLogService;
 use App\Services\CourseContextService;
@@ -90,6 +91,8 @@ class LoginController extends Controller
         }
 
         if ($loginSucceeded) {
+            $this->restoreUiLocale($request, $user);
+
             $params = $this->applications->redirectParamsFor($user);
 
             // Console host is platform-superadmin only. Church users (admin, priest,
@@ -143,5 +146,30 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login');
+    }
+
+    private function restoreUiLocale(Request $request, $user): void
+    {
+        $supported = config('translation.supported_locales', ['ar', 'en']);
+        $locale = null;
+
+        if (Schema::hasColumn('user', 'ui_locale')
+            && is_string($user->ui_locale)
+            && in_array($user->ui_locale, $supported, true)
+        ) {
+            $locale = $user->ui_locale;
+        } elseif (is_string($request->cookie(LocaleController::COOKIE))
+            && in_array($request->cookie(LocaleController::COOKIE), $supported, true)
+        ) {
+            $locale = $request->cookie(LocaleController::COOKIE);
+
+            if (Schema::hasColumn('user', 'ui_locale')) {
+                $user->forceFill(['ui_locale' => $locale])->save();
+            }
+        }
+
+        if ($locale !== null) {
+            $request->session()->put('locale', $locale);
+        }
     }
 }

@@ -25,6 +25,7 @@ return [
     'otp_title'         => 'التحقق من OTP',
     'otp_enter'         => 'أدخل رمز التحقق',
     'otp_code'          => 'رمز التحقق',
+    'otp_digits_hint'   => 'أدخل رمز التحقق المكوّن من 6 أرقام.',
     'otp_verify'        => 'تحقق',
     'otp_resend'        => 'إعادة إرسال الرمز',
     'forgot_title'      => 'نسيت كلمة المرور',
