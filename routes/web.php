@@ -9,7 +9,6 @@ use App\Http\Controllers\MyLearningController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\CourseContextController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ModuleController;
@@ -375,7 +374,6 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
     Route::resource('sessions', SessionController::class)->only(['index']);
