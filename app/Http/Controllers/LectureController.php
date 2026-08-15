@@ -81,7 +81,7 @@ class LectureController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate([
-            'session_id'   => 'required|exists:session,session_id',
+            'session_id'   => 'nullable|exists:session,session_id',
             'title'        => 'required|string|max:150',
             'lecture_date' => 'nullable|date',
             'video_link'   => 'nullable|url|max:500',
@@ -136,16 +136,19 @@ class LectureController extends Controller
             $slidesLink = $request->slides_link;
         }
 
-        $session = $this->resolveSessionForModule(
-            (int) $request->session_id,
-            (int) $lecture->module_id,
-            $course ? (int) $course->course_id : null
-        );
+        $session = null;
+        if ($request->filled('session_id')) {
+            $session = $this->resolveSessionForModule(
+                (int) $request->session_id,
+                (int) $lecture->module_id,
+                $course ? (int) $course->course_id : null
+            );
+        }
 
         $lecture->update([
-            'session_id'   => $session->session_id,
+            'session_id'   => $session?->session_id,
             'title'        => $request->title,
-            'week_number'  => $session->week_number ?? $lecture->week_number,
+            'week_number'  => $session?->week_number ?? $lecture->week_number,
             'lecture_date' => $request->lecture_date,
             'video_link'   => $request->video_link,
             'slides_link'  => $slidesLink,

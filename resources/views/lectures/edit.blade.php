@@ -34,14 +34,16 @@
                                    value="{{ old('title', $lecture->title) }}" maxlength="150" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-semibold">{{ __('pages.select_session') }} <span class="text-danger">*</span></label>
+                            <label class="form-label fw-semibold">{{ __('pages.select_session') }}</label>
                             @if($lecture->module->courseSessions->isEmpty())
                                 <div class="alert alert-warning small mb-0">
                                     {{ __('pages.no_sessions_in_module') }}
+                                    {{ __('pages.empty_module_add_lecture_hint') }}
+                                    <a href="{{ route('sessions.create') }}" class="alert-link">{{ __('pages.add_session') }}</a>
                                 </div>
                             @else
-                                <select name="session_id" class="form-select" required>
-                                    <option value="">-- {{ __('pages.select_session') }} --</option>
+                                <select name="session_id" class="form-select">
+                                    <option value="">-- {{ __('pages.unassigned') }} --</option>
                                     @foreach($lecture->module->courseSessions as $session)
                                         <option value="{{ $session->session_id }}"
                                             @selected(old('session_id', $lecture->session_id) == $session->session_id)>
