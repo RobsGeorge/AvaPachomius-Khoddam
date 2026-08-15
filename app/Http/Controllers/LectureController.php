@@ -86,7 +86,7 @@ class LectureController extends Controller
             'lecture_date' => 'nullable|date',
             'video_link'   => 'nullable|url|max:500',
             'slides_source' => ['nullable', Rule::in(['external_link', 'hosted_file'])],
-            'slides_link'  => 'nullable|url|max:500|required_if:slides_source,external_link',
+            'slides_link'  => 'nullable|url|max:500',
             'slides_file'  => 'nullable|file',
             'remove_slides_file' => 'nullable|boolean',
             'notes'        => 'nullable|string',

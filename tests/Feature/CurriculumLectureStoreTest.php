@@ -113,6 +113,8 @@ class CurriculumLectureStoreTest extends EventModuleTestCase
             ->put(route('lectures.update', $lectureId), [
                 'title' => 'Orphan Lecture Edited',
                 'video_link' => 'https://example.com/updated',
+                'slides_source' => 'external_link',
+                'slides_link' => '',
                 'order_index' => 0,
             ])
             ->assertRedirect(route('lectures.edit', $lectureId))
