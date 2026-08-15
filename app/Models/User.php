@@ -70,6 +70,7 @@ class User extends Authenticatable
         'email', 'job', 'date_of_birth', 'password',
         'is_verified', 'is_superadmin', 'remember_token', 'otp_code', 'otp_expires_at',
         'registration_completed', 'application_status', 'registration_intent_course_id', 'communication_locale',
+        'ui_locale',
         'registration_lane', 'registration_qr_token_id',
         'person_id',
         'email_verified_at', 'mobile_verified_at', 'whatsapp_capable',
