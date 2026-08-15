@@ -20,7 +20,7 @@ class LectureController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'session_id'   => 'required|exists:session,session_id',
+            'session_id'   => 'nullable|exists:session,session_id',
             'course_id'    => 'required|exists:course,course_id',
             'module_id'    => 'required|exists:modules,module_id',
             'title'        => 'required|string|max:150',
@@ -31,18 +31,21 @@ class LectureController extends Controller
             'order_index'  => 'nullable|integer|min:0',
         ]);
 
-        $session = $this->resolveSessionForModule(
-            (int) $request->session_id,
-            (int) $request->module_id,
-            (int) $request->course_id
-        );
+        $session = null;
+        if ($request->filled('session_id')) {
+            $session = $this->resolveSessionForModule(
+                (int) $request->session_id,
+                (int) $request->module_id,
+                (int) $request->course_id
+            );
+        }
 
         $lecture = Lecture::create([
             'module_id'    => $request->module_id,
-            'session_id'   => $session->session_id,
+            'session_id'   => $session?->session_id,
             'title'        => $request->title,
-            'week_number'  => $session->week_number ?? 1,
-            'lecture_date' => $request->lecture_date ?? $session->session_date,
+            'week_number'  => $session?->week_number ?? 1,
+            'lecture_date' => $request->lecture_date ?? $session?->session_date,
             'video_link'   => $request->video_link,
             'slides_link'  => $request->slides_link,
             'notes'        => $request->notes,

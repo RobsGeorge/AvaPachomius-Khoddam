@@ -722,6 +722,7 @@ return [
     'lecture_updated_success'     => 'تم تحديث المحاضرة بنجاح.',
     'lecture_deleted_success'     => 'تم حذف المحاضرة.',
     'no_sessions_in_module'       => 'لا توجد جلسات أسبوعية مرتبطة بهذه الوحدة بعد. اربط الجلسات من قسم الجدول أعلاه.',
+    'empty_module_add_lecture_hint' => 'لا توجد جلسات — أنشئ جلسة أو أضف محاضرة غير مربوطة.',
     'no_lectures_in_session'      => 'لا توجد محاضرات في هذه الجلسة بعد.',
     'unassigned_lectures'         => 'محاضرات غير مرتبطة',
     'unassigned_lectures_hint'    => 'هذه المحاضرات غير مرتبطة بجلسة. عدّل كل محاضرة واختر جلسة.',

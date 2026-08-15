@@ -1,10 +1,12 @@
-@props(['module', 'course', 'session'])
+@props(['module', 'course', 'session' => null])
 
 <form method="POST" action="{{ route('lectures.store') }}">
     @csrf
     <input type="hidden" name="module_id" value="{{ $module->module_id }}">
     <input type="hidden" name="course_id" value="{{ $course->course_id }}">
-    <input type="hidden" name="session_id" value="{{ $session->session_id }}">
+    @if($session)
+        <input type="hidden" name="session_id" value="{{ $session->session_id }}">
+    @endif
 
     <div class="row g-2 mb-2">
         <div class="col-md-5">
@@ -13,7 +15,7 @@
         </div>
         <div class="col-md-2">
             <input type="date" name="lecture_date" class="form-control form-control-sm"
-                   value="{{ $session->session_date?->format('Y-m-d') }}"
+                   value="{{ $session?->session_date?->format('Y-m-d') }}"
                    placeholder="{{ __('pages.date') }}">
         </div>
         <div class="col-md-2">
