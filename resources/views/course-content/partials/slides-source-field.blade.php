@@ -23,6 +23,7 @@
                value="{{ old('slides_link', $lecture->slides_link) }}" maxlength="500"
                placeholder="https://...">
         <div class="form-text">{{ __('curriculum.slides_link_hint') }}</div>
+        @error('slides_link')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
     </div>
 
     <div data-slides-panel="hosted_file" @class(['d-none' => $slidesSource !== 'hosted_file'])>
