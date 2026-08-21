@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Mail\SendOTPEmail;
 use App\Models\OtpCode;
 use App\Models\User;
 use App\Services\PendingRegistrationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
@@ -125,5 +127,162 @@ class OtpVerificationTest extends TestCase
             ->assertSee('maxlength="6"', false)
             ->assertSee('autocomplete="one-time-code"', false)
             ->assertSee(__('auth.otp_digits_hint'), false);
+    }
+
+    public function test_persisted_email_verified_at_does_not_mint_a_password_session(): void
+    {
+        Mail::fake();
+
+        $user = $this->pendingUserAfterOtp();
+
+        $this->post(route('register.store'), $this->registerForm($user))
+            ->assertRedirect(route('otp.verify', ['user_id' => $user->user_id]));
+
+        $this->assertFalse(PendingRegistrationService::hasCompletedOtpChallenge($user->fresh()));
+        $this->assertNotEquals(
+            $user->user_id,
+            session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY)
+        );
+
+        $this->post(route('password.set.store'), [
+            'user_id' => $user->user_id,
+            'password' => 'AttackerPass1!',
+            'password_confirmation' => 'AttackerPass1!',
+        ])->assertRedirect(route('otp.verify', ['user_id' => $user->user_id]));
+
+        $this->assertTrue(Hash::check('VictimPass1!', $user->fresh()->password));
+        Mail::assertSent(SendOTPEmail::class, fn (SendOTPEmail $mail) => $mail->hasTo('victim@example.com'));
+    }
+
+    public function test_pending_lookup_by_mobile_cannot_take_over_a_verified_signup(): void
+    {
+        Mail::fake();
+
+        $user = $this->pendingUserAfterOtp();
+
+        $this->post(route('register.store'), $this->registerForm($user, [
+            'email' => 'attacker@example.com',
+            'national_id' => '29101011234567',
+        ]))->assertRedirect(route('otp.verify', ['user_id' => $user->user_id]));
+
+        $user->refresh();
+        $this->assertSame('victim@example.com', $user->email);
+        $this->assertSame('1012345678', $user->mobile_number);
+        $this->assertSame('29001011234567', $user->national_id);
+        $this->assertFalse(PendingRegistrationService::hasCompletedOtpChallenge($user));
+        $this->assertTrue(Hash::check('VictimPass1!', $user->password));
+
+        Mail::assertSent(SendOTPEmail::class, fn (SendOTPEmail $mail) => $mail->hasTo('victim@example.com'));
+        Mail::assertNotSent(SendOTPEmail::class, fn (SendOTPEmail $mail) => $mail->hasTo('attacker@example.com'));
+    }
+
+    public function test_same_session_register_repost_after_otp_resumes_without_a_new_code(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->unverified()->create([
+            'first_name' => 'محمد',
+            'second_name' => 'جرجس',
+            'third_name' => 'يوسف',
+            'national_id' => '29001011234567',
+            'email' => 'same-session@example.com',
+            'mobile_number' => '1012345678',
+        ]);
+
+        OtpCode::create([
+            'user_id' => $user->user_id,
+            'code' => '123456',
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $this->post('/verify-otp', [
+            'user_id' => $user->user_id,
+            'otp' => '123456',
+        ])->assertRedirect(route('password.set', ['user_id' => $user->user_id]));
+
+        $this->post(route('register.store'), $this->registerForm($user->fresh()))
+            ->assertRedirect(route('password.set', ['user_id' => $user->user_id]));
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('otp_code', ['user_id' => $user->user_id]);
+        $this->assertSame(
+            $user->user_id,
+            session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY)
+        );
+    }
+
+    public function test_otp_resend_from_a_new_browser_after_verify_does_not_skip_otp(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->unverified()->create([
+            'first_name' => 'محمد',
+            'second_name' => 'جرجس',
+            'third_name' => 'يوسف',
+            'email' => 'lost-session@example.com',
+        ]);
+
+        OtpCode::create([
+            'user_id' => $user->user_id,
+            'code' => '123456',
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $this->post('/verify-otp', [
+            'user_id' => $user->user_id,
+            'otp' => '123456',
+        ])->assertRedirect(route('password.set', ['user_id' => $user->user_id]));
+
+        $this->flushSession();
+
+        $response = $this->post(route('otp.resend'), [
+            'user_id' => $user->user_id,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertNotEquals(
+            route('password.set', ['user_id' => $user->user_id]),
+            $response->headers->get('Location')
+        );
+        $this->assertFalse(PendingRegistrationService::hasCompletedOtpChallenge($user->fresh()));
+        $this->assertNotEquals(
+            $user->user_id,
+            session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY)
+        );
+        Mail::assertSent(SendOTPEmail::class);
+        $this->assertDatabaseHas('otp_code', ['user_id' => $user->user_id]);
+    }
+
+    private function pendingUserAfterOtp(array $overrides = []): User
+    {
+        return User::factory()->unverified()->create(array_merge([
+            'first_name' => 'محمد',
+            'second_name' => 'جرجس',
+            'third_name' => 'يوسف',
+            'national_id' => '29001011234567',
+            'email' => 'victim@example.com',
+            'mobile_number' => '1012345678',
+            'job' => 'Servant',
+            'date_of_birth' => '2000-01-01',
+            'email_verified_at' => now(),
+            'password' => Hash::make('VictimPass1!'),
+        ], $overrides));
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function registerForm(User $user, array $overrides = []): array
+    {
+        $dob = $user->date_of_birth;
+
+        return array_merge([
+            'first_name' => $user->first_name,
+            'second_name' => $user->second_name,
+            'third_name' => $user->third_name,
+            'national_id' => $user->national_id,
+            'email' => $user->email,
+            'job' => $user->job,
+            'date_of_birth' => $dob instanceof \DateTimeInterface ? $dob->format('Y-m-d') : $dob,
+            'mobile_number' => $user->mobile_number,
+        ], $overrides);
     }
 }

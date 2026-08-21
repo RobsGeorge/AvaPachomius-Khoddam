@@ -75,8 +75,7 @@ class OTPController extends Controller
             return back()->withErrors(['resend' => __('register.already_completed')]);
         }
 
-        if (PendingRegistrationService::hasCompletedOtpChallenge($user)
-            || PendingRegistrationService::emailAlreadyVerified($user)) {
+        if (PendingRegistrationService::hasCompletedOtpChallenge($user)) {
             return PendingRegistrationService::redirectToNextSignupStep($user)
                 ->with('success', __('register.otp_already_verified'));
         }

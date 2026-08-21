@@ -81,10 +81,10 @@ class RegisterController extends Controller
             ?? PendingRegistrationService::findPendingByNationalId($request->national_id);
 
         if ($pendingUser) {
-            if (PendingRegistrationService::hasCompletedOtpChallenge($pendingUser)
-                || PendingRegistrationService::emailAlreadyVerified($pendingUser)) {
-                PendingRegistrationService::grantPasswordSession($pendingUser);
-
+            // OTP proof is this browser session only. email_verified_at is a
+            // durable DB flag written when OTP is consumed; it is not bound to
+            // the verifying client and must not mint a password-setup session.
+            if (PendingRegistrationService::hasCompletedOtpChallenge($pendingUser)) {
                 return PendingRegistrationService::redirectToNextSignupStep($pendingUser)
                     ->with('success', __('register.otp_already_verified'));
             }
@@ -191,9 +191,19 @@ class RegisterController extends Controller
                 $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
             }
 
-            $user->update(array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
+            $attributes = array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
                 'email' => $request->email,
-            ]));
+            ]);
+
+            if (PendingRegistrationService::emailAlreadyVerified($user)) {
+                unset(
+                    $attributes['email'],
+                    $attributes['mobile_number'],
+                    $attributes['national_id'],
+                );
+            }
+
+            $user->update($attributes);
 
             OtpCode::where('user_id', $user->user_id)->delete();
 

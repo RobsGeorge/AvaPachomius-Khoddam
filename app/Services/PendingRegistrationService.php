@@ -51,6 +51,10 @@ class PendingRegistrationService
         $user->save();
     }
 
+    /**
+     * Mailbox OTP was consumed at least once. This is a durable DB flag, not
+     * browser-bound proof, and must not be used to grant a password session.
+     */
     public static function emailAlreadyVerified(User $user): bool
     {
         return Schema::hasColumn('user', 'email_verified_at')
