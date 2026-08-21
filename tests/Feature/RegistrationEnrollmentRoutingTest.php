@@ -13,6 +13,7 @@ use App\Models\RegistrationApplication;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Mail\SendOTPEmail;
 use App\Services\CourseApplicationFormService;
 use App\Services\PendingRegistrationService;
 use App\Services\RegistrationApplicationService;

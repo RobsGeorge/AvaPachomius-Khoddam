@@ -4,7 +4,6 @@ namespace Tests\Feature\Auth;
 
 use App\Models\OtpCode;
 use App\Models\User;
-use App\Mail\SendOTPEmail;
 use App\Services\PendingRegistrationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
