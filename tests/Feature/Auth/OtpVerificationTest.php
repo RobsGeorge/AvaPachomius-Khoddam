@@ -4,7 +4,9 @@ namespace Tests\Feature\Auth;
 
 use App\Models\OtpCode;
 use App\Models\User;
+use App\Services\PendingRegistrationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
@@ -33,6 +35,39 @@ class OtpVerificationTest extends TestCase
 
         // The one-time code is consumed on success.
         $this->assertDatabaseMissing('otp_code', ['user_id' => $user->user_id]);
+        $this->assertNotNull($user->fresh()->email_verified_at);
+
+        $this->get(route('otp.verify', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('password.set', ['user_id' => $user->user_id]));
+    }
+
+    public function test_resend_after_successful_otp_does_not_send_another_code(): void
+    {
+        Mail::fake();
+
+        $user = User::factory()->unverified()->create();
+
+        OtpCode::create([
+            'user_id' => $user->user_id,
+            'code' => '123456',
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $this->post('/verify-otp', [
+            'user_id' => $user->user_id,
+            'otp' => '123456',
+        ])->assertRedirect(route('password.set', ['user_id' => $user->user_id]));
+
+        $this->post(route('otp.resend'), [
+            'user_id' => $user->user_id,
+        ])->assertRedirect(route('password.set', ['user_id' => $user->user_id]));
+
+        Mail::assertNothingSent();
+        $this->assertDatabaseMissing('otp_code', ['user_id' => $user->user_id]);
+        $this->assertSame(
+            $user->user_id,
+            session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY)
+        );
     }
 
     public function test_an_invalid_otp_is_rejected_and_preserves_the_code(): void
