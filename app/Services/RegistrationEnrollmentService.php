@@ -136,6 +136,6 @@ class RegistrationEnrollmentService
 
         $service = ChurchService::query()->find($serviceId);
 
-        return $service?->isDefaultPlaceholder() ?? false;
+        return $service?->usesTranslatableDefaultName() ?? false;
     }
 }
