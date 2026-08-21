@@ -42,6 +42,7 @@ return [
     'pending_otp_resent'     => 'This account is waiting for OTP verification. We sent a new code to your email.',
     'continue_to_otp'        => 'Go to OTP verification page',
     'complete_otp_first'     => 'Please verify your email with the OTP code before setting a password.',
+    'otp_already_verified'   => 'Your email is already verified. Continue the remaining signup steps.',
     'already_completed'      => 'This account is already registered. Please log in.',
     'duplicate_confirm_title' => 'Possible existing match',
     'duplicate_confirm_intro' => 'We found people with a similar normalized name. Confirm this is a new registration before continuing.',

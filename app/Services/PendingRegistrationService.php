@@ -21,6 +21,63 @@ class PendingRegistrationService
 
     public const SESSION_ENROLLMENT_USER_KEY = 'registration_enrollment_user_id';
 
+    public static function sessionMatches(User $user, string $key): bool
+    {
+        return session($key) == $user->user_id;
+    }
+
+    /** OTP was consumed in this browser session (password and/or enrollment step). */
+    public static function hasCompletedOtpChallenge(User $user): bool
+    {
+        return self::sessionMatches($user, self::SESSION_PASSWORD_USER_KEY)
+            || self::sessionMatches($user, self::SESSION_ENROLLMENT_USER_KEY);
+    }
+
+    public static function grantPasswordSession(User $user): void
+    {
+        session([
+            self::SESSION_PASSWORD_USER_KEY => $user->user_id,
+            'user_id' => $user->user_id,
+        ]);
+    }
+
+    public static function markEmailVerified(User $user): void
+    {
+        if (! Schema::hasColumn('user', 'email_verified_at') || $user->email_verified_at !== null) {
+            return;
+        }
+
+        $user->email_verified_at = now();
+        $user->save();
+    }
+
+    public static function emailAlreadyVerified(User $user): bool
+    {
+        return Schema::hasColumn('user', 'email_verified_at')
+            && $user->email_verified_at !== null;
+    }
+
+    /**
+     * Continue an in-progress signup. Never sends the user back to OTP when
+     * they already passed that step in this session.
+     */
+    public static function redirectToNextSignupStep(User $user)
+    {
+        if (! self::isPending($user)) {
+            return redirect()->route('login')->with('success', __('register.already_completed'));
+        }
+
+        if (self::sessionMatches($user, self::SESSION_ENROLLMENT_USER_KEY)) {
+            return redirect()->route('register.enrollment', ['user_id' => $user->user_id]);
+        }
+
+        if (self::sessionMatches($user, self::SESSION_PASSWORD_USER_KEY)) {
+            return redirect()->route('password.set', ['user_id' => $user->user_id]);
+        }
+
+        return redirect()->route('otp.verify', ['user_id' => $user->user_id]);
+    }
+
     public static function isPending(User $user): bool
     {
         if (! Schema::hasColumn('user', 'registration_completed')) {
