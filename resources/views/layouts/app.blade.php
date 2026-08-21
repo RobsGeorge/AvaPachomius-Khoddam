@@ -28,7 +28,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260729-auth">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260821-nav-dd">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
@@ -87,7 +87,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
     <script src="{{ asset('js/csrf-heal.js') }}?v=20260727a"></script>
     <script src="{{ asset('js/kh-loader.js') }}?v=20260728a"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260727a"></script>
+    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260821-nav-dd"></script>
     <script src="{{ asset('js/observability-beacon.js') }}?v=20260728a"></script>
     @stack('scripts')
 </body>

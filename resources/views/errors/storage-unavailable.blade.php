@@ -16,7 +16,7 @@
     @else
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260729-auth">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260821-nav-dd">
 </head>
 <body class="app-body theme-{{ $theme }} min-vh-100 d-flex align-items-center">
     <main class="container py-5" role="alert" aria-live="assertive">

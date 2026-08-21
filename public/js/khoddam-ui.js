@@ -649,11 +649,14 @@
 
     /**
      * Dropdown panels sometimes overflow the viewport; in those cases users try to
-     * scroll but the page behind it scrolls instead. We dynamically clamp max-height
-     * to the remaining viewport height and ensure the panel scrolls internally.
+     * scroll but the page behind it scrolls instead. Cap every panel at 70% of the
+     * visual viewport (same height for Academic / Service / System / Superadmin)
+     * and never let it run under the OS taskbar.
      */
     function initDropdownPanelScroll() {
         const panels = new Set();
+        const VIEWPORT_FRACTION = 0.7;
+        const EDGE_PADDING = 16;
 
         function resolvePanel(toggle) {
             const dropdown = toggle?.closest?.('.dropdown, .dropup, .dropend, .dropstart');
@@ -664,25 +667,25 @@
             return dropdown.querySelector?.('.dropdown-menu.app-dropdown-panel');
         }
 
+        function viewportHeight() {
+            return Math.floor(window.visualViewport?.height || window.innerHeight);
+        }
+
         function apply(panel) {
             if (!panel || !(panel instanceof HTMLElement)) {
                 return;
             }
 
             const rect = panel.getBoundingClientRect();
-            const padding = 12; // small breathing room from the viewport edge
-            const available = Math.floor(window.innerHeight - rect.top - padding);
-
-            // If the menu is fully offscreen, let CSS defaults handle it.
-            if (available <= 0) {
-                panel.style.maxHeight = '';
-                return;
-            }
+            const viewH = viewportHeight();
+            const sharedCap = Math.floor(viewH * VIEWPORT_FRACTION);
+            const remaining = Math.floor(viewH - rect.top - EDGE_PADDING);
+            const maxHeight = remaining > 0 ? Math.min(sharedCap, remaining) : sharedCap;
 
             panel.style.overflowY = 'auto';
             panel.style.overflowX = 'hidden';
             panel.style.overscrollBehaviorY = 'contain';
-            panel.style.maxHeight = `${available}px`;
+            panel.style.maxHeight = `${maxHeight}px`;
         }
 
         function clear(panel) {
@@ -715,6 +718,10 @@
         });
 
         window.addEventListener('resize', () => {
+            panels.forEach((panel) => apply(panel));
+        }, { passive: true });
+
+        window.visualViewport?.addEventListener('resize', () => {
             panels.forEach((panel) => apply(panel));
         }, { passive: true });
     }
