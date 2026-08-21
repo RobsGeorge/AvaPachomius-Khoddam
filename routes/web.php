@@ -53,6 +53,7 @@ use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchControll
 use App\Http\Controllers\SuperAdmin\ServiceBillingController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
+use App\Http\Controllers\SuperAdmin\UserDeletionController as SuperAdminUserDeletionController;
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\AppointmentController;
 use App\Http\Controllers\Church\ConfessionController;
@@ -921,6 +922,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
+
+    Route::get('/users', [SuperAdminUserDeletionController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}/delete', [SuperAdminUserDeletionController::class, 'confirm'])->whereNumber('user')->name('users.confirm');
+    Route::post('/users/{user}/soft-delete', [SuperAdminUserDeletionController::class, 'softDelete'])->whereNumber('user')->name('users.soft-delete');
+    Route::post('/users/{user}/hard-delete', [SuperAdminUserDeletionController::class, 'hardDelete'])->whereNumber('user')->name('users.hard-delete');
 
     Route::get('/recovery', [SuperAdminAccountRecoveryController::class, 'index'])->name('recovery.index');
     Route::post('/recovery', [SuperAdminAccountRecoveryController::class, 'store'])->name('recovery.store');

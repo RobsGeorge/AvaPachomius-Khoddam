@@ -56,6 +56,7 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-RBAC-01..08 | UC-RBAC-* | hub sections, assign/revoke+notify, templates, resolver, preview | ✅ `RolesHubTest`, `DynamicRoleManagementTest`, `RoleAssignmentNotificationTest`, `RolePreviewTest` | P0/P1 |
 | TC-SVC-01..07 | UC-SVC-* | context/roster, membership, cross-add, roles, approval auto-enroll | ✅ `ServiceLayerTest`, `CourseApplicationReviewTest` | P1 |
 | TC-SA-01..09 | UC-SA-* | console, audit, impersonate, force-logout, translations, photo review, test report | partial ✅ `SuperAdminEventTestsDashboardTest`, `ProfilePhotoAdminTest`, `ImpersonationTest`; audit-on-destroy 🔲 | P1 |
+| TC-SA-10 | UC-SA-10 | Superadmin searches users by name/church/service; soft-deletes with optional email/WhatsApp; hard-deletes only after typing the email; guests/students 403; self and last superadmin guarded | feature | ✅ `SuperadminUserDeletionTest` | P1 |
 | TC-ACC-01..02,04..06 | UC-ACC-* | onboarding, profile/photo gate, theme/locale/font, preferences | partial ✅ `StudentOnboardingTest`, `ProfilePhotoAdminTest` | P1 |
 | TC-ACC-03 | UC-ACC-03 (F-03) | Self-service password change: correct current pw → updated; wrong current pw / weak pw → rejected, unchanged | feature | ✅ `UseCases/Account/AccountCenterTest` | P1 |
 | TC-ACC-07 | UC-ACC-* (F-03) | Account center hub renders (profile, security, notifications, appearance, data export); guest blocked; data export returns own JSON | feature | ✅ `UseCases/Account/AccountCenterTest` | P1 |
