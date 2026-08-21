@@ -121,6 +121,22 @@ class WhatsAppNotificationService
     }
 
     /**
+     * Account-lifecycle WhatsApp (e.g. superadmin deletion notice).
+     *
+     * @return array{ok: bool, provider_message_id?: string|null, error?: string}
+     */
+    public function sendAccountNotice(User $user, string $subject, string $body): array
+    {
+        return $this->dispatchRawTextToMobile(
+            (string) $user->mobile_number,
+            $body,
+            $user,
+            'account_deletion',
+            $subject,
+        );
+    }
+
+    /**
      * Send WhatsApp text to an arbitrary mobile (e.g. recovery rebind to a NEW number).
      */
     public function sendRawTextToMobile(string $mobileNumber, string $body, ?User $relatedUser = null): bool
@@ -131,16 +147,21 @@ class WhatsAppNotificationService
     /**
      * @return array{ok: bool, provider_message_id?: string|null, error?: string}
      */
-    private function dispatchRawTextToMobile(string $mobileNumber, string $body, ?User $relatedUser = null): array
-    {
+    private function dispatchRawTextToMobile(
+        string $mobileNumber,
+        string $body,
+        ?User $relatedUser = null,
+        string $logType = 'mobile_verification',
+        ?string $subject = null,
+    ): array {
         $log = $this->communicationLogs->record([
             'user' => $relatedUser,
             'channel' => CommunicationLog::CHANNEL_WHATSAPP,
-            'subject' => __('notifications.mobile_verification_subject'),
+            'subject' => $subject ?? __('notifications.mobile_verification_subject'),
             'body_preview' => $body,
             'related_type' => $relatedUser ? User::class : null,
             'related_id' => $relatedUser?->user_id,
-            'metadata' => ['type' => 'mobile_verification'],
+            'metadata' => ['type' => $logType],
         ]);
 
         $phone = $this->normalizePhone($mobileNumber);

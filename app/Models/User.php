@@ -3,34 +3,26 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Mail\ResetPasswordMail;
+use App\Services\CoursePermissionResolver;
 use App\Services\ImpersonationService;
 use App\Services\People\PersonRegistryService;
 use App\Services\RolePreviewService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Model;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Relations\HasMany; 
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use App\Models\Attendance;
-use App\Models\UserAssessment;
-use App\Models\Role;
-use App\Models\EventAdmin;
-use App\Models\UserSystemRole;
-use App\Services\CoursePermissionResolver;
-use App\Mail\ResetPasswordMail;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Carbon;
-
-
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     use Concerns\SafelyCastsDates;
-    use Notifiable, HasApiTokens, HasFactory;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     public const PHOTO_STATUS_PENDING = 'pending';
 
@@ -79,7 +71,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'date_of_birth' => 'date',
-        'is_verified'   => 'boolean',
+        'is_verified' => 'boolean',
         'is_superadmin' => 'boolean',
         'registration_completed' => 'boolean',
         'whatsapp_capable' => 'boolean',
@@ -92,8 +84,8 @@ class User extends Authenticatable
         'profile_photo_deadline_at' => 'datetime',
         'profile_photo_reviewed_at' => 'datetime',
         'student_onboarding_completed_at' => 'datetime',
-        'created_at'    => 'datetime',
-        'updated_at'    => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'otp_expires_at' => 'datetime',
     ];
 
@@ -237,7 +229,7 @@ class User extends Authenticatable
         return $this->hasMany(UserSystemRole::class, 'user_id', 'user_id');
     }
 
-    public function permissionsInCourse(Course $course): \Illuminate\Support\Collection
+    public function permissionsInCourse(Course $course): Collection
     {
         return app(CoursePermissionResolver::class)->permissionsInCourse($this, $course);
     }
@@ -257,7 +249,7 @@ class User extends Authenticatable
         return app(CoursePermissionResolver::class)->canInService($this, $permission, $service);
     }
 
-    public function permissionsInChurch(Church $church): \Illuminate\Support\Collection
+    public function permissionsInChurch(Church $church): Collection
     {
         return app(CoursePermissionResolver::class)->permissionsInChurch($this, $church);
     }
@@ -548,7 +540,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return '0' . ltrim((string) $this->mobile_number, '0');
+        return '0'.ltrim((string) $this->mobile_number, '0');
     }
 
     public function telUrl(): ?string
@@ -557,7 +549,7 @@ class User extends Authenticatable
             return null;
         }
 
-        return 'tel:+20' . ltrim((string) $this->mobile_number, '0');
+        return 'tel:+20'.ltrim((string) $this->mobile_number, '0');
     }
 
     public function whatsappUrl(?string $message = null): ?string
@@ -566,10 +558,10 @@ class User extends Authenticatable
             return null;
         }
 
-        $url = 'https://wa.me/20' . ltrim((string) $this->mobile_number, '0');
+        $url = 'https://wa.me/20'.ltrim((string) $this->mobile_number, '0');
 
         if ($message) {
-            $url .= '?text=' . rawurlencode($message);
+            $url .= '?text='.rawurlencode($message);
         }
 
         return $url;
@@ -588,7 +580,8 @@ class User extends Authenticatable
     }
 
     // Override the "must verify email" behavior since we have custom OTP
-    public function hasVerifiedEmail() {
+    public function hasVerifiedEmail()
+    {
         return $this->is_verified;  // admin verified flag instead of default email_verified_at
     }
 

@@ -32,7 +32,7 @@ referenced) into each tenant, so a church may later tune its own copy without af
 
 | Role | Mechanism | Who it's for | Powers |
 |---|---|---|---|
-| **Superadmin** | `is_superadmin = true` (flag, not a template) | Platform operators | Bypasses permission checks; holds the `platform.*` (`system_only`) keys: church CRUD, impersonation, audit, session flush, service CRUD, role templates, group visibility, people merge. |
+| **Superadmin** | `is_superadmin = true` (flag, not a template) | Platform operators | Bypasses permission checks; holds the `platform.*` (`system_only`) keys: church CRUD, impersonation, audit, session flush, service CRUD, role templates, group visibility, people merge, user deletion. |
 
 > System-wide roles can also be created dynamically (`SystemRoleController`) to delegate
 > specific `system`-scoped keys without full superadmin. That is part of the **advanced**

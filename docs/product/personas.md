@@ -73,7 +73,8 @@ templates: service-admin/service-member).
 ### 9. SuperAdmin (`is_superadmin = true`)
 - **Bypasses** all permission checks. Owns the SuperAdmin console: system roles, role templates,
   group visibility, audit log, impersonation, security/session controls, portal settings, event-tests
-  dashboard, and the **System testing report** (`/superadmin/system-tests`).
+  dashboard, the **System testing report** (`/superadmin/system-tests`), and **user deletion**
+  (`/superadmin/users`).
 
 ## Cross-cutting (accessibility) personas
 

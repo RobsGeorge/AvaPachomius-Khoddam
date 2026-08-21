@@ -1161,6 +1161,13 @@ return [
                 'routes' => ['superadmin.people.merge.*'],
                 'system_only' => true,
             ],
+            'platform.users.delete' => [
+                'label_en' => 'Delete user accounts',
+                'label_ar' => 'حذف حسابات المستخدمين',
+                'type' => 'both',
+                'routes' => ['superadmin.users.*'],
+                'system_only' => true,
+            ],
             'platform.billing_plans' => [
                 'label_en' => 'Manage subscription plans',
                 'label_ar' => 'إدارة خطط الاشتراك',
