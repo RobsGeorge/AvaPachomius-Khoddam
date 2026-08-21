@@ -14,7 +14,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\CourseApplicationFormService;
-use App\Services\PendingRegistrationService;
+use App\Services\CourseApplicationService;
 use App\Services\RegistrationApplicationService;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
@@ -23,7 +23,7 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
 {
     private const TEST_PASSWORD = 'SecurePass1!';
 
-  /** @param array{student?: Role, admin?: Role} $roles */
+    /** @param array{student?: Role, admin?: Role} $roles */
     protected function createEnabledForm(Course $course, array $roles = []): CourseApplicationForm
     {
         $studentRole = $roles['student'] ?? null;
@@ -120,6 +120,116 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
             'password' => self::TEST_PASSWORD,
             'password_confirmation' => self::TEST_PASSWORD,
         ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+    }
+
+    public function test_enrollment_page_shows_empty_state_when_no_active_courses(): void
+    {
+        Mail::fake();
+
+        $user = $this->registerApplicant('no-courses@example.com');
+        $this->completePasswordStep($user);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_no_courses_available'), false);
+    }
+
+    public function test_active_course_without_enabled_form_appears_on_enrollment_page(): void
+    {
+        Mail::fake();
+
+        $service = $this->createService(['title' => 'Existing Service']);
+        $course = $this->createCourse([
+            'title' => 'Existing Year Course',
+            'service_id' => $service->service_id,
+            'status' => Course::STATUS_ACTIVE,
+        ]);
+
+        $this->assertFalse(app(CourseApplicationService::class)->formEnabledForCourse($course->course_id));
+
+        $user = $this->registerApplicant('legacy-course@example.com');
+        $this->completePasswordStep($user);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertDontSee(__('register.enrollment_no_courses_available'), false)
+            ->assertSee('Existing Service', false)
+            ->assertSee('Existing Year Course', false);
+    }
+
+    public function test_enrollment_submit_provisions_form_for_course_without_builder_setup(): void
+    {
+        Mail::fake();
+
+        $service = $this->createService(['title' => 'Open Service']);
+        $course = $this->createCourse([
+            'title' => 'Open Year',
+            'service_id' => $service->service_id,
+            'status' => Course::STATUS_ACTIVE,
+        ]);
+
+        $user = $this->registerApplicant('auto-form@example.com');
+        $this->completePasswordStep($user);
+        $this->submitEnrollment($user, $service, $course);
+
+        $user->refresh();
+        $this->assertTrue($user->registration_completed);
+        $this->assertSame($course->course_id, $user->registration_intent_course_id);
+
+        $form = CourseApplicationForm::query()->where('course_id', $course->course_id)->first();
+        $this->assertNotNull($form);
+        $this->assertTrue($form->is_enabled);
+        $this->assertNotNull($form->default_role_id);
+
+        $this->assertDatabaseHas('course_applications', [
+            'user_id' => $user->user_id,
+            'course_id' => $course->course_id,
+            'status' => CourseApplication::STATUS_PENDING_REVIEW,
+        ]);
+    }
+
+    public function test_closed_course_does_not_appear_on_enrollment_page(): void
+    {
+        Mail::fake();
+
+        $service = $this->createService(['title' => 'Closed Service']);
+        $this->createCourse([
+            'title' => 'Closed Year Course',
+            'service_id' => $service->service_id,
+            'status' => Course::STATUS_CLOSED,
+        ]);
+
+        $user = $this->registerApplicant('closed-course@example.com');
+        $this->completePasswordStep($user);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_no_courses_available'), false)
+            ->assertDontSee('Closed Year Course', false);
+    }
+
+    public function test_orphan_active_course_appears_under_default_service(): void
+    {
+        Mail::fake();
+
+        $default = ChurchService::ensureDefault();
+        $course = $this->createCourse([
+            'title' => 'Orphan Active Course',
+            'service_id' => null,
+            'status' => Course::STATUS_ACTIVE,
+        ]);
+
+        $user = $this->registerApplicant('orphan-course@example.com');
+        $this->completePasswordStep($user);
+
+        $this->getJson(route('register.enrollment.courses', [
+            'service_id' => $default->service_id,
+        ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $course->course_id,
+                'title' => 'Orphan Active Course',
+            ]);
     }
 
     private function submitEnrollment(User $user, ChurchService $service, Course $course): void

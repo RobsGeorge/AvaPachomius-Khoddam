@@ -38,10 +38,15 @@ class RegistrationEnrollmentService
     public function eligibleCoursesForService(int $serviceId): Collection
     {
         return Course::query()
-            ->where('service_id', $serviceId)
+            ->where(function ($query) use ($serviceId) {
+                $query->where('service_id', $serviceId);
+                if ($this->isDefaultEnrollmentService($serviceId)) {
+                    $query->orWhereNull('service_id');
+                }
+            })
             ->orderBy('title')
             ->get()
-            ->filter(fn (Course $course) => $this->courseApplications->formEnabledForCourse((int) $course->course_id))
+            ->filter(fn (Course $course) => $course->isActive())
             ->values();
     }
 
@@ -49,19 +54,19 @@ class RegistrationEnrollmentService
     {
         $course = Course::query()->where('course_id', $courseId)->first();
 
-        if (! $course || (int) $course->service_id !== $serviceId) {
+        if (! $course || ! $this->courseBelongsToEnrollmentService($course, $serviceId)) {
             throw ValidationException::withMessages([
                 'course_id' => __('register.enrollment_course_invalid'),
             ]);
         }
 
-        if (! $this->courseApplications->formEnabledForCourse($courseId)) {
+        if (! $course->isActive()) {
             throw ValidationException::withMessages([
                 'course_id' => __('register.enrollment_course_not_accepting'),
             ]);
         }
 
-        $form = $this->formService->getOrCreateForCourse($course);
+        $form = $this->formService->ensureReadyForPublicSignup($course);
 
         if (! $form->is_enabled) {
             throw ValidationException::withMessages([
@@ -111,5 +116,26 @@ class RegistrationEnrollmentService
             $snapshot = $this->snapshotPrefill->buildFromUser($user, $form);
             $this->courseApplications->createFromSubmission($user, $form, $snapshot);
         });
+    }
+
+    private function courseBelongsToEnrollmentService(Course $course, int $serviceId): bool
+    {
+        if ((int) $course->service_id === $serviceId) {
+            return true;
+        }
+
+        return $course->service_id === null && $this->isDefaultEnrollmentService($serviceId);
+    }
+
+    private function isDefaultEnrollmentService(int $serviceId): bool
+    {
+        $default = ChurchService::defaultService();
+        if ($default && (int) $default->service_id === $serviceId) {
+            return true;
+        }
+
+        $service = ChurchService::query()->find($serviceId);
+
+        return $service?->usesTranslatableDefaultName() ?? false;
     }
 }
