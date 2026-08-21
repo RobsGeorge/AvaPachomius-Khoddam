@@ -81,6 +81,25 @@ class ChurchService extends Model
         return 'service_id';
     }
 
+    /**
+     * T8b prefers slug URLs, but production rows created before the slug
+     * backfill still have NULL. Returning a blank route key 500s every
+     * `route('admin.services.*', $service)` call (including /superadmin/courses).
+     */
+    public function getRouteKey()
+    {
+        if ($this->getRouteKeyName() === 'slug') {
+            $slug = $this->getAttribute('slug');
+            if (filled($slug)) {
+                return $slug;
+            }
+
+            return $this->getKey();
+        }
+
+        return $this->getAttribute($this->getRouteKeyName());
+    }
+
     public function resolveRouteBinding($value, $field = null)
     {
         $field ??= $this->getRouteKeyName();
@@ -105,6 +124,8 @@ class ChurchService extends Model
         $candidate = $base;
         $i = 2;
         while (static::query()
+            // withoutTenancy: slug uniqueness is (church_id, slug) / global, not the current tenant.
+            ->withoutTenancy()
             ->when(
                 $churchId !== null && Schema::hasColumn((new static)->getTable(), 'church_id'),
                 fn ($q) => $q->where('church_id', $churchId)
@@ -117,6 +138,33 @@ class ChurchService extends Model
         }
 
         return $candidate;
+    }
+
+    /**
+     * Fill blank slugs on services created before T8a (expand-safe).
+     * withoutTenancy: platform-wide backfill; every church's services need a slug.
+     */
+    public static function backfillMissingSlugs(): int
+    {
+        if (! Schema::hasColumn((new static)->getTable(), 'slug')) {
+            return 0;
+        }
+
+        $updated = 0;
+        static::query()
+            ->withoutTenancy()
+            ->where(function ($query) {
+                $query->whereNull('slug')->orWhere('slug', '');
+            })
+            ->orderBy('service_id')
+            ->each(function (self $service) use (&$updated) {
+                $source = (string) ($service->title_en ?: $service->title ?: 'service');
+                $service->slug = static::uniqueSlugCandidate($source, $service->church_id);
+                $service->saveQuietly();
+                $updated++;
+            });
+
+        return $updated;
     }
 
     public function structureTemplate(): BelongsTo
