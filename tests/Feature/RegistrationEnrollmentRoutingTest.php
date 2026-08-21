@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\SendOTPEmail;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\CourseApplication;
@@ -120,6 +121,169 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
             'password' => self::TEST_PASSWORD,
             'password_confirmation' => self::TEST_PASSWORD,
         ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+    }
+
+    public function test_setting_password_does_not_reopen_otp_when_no_courses_are_open(): void
+    {
+        Mail::fake();
+
+        $user = $this->registerApplicant('no-courses@example.com');
+        $this->completePasswordStep($user);
+
+        Mail::assertSent(SendOTPEmail::class, 1);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_no_courses_available'), false)
+            ->assertDontSee(__('auth.otp_enter'), false);
+
+        $this->get(route('password.set', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->get(route('otp.verify', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->post(route('otp.resend'), ['user_id' => $user->user_id])
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        Mail::assertSent(SendOTPEmail::class, 1);
+        $this->assertDatabaseMissing('otp_code', ['user_id' => $user->user_id]);
+    }
+
+    public function test_active_course_without_enabled_form_appears_on_enrollment_page(): void
+    {
+        Mail::fake();
+
+        $service = $this->createService(['title' => 'Existing Service']);
+        $course = $this->createCourse([
+            'title' => 'Existing Year Course',
+            'service_id' => $service->service_id,
+            'status' => Course::STATUS_ACTIVE,
+        ]);
+
+        $this->assertFalse(app(\App\Services\CourseApplicationService::class)->formEnabledForCourse($course->course_id));
+
+        $user = $this->registerApplicant('legacy-course@example.com');
+        $this->completePasswordStep($user);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertDontSee(__('register.enrollment_no_courses_available'), false)
+            ->assertSee('Existing Service', false)
+            ->assertSee('Existing Year Course', false);
+    }
+
+    public function test_enrollment_submit_provisions_form_for_course_without_builder_setup(): void
+    {
+        Mail::fake();
+
+        $service = $this->createService(['title' => 'Open Service']);
+        $course = $this->createCourse([
+            'title' => 'Open Year',
+            'service_id' => $service->service_id,
+            'status' => Course::STATUS_ACTIVE,
+        ]);
+
+        $user = $this->registerApplicant('auto-form@example.com');
+        $this->completePasswordStep($user);
+        $this->submitEnrollment($user, $service, $course);
+
+        $user->refresh();
+        $this->assertTrue($user->registration_completed);
+        $this->assertSame($course->course_id, $user->registration_intent_course_id);
+
+        $form = CourseApplicationForm::query()->where('course_id', $course->course_id)->first();
+        $this->assertNotNull($form);
+        $this->assertTrue($form->is_enabled);
+        $this->assertNotNull($form->default_role_id);
+
+        $this->assertDatabaseHas('course_applications', [
+            'user_id' => $user->user_id,
+            'course_id' => $course->course_id,
+            'status' => CourseApplication::STATUS_PENDING_REVIEW,
+        ]);
+    }
+
+    public function test_closed_course_does_not_appear_on_enrollment_page(): void
+    {
+        Mail::fake();
+
+        $service = $this->createService(['title' => 'Closed Service']);
+        $this->createCourse([
+            'title' => 'Closed Year Course',
+            'service_id' => $service->service_id,
+            'status' => Course::STATUS_CLOSED,
+        ]);
+
+        $user = $this->registerApplicant('closed-course@example.com');
+        $this->completePasswordStep($user);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_no_courses_available'), false)
+            ->assertDontSee('Closed Year Course', false);
+    }
+
+    public function test_orphan_active_course_appears_under_default_service(): void
+    {
+        Mail::fake();
+
+        $default = ChurchService::ensureDefault();
+        $course = $this->createCourse([
+            'title' => 'Orphan Active Course',
+            'service_id' => null,
+            'status' => Course::STATUS_ACTIVE,
+        ]);
+
+        $user = $this->registerApplicant('orphan-course@example.com');
+        $this->completePasswordStep($user);
+
+        $this->getJson(route('register.enrollment.courses', [
+            'service_id' => $default->service_id,
+        ]))
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $course->course_id,
+                'title' => 'Orphan Active Course',
+            ]);
+    }
+
+    public function test_setting_password_does_not_resend_otp_or_return_to_otp_page(): void
+    {
+        Mail::fake();
+
+        $this->seedEnrollmentTarget();
+        $user = $this->registerApplicant('otp-loop@example.com');
+        $this->completePasswordStep($user);
+
+        Mail::assertSent(SendOTPEmail::class, 1);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_title'), false)
+            ->assertDontSee(__('auth.otp_enter'), false);
+
+        $this->get(route('otp.verify', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->post(route('password.set.store'), [
+            'user_id' => $user->user_id,
+            'password' => self::TEST_PASSWORD,
+            'password_confirmation' => self::TEST_PASSWORD,
+        ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->post(route('register.store'), [
+            'first_name' => 'محمد',
+            'second_name' => 'جرجس',
+            'third_name' => 'يوسف',
+            'national_id' => '29001011234567',
+            'email' => $user->email,
+            'job' => 'Servant',
+            'date_of_birth' => '2000-01-01',
+            'mobile_number' => '1012345678',
+        ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        Mail::assertSent(SendOTPEmail::class, 1);
     }
 
     private function submitEnrollment(User $user, ChurchService $service, Course $course): void
