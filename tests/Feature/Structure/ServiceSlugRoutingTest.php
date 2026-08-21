@@ -62,4 +62,39 @@ class ServiceSlugRoutingTest extends EventModuleTestCase
         $this->assertNotEmpty($service->slug);
         $this->assertSame('youth-care', $service->slug);
     }
+
+    public function test_get_route_key_falls_back_to_id_when_slug_is_blank(): void
+    {
+        $service = $this->createService([
+            'title' => 'Unslugged Legacy',
+            'title_en' => 'Unslugged Legacy',
+        ]);
+        $service->forceFill(['slug' => null])->saveQuietly();
+
+        $this->assertSame('slug', $service->getRouteKeyName());
+        $this->assertSame((string) $service->service_id, (string) $service->getRouteKey());
+
+        $url = route('admin.services.edit', $service, absolute: false);
+        $this->assertStringContainsString('/admin/services/'.$service->service_id.'/edit', $url);
+
+        $user = $this->createUser(['is_superadmin' => true, 'email' => 'svc-slug-fallback@example.com']);
+        $this->actingAs($user)
+            ->get($url)
+            ->assertOk();
+    }
+
+    public function test_backfill_assigns_unique_slugs_to_legacy_services(): void
+    {
+        $first = $this->createService(['title' => 'Alpha Team', 'title_en' => 'Alpha Team']);
+        $second = $this->createService(['title' => 'Alpha Team', 'title_en' => 'Alpha Team']);
+        $first->forceFill(['slug' => null])->saveQuietly();
+        $second->forceFill(['slug' => null])->saveQuietly();
+
+        $updated = ChurchService::backfillMissingSlugs();
+
+        $this->assertSame(2, $updated);
+        $this->assertNotEmpty($first->fresh()->slug);
+        $this->assertNotEmpty($second->fresh()->slug);
+        $this->assertNotSame($first->fresh()->slug, $second->fresh()->slug);
+    }
 }

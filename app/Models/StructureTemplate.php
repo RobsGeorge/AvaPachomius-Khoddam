@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Structure template registry (master-plan §15). Behavior binds to anchors, not level names.
@@ -58,5 +60,15 @@ class StructureTemplate extends Model
     public static function byKey(string $key): ?self
     {
         return static::query()->where('key', $key)->first();
+    }
+
+    /** Empty collection when T8a has not been migrated yet (production expand). */
+    public static function orderedForSelect(): Collection
+    {
+        if (! Schema::hasTable((new static)->getTable())) {
+            return collect();
+        }
+
+        return static::query()->orderBy('name_en')->get();
     }
 }

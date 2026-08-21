@@ -39,9 +39,7 @@ class ServiceManagementController extends Controller
             ? Church::query()->orderBy('name')->get(['church_id', 'name', 'slug'])
             : collect();
 
-        $structureTemplates = StructureTemplate::query()
-            ->orderBy('name_en')
-            ->get();
+        $structureTemplates = StructureTemplate::orderedForSelect();
 
         $progressionPolicies = ProgressionPolicy::all();
         $resolver = app(StructureAnchorResolver::class);
@@ -164,7 +162,7 @@ class ServiceManagementController extends Controller
             ->orderBy('title')
             ->get();
 
-        $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
+        $structureTemplates = StructureTemplate::orderedForSelect();
         $progressionPolicies = ProgressionPolicy::all();
         $resolver = app(StructureAnchorResolver::class);
 
