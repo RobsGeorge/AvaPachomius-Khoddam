@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\ChurchService;
 use App\Models\Course;
+use App\Models\CourseApplicationForm;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\StructureTemplate;
+use App\Models\User;
 use App\Models\UserSystemRole;
 use App\Support\NavigationHub;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\EventModuleTestCase;
 
@@ -182,6 +185,13 @@ class ServiceManagementTest extends EventModuleTestCase
         $course = Course::query()->where('title', 'Year One')->first();
         $this->assertNotNull($course);
         $this->assertSame($service->service_id, (int) $course->service_id);
+
+        $form = CourseApplicationForm::query()
+            ->where('course_id', $course->course_id)
+            ->first();
+        $this->assertNotNull($form);
+        $this->assertTrue($form->is_enabled);
+        $this->assertNotNull($form->default_role_id);
     }
 
     public function test_superadmin_can_update_course_from_manage_page(): void
@@ -226,7 +236,7 @@ class ServiceManagementTest extends EventModuleTestCase
         $this->assertSame('10:30:00', $course->default_session_start_time);
     }
 
-    protected function grantSystemPermission(\App\Models\User $user, string $permissionKey): void
+    protected function grantSystemPermission(User $user, string $permissionKey): void
     {
         $perm = Permission::query()->where('key', $permissionKey)->first();
         $this->assertNotNull($perm, "Permission {$permissionKey} must exist after sync.");
@@ -246,6 +256,6 @@ class ServiceManagementTest extends EventModuleTestCase
             'role_id' => $role->role_id,
         ]);
 
-        \Illuminate\Support\Facades\Cache::flush();
+        Cache::flush();
     }
 }

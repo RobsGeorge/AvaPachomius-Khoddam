@@ -80,7 +80,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function populateCourses(serviceId, selectedCourseId) {
-        const courses = coursesByService[serviceId] || [];
+        const courses = coursesByService[serviceId]
+            || coursesByService[String(serviceId)]
+            || [];
         courseSelect.innerHTML = '';
 
         if (courses.length === 0) {
