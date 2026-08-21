@@ -106,4 +106,18 @@ class NavigationEntryPointsTest extends EventModuleTestCase
         $this->assertNotNull($coursesLink);
         $this->assertFalse((bool) ($coursesLink['active'] ?? false));
     }
+
+    public function test_desktop_academic_dropdown_uses_scrollable_panel(): void
+    {
+        $user = $this->createUser([
+            'email' => 'nav-academic-dropdown@example.com',
+            'is_superadmin' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('dropdown-menu app-dropdown-panel', false)
+            ->assertSee(__('nav.academic'), false);
+    }
 }
