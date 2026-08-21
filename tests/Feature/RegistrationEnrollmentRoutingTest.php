@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\SendOTPEmail;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\CourseApplication;
@@ -13,9 +14,8 @@ use App\Models\RegistrationApplication;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserNotification;
-use App\Mail\SendOTPEmail;
 use App\Services\CourseApplicationFormService;
-use App\Services\PendingRegistrationService;
+use App\Services\CourseApplicationService;
 use App\Services\RegistrationApplicationService;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
@@ -24,7 +24,7 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
 {
     private const TEST_PASSWORD = 'SecurePass1!';
 
-  /** @param array{student?: Role, admin?: Role} $roles */
+    /** @param array{student?: Role, admin?: Role} $roles */
     protected function createEnabledForm(Course $course, array $roles = []): CourseApplicationForm
     {
         $studentRole = $roles['student'] ?? null;
@@ -161,7 +161,7 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
             'status' => Course::STATUS_ACTIVE,
         ]);
 
-        $this->assertFalse(app(\App\Services\CourseApplicationService::class)->formEnabledForCourse($course->course_id));
+        $this->assertFalse(app(CourseApplicationService::class)->formEnabledForCourse($course->course_id));
 
         $user = $this->registerApplicant('legacy-course@example.com');
         $this->completePasswordStep($user);
