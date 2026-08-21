@@ -182,6 +182,13 @@ class ServiceManagementTest extends EventModuleTestCase
         $course = Course::query()->where('title', 'Year One')->first();
         $this->assertNotNull($course);
         $this->assertSame($service->service_id, (int) $course->service_id);
+
+        $form = \App\Models\CourseApplicationForm::query()
+            ->where('course_id', $course->course_id)
+            ->first();
+        $this->assertNotNull($form);
+        $this->assertTrue($form->is_enabled);
+        $this->assertNotNull($form->default_role_id);
     }
 
     public function test_superadmin_can_update_course_from_manage_page(): void

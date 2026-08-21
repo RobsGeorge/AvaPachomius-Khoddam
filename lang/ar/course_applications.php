@@ -29,6 +29,7 @@ return [
     'applicant_view' => 'عرض المتقدم',
     'applicant_preview_banner' => 'وضع المعاينة — هكذا يرى المتقدمون النموذج. التقديم معطّل.',
     'preview_no_steps' => 'أضف خطوة واحدة على الأقل قبل معاينة عرض المتقدم.',
+    'signup_default_step' => 'بيانات المتقدم',
     'manage_form' => 'نموذج الالتحاق',
     'filter_all' => 'كل الطلبات',
     'filter_course' => 'الدورة',

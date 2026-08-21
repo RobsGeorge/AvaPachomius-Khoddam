@@ -564,7 +564,7 @@ class RegisterController extends Controller
             return view('auth.register_enrollment', [
                 'user_id' => $user->user_id,
                 'services' => $services,
-                'coursesByService' => [],
+                'coursesByService' => (object) [],
                 'selectedServiceId' => null,
                 'selectedCourseId' => null,
             ])->withErrors(['general' => __('register.enrollment_no_courses_available')]);
@@ -572,7 +572,7 @@ class RegisterController extends Controller
 
         $coursesByService = [];
         foreach ($services as $service) {
-            $coursesByService[$service->service_id] = $this->enrollment
+            $coursesByService[(string) $service->service_id] = $this->enrollment
                 ->eligibleCoursesForService($service->service_id)
                 ->map(fn ($course) => [
                     'id' => $course->course_id,
@@ -585,16 +585,16 @@ class RegisterController extends Controller
         $selectedServiceId = (int) old('service_id', $services->first()->service_id);
         $selectedCourseId = old('course_id');
 
-        if ($services->count() === 1 && count($coursesByService[$services->first()->service_id] ?? []) === 1) {
+        if ($services->count() === 1 && count($coursesByService[(string) $services->first()->service_id] ?? []) === 1) {
             $selectedServiceId = $services->first()->service_id;
             $selectedCourseId = $selectedCourseId
-                ?? $coursesByService[$selectedServiceId][0]['id'];
+                ?? $coursesByService[(string) $selectedServiceId][0]['id'];
         }
 
         return view('auth.register_enrollment', [
             'user_id' => $user->user_id,
             'services' => $services,
-            'coursesByService' => $coursesByService,
+            'coursesByService' => (object) $coursesByService,
             'selectedServiceId' => $selectedServiceId,
             'selectedCourseId' => $selectedCourseId,
         ]);
