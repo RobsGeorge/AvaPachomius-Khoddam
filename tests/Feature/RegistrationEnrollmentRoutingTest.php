@@ -13,6 +13,7 @@ use App\Models\RegistrationApplication;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Mail\SendOTPEmail;
 use App\Services\CourseApplicationFormService;
 use App\Services\PendingRegistrationService;
 use App\Services\RegistrationApplicationService;
@@ -120,6 +121,71 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
             'password' => self::TEST_PASSWORD,
             'password_confirmation' => self::TEST_PASSWORD,
         ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+    }
+
+    public function test_setting_password_does_not_reopen_otp_when_no_courses_are_open(): void
+    {
+        Mail::fake();
+
+        $user = $this->registerApplicant('no-courses@example.com');
+        $this->completePasswordStep($user);
+
+        Mail::assertSent(SendOTPEmail::class, 1);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_no_courses_available'), false)
+            ->assertDontSee(__('auth.otp_enter'), false);
+
+        $this->get(route('password.set', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->get(route('otp.verify', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->post(route('otp.resend'), ['user_id' => $user->user_id])
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        Mail::assertSent(SendOTPEmail::class, 1);
+        $this->assertDatabaseMissing('otp_code', ['user_id' => $user->user_id]);
+    }
+
+    public function test_setting_password_does_not_resend_otp_or_return_to_otp_page(): void
+    {
+        Mail::fake();
+
+        $this->seedEnrollmentTarget();
+        $user = $this->registerApplicant('otp-loop@example.com');
+        $this->completePasswordStep($user);
+
+        Mail::assertSent(SendOTPEmail::class, 1);
+
+        $this->get(route('register.enrollment', ['user_id' => $user->user_id]))
+            ->assertOk()
+            ->assertSee(__('register.enrollment_title'), false)
+            ->assertDontSee(__('auth.otp_enter'), false);
+
+        $this->get(route('otp.verify', ['user_id' => $user->user_id]))
+            ->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->post(route('password.set.store'), [
+            'user_id' => $user->user_id,
+            'password' => self::TEST_PASSWORD,
+            'password_confirmation' => self::TEST_PASSWORD,
+        ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        $this->post(route('register.store'), [
+            'first_name' => 'محمد',
+            'second_name' => 'جرجس',
+            'third_name' => 'يوسف',
+            'national_id' => '29001011234567',
+            'email' => $user->email,
+            'job' => 'Servant',
+            'date_of_birth' => '2000-01-01',
+            'mobile_number' => '1012345678',
+        ])->assertRedirect(route('register.enrollment', ['user_id' => $user->user_id]));
+
+        Mail::assertSent(SendOTPEmail::class, 1);
     }
 
     private function submitEnrollment(User $user, ChurchService $service, Course $course): void

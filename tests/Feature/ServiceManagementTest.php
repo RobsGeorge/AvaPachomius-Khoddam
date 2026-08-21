@@ -120,6 +120,45 @@ class ServiceManagementTest extends EventModuleTestCase
         $this->assertSame(ChurchService::STATUS_ACTIVE, $service->fresh()->status);
     }
 
+    public function test_superadmin_courses_loads_when_a_legacy_service_has_no_slug(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-null-slug@example.com']);
+        $service = $this->createService(['title' => 'Legacy Unslugged Service']);
+        $service->forceFill(['slug' => null])->saveQuietly();
+        $this->assertNull($service->fresh()->slug);
+
+        $this->actingAs($super)
+            ->get(route('superadmin.courses'))
+            ->assertOk()
+            ->assertSee(__('pages.manage_services_and_courses'), false)
+            ->assertSee('Legacy Unslugged Service', false);
+    }
+
+    public function test_superadmin_courses_loads_without_structure_templates_table(): void
+    {
+        if (! Schema::hasTable('structure_templates')) {
+            $this->markTestSkipped('structure_templates not present to drop.');
+        }
+
+        Schema::drop('structure_templates');
+
+        try {
+            $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-no-tpl@example.com']);
+
+            $this->actingAs($super)
+                ->get(route('superadmin.courses'))
+                ->assertOk()
+                ->assertSee(__('pages.manage_services_and_courses'), false);
+        } finally {
+            // DROP TABLE is DDL and cannot roll back on SQLite; restore so later
+            // tests in this process still see the T8a registry.
+            $this->artisan('migrate', [
+                '--path' => 'database/migrations/2026_08_10_000001_create_structure_templates_table.php',
+                '--force' => true,
+            ]);
+        }
+    }
+
     public function test_superadmin_course_create_requires_service_id(): void
     {
         $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-course@example.com']);

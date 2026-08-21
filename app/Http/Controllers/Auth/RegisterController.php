@@ -81,6 +81,14 @@ class RegisterController extends Controller
             ?? PendingRegistrationService::findPendingByNationalId($request->national_id);
 
         if ($pendingUser) {
+            // OTP proof is this browser session only. email_verified_at is a
+            // durable DB flag written when OTP is consumed; it is not bound to
+            // the verifying client and must not mint a password-setup session.
+            if (PendingRegistrationService::hasCompletedOtpChallenge($pendingUser)) {
+                return PendingRegistrationService::redirectToNextSignupStep($pendingUser)
+                    ->with('success', __('register.otp_already_verified'));
+            }
+
             return $this->updateAndResendOtp($request, $pendingUser);
         }
 
@@ -183,9 +191,19 @@ class RegisterController extends Controller
                 $profilePhotoPath = $this->storeFile($request->file('profile_photo'), 'profile_photos');
             }
 
-            $user->update(array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
+            $attributes = array_merge($this->userProfileAttributes($request, $profilePhotoPath), [
                 'email' => $request->email,
-            ]));
+            ]);
+
+            if (PendingRegistrationService::emailAlreadyVerified($user)) {
+                unset(
+                    $attributes['email'],
+                    $attributes['mobile_number'],
+                    $attributes['national_id'],
+                );
+            }
+
+            $user->update($attributes);
 
             OtpCode::where('user_id', $user->user_id)->delete();
 
@@ -251,7 +269,7 @@ class RegisterController extends Controller
 
             DB::commit();
 
-            return PendingRegistrationService::redirectToOtpResume($user);
+            return PendingRegistrationService::redirectToOtpResume($user, false);
 
         } catch (QueryException $e) {
             DB::rollBack();
@@ -473,7 +491,11 @@ class RegisterController extends Controller
             return redirect()->route('login')->with('success', __('register.already_completed'));
         }
 
-        if (session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY) != $user->user_id) {
+        if (PendingRegistrationService::sessionMatches($user, PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY)) {
+            return redirect()->route('register.enrollment', ['user_id' => $user->user_id]);
+        }
+
+        if (! PendingRegistrationService::sessionMatches($user, PendingRegistrationService::SESSION_PASSWORD_USER_KEY)) {
             return redirect()
                 ->route('otp.verify', ['user_id' => $user->user_id])
                 ->withErrors(['general' => __('register.complete_otp_first')]);
@@ -495,7 +517,8 @@ class RegisterController extends Controller
             return redirect()->route('login')->with('success', __('register.already_completed'));
         }
 
-        if (session(PendingRegistrationService::SESSION_PASSWORD_USER_KEY) != $user->user_id) {
+        if (! PendingRegistrationService::sessionMatches($user, PendingRegistrationService::SESSION_PASSWORD_USER_KEY)
+            && ! PendingRegistrationService::sessionMatches($user, PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY)) {
             return redirect()
                 ->route('otp.verify', ['user_id' => $user->user_id])
                 ->withErrors(['general' => __('register.complete_otp_first')]);
@@ -507,7 +530,6 @@ class RegisterController extends Controller
         session([
             PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY => $user->user_id,
         ]);
-        session()->forget(PendingRegistrationService::SESSION_PASSWORD_USER_KEY);
 
         AuditLogService::setPasswordResult($request, [
             'success' => true,
@@ -539,9 +561,13 @@ class RegisterController extends Controller
         $services = $this->enrollment->eligibleServices();
 
         if ($services->isEmpty()) {
-            return redirect()
-                ->route('password.set', ['user_id' => $user->user_id])
-                ->withErrors(['general' => __('register.enrollment_no_courses_available')]);
+            return view('auth.register_enrollment', [
+                'user_id' => $user->user_id,
+                'services' => $services,
+                'coursesByService' => [],
+                'selectedServiceId' => null,
+                'selectedCourseId' => null,
+            ])->withErrors(['general' => __('register.enrollment_no_courses_available')]);
         }
 
         $coursesByService = [];
@@ -625,7 +651,10 @@ class RegisterController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
-        session()->forget(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY);
+        session()->forget([
+            PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY,
+            PendingRegistrationService::SESSION_PASSWORD_USER_KEY,
+        ]);
 
         return redirect()
             ->route('login')

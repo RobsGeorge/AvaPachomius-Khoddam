@@ -60,7 +60,9 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="btn btn-primary">{{ __('register.enrollment_submit') }}</button>
+                <button type="submit" class="btn btn-primary" @disabled($services->isEmpty())>
+                    {{ __('register.enrollment_submit') }}
+                </button>
             </form>
         </div>
     </div>
@@ -72,6 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const serviceSelect = document.getElementById('service_id');
     const courseSelect = document.getElementById('course_id');
     const initialCourseId = @json($selectedCourseId);
+
+    if (!serviceSelect || !courseSelect) {
+        return;
+    }
 
     function populateCourses(serviceId, selectedCourseId) {
         const courses = coursesByService[serviceId] || [];

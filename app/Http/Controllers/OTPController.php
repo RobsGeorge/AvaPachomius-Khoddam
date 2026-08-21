@@ -7,7 +7,6 @@ use App\Models\OtpCode;
 use App\Models\User;
 use App\Services\PendingRegistrationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Mail;
 
@@ -25,6 +24,10 @@ class OTPController extends Controller
 
         if (! $user || $user->registration_completed) {
             return redirect()->route('register')->withErrors(['general' => __('register.already_completed')]);
+        }
+
+        if (PendingRegistrationService::hasCompletedOtpChallenge($user)) {
+            return PendingRegistrationService::redirectToNextSignupStep($user);
         }
 
         return view('auth.otp', compact('userId'));
@@ -56,10 +59,8 @@ class OTPController extends Controller
 
         $otpRecord->delete();
 
-        session([
-            PendingRegistrationService::SESSION_PASSWORD_USER_KEY => $user->user_id,
-            'user_id' => $user->user_id,
-        ]);
+        PendingRegistrationService::markEmailVerified($user);
+        PendingRegistrationService::grantPasswordSession($user);
 
         return redirect()->route('password.set', ['user_id' => $user->user_id]);
     }
@@ -67,6 +68,17 @@ class OTPController extends Controller
     public function resend(Request $request)
     {
         $request->validate(['user_id' => 'required|exists:user,user_id']);
+
+        $user = User::find($request->user_id);
+
+        if (! $user || $user->registration_completed) {
+            return back()->withErrors(['resend' => __('register.already_completed')]);
+        }
+
+        if (PendingRegistrationService::hasCompletedOtpChallenge($user)) {
+            return PendingRegistrationService::redirectToNextSignupStep($user)
+                ->with('success', __('register.otp_already_verified'));
+        }
 
         $key = 'resend-otp-' . $request->user_id;
         if (RateLimiter::tooManyAttempts($key, 1)) {
@@ -81,13 +93,6 @@ class OTPController extends Controller
                 'expires_at' => now()->addMinutes(10),
             ]
         );
-        
-
-        $user = User::find($request->user_id);
-
-        if (! $user || $user->registration_completed) {
-            return back()->withErrors(['resend' => __('register.already_completed')]);
-        }
 
         Mail::to($user->email)->send(new \App\Mail\SendOTPEmail($otp, $user));
         RateLimiter::hit($key, 60);
