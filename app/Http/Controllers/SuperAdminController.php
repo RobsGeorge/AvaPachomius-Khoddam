@@ -119,7 +119,7 @@ class SuperAdminController extends Controller
         $supportsLocalizedFields = Schema::hasColumn('course', 'title_ar')
             && Schema::hasColumn('course', 'title_en');
 
-        $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
+        $structureTemplates = StructureTemplate::orderedForSelect();
         $progressionPolicies = ProgressionPolicy::all();
 
         return view('superadmin.courses', compact(
