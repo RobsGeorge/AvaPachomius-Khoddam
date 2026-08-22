@@ -207,6 +207,11 @@ class Course extends Model
         return $this->hasMany(Exam::class, 'course_id', 'course_id');
     }
 
+    public function projectAssessments()
+    {
+        return $this->hasMany(ProjectAssessment::class, 'course_id', 'course_id');
+    }
+
     public function assessments()
     {
         return $this->hasMany(CourseAssessment::class, 'course_id', 'course_id');

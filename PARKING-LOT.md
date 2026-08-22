@@ -311,6 +311,20 @@ server load, and church/service usage windows — portable across cloud provider
 **Status:** **Landed** on staging (PR #91). Follow-ups: optional Hostinger infra adapter;
 church-admin stack sanitization polish; `login_trials` plaintext password debt (separate).
 
+## Team projects — v1 landed, follow-ups parked (2026-08-22)
+
+**Landed:** module-linked project assessments, pack-fill random assignment, min/max team size,
+first-member / teammate / team-complete notifications, one approved team-change request.
+Design: `docs/product/use-cases/projects.md`.
+
+**Still parked:**
+
+1. Project grading / gradebook integration (points, rubric, announce).
+2. File deliverable uploads per phase.
+3. Mobile `/api/v1` read/join endpoints.
+4. Admin manual seat assignment / lock a team before max.
+5. “Someone left” notification to remaining teammates.
+
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
   GHSA-crmm-hgp2-wgrp (temporary signed URL path confusion). Patches require

@@ -38,6 +38,18 @@ class NavigationHub
             ], 'assignment.view', 'assignments'), 'assessment');
         }
 
+        if (self::canAnyCourse($user, $resolver, ['project.view', 'project.join', 'project.manage'])) {
+            $links[] = self::categorized(self::link('projects.index', 'dashboard.view_projects', 'bi-kanban', [
+                'projects.index', 'projects.show', 'projects.join',
+            ], 'project.view', 'projects'), 'assessment');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['project.manage'])) {
+            $links[] = self::categorized(self::link('projects.manage', 'dashboard.manage_projects', 'bi-kanban-fill', [
+                'projects.manage', 'projects.assessments.*', 'projects.change-requests.*',
+            ], 'project.manage', 'projects'), 'assessment');
+        }
+
         if (self::canAnyCourse($user, $resolver, ['exam.author', 'exam.grade'])) {
             $links[] = self::categorized(self::link('exams.dashboard', 'dashboard.manage_exams', 'bi-patch-check', [
                 'exams.dashboard', 'exams.builder', 'exams.grades', 'exams.admin-dashboard',

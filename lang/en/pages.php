@@ -722,6 +722,7 @@ return [
     'lecture_updated_success'     => 'Lecture updated successfully.',
     'lecture_deleted_success'     => 'Lecture deleted successfully.',
     'no_sessions_in_module'       => 'No weekly sessions linked to this module yet. Link sessions in the schedule section above.',
+    'empty_module_add_lecture_hint' => 'No sessions yet — create a session or add an unassigned lecture.',
     'no_lectures_in_session'      => 'No lectures in this session yet.',
     'unassigned_lectures'         => 'Unassigned lectures',
     'unassigned_lectures_hint'    => 'These lectures are not linked to a session. Edit each lecture and choose a session.',

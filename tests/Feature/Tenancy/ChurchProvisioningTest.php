@@ -223,7 +223,7 @@ class ChurchProvisioningTest extends EventModuleTestCase
         $this->from('/login')
             ->loginWithOtp($outsider)
             ->assertRedirect(route('login'))
-            ->assertSessionHasErrors('identifier');
+            ->assertSessionHasErrors('email');
 
         $this->assertGuest();
     }

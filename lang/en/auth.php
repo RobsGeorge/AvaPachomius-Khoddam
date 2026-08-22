@@ -25,6 +25,7 @@ return [
     'otp_title'         => 'OTP verification',
     'otp_enter'         => 'Enter verification code',
     'otp_code'          => 'Verification code',
+    'otp_digits_hint'   => 'Enter the 6-digit verification code.',
     'otp_verify'        => 'Verify',
     'otp_resend'        => 'Resend code',
     'forgot_title'      => 'Forgot password',

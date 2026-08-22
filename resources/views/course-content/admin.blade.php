@@ -325,8 +325,10 @@
                     <div class="fw-semibold text-muted small">
                         <i class="bi bi-journal-check"></i> {{ __('pages.module_exams') }}
                     </div>
-                    <a href="{{ route('exams.dashboard') }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-plus-lg"></i> {{ __('pages.manage_exams') }}
+                    <a href="{{ route('exams.dashboard') }}"
+                       class="btn btn-sm btn-outline-primary"
+                       aria-label="{{ __('pages.manage_exams') }}">
+                        <i class="bi bi-journal-check"></i> {{ __('pages.manage_exams') }}
                     </a>
                 </div>
                 @if($module->exams->isNotEmpty())
@@ -352,9 +354,22 @@
 
             {{-- Sessions & lectures --}}
             @if($module->courseSessions->isEmpty())
-                <div class="alert alert-warning m-3 mb-0">
-                    <i class="bi bi-exclamation-triangle"></i> {{ __('pages.no_sessions_in_module') }}
-                    <a href="{{ route('sessions.index') }}" class="alert-link">{{ __('pages.manage_sessions') }}</a>
+                <div class="m-3 mb-0">
+                    <div class="alert alert-warning mb-3">
+                        <i class="bi bi-exclamation-triangle"></i> {{ __('pages.no_sessions_in_module') }}
+                        {{ __('pages.empty_module_add_lecture_hint') }}
+                        <a href="{{ route('sessions.create') }}" class="alert-link">{{ __('pages.add_session') }}</a>
+                    </div>
+                    <div class="card-footer bg-light rounded">
+                        <div class="fw-semibold mb-2 text-muted small">
+                            <i class="bi bi-plus-circle-fill text-success"></i> {{ __('pages.add_new_lecture') }}
+                        </div>
+                        @include('course-content.partials.lecture-add-form', [
+                            'module' => $module,
+                            'course' => $course,
+                            'session' => null,
+                        ])
+                    </div>
                 </div>
             @else
                 @foreach($module->courseSessions as $session)

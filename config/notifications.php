@@ -14,6 +14,11 @@ return [
         'academic' => [
             'assignment_deadline',
             'assignment_submission_reminder',
+            'project_assigned',
+            'project_teammate_joined',
+            'project_team_completed',
+            'project_change_requested',
+            'project_change_decided',
             'exam_upcoming',
             'session_upcoming',
             'grade_posted',
@@ -82,6 +87,61 @@ return [
         ],
         'assignment_submission_reminder' => [
             'label' => 'notifications.types.assignment_submission_reminder',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_assigned' => [
+            'label' => 'notifications.types.project_assigned',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_teammate_joined' => [
+            'label' => 'notifications.types.project_teammate_joined',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_team_completed' => [
+            'label' => 'notifications.types.project_team_completed',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_change_requested' => [
+            'label' => 'notifications.types.project_change_requested',
+            'category' => 'academic',
+            'audience' => ['instructor', 'admin'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_change_decided' => [
+            'label' => 'notifications.types.project_change_decided',
             'category' => 'academic',
             'audience' => ['student'],
             'defaults' => [

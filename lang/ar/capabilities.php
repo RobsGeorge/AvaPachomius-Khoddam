@@ -5,6 +5,7 @@ return [
     'attendance' => 'الحضور',
     'assignments' => 'الواجبات',
     'exams' => 'الامتحانات',
+    'projects' => 'المشاريع',
     'grades' => 'الدرجات والتخرج',
     'assessments' => 'التقييمات',
     'events' => 'الفعاليات',

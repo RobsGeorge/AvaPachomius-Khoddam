@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\SendOTPEmail;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\CourseApplication;
@@ -405,7 +406,8 @@ class RegistrationEnrollmentRoutingTest extends EventModuleTestCase
         $this->submitEnrollment($user, $service, $course);
 
         $this->loginWithOtp($user, route('login'), [
-            'identifier' => $user->email,
+            'email' => $user->email,
+            'password' => self::TEST_PASSWORD,
         ])->assertRedirect(route('courses.application.status', $course->course_id));
     }
 

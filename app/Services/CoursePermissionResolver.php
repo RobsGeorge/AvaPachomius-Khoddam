@@ -27,8 +27,8 @@ class CoursePermissionResolver
     private const WRITE_SUFFIXES = ['.manage', '.grade', '.author', '.record', '.edit', '.close', '.publish', '.host', '.admin', '.configure'];
 
     private const LIFECYCLE_DENIED = [
-        Course::STATUS_GRADING_LOCKED => ['grade.manage', 'exam.author', 'assignment.manage'],
-        Course::STATUS_ANNOUNCED => ['grade.manage', 'exam.author', 'assignment.manage', 'curriculum.manage', 'announcement.manage', 'role.manage'],
+        Course::STATUS_GRADING_LOCKED => ['grade.manage', 'exam.author', 'assignment.manage', 'project.manage'],
+        Course::STATUS_ANNOUNCED => ['grade.manage', 'exam.author', 'assignment.manage', 'project.manage', 'curriculum.manage', 'announcement.manage', 'role.manage'],
         Course::STATUS_CLOSED => ['role.manage', 'user.assign_role'],
         Course::STATUS_ARCHIVED => ['role.manage', 'user.assign_role'],
     ];
@@ -38,6 +38,7 @@ class CoursePermissionResolver
         'curriculum.manage',
         'attendance.record',
         'assignment.manage',
+        'project.manage',
         'exam.author',
         'grade.manage',
         'role.manage',
@@ -46,6 +47,7 @@ class CoursePermissionResolver
     /** Learner permission keys (student template) used for authz bundles. */
     public const LEARNER_PERMISSION_KEYS = [
         'assignment.submit',
+        'project.join',
         'exam.take',
         'attendance.view_own',
     ];
@@ -427,7 +429,7 @@ class CoursePermissionResolver
 
         return in_array($permission, [
             'user.assign_role', 'course.close', 'assignment.submit',
-            'exam.take', 'exam.proctor', 'events.reserve',
+            'project.join', 'exam.take', 'exam.proctor', 'events.reserve',
         ], true);
     }
 
