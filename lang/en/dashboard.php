@@ -21,6 +21,8 @@ return [
     'exams'                  => 'Exams',
     'view_exams'             => 'View exam schedules and results',
     'manage_exams'           => 'Manage exams',
+    'view_projects'          => 'View course projects',
+    'manage_projects'        => 'Manage course projects',
     'events'                 => 'Events & conferences',
     'events_desc'            => 'Reserve seats for institution events and conferences.',
     'view_events'            => 'Browse events',

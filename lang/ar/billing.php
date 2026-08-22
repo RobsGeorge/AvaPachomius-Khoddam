@@ -84,6 +84,7 @@ return [
         'attendance' => 'الحضور',
         'assignments' => 'الواجبات',
         'exams' => 'الامتحانات',
+        'projects' => 'المشاريع',
         'grades' => 'الدرجات',
         'assessments' => 'التقييمات',
         'events' => 'الفعاليات',
