@@ -83,7 +83,7 @@ class DynamicRoleManagementTest extends EventModuleTestCase
                 'role_name' => 'Custom',
                 'permissions' => $permIds,
             ])
-            ->assertRedirect(route('roles.hub', ['course' => $course->course_id, 'section' => 'course']));
+            ->assertRedirect(app(\App\Services\RolesHubService::class)->hubUrl($course, 'course'));
 
         $this->assertEquals(2, $role->fresh()->permissions()->count());
     }
@@ -204,11 +204,9 @@ class DynamicRoleManagementTest extends EventModuleTestCase
         ]);
     }
 
-    public function test_superadmin_role_picker_only_lists_course_scoped_roles(): void
+    public function test_superadmin_system_wide_hub_hides_church_wide_assignments(): void
     {
         $super = $this->createUser(['is_superadmin' => true]);
-        $courseA = $this->createCourse(['title' => 'Alpha']);
-        $courseB = $this->createCourse(['title' => 'Beta']);
 
         Role::create([
             'role_name' => 'Legacy Admin',
@@ -218,19 +216,15 @@ class DynamicRoleManagementTest extends EventModuleTestCase
             'is_template' => false,
         ]);
 
-        $this->courseRoleWithPermissions($courseA, 'admin', ['role.manage']);
-        $this->courseRoleWithPermissions($courseB, 'admin', ['role.manage']);
+        $this->actingAs($super)->get(route('superadmin.course-roles'))
+            ->assertRedirect(route('roles.hub'));
 
-        $response = $this->actingAs($super)->get(route('superadmin.course-roles'));
-
-        $response->assertRedirect(route('roles.hub', ['section' => 'assignments']));
-
-        $response = $this->actingAs($super)->get(route('roles.hub', ['section' => 'assignments']));
-
-        $response->assertOk();
-        $response->assertSee('data-course-id="'.$courseA->course_id.'"', false);
-        $response->assertSee('data-course-id="'.$courseB->course_id.'"', false);
-        $response->assertSee('Legacy Admin', false);
+        $this->actingAs($super)
+            ->get(route('roles.hub', ['section' => 'assignments']))
+            ->assertOk()
+            ->assertSee(__('rbac.hub_intro_system'))
+            ->assertDontSee('id="section-assignments"', false)
+            ->assertDontSee('Legacy Admin', false);
     }
 
     public function test_bump_course_permissions_version_clears_current_and_next_cache_keys(): void
