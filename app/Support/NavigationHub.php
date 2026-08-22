@@ -187,7 +187,7 @@ class NavigationHub
         if ($manageable->isNotEmpty()) {
             $serviceForHub = $current && $manageable->contains('service_id', $current->service_id)
                 ? $current
-                : $manageable->first();
+                : ($manageable->count() === 1 ? $manageable->first() : null);
             $links[] = [
                 'url' => $rolesHub->hubUrl(null, 'service', $serviceForHub),
                 'label' => __('rbac.section_service'),
@@ -325,11 +325,15 @@ class NavigationHub
 
         if ($hub->canAccess($user)) {
             $course = current_course();
+            $service = current_service();
+            $manageableCourses = $hub->manageableCourses($user, $service);
             $links[] = self::categorized([
                 'url' => $hub->hubUrl(
-                    $course && $hub->manageableCourses($user)->contains('course_id', $course->course_id)
+                    $course && $manageableCourses->contains('course_id', $course->course_id)
                         ? $course
-                        : null
+                        : null,
+                    $service ? 'service' : null,
+                    $service
                 ),
                 'label' => __('rbac.hub_title'),
                 'icon' => 'bi-shield-check',
