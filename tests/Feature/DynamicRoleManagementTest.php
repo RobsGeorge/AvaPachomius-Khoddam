@@ -83,7 +83,7 @@ class DynamicRoleManagementTest extends EventModuleTestCase
                 'role_name' => 'Custom',
                 'permissions' => $permIds,
             ])
-            ->assertRedirect(route('roles.hub', ['course' => $course->course_id, 'section' => 'course']));
+            ->assertRedirect(app(\App\Services\RolesHubService::class)->hubUrl($course, 'course'));
 
         $this->assertEquals(2, $role->fresh()->permissions()->count());
     }

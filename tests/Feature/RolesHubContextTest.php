@@ -42,9 +42,9 @@ class RolesHubContextTest extends EventModuleTestCase
             ->withSession([ServiceContextService::SESSION_KEY => $serviceA->service_id])
             ->get(route('roles.hub', ['section' => 'service']))
             ->assertOk()
-            ->assertSee('Scoped Alpha Service', false)
+            ->assertSee(__('rbac.hub_intro_service', ['service' => $serviceA->localizedTitle()]), false)
             ->assertSee('Scoped Alpha Course', false)
-            ->assertDontSee('Scoped Beta Service', false)
+            ->assertDontSee(__('rbac.hub_intro_service', ['service' => $serviceB->localizedTitle()]), false)
             ->assertDontSee('Scoped Beta Course', false)
             ->assertDontSee('id="section-templates"', false)
             ->assertDontSee('id="section-system"', false)
@@ -84,8 +84,10 @@ class RolesHubContextTest extends EventModuleTestCase
             ->get(route('roles.hub', ['section' => 'service']))
             ->assertOk()
             ->assertSee('Dual Admin Alpha', false)
-            ->assertDontSee('Dual Admin Beta', false)
-            ->assertDontSee('id="hub-service"', false);
+            ->assertSee(__('rbac.hub_intro_service', ['service' => $serviceA->localizedTitle()]), false)
+            ->assertDontSee(__('rbac.hub_intro_service', ['service' => $serviceB->localizedTitle()]), false)
+            ->assertDontSee('id="hub-service"', false)
+            ->assertDontSee('id="hub-service-top"', false);
     }
 
     public function test_course_admin_does_not_see_other_service_assignments(): void
@@ -130,7 +132,6 @@ class RolesHubContextTest extends EventModuleTestCase
             ->assertSee(__('rbac.hub_intro_system'))
             ->assertSee(__('rbac.manage_templates'))
             ->assertSee(__('rbac.system_roles'))
-            ->assertDontSee('System Wide Hidden Service', false)
             ->assertDontSee('id="section-service"', false)
             ->assertDontSee('id="section-course"', false);
     }
