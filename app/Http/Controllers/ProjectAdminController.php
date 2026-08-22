@@ -351,7 +351,7 @@ class ProjectAdminController extends Controller
             $titles = preg_split('/\r\n|\r|\n/', (string) $validated['project_titles']) ?: [];
         }
 
-        return [
+        $payload = [
             'course_id' => (int) ($validated['course_id'] ?? $course?->course_id),
             'module_id' => (int) $validated['module_id'],
             'title' => $validated['title'],
@@ -363,11 +363,16 @@ class ProjectAdminController extends Controller
             'criteria' => $validated['criteria'] ?? [],
             'project_count' => (int) ($validated['project_count'] ?? 1),
             'project_titles' => $titles,
-            'subprojects' => $validated['subprojects'] ?? [],
             'requirements' => $validated['requirements'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
         ];
+
+        if (array_key_exists('subprojects', $validated)) {
+            $payload['subprojects'] = $validated['subprojects'] ?? [];
+        }
+
+        return $payload;
     }
 
     private function modulesForCourse(?Course $course)
