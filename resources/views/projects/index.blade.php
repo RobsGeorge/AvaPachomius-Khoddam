@@ -42,6 +42,7 @@
 
                         @if($membership && $assignedProject)
                             <p class="mb-3">{{ __('projects.assigned_to', ['title' => $assignedProject->title]) }}</p>
+                            @include('projects.partials.grade-status', ['visibility' => $gradeVisibility[$assessment->project_assessment_id] ?? null])
                             <a href="{{ route('projects.show', $assignedProject) }}" class="btn btn-outline-primary">
                                 {{ __('projects.open_project') }}
                             </a>

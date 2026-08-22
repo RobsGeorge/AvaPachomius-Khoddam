@@ -44,9 +44,9 @@ class NavigationHub
             ], 'project.view', 'projects'), 'assessment');
         }
 
-        if (self::canAnyCourse($user, $resolver, ['project.manage'])) {
+        if (self::canAnyCourse($user, $resolver, ['project.manage', 'project.grade'])) {
             $links[] = self::categorized(self::link('projects.manage', 'dashboard.manage_projects', 'bi-kanban-fill', [
-                'projects.manage', 'projects.assessments.*', 'projects.change-requests.*',
+                'projects.manage', 'projects.assessments.*', 'projects.change-requests.*', 'projects.grades*',
             ], 'project.manage', 'projects'), 'assessment');
         }
 

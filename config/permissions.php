@@ -141,6 +141,20 @@ return [
                 ],
                 'nav' => ['academic.projects'],
             ],
+            'project.grade' => [
+                'label_en' => 'Grade projects',
+                'label_ar' => 'تصحيح المشاريع',
+                'type' => 'endpoint',
+                'routes' => [
+                    'projects.grades',
+                    'projects.grades.announce',
+                    'projects.grades.scale',
+                    'projects.grades.criteria',
+                    'projects.grades.team',
+                    'projects.grades.student',
+                    'projects.grades.student.clear',
+                ],
+            ],
         ],
     ],
 

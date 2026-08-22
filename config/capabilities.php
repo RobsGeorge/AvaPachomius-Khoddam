@@ -47,7 +47,7 @@ return [
     'projects' => [
         'label' => 'capabilities.projects',
         'permissions' => [
-            'project.view', 'project.join', 'project.manage',
+            'project.view', 'project.join', 'project.manage', 'project.grade',
         ],
         'config' => [],
     ],

@@ -39,6 +39,7 @@ class CoursePermissionResolver
         'attendance.record',
         'assignment.manage',
         'project.manage',
+        'project.grade',
         'exam.author',
         'grade.manage',
         'role.manage',

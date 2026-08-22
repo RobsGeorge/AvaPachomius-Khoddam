@@ -75,6 +75,9 @@
         <div class="col-lg-4">
             <div class="app-card card shadow-sm mb-3">
                 <div class="card-body">
+                    @if($membership)
+                        @include('projects.partials.grade-status', ['visibility' => $gradeVisibility ?? null])
+                    @endif
                     <h2 class="h5 fw-bold">{{ __('projects.team_members') }}</h2>
                     <p class="small text-muted">
                         {{ __('projects.seats_of', [

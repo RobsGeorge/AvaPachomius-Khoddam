@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectMemberGrade;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAssignmentService;
+use App\Services\ProjectResultsVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,6 +16,7 @@ class ProjectController extends Controller
     public function __construct(
         private CoursePermissionResolver $permissions,
         private ProjectAssignmentService $assignments,
+        private ProjectResultsVisibilityService $visibility,
     ) {}
 
     public function index()
@@ -41,11 +44,13 @@ class ProjectController extends Controller
 
         $assessments = $query->get();
         $memberships = [];
+        $gradeVisibility = [];
         foreach ($assessments as $assessment) {
             $memberships[$assessment->project_assessment_id] = $assessment->activeMembershipFor((int) $user->user_id);
+            $gradeVisibility[$assessment->project_assessment_id] = $this->gradeVisibilityFor($user, $assessment);
         }
 
-        return view('projects.index', compact('assessments', 'memberships', 'canManage'));
+        return view('projects.index', compact('assessments', 'memberships', 'canManage', 'gradeVisibility'));
     }
 
     public function show(Project $project)
@@ -71,13 +76,16 @@ class ProjectController extends Controller
             : null;
         $changeUsed = $assessment->hasUsedChangeChance((int) $user->user_id);
 
+        $gradeVisibility = $this->gradeVisibilityFor($user, $assessment);
+
         return view('projects.show', compact(
             'project',
             'assessment',
             'membership',
             'canManage',
             'pendingChange',
-            'changeUsed'
+            'changeUsed',
+            'gradeVisibility'
         ));
     }
 
@@ -171,5 +179,26 @@ class ProjectController extends Controller
         $course = \App\Models\Course::find($courseId);
 
         return $course && $this->permissions->canInCourse($user, 'project.manage', $course);
+    }
+
+    /**
+     * @return array{can_view:bool, reason:string, grade:?ProjectMemberGrade, passed:?bool}
+     */
+    private function gradeVisibilityFor($user, ProjectAssessment $assessment): array
+    {
+        $grade = ProjectMemberGrade::query()
+            ->where('project_assessment_id', $assessment->project_assessment_id)
+            ->where('user_id', $user->user_id)
+            ->first();
+
+        $reason = $this->visibility->hideReason($user, $assessment);
+        $canView = $this->visibility->canStudentViewScore($user, $assessment);
+
+        return [
+            'can_view' => $canView,
+            'reason' => $reason,
+            'grade' => $grade,
+            'passed' => $grade ? $grade->passed((int) $assessment->passing_percent) : null,
+        ];
     }
 }
