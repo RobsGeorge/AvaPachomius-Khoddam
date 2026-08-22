@@ -12,7 +12,7 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Topic | Decision |
 |---|---|
 | Container | `project_assessments` linked to one course + one module (required, like exams). |
-| Team = project | One `projects` row is one team. Admin creates 1..N. Same brief can be copied onto many teams. |
+| Team = unique subproject | One `projects` row is one team **and** one unique title/topic. Shared brief (phases, deliverables, default requirements) is copied onto every team. Optional per-team requirements override the shared text. |
 | Fill algorithm | **Pack-then-open:** never start an empty team while a started team is below `max_team_size`. Among started teams, prefer the fullest; ties broken randomly. |
 | Team complete | Team **closes** when active members = `max_team_size`. Confirmation email/portal notification lists all members + phones + project URL. |
 | Below min | Teams under `min_team_size` stay open (not complete). Admin is expected to create enough teams (`ceil(enrollment / max)`). |
@@ -32,7 +32,7 @@ project row is one team/topic. Min/max team size live on the parent **project as
 
 | UC | Persona | Main path | Alternate / error paths | Authorization |
 |---|---|---|---|---|
-| UC-PRJ-01 | Instructor | Create a project assessment on a module: title, min/max, 1..N teams, shared requirements / phases / deliverables | Module not in course → validation; max < min → validation | `project.manage` |
+| UC-PRJ-01 | Instructor | Create a project assessment on a module: title, min/max, 1..N **unique** subproject titles, shared requirements / phases / deliverables | Module not in course → validation; max < min → validation; duplicate subproject title → validation | `project.manage` |
 | UC-PRJ-02 | Instructor | Publish assessment; edit brief; add extra teams; delete empty unpublished assessment | Delete blocked when any membership exists | `project.manage` |
 | UC-PRJ-03 | Student | See published assessments for the current course | Unpublished hidden; other course hidden by context | `project.view` |
 | UC-PRJ-04 | Student | Click **Get assigned** → packed onto a team; email/portal notice (first-member vs teammates list) | Already assigned → 409; no seats → validation; unpublished → 404 | `project.join` |
@@ -47,6 +47,7 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-13 | Instructor | Override or revert one student's grade | Not assigned → validation | `project.grade` |
 | UC-PRJ-14 | Instructor | Announce grades once | Second announce → 409 | `project.grade` |
 | UC-PRJ-15 | Student | See own points / percent / pass-fail after announce + required module feedback | Hidden while pending announcement or pending feedback | `project.view` |
+| UC-PRJ-16 | Instructor | Add or rename a team’s unique subproject title | Duplicate (case-insensitive) → validation | `project.manage` |
 
 ## Pack-fill algorithm
 
@@ -62,6 +63,17 @@ else:
 ```
 
 This finishes one team up to `max` before opening the next empty team.
+
+## Unique subprojects
+
+The assessment is the shared project (rubric, passing bar, shared phases /
+deliverables). Each `projects` row is one team **and** one unique topic.
+
+- Admin lists distinct titles at create (and can add/rename later).
+- Titles are unique per assessment (trimmed, case-insensitive).
+- Pack-fill still assigns students to teams. Opening an empty team therefore
+  assigns that student a remaining unused subproject at random.
+- Students see the assessment name plus their team’s subproject title only.
 
 ## Notifications (portal + email, academic category)
 

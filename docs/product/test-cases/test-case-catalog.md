@@ -48,6 +48,7 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 | TC-ASG-01..06 | UC-ASG-* | submit (PDF/deadline), grade, manage | partial ✅ `AssignmentCourseContextTest`; submit/grade 🔲 | P1 |
 | TC-PRJ-01..10 | UC-PRJ-* | create/publish, pack-fill assign, teammate/complete emails, change request + one chance, tenant isolation | ✅ `UseCases/Projects/ProjectAssignmentFlowTest`, `Unit/ProjectAssignmentServiceTest`, `Tenancy/ProjectIsolationTest` | P1 |
 | TC-PRJ-11..15 | UC-PRJ-11..15 | criteria + max/pass, team grade + student override, one-shot announce, feedback gate, isolation of grade tables | ✅ `UseCases/Projects/ProjectGradingTest`, `Unit/ProjectGradingServiceTest`, `Tenancy/ProjectIsolationTest` | P1 |
+| TC-PRJ-16 | UC-PRJ-16 | unique subproject titles on create/add/rename; student sees own topic | ✅ `UseCases/Projects/ProjectAssignmentFlowTest` | P1 |
 | TC-EXAM-04..06 | UC-EXAM-04/05/06 | objective auto-grade, manual essay finalization, idempotent submit | ✅ `UseCases/Exams/ExamGradingTest` | P1 |
 | TC-EXAM-01..03,07,08 | UC-EXAM-* | build/schedule/attempt window/timer auto-submit/proctor/publish-visibility | 🔲 planned (HTTP flow) | P1 |
 | TC-GRD-01..07 | UC-GRD/CERT-* | weighted grades, publish visibility, graduation, certificate download | partial ✅ `CourseGraduationClosingTest`; grade calc + cert download 🔲 | P1 |
