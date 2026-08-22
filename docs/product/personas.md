@@ -35,7 +35,7 @@ templates: service-admin/service-member).
 
 ### 4. Instructor (course staff — `instructor` template)
 - **Permissions:** student-teaching set plus `curriculum.manage`, `assignment.manage`,
-  `assignment.grade`, `project.manage`, `exam.author`, `exam.schedule`, `exam.grade`, `grade.manage`,
+  `assignment.grade`, `project.manage`, `project.grade`, `exam.author`, `exam.schedule`, `exam.grade`, `grade.manage`,
   `attendance.record`, `attendance.view_all`, `attendance.report`, `attendance.edit`,
   `announcement.manage`, `announcement.publish`, `roster.view`, `roster.announce`, `session.notify`,
   `graduation.view`, `graduation.configure`, `course.close`, `certificate.manage`, `feedback.manage`,

@@ -681,6 +681,13 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::put('/projects/assessments/{projectAssessment}', [ProjectAdminController::class, 'update'])->name('projects.assessments.update');
     Route::post('/projects/assessments/{projectAssessment}/publish', [ProjectAdminController::class, 'publish'])->name('projects.assessments.publish');
     Route::delete('/projects/assessments/{projectAssessment}', [ProjectAdminController::class, 'destroy'])->name('projects.assessments.destroy');
+    Route::get('/projects/assessments/{projectAssessment}/grades', [ProjectAdminController::class, 'grades'])->name('projects.grades');
+    Route::put('/projects/assessments/{projectAssessment}/grades/scale', [ProjectAdminController::class, 'updateScale'])->name('projects.grades.scale');
+    Route::put('/projects/assessments/{projectAssessment}/grades/criteria', [ProjectAdminController::class, 'syncCriteria'])->name('projects.grades.criteria');
+    Route::post('/projects/assessments/{projectAssessment}/grades/announce', [ProjectAdminController::class, 'announce'])->name('projects.grades.announce');
+    Route::post('/projects/{project}/grade', [ProjectAdminController::class, 'gradeTeam'])->name('projects.grades.team');
+    Route::post('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'gradeStudent'])->name('projects.grades.student');
+    Route::delete('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'clearStudentGrade'])->name('projects.grades.student.clear');
     Route::post('/projects/assessments/{projectAssessment}/projects', [ProjectAdminController::class, 'storeProject'])->name('projects.store');
     Route::post('/projects/assessments/{projectAssessment}/join', [ProjectController::class, 'join'])->name('projects.join');
     Route::post('/projects/assessments/{projectAssessment}/change-requests', [ProjectController::class, 'storeChangeRequest'])->name('projects.change-requests.store');

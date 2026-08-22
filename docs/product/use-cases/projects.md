@@ -22,8 +22,10 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Change chance | **One approved** reassignment per student per assessment. Rejected requests do not consume the chance. One pending request at a time. |
 | Reassignment | Approved student is packed onto a **different** open team. Cannot return to the team they left. Approval fails (and stays pending) if no other seat exists. |
 | Leave | Membership `left`; seat frees; closed team reopens. No “uncomplete” email. |
-| Grading / file submit | **Out of v1** — parked (`PARKING-LOT.md`). |
-| Auth | Permission keys only: `project.view`, `project.join`, `project.manage`. Capability `projects`. |
+| Grading | Group grade is the default. Admin scores each team (per criterion or a single total). Optional per-student override. Assessment has `max_points` + `passing_percent`. |
+| Announce | Results announced **once** (`results_announced_at`). Grade edits remain allowed after announce. |
+| Student visibility | Same gate as exams: announced **and** mandatory module feedback submitted. |
+| Auth | Permission keys: `project.view`, `project.join`, `project.manage`, `project.grade`. Capability `projects`. |
 | Tenancy | Every table has `church_id` + `BelongsToChurch`. |
 
 ## Use cases
@@ -40,6 +42,11 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-08 | Student | Request a team change with a reason | Second pending blocked; chance already used → blocked | `project.join` |
 | UC-PRJ-09 | Instructor | Approve / reject change request | Approve reassigns to another team; no other seat → error, request stays pending | `project.manage` |
 | UC-PRJ-10 | Instructor | Review roster: fill counts, remaining seats, pending change requests | — | `project.manage` |
+| UC-PRJ-11 | Instructor | Set max grade, passing %, and one or more grading criteria | Criteria sum becomes `max_points` | `project.grade` |
+| UC-PRJ-12 | Instructor | Enter a **team** grade (per criterion or total); all active members inherit it | Members with an individual override are left unchanged | `project.grade` |
+| UC-PRJ-13 | Instructor | Override or revert one student's grade | Not assigned → validation | `project.grade` |
+| UC-PRJ-14 | Instructor | Announce grades once | Second announce → 409 | `project.grade` |
+| UC-PRJ-15 | Student | See own points / percent / pass-fail after announce + required module feedback | Hidden while pending announcement or pending feedback | `project.view` |
 
 ## Pack-fill algorithm
 
@@ -68,5 +75,6 @@ This finishes one team up to `max` before opening the next empty team.
 
 ## Coverage
 
-`UseCases/Projects/ProjectAssignmentFlowTest`, `Unit/ProjectAssignmentServiceTest`,
+`UseCases/Projects/ProjectAssignmentFlowTest`, `UseCases/Projects/ProjectGradingTest`,
+`Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
 `Tenancy/ProjectIsolationTest`.

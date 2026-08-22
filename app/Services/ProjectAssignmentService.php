@@ -49,6 +49,7 @@ class ProjectAssignmentService
 
             $project = $project->fresh();
             $justCompleted = $this->syncTeamStatus($project, $assessment);
+            app(ProjectGradingService::class)->inheritTeamGradeIfNeeded($assessment, $project, $user);
 
             if ($notify) {
                 $this->notifications->notifyAssigned($user, $project->fresh(['assessment', 'activeMemberships.user']), $wasFirst);

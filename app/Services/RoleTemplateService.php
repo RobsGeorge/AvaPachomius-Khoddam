@@ -520,7 +520,7 @@ class RoleTemplateService
         return [
             'course.access', 'curriculum.view', 'curriculum.manage',
             'assignment.view', 'assignment.manage', 'assignment.grade',
-            'project.view', 'project.manage',
+            'project.view', 'project.manage', 'project.grade',
             'exam.view', 'exam.author', 'exam.schedule', 'exam.grade',
             'grade.view', 'grade.manage',
             'attendance.record', 'attendance.view_all', 'attendance.report', 'attendance.edit',
