@@ -5,6 +5,7 @@ return [
     'attendance' => 'Attendance',
     'assignments' => 'Assignments',
     'exams' => 'Exams',
+    'projects' => 'Projects',
     'grades' => 'Grades & graduation',
     'assessments' => 'Assessments',
     'events' => 'Events',

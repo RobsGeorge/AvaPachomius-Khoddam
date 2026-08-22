@@ -84,6 +84,7 @@ return [
         'attendance' => 'Attendance',
         'assignments' => 'Assignments',
         'exams' => 'Exams',
+        'projects' => 'Projects',
         'grades' => 'Grades',
         'assessments' => 'Assessments',
         'events' => 'Events',

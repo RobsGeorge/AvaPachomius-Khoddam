@@ -105,7 +105,7 @@ class RequirePermission
 
     /** Permission keys that qualify a user as "staff" for the coarse `permission:staff` gate. */
     private const STAFF_KEYS = [
-        'curriculum.manage', 'exam.author', 'assignment.manage', 'grade.manage',
+        'curriculum.manage', 'exam.author', 'assignment.manage', 'project.manage', 'grade.manage',
         'attendance.record', 'attendance.view_all', 'announcement.manage',
         'roster.view', 'graduation.view', 'course.close', 'feedback.manage',
         'live_quiz.manage', 'role.manage',

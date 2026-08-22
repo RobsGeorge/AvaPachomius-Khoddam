@@ -43,6 +43,8 @@ use App\Http\Controllers\ExamBuilderController;
 use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectAdminController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdminApplicationLogController;
@@ -668,6 +670,25 @@ Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(funct
     Route::post('/exams/{exam}/grades/offline/bulk', [ExamGradesController::class, 'storeOfflineBulk'])->name('exams.grades.offline.bulk');
     Route::put('/exams/{exam}/grades/{result}', [ExamGradesController::class, 'updateManual'])->name('exams.grades.update');
     Route::post('/exams/{exam}/grades/{result}/clear-cheater', [ExamGradesController::class, 'clearCheater'])->name('exams.grades.clear-cheater');
+});
+
+// Team project assessments (module-linked)
+Route::middleware(['auth', 'capability:projects'])->group(function () {
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/manage', [ProjectAdminController::class, 'manage'])->name('projects.manage');
+    Route::get('/projects/change-requests', [ProjectAdminController::class, 'changeRequests'])->name('projects.change-requests.index');
+    Route::post('/projects/assessments', [ProjectAdminController::class, 'store'])->name('projects.assessments.store');
+    Route::put('/projects/assessments/{projectAssessment}', [ProjectAdminController::class, 'update'])->name('projects.assessments.update');
+    Route::post('/projects/assessments/{projectAssessment}/publish', [ProjectAdminController::class, 'publish'])->name('projects.assessments.publish');
+    Route::delete('/projects/assessments/{projectAssessment}', [ProjectAdminController::class, 'destroy'])->name('projects.assessments.destroy');
+    Route::post('/projects/assessments/{projectAssessment}/projects', [ProjectAdminController::class, 'storeProject'])->name('projects.store');
+    Route::post('/projects/assessments/{projectAssessment}/join', [ProjectController::class, 'join'])->name('projects.join');
+    Route::post('/projects/assessments/{projectAssessment}/change-requests', [ProjectController::class, 'storeChangeRequest'])->name('projects.change-requests.store');
+    Route::post('/projects/change-requests/{changeRequest}/approve', [ProjectAdminController::class, 'approveChange'])->name('projects.change-requests.approve');
+    Route::post('/projects/change-requests/{changeRequest}/reject', [ProjectAdminController::class, 'rejectChange'])->name('projects.change-requests.reject');
+    Route::put('/projects/{project}', [ProjectAdminController::class, 'updateProject'])->name('projects.update');
+    Route::delete('/projects/{project}', [ProjectAdminController::class, 'destroyProject'])->name('projects.destroy');
+    Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
 });
 
 // Assignment routes

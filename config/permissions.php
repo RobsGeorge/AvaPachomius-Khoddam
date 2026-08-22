@@ -103,6 +103,47 @@ return [
         ],
     ],
 
+    'projects' => [
+        'scope' => 'course',
+        'label_en' => 'Projects',
+        'label_ar' => 'المشاريع',
+        'sort' => 35,
+        'permissions' => [
+            'project.view' => [
+                'label_en' => 'View projects',
+                'label_ar' => 'عرض المشاريع',
+                'type' => 'both',
+                'routes' => ['projects.index', 'projects.show'],
+                'nav' => ['academic.projects'],
+            ],
+            'project.join' => [
+                'label_en' => 'Join a project team',
+                'label_ar' => 'الانضمام لفريق مشروع',
+                'type' => 'endpoint',
+                'routes' => ['projects.join', 'projects.change-requests.store'],
+            ],
+            'project.manage' => [
+                'label_en' => 'Manage projects',
+                'label_ar' => 'إدارة المشاريع',
+                'type' => 'both',
+                'routes' => [
+                    'projects.manage',
+                    'projects.assessments.store',
+                    'projects.assessments.update',
+                    'projects.assessments.publish',
+                    'projects.assessments.destroy',
+                    'projects.store',
+                    'projects.update',
+                    'projects.destroy',
+                    'projects.change-requests.index',
+                    'projects.change-requests.approve',
+                    'projects.change-requests.reject',
+                ],
+                'nav' => ['academic.projects'],
+            ],
+        ],
+    ],
+
     'exams' => [
         'scope' => 'course',
         'label_en' => 'Exams',
