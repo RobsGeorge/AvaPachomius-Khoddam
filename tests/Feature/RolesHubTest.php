@@ -17,11 +17,13 @@ class RolesHubTest extends EventModuleTestCase
             ->get(route('roles.hub'))
             ->assertOk()
             ->assertSee(__('rbac.hub_title'))
-            ->assertSee(__('rbac.section_course'))
-            ->assertSee(__('rbac.section_assignments'))
+            ->assertSee(__('rbac.hub_intro_system'))
             ->assertSee(__('rbac.manage_templates'))
             ->assertSee(__('rbac.system_roles'))
-            ->assertSee(__('rbac.group_visibility'));
+            ->assertSee(__('rbac.group_visibility'))
+            ->assertDontSee('id="section-course"', false)
+            ->assertDontSee('id="section-service"', false)
+            ->assertDontSee('id="hub-service"', false);
     }
 
     public function test_course_admin_sees_only_course_section(): void

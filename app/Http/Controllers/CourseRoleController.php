@@ -175,6 +175,10 @@ class CourseRoleController extends Controller
             $this->templates->cloneTemplatesIntoCourse($course);
         } elseif (! empty($data['source_course_id'])) {
             $source = Course::findOrFail($data['source_course_id']);
+            abort_unless(
+                (int) ($source->service_id ?? 0) === (int) ($course->service_id ?? 0),
+                403
+            );
             $this->templates->copyRolesFromCourse($course, $source);
         }
 
