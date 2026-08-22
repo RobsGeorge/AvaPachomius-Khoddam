@@ -90,7 +90,8 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
             ->where('user_id', $student->user_id)
             ->where('type', 'project_assigned')
             ->first();
-        $this->assertStringContainsString('first', strtolower($notice->body));
+        $this->assertTrue((bool) data_get($notice->metadata, 'first_member'));
+        $this->assertStringContainsString($membership->project->title, $notice->body);
     }
 
     public function test_second_member_notifies_joiner_and_existing_teammate(): void

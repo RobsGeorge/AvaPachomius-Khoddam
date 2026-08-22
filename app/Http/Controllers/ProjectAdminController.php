@@ -49,8 +49,10 @@ class ProjectAdminController extends Controller
     {
         $this->assertCanManage();
         $validated = $this->validateAssessment($request);
-        $this->assertModuleBelongsToCourse((int) $validated['module_id'], (int) $validated['course_id']);
-        $this->assertCanManageCourse((int) $validated['course_id']);
+        $courseId = (int) ($validated['course_id'] ?? current_course()?->course_id);
+        $this->assertModuleBelongsToCourse((int) $validated['module_id'], $courseId);
+        $this->assertCanManageCourse($courseId);
+        $validated['course_id'] = $courseId;
 
         $this->admin->createAssessment($this->assessmentPayload($validated), Auth::user());
 
