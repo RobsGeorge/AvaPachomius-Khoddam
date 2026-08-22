@@ -89,13 +89,14 @@ class ServiceLayerTest extends EventModuleTestCase
     public function test_superadmin_sees_service_section_in_roles_hub(): void
     {
         $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-hub@example.com']);
-        $this->createService(['title' => 'Hub Service']);
+        $service = $this->createService(['title' => 'Hub Service']);
 
         $this->actingAs($super)
-            ->get(route('roles.hub', ['section' => 'service']))
+            ->get(route('roles.hub', ['section' => 'service', 'service' => $service->service_id]))
             ->assertOk()
             ->assertSee(__('rbac.section_service'), false)
-            ->assertSee(__('service.no_academic_hint'), false);
+            ->assertSee(__('service.no_academic_hint'), false)
+            ->assertDontSee('id="hub-service"', false);
     }
 
     public function test_service_admin_permissions_grant_hub_access(): void

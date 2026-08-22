@@ -7,34 +7,26 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
             <h1 class="page-title mb-1 h4">{{ __('rbac.hub_title') }}</h1>
-            <p class="text-muted-theme small mb-0">{{ __('rbac.hub_intro') }}</p>
+            <p class="text-muted-theme small mb-0">
+                @if($service ?? null)
+                    {{ __('rbac.hub_intro_service', ['service' => $service->localizedTitle()]) }}
+                @elseif($systemWide ?? false)
+                    {{ __('rbac.hub_intro_system') }}
+                @else
+                    {{ __('rbac.hub_intro_course') }}
+                @endif
+            </p>
         </div>
         <div class="d-flex flex-wrap gap-3 align-items-center">
-            @if(($manageableServices ?? collect())->isNotEmpty())
-                @if(($manageableServices->count() > 1))
-                    <form method="GET" action="{{ route('roles.hub') }}" class="d-flex flex-wrap gap-2 align-items-center">
-                        <input type="hidden" name="section" value="{{ $section }}">
-                        @if($course)<input type="hidden" name="course" value="{{ $course->course_id }}">@endif
-                        <label for="hub-service-top" class="small text-muted-theme mb-0">{{ __('service.label') }}</label>
-                        <select name="service" id="hub-service-top" class="form-select form-select-sm" style="min-width: 12rem;" onchange="this.form.submit()">
-                            @foreach($manageableServices as $s)
-                                <option value="{{ $s->service_id }}" @selected(($service->service_id ?? null) == $s->service_id)>
-                                    {{ $s->localizedTitle() }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </form>
-                @elseif($service ?? null)
-                    <span class="badge bg-primary-subtle text-primary-emphasis border">
-                        <i class="fas fa-church me-1"></i>{{ $service->localizedTitle() }}
-                    </span>
-                @endif
+            @if($service ?? null)
+                <span class="badge bg-primary-subtle text-primary-emphasis border">
+                    <i class="fas fa-church me-1"></i>{{ $service->localizedTitle() }}
+                </span>
             @endif
             @if($manageableCourses->isNotEmpty())
                 @if($manageableCourses->count() > 1)
                     <form method="GET" action="{{ route('roles.hub') }}" class="d-flex flex-wrap gap-2 align-items-center">
                         <input type="hidden" name="section" value="{{ $section }}">
-                        @if($service)<input type="hidden" name="service" value="{{ $service->service_id }}">@endif
                         <label for="hub-course" class="small text-muted-theme mb-0">{{ __('pages.course') }}</label>
                         <select name="course" id="hub-course" class="form-select form-select-sm" style="min-width: 12rem;" onchange="this.form.submit()">
                             @foreach($manageableCourses as $c)
@@ -53,15 +45,16 @@
         </div>
     </div>
 
+    @if(empty($visibleSections))
+        <p class="text-muted-theme small mb-0">{{ __('rbac.hub_select_service_hint') }}</p>
+    @endif
+
 <div class="accordion accordion-flush roles-hub-accordion" id="rolesHubAccordion">
         @if(in_array('service', $visibleSections, true))
             @include('roles-hub.partials.section-service')
         @endif
         @if(in_array('course', $visibleSections, true))
             @include('roles-hub.partials.section-course')
-        @endif
-        @if(in_array('assignments', $visibleSections, true))
-            @include('roles-hub.partials.section-assignments')
         @endif
         @if(in_array('templates', $visibleSections, true))
             @include('roles-hub.partials.section-templates')
@@ -82,8 +75,8 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const openId = @json('section-'.$section);
-    const el = document.getElementById(openId);
+    const openId = @json($section ? 'section-'.$section : null);
+    const el = openId ? document.getElementById(openId) : null;
     if (el) {
         bootstrap.Collapse.getOrCreateInstance(el, { toggle: false }).show();
     }

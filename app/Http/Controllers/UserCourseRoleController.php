@@ -84,28 +84,26 @@ class UserCourseRoleController extends Controller
 
     public function sendRegistrationLink(User $user)
     {
+        $hub = app(RolesHubService::class);
+
         if (! PendingRegistrationService::isPending($user)) {
-            return redirect()
-                ->route('roles.hub', ['section' => 'assignments'])
+            return redirect($hub->hubUrl(null, 'course'))
                 ->with('warning', __('pages.account_status_already_active'));
         }
 
         if (! $user->email) {
-            return redirect()
-                ->route('roles.hub', ['section' => 'assignments'])
+            return redirect($hub->hubUrl(null, 'course'))
                 ->with('error', __('pages.account_status_no_email'));
         }
 
         $status = Password::sendResetLink(['email' => $user->email]);
 
         if ($status !== Password::RESET_LINK_SENT) {
-            return redirect()
-                ->route('roles.hub', ['section' => 'assignments'])
+            return redirect($hub->hubUrl(null, 'course'))
                 ->with('error', __($status));
         }
 
-        return redirect()
-            ->route('roles.hub', ['section' => 'assignments'])
+        return redirect($hub->hubUrl(null, 'course'))
             ->with('success', __('pages.account_setup_email_sent', ['email' => $user->email]));
     }
 }

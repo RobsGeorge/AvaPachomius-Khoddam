@@ -59,14 +59,6 @@ class RolesHubService
         return RolePreviewService::superadminBypassesPermissions($user);
     }
 
-    public function canViewAllAssignments(User $user): bool
-    {
-        return RolePreviewService::superadminBypassesPermissions($user)
-            || $user->isAdmin()
-            || $user->canInSystem('system.role.manage')
-            || $user->canInSystem('user.assign_role');
-    }
-
     public function canManageCourse(User $user, Course $course): bool
     {
         return $this->policy->manageCourseRoles($user, $course);
@@ -88,6 +80,12 @@ class RolesHubService
             || $this->policy->addCrossServiceMember($user, $service);
     }
 
+    public function isSystemWideMode(User $user, ?ChurchService $service = null): bool
+    {
+        return $service === null
+            && RolePreviewService::superadminBypassesPermissions($user);
+    }
+
     /** @return Collection<int, ChurchService> */
     public function manageableServices(User $user): Collection
     {
@@ -105,9 +103,47 @@ class RolesHubService
             ->values();
     }
 
-    public function resolveService(User $user, mixed $serviceId): ?ChurchService
+    /**
+     * Resolve the workspace service. Nav session wins.
+     * A deep-link ?service= id only syncs the session when the user can select that service.
+     * Never falls back to another service the user happens to administer.
+     */
+    public function resolveService(User $user, mixed $serviceId, mixed $courseId = null): ?ChurchService
     {
-        return $this->serviceContext->resolveAccessibleService($user, $serviceId);
+        $selectable = $this->serviceContext->selectableServices($user);
+
+        if ($serviceId) {
+            $match = $selectable->firstWhere('service_id', (int) $serviceId);
+            if ($match) {
+                $this->serviceContext->setCurrentService($user, $match);
+
+                return $match;
+            }
+        }
+
+        if ($courseId) {
+            $fromCourse = Course::find($courseId);
+            $courseServiceId = $fromCourse?->service_id;
+            if ($courseServiceId) {
+                $match = $selectable->firstWhere('service_id', (int) $courseServiceId);
+                if ($match) {
+                    $this->serviceContext->setCurrentService($user, $match);
+
+                    return $match;
+                }
+            }
+        }
+
+        $current = $this->serviceContext->currentService($user);
+        if ($current && $selectable->contains('service_id', $current->service_id)) {
+            return $current;
+        }
+
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return null;
+        }
+
+        return $this->serviceContext->autoSelectSingleService($user);
     }
 
     /** @return Collection<int, Course> */
@@ -172,20 +208,25 @@ class RolesHubService
     }
 
     /** @return list<string> */
-    public function visibleSections(User $user): array
+    public function visibleSections(User $user, ?ChurchService $service = null): array
     {
         $sections = [];
 
-        if ($this->manageableServices($user)->isNotEmpty()) {
-            $sections[] = 'service';
+        if ($service) {
+            if ($this->canManageService($user, $service) || $this->canAssignInService($user, $service)) {
+                $sections[] = 'service';
+            }
+
+            if ($this->manageableCourses($user, $service)->isNotEmpty()) {
+                $sections[] = 'course';
+            }
+
+            return $sections;
         }
 
-        if ($this->manageableCourses($user)->isNotEmpty()) {
+        if (! RolePreviewService::superadminBypassesPermissions($user)
+            && $this->manageableCourses($user)->isNotEmpty()) {
             $sections[] = 'course';
-        }
-
-        if ($this->canViewAllAssignments($user)) {
-            $sections[] = 'assignments';
         }
 
         if ($this->canManageEmailTemplates($user)) {
@@ -209,6 +250,15 @@ class RolesHubService
 
     public function hubUrl(?Course $course = null, ?string $section = null, ?ChurchService $service = null): string
     {
+        if ($section === 'assignments') {
+            $section = $course ? 'course' : ($service ? 'service' : null);
+        }
+
+        $user = auth()->user();
+        if ($user instanceof User) {
+            $service ??= $this->serviceContext->currentService($user);
+        }
+
         $params = array_filter([
             'course' => $course?->course_id,
             'service' => $service?->service_id,
