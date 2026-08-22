@@ -6,6 +6,7 @@ use App\Tenancy\BelongsToChurch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Collection;
 
 class Project extends Model
@@ -102,5 +103,15 @@ class Project extends Model
     public function isClosed(): bool
     {
         return $this->status === self::STATUS_CLOSED;
+    }
+
+    public function teamGrade(): HasOne
+    {
+        return $this->hasOne(ProjectTeamGrade::class, 'project_id', 'project_id');
+    }
+
+    public function memberGrades(): HasMany
+    {
+        return $this->hasMany(ProjectMemberGrade::class, 'project_id', 'project_id');
     }
 }

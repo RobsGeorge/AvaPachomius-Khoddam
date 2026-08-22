@@ -20,6 +20,9 @@ class ProjectAdminService
      *     description?:?string,
      *     min_team_size:int,
      *     max_team_size:int,
+     *     max_points?:float|int,
+     *     passing_percent?:int,
+     *     criteria?:list<array{title:string, max_points:float|int}>,
      *     project_count?:int,
      *     project_titles?:list<string>,
      *     requirements?:?string,
@@ -39,9 +42,15 @@ class ProjectAdminService
                 'description' => $data['description'] ?? null,
                 'min_team_size' => $data['min_team_size'],
                 'max_team_size' => $data['max_team_size'],
+                'max_points' => $data['max_points'] ?? 100,
+                'passing_percent' => $data['passing_percent'] ?? 50,
                 'is_published' => false,
                 'created_by_user_id' => $creator->user_id,
             ]);
+
+            if (! empty($data['criteria'])) {
+                app(ProjectGradingService::class)->syncCriteria($assessment, $data['criteria']);
+            }
 
             $count = max(1, (int) ($data['project_count'] ?? 1));
             $titles = $this->resolveTitles($data['title'], $count, $data['project_titles'] ?? []);
@@ -93,7 +102,7 @@ class ProjectAdminService
     }
 
     /**
-     * @param  array{title?:string, description?:?string, min_team_size?:int, max_team_size?:int}  $data
+     * @param  array{title?:string, description?:?string, min_team_size?:int, max_team_size?:int, max_points?:float|int, passing_percent?:int}  $data
      */
     public function updateAssessment(ProjectAssessment $assessment, array $data): ProjectAssessment
     {
@@ -126,6 +135,7 @@ class ProjectAdminService
         }
 
         $id = $assessment->project_assessment_id;
+        app(ProjectGradingService::class)->deleteGradesForAssessment($assessment);
         foreach ($assessment->projects as $project) {
             $project->phases()->delete();
             $project->deliverables()->delete();
@@ -174,6 +184,7 @@ class ProjectAdminService
         }
 
         $id = $project->project_id;
+        app(ProjectGradingService::class)->deleteGradesForProject($project);
         $project->phases()->delete();
         $project->deliverables()->delete();
         $project->delete();

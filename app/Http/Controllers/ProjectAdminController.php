@@ -7,9 +7,11 @@ use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
+use App\Models\User;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
+use App\Services\ProjectGradingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +23,7 @@ class ProjectAdminController extends Controller
         private CoursePermissionResolver $permissions,
         private ProjectAdminService $admin,
         private ProjectAssignmentService $assignments,
+        private ProjectGradingService $grading,
     ) {}
 
     public function manage()
@@ -68,6 +71,8 @@ class ProjectAdminController extends Controller
             'description' => 'nullable|string',
             'min_team_size' => 'required|integer|min:1|max:50',
             'max_team_size' => 'required|integer|min:1|max:50',
+            'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
+            'passing_percent' => 'nullable|integer|min:0|max:100',
         ]);
 
         $this->admin->updateAssessment($projectAssessment, $validated);
@@ -201,6 +206,117 @@ class ProjectAdminController extends Controller
         return back()->with('success', __('projects.change_rejected'));
     }
 
+    public function grades(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $projectAssessment->load([
+            'module',
+            'course',
+            'criteria',
+            'projects.activeMemberships.user',
+            'projects.teamGrade.scores',
+            'memberGrades',
+        ]);
+
+        $memberGrades = $projectAssessment->memberGrades->keyBy('user_id');
+
+        return view('projects.grades', [
+            'assessment' => $projectAssessment,
+            'memberGrades' => $memberGrades,
+            'maxPoints' => $this->grading->maxPoints($projectAssessment),
+        ]);
+    }
+
+    public function syncCriteria(Request $request, ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $validated = $request->validate([
+            'criteria' => 'nullable|array',
+            'criteria.*.project_grade_criterion_id' => 'nullable|integer',
+            'criteria.*.title' => 'nullable|string|max:255',
+            'criteria.*.max_points' => 'nullable|numeric|min:0.01|max:9999.99',
+        ]);
+
+        $this->grading->syncCriteria($projectAssessment, $validated['criteria'] ?? []);
+
+        return back()->with('success', __('projects.criteria_saved'));
+    }
+
+    public function updateScale(Request $request, ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $validated = $request->validate([
+            'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
+            'passing_percent' => 'required|integer|min:0|max:100',
+        ]);
+
+        $this->grading->updateScale($projectAssessment, $validated);
+
+        return back()->with('success', __('projects.scale_saved'));
+    }
+
+    public function announce(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $this->grading->announce($projectAssessment, Auth::user());
+
+        return back()->with('success', __('projects.results_announced'));
+    }
+
+    public function gradeTeam(Request $request, Project $project)
+    {
+        $project->load('assessment.criteria');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanGradeCourse((int) $assessment->course_id);
+
+        $rules = [
+            'notes' => 'nullable|string|max:4000',
+            'points' => 'nullable|numeric|min:0|max:9999.99',
+            'scores' => 'nullable|array',
+            'scores.*' => 'nullable|numeric|min:0|max:9999.99',
+        ];
+        $validated = $request->validate($rules);
+
+        $this->grading->gradeTeam(
+            $assessment,
+            $project,
+            $validated['scores'] ?? [],
+            Auth::user(),
+            $validated['notes'] ?? null,
+            array_key_exists('points', $validated) && $validated['points'] !== null
+                ? (float) $validated['points']
+                : null,
+        );
+
+        return back()->with('success', __('projects.team_grade_saved'));
+    }
+
+    public function gradeStudent(Request $request, ProjectAssessment $projectAssessment, User $user)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $validated = $request->validate([
+            'points' => 'required|numeric|min:0|max:9999.99',
+        ]);
+
+        $this->grading->gradeStudent(
+            $projectAssessment,
+            $user,
+            (float) $validated['points'],
+            Auth::user()
+        );
+
+        return back()->with('success', __('projects.student_grade_saved'));
+    }
+
+    public function clearStudentGrade(ProjectAssessment $projectAssessment, User $user)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $this->grading->clearStudentOverride($projectAssessment, $user, Auth::user());
+
+        return back()->with('success', __('projects.student_override_cleared'));
+    }
+
     private function validateAssessment(Request $request): array
     {
         $course = current_course();
@@ -212,6 +328,11 @@ class ProjectAdminController extends Controller
             'description' => 'nullable|string',
             'min_team_size' => 'required|integer|min:1|max:50',
             'max_team_size' => 'required|integer|min:1|max:50',
+            'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
+            'passing_percent' => 'nullable|integer|min:0|max:100',
+            'criteria' => 'nullable|array',
+            'criteria.*.title' => 'nullable|string|max:255',
+            'criteria.*.max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'project_count' => 'required|integer|min:1|max:30',
             'requirements' => 'nullable|string',
             'project_titles' => 'nullable|string',
@@ -241,6 +362,9 @@ class ProjectAdminController extends Controller
             'description' => $validated['description'] ?? null,
             'min_team_size' => (int) $validated['min_team_size'],
             'max_team_size' => (int) $validated['max_team_size'],
+            'max_points' => $validated['max_points'] ?? 100,
+            'passing_percent' => (int) ($validated['passing_percent'] ?? 50),
+            'criteria' => $validated['criteria'] ?? [],
             'project_count' => (int) $validated['project_count'],
             'project_titles' => $titles,
             'requirements' => $validated['requirements'] ?? null,
@@ -297,6 +421,22 @@ class ProjectAdminController extends Controller
 
         $course = Course::findOrFail($courseId);
         if ($this->permissions->canInCourse($user, 'project.manage', $course)) {
+            return;
+        }
+
+        abort(403);
+    }
+
+    private function assertCanGradeCourse(int $courseId): void
+    {
+        $user = Auth::user();
+        if ($user?->is_superadmin) {
+            return;
+        }
+
+        $course = Course::findOrFail($courseId);
+        if ($this->permissions->canInCourse($user, 'project.grade', $course)
+            || $this->permissions->canInCourse($user, 'project.manage', $course)) {
             return;
         }
 

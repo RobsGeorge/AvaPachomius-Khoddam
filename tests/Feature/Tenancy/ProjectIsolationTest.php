@@ -5,8 +5,12 @@ namespace Tests\Feature\Tenancy;
 use App\Models\Church;
 use App\Models\Module;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectGradeCriterion;
+use App\Models\ProjectMemberGrade;
+use App\Models\ProjectTeamGrade;
 use App\Tenancy\TenantContext;
 use App\Services\ProjectAdminService;
+use App\Services\ProjectGradingService;
 use Tests\Support\EventModuleTestCase;
 
 class ProjectIsolationTest extends EventModuleTestCase
@@ -58,5 +62,43 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(ProjectAssessment::find($assessmentA->project_assessment_id));
         $this->assertNull(ProjectAssessment::find($assessmentB->project_assessment_id));
+    }
+
+    public function test_project_grades_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-grade-isol-b', 'name' => 'Grade B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_GA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod GA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-grade-isol-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_GRADE_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+        ], $adminA);
+        $grading = app(ProjectGradingService::class);
+        $assessmentA = $grading->syncCriteria($assessmentA, [
+            ['title' => 'Work', 'max_points' => 10],
+        ]);
+        $projectA = $assessmentA->projects()->first();
+        $criterionA = $assessmentA->criteria->first();
+        $grading->gradeTeam($assessmentA, $projectA, [
+            $criterionA->project_grade_criterion_id => 8,
+        ], $adminA);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectGradeCriterion::find($criterionA->project_grade_criterion_id));
+        $this->assertNull(ProjectTeamGrade::query()->where('project_id', $projectA->project_id)->first());
+        $this->assertSame(0, ProjectMemberGrade::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectGradeCriterion::find($criterionA->project_grade_criterion_id));
+        $this->assertNotNull(ProjectTeamGrade::query()->where('project_id', $projectA->project_id)->first());
     }
 }
