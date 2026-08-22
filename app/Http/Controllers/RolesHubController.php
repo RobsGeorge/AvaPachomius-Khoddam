@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\PermissionGroup;
 use App\Models\Role;
@@ -143,6 +144,7 @@ class RolesHubController extends Controller
         $systemAssignments = collect();
         $visibilityGroups = collect();
         $emailTemplates = collect();
+        $users = collect();
 
         if ($systemWide && $this->hub->canManageTemplates($user)) {
             $templates = Role::whereNull('course_id')
@@ -167,6 +169,7 @@ class RolesHubController extends Controller
                 ->orderBy('sort_order')
                 ->get();
             $systemAssignments = UserSystemRole::with(['user', 'role'])->get();
+            $users = User::orderBy('first_name')->orderBy('second_name')->get();
         }
 
         if ($systemWide && $this->hub->canManageGroupVisibility($user)) {
@@ -214,6 +217,7 @@ class RolesHubController extends Controller
             'visibilityGroups',
             'assignUsers',
             'emailTemplates',
+            'users',
         ));
     }
 

@@ -77,7 +77,7 @@ class RolesHubTest extends EventModuleTestCase
 
         $this->actingAs($super)
             ->get(route('courses.roles.index', $course))
-            ->assertRedirect(route('roles.hub', ['course' => $course->course_id, 'section' => 'course']));
+            ->assertRedirect(app(RolesHubService::class)->hubUrl($course, 'course'));
     }
 
     public function test_navigation_exposes_single_roles_hub_link(): void
