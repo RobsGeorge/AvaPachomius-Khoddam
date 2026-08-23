@@ -105,7 +105,6 @@ class ProjectAdminController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'requirements' => 'nullable|string',
-            'count' => 'nullable|integer|min:1|max:30',
             'phases' => 'nullable|array',
             'phases.*.title' => 'nullable|string|max:255',
             'phases.*.description' => 'nullable|string',
@@ -116,18 +115,12 @@ class ProjectAdminController extends Controller
             'deliverables.*.due_at' => 'nullable|date',
         ]);
 
-        $count = max(1, (int) ($validated['count'] ?? 1));
-        for ($i = 0; $i < $count; $i++) {
-            $title = $count === 1
-                ? $validated['title']
-                : $validated['title'].' '.($projectAssessment->projects()->count() + $i + 1);
-            $this->admin->createProject($projectAssessment, [
-                'title' => $title,
-                'requirements' => $validated['requirements'] ?? null,
-                'phases' => $validated['phases'] ?? [],
-                'deliverables' => $validated['deliverables'] ?? [],
-            ]);
-        }
+        $this->admin->createProject($projectAssessment, [
+            'title' => $validated['title'],
+            'requirements' => $validated['requirements'] ?? null,
+            'phases' => $validated['phases'] ?? [],
+            'deliverables' => $validated['deliverables'] ?? [],
+        ]);
 
         return back()->with('success', __('projects.project_created'));
     }
@@ -333,7 +326,10 @@ class ProjectAdminController extends Controller
             'criteria' => 'nullable|array',
             'criteria.*.title' => 'nullable|string|max:255',
             'criteria.*.max_points' => 'nullable|numeric|min:0.01|max:9999.99',
-            'project_count' => 'required|integer|min:1|max:30',
+            'project_count' => 'nullable|integer|min:1|max:30',
+            'subprojects' => 'nullable|array',
+            'subprojects.*.title' => 'nullable|string|max:255',
+            'subprojects.*.requirements' => 'nullable|string',
             'requirements' => 'nullable|string',
             'project_titles' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -355,7 +351,7 @@ class ProjectAdminController extends Controller
             $titles = preg_split('/\r\n|\r|\n/', (string) $validated['project_titles']) ?: [];
         }
 
-        return [
+        $payload = [
             'course_id' => (int) ($validated['course_id'] ?? $course?->course_id),
             'module_id' => (int) $validated['module_id'],
             'title' => $validated['title'],
@@ -365,12 +361,18 @@ class ProjectAdminController extends Controller
             'max_points' => $validated['max_points'] ?? 100,
             'passing_percent' => (int) ($validated['passing_percent'] ?? 50),
             'criteria' => $validated['criteria'] ?? [],
-            'project_count' => (int) $validated['project_count'],
+            'project_count' => (int) ($validated['project_count'] ?? 1),
             'project_titles' => $titles,
             'requirements' => $validated['requirements'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
         ];
+
+        if (array_key_exists('subprojects', $validated)) {
+            $payload['subprojects'] = $validated['subprojects'] ?? [];
+        }
+
+        return $payload;
     }
 
     private function modulesForCourse(?Course $course)

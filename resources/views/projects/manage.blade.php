@@ -52,10 +52,6 @@
                         <input type="number" name="max_team_size" id="max_team_size" class="form-control" min="1" max="50" value="{{ old('max_team_size', 4) }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label" for="project_count">{{ __('projects.project_count') }}</label>
-                        <input type="number" name="project_count" id="project_count" class="form-control" min="1" max="30" value="{{ old('project_count', 1) }}" required>
-                    </div>
-                    <div class="col-md-4 mb-3">
                         <label class="form-label" for="max_points">{{ __('projects.max_points') }}</label>
                         <input type="number" name="max_points" id="max_points" class="form-control" min="0.01" max="9999.99" step="0.01" value="{{ old('max_points', 100) }}">
                     </div>
@@ -76,12 +72,26 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-repeat-criteria>{{ __('projects.add_criterion') }}</button>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="project_titles">{{ __('projects.project_titles') }}</label>
-                    <textarea name="project_titles" id="project_titles" class="form-control" rows="3">{{ old('project_titles') }}</textarea>
-                    <div class="form-text">{{ __('projects.project_titles_hint') }}</div>
+                    <div class="fw-semibold mb-2">{{ __('projects.subprojects') }}</div>
+                    <p class="small text-muted">{{ __('projects.subprojects_hint') }}</p>
+                    @error('title')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
+                    <div id="subprojects-wrap">
+                        @php $oldSubs = old('subprojects', [['title' => ''], ['title' => '']]); @endphp
+                        @foreach($oldSubs as $index => $row)
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-5">
+                                    <input type="text" name="subprojects[{{ $index }}][title]" class="form-control" value="{{ $row['title'] ?? '' }}" placeholder="{{ __('projects.subproject_title') }}">
+                                </div>
+                                <div class="col-md-7">
+                                    <input type="text" name="subprojects[{{ $index }}][requirements]" class="form-control" value="{{ $row['requirements'] ?? '' }}" placeholder="{{ __('projects.subproject_requirements') }}">
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-repeat-subprojects>{{ __('projects.add_subproject') }}</button>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="requirements">{{ __('projects.requirements') }}</label>
+                    <label class="form-label" for="requirements">{{ __('projects.shared_requirements') }}</label>
                     <textarea name="requirements" id="requirements" class="form-control" rows="3">{{ old('requirements') }}</textarea>
                 </div>
                 <div class="mb-3">
@@ -140,6 +150,7 @@
                     <div class="border rounded p-3 mb-2">
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div>
+                                <div class="small text-muted">{{ __('projects.subproject') }}</div>
                                 <a href="{{ route('projects.show', $project) }}" class="fw-semibold">{{ $project->title }}</a>
                                 <div class="small text-muted">
                                     {{ __('projects.fill') }}:
@@ -148,6 +159,16 @@
                                         'max' => $assessment->max_team_size,
                                     ]) }}
                                 </div>
+                                <form method="POST" action="{{ route('projects.update', $project) }}" class="row g-2 align-items-end mt-2">
+                                    @csrf
+                                    @method('PUT')
+                                    <div class="col-md-8">
+                                        <input type="text" name="title" class="form-control form-control-sm" value="{{ $project->title }}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button class="btn btn-sm btn-outline-secondary">{{ __('projects.rename_subproject') }}</button>
+                                    </div>
+                                </form>
                             </div>
                             <span class="badge {{ $project->isClosed() ? 'bg-success' : 'bg-info text-dark' }}">
                                 {{ $project->isClosed() ? __('projects.team_closed') : __('projects.team_open') }}
@@ -174,16 +195,12 @@
                 <form method="POST" action="{{ route('projects.store', $assessment) }}" class="mt-3">
                     @csrf
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-5">
-                            <label class="form-label">{{ __('projects.add_projects') }}</label>
-                            <input type="text" name="title" class="form-control" required>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">{{ __('projects.project_count') }}</label>
-                            <input type="number" name="count" class="form-control" value="1" min="1" max="30">
+                        <div class="col-md-7">
+                            <label class="form-label">{{ __('projects.add_subproject') }}</label>
+                            <input type="text" name="title" class="form-control" required placeholder="{{ __('projects.subproject_title') }}">
                         </div>
                         <div class="col-md-5">
-                            <button class="btn btn-outline-primary">{{ __('projects.add_projects') }}</button>
+                            <button class="btn btn-outline-primary">{{ __('projects.add_subproject') }}</button>
                         </div>
                     </div>
                 </form>
@@ -207,6 +224,18 @@ document.querySelectorAll('[data-repeat]').forEach(function (btn) {
             '<div class="col-md-4"><input type="text" name="' + key + '[' + index + '][title]" class="form-control"></div>' +
             '<div class="col-md-4"><input type="datetime-local" name="' + key + '[' + index + '][' + second + ']" class="form-control"></div>' +
             '<div class="col-md-4"><input type="text" name="' + key + '[' + index + '][description]" class="form-control"></div>';
+        wrap.appendChild(row);
+    });
+});
+document.querySelectorAll('[data-repeat-subprojects]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var wrap = document.getElementById('subprojects-wrap');
+        var index = wrap.children.length;
+        var row = document.createElement('div');
+        row.className = 'row g-2 mb-2';
+        row.innerHTML =
+            '<div class="col-md-5"><input type="text" name="subprojects[' + index + '][title]" class="form-control"></div>' +
+            '<div class="col-md-7"><input type="text" name="subprojects[' + index + '][requirements]" class="form-control"></div>';
         wrap.appendChild(row);
     });
 });

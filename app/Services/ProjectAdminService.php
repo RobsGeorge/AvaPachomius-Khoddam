@@ -25,6 +25,7 @@ class ProjectAdminService
      *     criteria?:list<array{title:string, max_points:float|int}>,
      *     project_count?:int,
      *     project_titles?:list<string>,
+     *     subprojects?:list<array{title:string, requirements?:?string}>,
      *     requirements?:?string,
      *     phases?:list<array{title:string, description?:?string, deadline?:?string}>,
      *     deliverables?:list<array{title:string, description?:?string, due_at?:?string}>,
@@ -52,18 +53,19 @@ class ProjectAdminService
                 app(ProjectGradingService::class)->syncCriteria($assessment, $data['criteria']);
             }
 
-            $count = max(1, (int) ($data['project_count'] ?? 1));
-            $titles = $this->resolveTitles($data['title'], $count, $data['project_titles'] ?? []);
+            $subprojects = $this->resolveSubprojects($data);
 
-            foreach ($titles as $index => $title) {
+            foreach ($subprojects as $index => $subproject) {
                 $this->createProject($assessment, [
-                    'title' => $title,
-                    'requirements' => $data['requirements'] ?? null,
+                    'title' => $subproject['title'],
+                    'requirements' => $subproject['requirements'] ?? ($data['requirements'] ?? null),
                     'sort_order' => $index,
                     'phases' => $data['phases'] ?? [],
                     'deliverables' => $data['deliverables'] ?? [],
                 ]);
             }
+
+            $count = count($subprojects);
 
             AuditLogService::recordEvent('project.assessment_created', [
                 'project_assessment_id' => $assessment->project_assessment_id,
@@ -87,6 +89,8 @@ class ProjectAdminService
      */
     public function createProject(ProjectAssessment $assessment, array $data): Project
     {
+        $this->assertUniqueTitle($assessment, (string) $data['title']);
+
         $project = Project::create([
             'project_assessment_id' => $assessment->project_assessment_id,
             'title' => $data['title'],
@@ -154,6 +158,10 @@ class ProjectAdminService
      */
     public function updateProject(Project $project, array $data): Project
     {
+        if (isset($data['title'])) {
+            $this->assertUniqueTitle($project->assessment ?? $project->assessment()->firstOrFail(), (string) $data['title'], (int) $project->project_id);
+        }
+
         $project->update(array_filter(
             [
                 'title' => $data['title'] ?? null,
@@ -195,22 +203,103 @@ class ProjectAdminService
     }
 
     /**
-     * @param  list<string>  $explicit
-     * @return list<string>
+     * Each team is one unique subproject. Explicit `subprojects` win; otherwise
+     * `project_titles` or numbered titles from the assessment name.
+     *
+     * @return list<array{title:string, requirements:?string}>
      */
-    private function resolveTitles(string $baseTitle, int $count, array $explicit): array
+    private function resolveSubprojects(array $data): array
     {
-        $explicit = array_values(array_filter(array_map('trim', $explicit)));
-        if (count($explicit) >= $count) {
-            return array_slice($explicit, 0, $count);
+        $sharedRequirements = $data['requirements'] ?? null;
+        $rows = [];
+
+        $submittedSubprojects = array_key_exists('subprojects', $data);
+
+        foreach ($data['subprojects'] ?? [] as $row) {
+            $title = trim((string) ($row['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $override = $row['requirements'] ?? null;
+            $rows[] = [
+                'title' => $title,
+                'requirements' => ($override !== null && trim((string) $override) !== '')
+                    ? $override
+                    : $sharedRequirements,
+            ];
         }
 
-        $titles = [];
-        for ($i = 1; $i <= $count; $i++) {
-            $titles[] = $count === 1 ? $baseTitle : $baseTitle.' '.$i;
+        if ($submittedSubprojects && $rows === []) {
+            throw ValidationException::withMessages([
+                'title' => [__('projects.subproject_title_required')],
+            ]);
         }
 
-        return $titles;
+        if ($rows === []) {
+            $count = max(1, (int) ($data['project_count'] ?? 1));
+            $explicit = array_values(array_filter(array_map('trim', $data['project_titles'] ?? [])));
+            if (count($explicit) >= $count) {
+                $titles = array_slice($explicit, 0, $count);
+            } else {
+                $titles = [];
+                for ($i = 1; $i <= $count; $i++) {
+                    $titles[] = $count === 1 ? $data['title'] : $data['title'].' '.$i;
+                }
+            }
+            foreach ($titles as $title) {
+                $rows[] = [
+                    'title' => $title,
+                    'requirements' => $sharedRequirements,
+                ];
+            }
+        }
+
+        $this->assertUniqueTitleList(array_column($rows, 'title'));
+
+        return $rows;
+    }
+
+    /**
+     * @param  list<string>  $titles
+     */
+    private function assertUniqueTitleList(array $titles): void
+    {
+        $seen = [];
+        foreach ($titles as $title) {
+            $key = mb_strtolower(trim($title));
+            if ($key === '') {
+                throw ValidationException::withMessages([
+                    'title' => [__('projects.subproject_title_required')],
+                ]);
+            }
+            if (isset($seen[$key])) {
+                throw ValidationException::withMessages([
+                    'title' => [__('projects.subproject_duplicate', ['title' => $title])],
+                ]);
+            }
+            $seen[$key] = true;
+        }
+    }
+
+    private function assertUniqueTitle(ProjectAssessment $assessment, string $title, ?int $exceptProjectId = null): void
+    {
+        $needle = mb_strtolower(trim($title));
+        if ($needle === '') {
+            throw ValidationException::withMessages([
+                'title' => [__('projects.subproject_title_required')],
+            ]);
+        }
+
+        $taken = $assessment->projects()
+            ->when($exceptProjectId, fn ($q) => $q->where('project_id', '!=', $exceptProjectId))
+            ->pluck('title')
+            ->contains(fn ($existing) => mb_strtolower(trim((string) $existing)) === $needle);
+
+        if ($taken) {
+            throw ValidationException::withMessages([
+                'title' => [__('projects.subproject_duplicate', ['title' => $title])],
+            ]);
+        }
     }
 
     /**
