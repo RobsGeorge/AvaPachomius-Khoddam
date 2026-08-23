@@ -51,6 +51,79 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
             ->assertRedirect();
 
         $this->assertTrue($assessment->fresh()->is_published);
+        $this->assertSame(
+            ['Ministry Project 1', 'Ministry Project 2'],
+            $assessment->projects()->orderBy('sort_order')->pluck('title')->all()
+        );
+    }
+
+    public function test_admin_creates_unique_subprojects_and_rejects_duplicates(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin] = $this->staffFixture();
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Field Visits',
+                'min_team_size' => 1,
+                'max_team_size' => 3,
+                'subprojects' => [
+                    ['title' => 'Elderly home', 'requirements' => 'Visit twice'],
+                    ['title' => 'Orphanage'],
+                ],
+                'requirements' => 'Shared brief',
+            ])
+            ->assertRedirect(route('projects.manage'));
+
+        $assessment = ProjectAssessment::query()->where('title', 'Field Visits')->first();
+        $this->assertNotNull($assessment);
+        $titles = $assessment->projects()->orderBy('sort_order')->pluck('title')->all();
+        $this->assertSame(['Elderly home', 'Orphanage'], $titles);
+        $this->assertSame('Visit twice', $assessment->projects->first()->requirements);
+        $this->assertSame('Shared brief', $assessment->projects->last()->requirements);
+
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Dup Project',
+                'min_team_size' => 1,
+                'max_team_size' => 2,
+                'subprojects' => [
+                    ['title' => 'Same topic'],
+                    ['title' => 'same topic'],
+                ],
+            ])
+            ->assertSessionHasErrors('title');
+
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Empty Subs',
+                'min_team_size' => 1,
+                'max_team_size' => 2,
+                'subprojects' => [
+                    ['title' => ''],
+                    ['title' => ''],
+                ],
+            ])
+            ->assertSessionHasErrors('title');
+
+        $this->actingAs($admin)
+            ->post(route('projects.store', $assessment), ['title' => 'Elderly home'])
+            ->assertSessionHasErrors('title');
+
+        $this->actingAs($admin)
+            ->post(route('projects.store', $assessment), ['title' => 'Street ministry'])
+            ->assertRedirect();
+
+        $this->assertTrue($assessment->projects()->where('title', 'Street ministry')->exists());
+
+        $orphanage = $assessment->projects()->where('title', 'Orphanage')->first();
+        $this->actingAs($admin)
+            ->put(route('projects.update', $orphanage), ['title' => 'elderly home'])
+            ->assertSessionHasErrors('title');
     }
 
     public function test_student_is_assigned_and_first_member_is_notified(): void
@@ -78,6 +151,8 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
             ->get(route('projects.show', $membership->project))
             ->assertOk()
             ->assertSee('Visit a family', false)
+            ->assertSee(__('projects.subproject'), false)
+            ->assertSee($membership->project->title, false)
             ->assertSee($student->displayName(), false);
 
         $this->assertTrue(

@@ -12,9 +12,11 @@
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between gap-2">
                 <div>
+                    <div class="small text-muted">{{ __('projects.subproject') }}</div>
                     <h1 class="page-title mb-1">{{ $project->title }}</h1>
                     <div class="text-muted small">
-                        {{ $assessment->title }} · {{ __('projects.module') }}: {{ $assessment->module->title ?? '—' }}
+                        {{ __('projects.assessment') }}: {{ $assessment->title }}
+                        · {{ __('projects.module') }}: {{ $assessment->module->title ?? '—' }}
                     </div>
                 </div>
                 <span class="badge {{ $project->isClosed() ? 'bg-success' : 'bg-info text-dark' }}">
