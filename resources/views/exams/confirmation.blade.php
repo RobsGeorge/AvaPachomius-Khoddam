@@ -22,7 +22,7 @@
                     @if(! empty($canViewScore) && $result->isCheater())
                         <div class="fs-2 fw-bold text-danger">0%</div>
                         <small class="text-muted">{{ __('exams.instructor_review_cheater') }}</small>
-                    @elseif(! empty($canViewScore) && $result->score !== null && $result->status === \App\Models\ExamResult::STATUS_GRADED)
+                    @elseif(! empty($canViewScore) && $result->score !== null && ! $result->isCheater())
                         <div class="fs-2 fw-bold text-primary">{{ number_format($result->score, 1) }}%</div>
                         @if($schedule->exam->passing_score)
                             <small class="text-muted">{{ __('exams.passing_score') }}: {{ $schedule->exam->passing_score }}%</small>
