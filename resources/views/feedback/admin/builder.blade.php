@@ -57,12 +57,7 @@
                                 <button type="submit" class="btn btn-warning btn-sm">{{ __('pages.close_feedback') }}</button>
                             </form>
                         @endif
-                        @if(!$survey->submissions()->exists())
-                            <form method="POST" action="{{ route('feedback.surveys.destroy', $survey) }}"
-                                  data-confirm="{{ __('pages.confirm_delete') }}">@csrf @method('DELETE')
-                                <button type="submit" class="btn btn-outline-danger btn-sm">{{ __('pages.delete') }}</button>
-                            </form>
-                        @endif
+                        @include('feedback.admin.partials.delete-survey-form', ['survey' => $survey])
                     </div>
                     <p class="small text-muted mt-2 mb-0">{{ __('pages.feedback_status_'.$survey->status) }}</p>
                 </div>

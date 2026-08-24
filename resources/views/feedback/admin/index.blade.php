@@ -23,6 +23,7 @@
                     @if($survey->submissions_count > 0)
                         <a href="{{ route('feedback.surveys.report', $survey) }}" class="btn btn-outline-primary btn-sm">{{ __('pages.view_report') }}</a>
                     @endif
+                    @include('feedback.admin.partials.delete-survey-form', ['survey' => $survey])
                 </div>
             </div>
         </div>

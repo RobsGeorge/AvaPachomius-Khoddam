@@ -49,6 +49,10 @@
                                     <i class="bi bi-bar-chart"></i> {{ __('pages.feedback_report') }}
                                 </a>
                             @endif
+                            @include('feedback.admin.partials.delete-survey-form', [
+                                'survey' => $survey,
+                                'buttonClass' => 'btn btn-sm btn-outline-danger',
+                            ])
                         @elseif($isStudent && $survey->status !== \App\Models\FeedbackSurvey::STATUS_DRAFT)
                             @if($survey->status === \App\Models\FeedbackSurvey::STATUS_OPEN && ! $submitted)
                                 <a href="{{ route('feedback.surveys.show', $survey) }}"

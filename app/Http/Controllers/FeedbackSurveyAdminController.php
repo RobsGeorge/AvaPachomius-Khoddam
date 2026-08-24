@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\FeedbackIdentityRevealRequest;
 use App\Models\FeedbackQuestion;
 use App\Models\FeedbackSurvey;
 use App\Models\Lecture;
-use App\Models\Module;
 use App\Models\Session;
+use App\Services\AuditLogService;
 use App\Services\FeedbackSurveyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -194,9 +195,25 @@ class FeedbackSurveyAdminController extends Controller
     {
         $this->authorizeSurvey($survey);
 
-        if ($survey->submissions()->exists()) {
-            return back()->withErrors(['survey' => __('pages.feedback_cannot_delete_with_responses')]);
+        if (! $survey->canStaffDelete()) {
+            return back()->withErrors(['survey' => __('pages.feedback_cannot_delete_closed')]);
         }
+
+        $actor = Auth::user();
+        $hadResponses = $survey->submissions()->exists();
+
+        FeedbackIdentityRevealRequest::query()
+            ->where('survey_id', $survey->survey_id)
+            ->delete();
+
+        AuditLogService::recordEvent('feedback.survey_deleted', [
+            'actor_user_id' => $actor?->user_id,
+            'survey_id' => $survey->survey_id,
+            'course_id' => $survey->course_id,
+            'module_id' => $survey->module_id,
+            'status' => $survey->status,
+            'had_responses' => $hadResponses,
+        ]);
 
         $survey->delete();
 

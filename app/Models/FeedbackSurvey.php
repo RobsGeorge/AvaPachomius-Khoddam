@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +13,9 @@ class FeedbackSurvey extends Model
     use Concerns\SafelyCastsDates;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_OPEN = 'open';
+
     public const STATUS_CLOSED = 'closed';
 
     protected $primaryKey = 'survey_id';
@@ -67,6 +68,11 @@ class FeedbackSurvey extends Model
     {
         return $this->status === self::STATUS_CLOSED
             || ($this->due_at !== null && $this->due_at->isPast());
+    }
+
+    public function canStaffDelete(): bool
+    {
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_OPEN], true);
     }
 
     public function getRouteKeyName(): string
