@@ -16,6 +16,7 @@
                     <h5 class="mb-1">{{ $survey->title }}</h5>
                     <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->module?->title }}</small><br>
                     <span class="badge bg-{{ $survey->status === 'open' ? 'success' : ($survey->status === 'draft' ? 'secondary' : 'dark') }}">{{ __('pages.feedback_status_'.$survey->status) }}</span>
+                    <span class="badge {{ $survey->blocksModuleResults() ? 'bg-warning text-dark' : 'bg-light text-dark' }}">{{ $survey->blocksModuleResults() ? __('pages.feedback_badge_blocking') : __('pages.feedback_badge_non_blocking') }}</span>
                     <span class="badge bg-light text-dark">{{ $survey->submissions_count }} {{ __('pages.responses') }}</span>
                 </div>
                 <div class="d-flex flex-wrap gap-2">

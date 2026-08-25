@@ -237,13 +237,72 @@ class ExamResultsAnnouncementTest extends EventModuleTestCase
         $this->assertFalse($visibility->canStudentViewScore($student, $exam->fresh()));
         $this->assertSame('pending_feedback', $visibility->hideReason($student, $exam->fresh()));
 
+        $score = number_format((float) $result->score, 1).'%';
+
         $this->actingAs($student)
             ->get(route('exams.index'))
-            ->assertRedirect(route('feedback.surveys.show', $survey->survey_id));
+            ->assertOk()
+            ->assertSee(__('exams.score_pending_feedback'), false)
+            ->assertDontSee($score, false);
 
         $this->actingAs($student)
             ->get(route('exams.attempt.confirmation', $result->schedule_id))
-            ->assertRedirect(route('feedback.surveys.show', $survey->survey_id));
+            ->assertOk()
+            ->assertSee(__('exams.score_pending_feedback'), false)
+            ->assertDontSee($score, false);
+    }
+
+    public function test_earlier_module_open_survey_does_not_block_later_module_exam_results(): void
+    {
+        [$instructor, $student, $exam, $result] = $this->gradedExamFixture();
+
+        $earlierModule = Module::create(['title' => 'Earlier leftover module', 'description' => 'Desc']);
+        $exam->course->modules()->attach($earlierModule->module_id, [
+            'status' => 'ended',
+            'feedback_open' => true,
+        ]);
+
+        FeedbackSurvey::create([
+            'course_id' => $exam->course_id,
+            'module_id' => $earlierModule->module_id,
+            'title' => 'Leftover earlier-module survey',
+            'created_by_user_id' => $instructor->user_id,
+            'status' => FeedbackSurvey::STATUS_OPEN,
+            'is_mandatory' => true,
+            'opened_at' => now(),
+        ]);
+
+        $thisModuleSurvey = FeedbackSurvey::create([
+            'course_id' => $exam->course_id,
+            'module_id' => $exam->module_id,
+            'title' => 'This module feedback',
+            'created_by_user_id' => $instructor->user_id,
+            'status' => FeedbackSurvey::STATUS_OPEN,
+            'is_mandatory' => true,
+            'opened_at' => now(),
+        ]);
+
+        $this->actingAs($instructor)
+            ->post(route('exams.grades.announce', $exam))
+            ->assertRedirect();
+
+        FeedbackSubmission::create([
+            'survey_id' => $thisModuleSurvey->survey_id,
+            'user_id' => $student->user_id,
+            'submitted_at' => now(),
+        ]);
+
+        $visibility = app(ExamResultsVisibilityService::class);
+        $this->assertTrue($visibility->canStudentViewScore($student, $exam->fresh()));
+        $this->assertSame('visible', $visibility->hideReason($student, $exam->fresh()));
+
+        $score = number_format((float) $result->score, 1).'%';
+
+        $this->actingAs($student)
+            ->get(route('exams.index'))
+            ->assertOk()
+            ->assertSee($score, false)
+            ->assertDontSee(__('exams.score_pending_feedback'), false);
     }
 
     /**
