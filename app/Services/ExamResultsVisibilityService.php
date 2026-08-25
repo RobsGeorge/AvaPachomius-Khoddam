@@ -3,24 +3,34 @@
 namespace App\Services;
 
 use App\Models\Exam;
-use App\Models\FeedbackSubmission;
+use App\Models\ExamResult;
 use App\Models\FeedbackSurvey;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class ExamResultsVisibilityService
 {
+    public function __construct(
+        private MandatoryFeedbackService $mandatoryFeedback,
+    ) {}
+
     public function areResultsAnnounced(Exam $exam): bool
     {
         return $exam->results_announced_at !== null;
     }
 
     /**
-     * Student may see a numeric score only when results are announced and any
-     * mandatory module survey (open or closed) has been submitted.
+     * Student may see a numeric score only when results are announced, they
+     * have a graded (or cheater) result of their own, and any currently
+     * open blocking survey for this exam's module has been submitted.
      */
     public function canStudentViewScore(User $user, Exam $exam): bool
     {
         if (! $this->areResultsAnnounced($exam)) {
+            return false;
+        }
+
+        if (! $this->studentHasViewableResult($user, $exam)) {
             return false;
         }
 
@@ -29,29 +39,39 @@ class ExamResultsVisibilityService
 
     public function hasCompletedRequiredModuleSurveys(User $user, Exam $exam): bool
     {
-        $surveys = $this->mandatorySurveysForExam($exam);
+        return $this->mandatorySurveysForExam($exam, $user)->isEmpty();
+    }
 
-        if ($surveys->isEmpty()) {
-            return true;
-        }
-
-        $submittedIds = FeedbackSubmission::query()
+    public function studentHasViewableResult(User $user, Exam $exam): bool
+    {
+        return ExamResult::query()
+            ->where('exam_id', $exam->exam_id)
             ->where('user_id', $user->user_id)
-            ->whereIn('survey_id', $surveys->pluck('survey_id'))
-            ->pluck('survey_id');
-
-        return $surveys->every(
-            fn (FeedbackSurvey $survey) => $submittedIds->contains($survey->survey_id)
-        );
+            ->where(function ($q) {
+                $q->whereNotNull('score')
+                    ->orWhere('status', ExamResult::STATUS_CHEATER);
+            })
+            ->exists();
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, FeedbackSurvey>
+     * Open blocking surveys for this exam's module that the student has not submitted.
+     * Surveys attached to other modules never appear here.
+     *
+     * @return Collection<int, FeedbackSurvey>
      */
-    public function mandatorySurveysForExam(Exam $exam)
+    public function mandatorySurveysForExam(Exam $exam, ?User $user = null)
     {
         if (! $exam->course_id) {
             return collect();
+        }
+
+        if ($user) {
+            return $this->mandatoryFeedback->unsubmittedMandatorySurveys(
+                $user,
+                (int) $exam->course_id,
+                $exam->module_id ? (int) $exam->module_id : null,
+            );
         }
 
         return FeedbackSurvey::query()
@@ -62,10 +82,10 @@ class ExamResultsVisibilityService
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('is_mandatory', true)
-            ->whereIn('status', [
-                FeedbackSurvey::STATUS_OPEN,
-                FeedbackSurvey::STATUS_CLOSED,
-            ])
+            ->where('status', FeedbackSurvey::STATUS_OPEN)
+            ->where(function ($q) {
+                $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
             ->orderBy('survey_id')
             ->get();
     }
@@ -77,6 +97,10 @@ class ExamResultsVisibilityService
     {
         if (! $this->areResultsAnnounced($exam)) {
             return 'pending_announcement';
+        }
+
+        if (! $this->studentHasViewableResult($user, $exam)) {
+            return 'pending_assessment';
         }
 
         if (! $this->hasCompletedRequiredModuleSurveys($user, $exam)) {

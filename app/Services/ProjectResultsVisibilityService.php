@@ -2,25 +2,35 @@
 
 namespace App\Services;
 
-use App\Models\FeedbackSubmission;
 use App\Models\FeedbackSurvey;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectMemberGrade;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 class ProjectResultsVisibilityService
 {
+    public function __construct(
+        private MandatoryFeedbackService $mandatoryFeedback,
+    ) {}
+
     public function areResultsAnnounced(ProjectAssessment $assessment): bool
     {
         return $assessment->results_announced_at !== null;
     }
 
     /**
-     * Student may see a numeric score only when results are announced and any
-     * mandatory module survey (open or closed) has been submitted.
+     * Student may see a numeric score only when results are announced, they
+     * have a recorded grade, and any currently required module survey has
+     * been submitted.
      */
     public function canStudentViewScore(User $user, ProjectAssessment $assessment): bool
     {
         if (! $this->areResultsAnnounced($assessment)) {
+            return false;
+        }
+
+        if (! $this->studentHasViewableResult($user, $assessment)) {
             return false;
         }
 
@@ -29,29 +39,33 @@ class ProjectResultsVisibilityService
 
     public function hasCompletedRequiredModuleSurveys(User $user, ProjectAssessment $assessment): bool
     {
-        $surveys = $this->mandatorySurveysForAssessment($assessment);
+        return $this->mandatorySurveysForAssessment($assessment, $user)->isEmpty();
+    }
 
-        if ($surveys->isEmpty()) {
-            return true;
-        }
-
-        $submittedIds = FeedbackSubmission::query()
+    public function studentHasViewableResult(User $user, ProjectAssessment $assessment): bool
+    {
+        return ProjectMemberGrade::query()
+            ->where('project_assessment_id', $assessment->project_assessment_id)
             ->where('user_id', $user->user_id)
-            ->whereIn('survey_id', $surveys->pluck('survey_id'))
-            ->pluck('survey_id');
-
-        return $surveys->every(
-            fn (FeedbackSurvey $survey) => $submittedIds->contains($survey->survey_id)
-        );
+            ->whereNotNull('percent')
+            ->exists();
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, FeedbackSurvey>
+     * @return Collection<int, FeedbackSurvey>
      */
-    public function mandatorySurveysForAssessment(ProjectAssessment $assessment)
+    public function mandatorySurveysForAssessment(ProjectAssessment $assessment, ?User $user = null)
     {
         if (! $assessment->course_id) {
             return collect();
+        }
+
+        if ($user) {
+            return $this->mandatoryFeedback->unsubmittedMandatorySurveys(
+                $user,
+                (int) $assessment->course_id,
+                $assessment->module_id ? (int) $assessment->module_id : null,
+            );
         }
 
         return FeedbackSurvey::query()
@@ -62,10 +76,10 @@ class ProjectResultsVisibilityService
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('is_mandatory', true)
-            ->whereIn('status', [
-                FeedbackSurvey::STATUS_OPEN,
-                FeedbackSurvey::STATUS_CLOSED,
-            ])
+            ->where('status', FeedbackSurvey::STATUS_OPEN)
+            ->where(function ($q) {
+                $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
             ->orderBy('survey_id')
             ->get();
     }
@@ -77,6 +91,10 @@ class ProjectResultsVisibilityService
     {
         if (! $this->areResultsAnnounced($assessment)) {
             return 'pending_announcement';
+        }
+
+        if (! $this->studentHasViewableResult($user, $assessment)) {
+            return 'pending_assessment';
         }
 
         if (! $this->hasCompletedRequiredModuleSurveys($user, $assessment)) {

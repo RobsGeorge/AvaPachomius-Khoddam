@@ -97,6 +97,12 @@ class RequireMandatoryFeedback
             return true;
         }
 
+        // Module surveys must not trap students away from exams or projects.
+        // Blocking still happens in the results-visibility services, per module.
+        if ($name && (str_starts_with($name, 'exams.') || str_starts_with($name, 'projects.'))) {
+            return true;
+        }
+
         return false;
     }
 }

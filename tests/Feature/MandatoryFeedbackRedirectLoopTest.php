@@ -32,10 +32,16 @@ class MandatoryFeedbackRedirectLoopTest extends EventModuleTestCase
             'Student hit a redirect loop between mandatory feedback and course/service context.'
         );
 
-        $response->assertRedirect(route('feedback.surveys.show', $survey));
         $this->actingAs($student)
             ->get(route('feedback.surveys.show', $survey))
             ->assertOk();
+
+        // A leftover module survey must not trap the student away from exams.
+        $examResponse = $this->actingAs($student)->get(route('exams.index'));
+        $this->assertNotEquals(
+            route('feedback.surveys.show', $survey),
+            $examResponse->headers->get('Location')
+        );
     }
 
     public function test_student_can_use_course_picker_while_mandatory_feedback_is_pending(): void
