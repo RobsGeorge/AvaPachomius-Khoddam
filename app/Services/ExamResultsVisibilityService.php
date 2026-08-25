@@ -22,7 +22,7 @@ class ExamResultsVisibilityService
     /**
      * Student may see a numeric score only when results are announced, they
      * have a graded (or cheater) result of their own, and any currently
-     * required module survey has been submitted.
+     * open blocking survey for this exam's module has been submitted.
      */
     public function canStudentViewScore(User $user, Exam $exam): bool
     {
@@ -55,7 +55,8 @@ class ExamResultsVisibilityService
     }
 
     /**
-     * Open mandatory surveys for this exam's module that the student has not submitted.
+     * Open blocking surveys for this exam's module that the student has not submitted.
+     * Surveys attached to other modules never appear here.
      *
      * @return Collection<int, FeedbackSurvey>
      */

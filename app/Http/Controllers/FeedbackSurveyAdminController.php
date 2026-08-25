@@ -37,7 +37,7 @@ class FeedbackSurveyAdminController extends Controller
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:2000',
             'due_at' => 'nullable|date',
-            'is_mandatory' => 'boolean',
+            'is_mandatory' => 'required|boolean',
         ]);
 
         $this->authorizeCourse((int) $data['course_id']);
@@ -49,7 +49,7 @@ class FeedbackSurveyAdminController extends Controller
             'description' => $data['description'] ?? null,
             'created_by_user_id' => Auth::user()->user_id,
             'status' => FeedbackSurvey::STATUS_DRAFT,
-            'is_mandatory' => $request->boolean('is_mandatory', true),
+            'is_mandatory' => $request->boolean('is_mandatory'),
             'due_at' => $data['due_at'] ?? null,
         ]);
 
@@ -90,13 +90,13 @@ class FeedbackSurveyAdminController extends Controller
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:2000',
             'due_at' => 'nullable|date',
-            'is_mandatory' => 'boolean',
+            'is_mandatory' => 'required|boolean',
         ]);
 
         $survey->update([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
-            'is_mandatory' => $request->boolean('is_mandatory', true),
+            'is_mandatory' => $request->boolean('is_mandatory'),
             'due_at' => $data['due_at'] ?? null,
         ]);
 

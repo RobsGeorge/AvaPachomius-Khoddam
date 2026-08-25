@@ -127,7 +127,7 @@ return [
     'cheater_flag_cleared'      => 'تم إلغاء علامة الغش وتحديث الدرجة.',
     'override_score'            => 'درجة جديدة اختيارية %',
     'announce_results'          => 'إعلان النتائج',
-    'confirm_announce_results'  => 'إعلان النتائج للطلاب؟ تبقى الدرجات مخفية حتى يكمل كل طالب استبيان التقييم الإلزامي للوحدة إن وُجد.',
+    'confirm_announce_results'  => 'إعلان النتائج للطلاب؟ تبقى الدرجات مخفية حتى يكمل كل طالب استبيان هذه الوحدة الحاجب إن وُجد.',
     'results_announced'         => 'تم إعلان نتائج الامتحان.',
     'results_already_announced' => 'تم إعلان النتائج مسبقاً.',
     'results_announced_at'      => 'أُعلنت النتائج :when',

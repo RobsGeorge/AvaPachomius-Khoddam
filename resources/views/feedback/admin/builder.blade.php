@@ -39,11 +39,7 @@
                             <input type="datetime-local" name="due_at" class="form-control"
                                    value="{{ old('due_at', $survey->due_at?->format('Y-m-d\TH:i')) }}">
                         </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" name="is_mandatory" value="1" id="mandatory"
-                                   @checked(old('is_mandatory', $survey->is_mandatory))>
-                            <label class="form-check-label" for="mandatory">{{ __('pages.feedback_mandatory_label') }}</label>
-                        </div>
+                        @include('feedback.admin.partials.blocking-attribute', ['isMandatory' => $survey->is_mandatory])
                         <button type="submit" class="btn btn-outline-primary btn-sm">{{ __('pages.save') }}</button>
                     </form>
                     <hr>

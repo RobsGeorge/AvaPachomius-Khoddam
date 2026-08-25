@@ -21,9 +21,12 @@ class MandatoryFeedbackService
             return collect();
         }
 
+        // Course-wide blocking surveys (no module) may still soft-lock the portal.
+        // Module surveys never do — they only hide that module's exam/project scores.
         $surveys = FeedbackSurvey::query()
             ->with(['course', 'module'])
             ->whereIn('course_id', $courseIds)
+            ->whereNull('module_id')
             ->where('status', FeedbackSurvey::STATUS_OPEN)
             ->where('is_mandatory', true)
             ->where(function ($q) {
@@ -59,8 +62,8 @@ class MandatoryFeedbackService
     }
 
     /**
-     * Open, not-past-due mandatory surveys for a course/module that this user
-     * has not submitted. Closed leftovers never block scores.
+     * Open, not-past-due blocking surveys for a course/module that this user
+     * has not submitted. Other modules are ignored. Closed leftovers never block scores.
      *
      * @return Collection<int, FeedbackSurvey>
      */

@@ -75,6 +75,14 @@ class FeedbackSurvey extends Model
         return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_OPEN], true);
     }
 
+    /**
+     * Blocking surveys hide exam/project results for this survey's module only.
+     */
+    public function blocksModuleResults(): bool
+    {
+        return (bool) $this->is_mandatory;
+    }
+
     public function getRouteKeyName(): string
     {
         return 'survey_id';
