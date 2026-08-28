@@ -277,3 +277,14 @@ students" needs no code changes.
    payroll cadence automation, approval workflows before finalize, and reporting/
    reconciliation exports (not built yet — see `PARKING-LOT.md`).
 6. **Timezone per church** (confession/visits) — store on `church.settings`.
+7. **Diocese-tier data residency & identity ADR:** is it a replacement for the locked P0–P6
+   tenancy model, or reconciled with it? **Decided 2026-07-31:** reconcile, don't replace or
+   fork-parallel — extend `organizations` rather than a new table, reuse `Person`/`Relationship`/
+   `User` rather than parallel identity tables.
+   **Built:** 11 of the ADR's 12 build-sequence slices landed on `staging` (identity/login,
+   registration lanes, recovery ladder, maturity/guardianship, family graph, sacraments, visit
+   notes, document encryption, attendance-on-record, the connection seam, and the access
+   ledger/break-glass foundation). Slice 12 (provisioning a real isolated diocese database) was
+   **not** built — see `PARKING-LOT.md` "Diocese-tier data residency" for full status, the
+   2026-08-27 security review's findings (2 confirmed critical: a document-visibility bypass and
+   a break-glass session that outlives its grant), and the explicit gate before Slice 12 proceeds.
