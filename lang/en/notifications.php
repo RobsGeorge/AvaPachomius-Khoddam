@@ -71,6 +71,8 @@ return [
         'project_assigned' => 'Project team assignment',
         'project_teammate_joined' => 'New project teammate',
         'project_team_completed' => 'Project team completed',
+        'project_member_left' => 'Project teammate left',
+        'project_member_moved' => 'Moved to another project team',
         'project_change_requested' => 'Project team-change request',
         'project_change_decided' => 'Project team-change decision',
         'exam_upcoming' => 'Upcoming exams',

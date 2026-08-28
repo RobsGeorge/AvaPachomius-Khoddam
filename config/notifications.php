@@ -17,6 +17,8 @@ return [
             'project_assigned',
             'project_teammate_joined',
             'project_team_completed',
+            'project_member_left',
+            'project_member_moved',
             'project_change_requested',
             'project_change_decided',
             'exam_upcoming',
@@ -120,6 +122,28 @@ return [
         ],
         'project_team_completed' => [
             'label' => 'notifications.types.project_team_completed',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_member_left' => [
+            'label' => 'notifications.types.project_member_left',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_member_moved' => [
+            'label' => 'notifications.types.project_member_moved',
             'category' => 'academic',
             'audience' => ['student'],
             'defaults' => [

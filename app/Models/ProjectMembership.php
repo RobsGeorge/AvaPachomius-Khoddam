@@ -25,11 +25,14 @@ class ProjectMembership extends Model
         'status',
         'assigned_at',
         'left_at',
+        'change_chance_used_at',
+        'moved_by_user_id',
     ];
 
     protected $casts = [
         'assigned_at' => 'datetime',
         'left_at' => 'datetime',
+        'change_chance_used_at' => 'datetime',
     ];
 
     public function assessment(): BelongsTo

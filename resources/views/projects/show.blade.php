@@ -19,9 +19,23 @@
                         · {{ __('projects.module') }}: {{ $assessment->module->title ?? '—' }}
                     </div>
                 </div>
-                <span class="badge {{ $project->isClosed() ? 'bg-success' : 'bg-info text-dark' }}">
-                    {{ $project->isClosed() ? __('projects.team_closed') : __('projects.team_open') }}
-                </span>
+                <div class="d-flex flex-wrap align-items-start gap-1">
+                    <span class="badge {{ $project->isClosed() ? 'bg-success' : 'bg-info text-dark' }}">
+                        {{ $project->isClosed() ? __('projects.team_closed') : __('projects.team_open') }}
+                    </span>
+                    @if($project->isLocked())
+                        <span class="badge bg-dark">{{ __('projects.locked_badge') }}</span>
+                    @endif
+                    @if($project->below_minimum)
+                        <span class="badge bg-warning text-dark">{{ __('projects.below_minimum_badge') }}</span>
+                    @endif
+                    @if($project->isCancelled())
+                        <span class="badge bg-danger">{{ __('projects.cancelled_badge') }}</span>
+                    @endif
+                </div>
+            </div>
+            <div class="mt-2">
+                @include('projects.partials.join-countdown', ['assessment' => $assessment])
             </div>
         </div>
     </div>
@@ -90,10 +104,7 @@
                     </p>
                     <ul class="list-unstyled mb-0">
                         @forelse($project->activeMemberships as $row)
-                            <li class="mb-2">
-                                <div class="fw-semibold">{{ $row->user?->displayName() }}</div>
-                                <div class="small text-muted">{{ $row->user?->mobile_number ?: __('projects.phone_missing') }}</div>
-                            </li>
+                            @include('projects.partials.roster-member', ['member' => $row->user])
                         @empty
                             <li class="text-muted">{{ __('projects.no_members_yet') }}</li>
                         @endforelse
@@ -104,21 +115,21 @@
             @if($membership && ! $canManage)
                 <div class="app-card card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h5 fw-bold">{{ __('projects.change_team') }}</h2>
+                        <h2 class="h5 fw-bold">{{ __('projects.leave_team') }}</h2>
                         @if($changeUsed)
                             <p class="text-muted mb-0">{{ __('projects.change_chance_used') }}</p>
-                        @elseif($pendingChange)
-                            <p class="text-muted mb-0">{{ __('projects.change_pending') }}</p>
+                        @elseif(! $joinWindowOpen)
+                            <p class="text-muted mb-0">{{ __('projects.join_window_closed') }}</p>
                         @else
-                            <p class="small text-muted">{{ __('projects.change_reason_help') }}</p>
-                            <form method="POST" action="{{ route('projects.change-requests.store', $assessment) }}">
+                            <p class="small text-muted">{{ __('projects.leave_team_help') }}</p>
+                            @error('project')
+                                <div class="alert alert-danger py-2 small">{{ $message }}</div>
+                            @enderror
+                            <form method="POST"
+                                  action="{{ route('projects.leave', $assessment) }}"
+                                  onsubmit="return confirm(@json(__('projects.leave_confirm')));">
                                 @csrf
-                                <label class="form-label" for="reason">{{ __('projects.change_reason') }}</label>
-                                <textarea name="reason" id="reason" class="form-control mb-2 @error('reason') is-invalid @enderror" rows="3" required>{{ old('reason') }}</textarea>
-                                @error('reason')
-                                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                                @enderror
-                                <button type="submit" class="btn btn-outline-theme">{{ __('projects.change_submit') }}</button>
+                                <button type="submit" class="btn btn-outline-danger">{{ __('projects.leave_submit') }}</button>
                             </form>
                         @endif
                     </div>
@@ -127,4 +138,5 @@
         </div>
     </div>
 </div>
+@include('projects.partials.countdown-script')
 @endsection
