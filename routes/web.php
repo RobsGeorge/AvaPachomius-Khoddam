@@ -690,7 +690,12 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::delete('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'clearStudentGrade'])->name('projects.grades.student.clear');
     Route::post('/projects/assessments/{projectAssessment}/projects', [ProjectAdminController::class, 'storeProject'])->name('projects.store');
     Route::post('/projects/assessments/{projectAssessment}/join', [ProjectController::class, 'join'])->name('projects.join');
+    Route::post('/projects/assessments/{projectAssessment}/leave', [ProjectController::class, 'leave'])->name('projects.leave');
     Route::post('/projects/assessments/{projectAssessment}/change-requests', [ProjectController::class, 'storeChangeRequest'])->name('projects.change-requests.store');
+    Route::post('/projects/{project}/lock', [ProjectAdminController::class, 'lockProject'])->name('projects.lock');
+    Route::post('/projects/{project}/cancel', [ProjectAdminController::class, 'cancelProject'])->name('projects.cancel');
+    Route::post('/projects/{project}/merge', [ProjectAdminController::class, 'mergeProjects'])->name('projects.merge');
+    Route::post('/projects/memberships/{membership}/move', [ProjectAdminController::class, 'moveMember'])->name('projects.members.move');
     Route::post('/projects/change-requests/{changeRequest}/approve', [ProjectAdminController::class, 'approveChange'])->name('projects.change-requests.approve');
     Route::post('/projects/change-requests/{changeRequest}/reject', [ProjectAdminController::class, 'rejectChange'])->name('projects.change-requests.reject');
     Route::put('/projects/{project}', [ProjectAdminController::class, 'updateProject'])->name('projects.update');

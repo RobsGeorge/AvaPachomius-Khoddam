@@ -4,12 +4,15 @@ namespace Tests\Feature\Tenancy;
 
 use App\Models\Church;
 use App\Models\Module;
+use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectGradeCriterion;
 use App\Models\ProjectMemberGrade;
+use App\Models\ProjectMembership;
 use App\Models\ProjectTeamGrade;
 use App\Tenancy\TenantContext;
 use App\Services\ProjectAdminService;
+use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradingService;
 use Tests\Support\EventModuleTestCase;
 
@@ -38,6 +41,7 @@ class ProjectIsolationTest extends EventModuleTestCase
             'min_team_size' => 1,
             'max_team_size' => 2,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
         ], $adminA);
         $this->assertSame((int) $churchA->church_id, (int) $assessmentA->church_id);
         $this->assertSame((int) $churchA->church_id, (int) $assessmentA->projects->first()->church_id);
@@ -54,6 +58,7 @@ class ProjectIsolationTest extends EventModuleTestCase
             'min_team_size' => 1,
             'max_team_size' => 2,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
         ], $adminB);
 
         $this->assertNull(ProjectAssessment::find($assessmentA->project_assessment_id));
@@ -62,6 +67,46 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(ProjectAssessment::find($assessmentA->project_assessment_id));
         $this->assertNull(ProjectAssessment::find($assessmentB->project_assessment_id));
+    }
+
+    public function test_project_memberships_and_seating_flags_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-seat-isol-b', 'name' => 'Seat B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_SA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod SA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-seat-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-seat-student-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_SEAT_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 2,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'seed_pool_size' => 1,
+        ], $adminA);
+
+        $assignments = app(ProjectAssignmentService::class);
+        $seated = $assignments->assignStudent($assessmentA, $studentA, notify: false);
+        $assignments->lockTeam($seated, $adminA);
+        $membershipId = (int) $assessmentA->activeMembershipFor((int) $studentA->user_id)->project_membership_id;
+
+        $this->assertSame((int) $churchA->church_id, (int) $seated->church_id);
+        $this->assertTrue($seated->fresh()->isLocked());
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectMembership::find($membershipId));
+        $this->assertNull(Project::find($seated->project_id));
+        $this->assertSame(0, ProjectMembership::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectMembership::find($membershipId));
+        $this->assertNotNull(Project::find($seated->project_id));
     }
 
     public function test_project_grades_are_scoped_by_church(): void
@@ -81,6 +126,7 @@ class ProjectIsolationTest extends EventModuleTestCase
             'min_team_size' => 1,
             'max_team_size' => 2,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
         ], $adminA);
         $grading = app(ProjectGradingService::class);
         $assessmentA = $grading->syncCriteria($assessmentA, [

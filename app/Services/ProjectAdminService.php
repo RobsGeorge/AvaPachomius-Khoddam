@@ -7,6 +7,7 @@ use App\Models\ProjectAssessment;
 use App\Models\ProjectDeliverable;
 use App\Models\ProjectPhase;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,6 +23,8 @@ class ProjectAdminService
      *     max_team_size:int,
      *     max_points?:float|int,
      *     passing_percent?:int,
+     *     join_closes_at?:?string,
+     *     seed_pool_size?:?int,
      *     criteria?:list<array{title:string, max_points:float|int}>,
      *     project_count?:int,
      *     project_titles?:list<string>,
@@ -34,8 +37,9 @@ class ProjectAdminService
     public function createAssessment(array $data, User $creator): ProjectAssessment
     {
         $this->assertTeamSizes((int) $data['min_team_size'], (int) $data['max_team_size']);
+        $joinClosesAt = $this->normalizeJoinClosesAt($data['join_closes_at'] ?? null);
 
-        return DB::transaction(function () use ($data, $creator) {
+        return DB::transaction(function () use ($data, $creator, $joinClosesAt) {
             $assessment = ProjectAssessment::create([
                 'course_id' => $data['course_id'],
                 'module_id' => $data['module_id'],
@@ -45,6 +49,8 @@ class ProjectAdminService
                 'max_team_size' => $data['max_team_size'],
                 'max_points' => $data['max_points'] ?? 100,
                 'passing_percent' => $data['passing_percent'] ?? 50,
+                'join_closes_at' => $joinClosesAt,
+                'seed_pool_size' => $data['seed_pool_size'] ?? null,
                 'is_published' => false,
                 'created_by_user_id' => $creator->user_id,
             ]);
@@ -106,12 +112,16 @@ class ProjectAdminService
     }
 
     /**
-     * @param  array{title?:string, description?:?string, min_team_size?:int, max_team_size?:int, max_points?:float|int, passing_percent?:int}  $data
+     * @param  array{title?:string, description?:?string, min_team_size?:int, max_team_size?:int, max_points?:float|int, passing_percent?:int, join_closes_at?:?string, seed_pool_size?:?int}  $data
      */
     public function updateAssessment(ProjectAssessment $assessment, array $data): ProjectAssessment
     {
         if (isset($data['min_team_size'], $data['max_team_size'])) {
             $this->assertTeamSizes((int) $data['min_team_size'], (int) $data['max_team_size']);
+        }
+
+        if (array_key_exists('join_closes_at', $data)) {
+            $data['join_closes_at'] = $this->normalizeJoinClosesAt($data['join_closes_at']);
         }
 
         $assessment->update($data);
@@ -342,6 +352,35 @@ class ProjectAdminService
                 'sort_order' => $index,
             ]);
         }
+    }
+
+    /**
+     * v2 requires a join window. Legacy assessments created before v2 keep their
+     * null window, but a value supplied here must be a future instant.
+     */
+    private function normalizeJoinClosesAt(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            throw ValidationException::withMessages([
+                'join_closes_at' => [__('projects.join_closes_at_required')],
+            ]);
+        }
+
+        try {
+            $when = Carbon::parse((string) $value);
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                'join_closes_at' => [__('projects.join_closes_at_required')],
+            ]);
+        }
+
+        if ($when->isPast()) {
+            throw ValidationException::withMessages([
+                'join_closes_at' => [__('projects.join_closes_at_future')],
+            ]);
+        }
+
+        return $when->toDateTimeString();
     }
 
     private function assertTeamSizes(int $min, int $max): void

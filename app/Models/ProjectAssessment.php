@@ -25,6 +25,8 @@ class ProjectAssessment extends Model
         'max_points',
         'passing_percent',
         'is_published',
+        'join_closes_at',
+        'seed_pool_size',
         'results_announced_at',
         'results_announced_by_user_id',
         'created_by_user_id',
@@ -36,6 +38,8 @@ class ProjectAssessment extends Model
         'max_points' => 'decimal:2',
         'passing_percent' => 'integer',
         'is_published' => 'boolean',
+        'join_closes_at' => 'datetime',
+        'seed_pool_size' => 'integer',
         'results_announced_at' => 'datetime',
     ];
 
@@ -111,8 +115,34 @@ class ProjectAssessment extends Model
             ->first();
     }
 
+    /**
+     * Legacy assessments (created before v2) have no window and stay open.
+     */
+    public function isJoinWindowOpen(): bool
+    {
+        return $this->join_closes_at === null || $this->join_closes_at->isFuture();
+    }
+
+    public function hasJoinWindowClosed(): bool
+    {
+        return ! $this->isJoinWindowOpen();
+    }
+
+    /**
+     * One self-service team change per student per assessment. v1 approved
+     * admin change requests still count so the chance is not handed back.
+     */
     public function hasUsedChangeChance(int $userId): bool
     {
+        $usedSelfChange = $this->memberships()
+            ->where('user_id', $userId)
+            ->whereNotNull('change_chance_used_at')
+            ->exists();
+
+        if ($usedSelfChange) {
+            return true;
+        }
+
         return $this->changeRequests()
             ->where('user_id', $userId)
             ->where('status', ProjectChangeRequest::STATUS_APPROVED)

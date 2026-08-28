@@ -102,6 +102,66 @@ class ProjectNotificationService
         }
     }
 
+    /**
+     * Someone left (self-service change or admin move): tell whoever is still on
+     * the team so they can re-plan without asking the instructor.
+     */
+    public function notifyMemberLeft(Project $project, User $formerMember): void
+    {
+        $url = route('projects.show', $project);
+        $title = __('projects.notify_member_left_title', ['project' => $project->title]);
+        $body = __('projects.notify_member_left_body', [
+            'name' => $formerMember->displayName(),
+            'project' => $project->title,
+            'members' => $this->rosterLines($project),
+        ]);
+
+        foreach ($project->activeMembers() as $member) {
+            if ((int) $member->user_id === (int) $formerMember->user_id) {
+                continue;
+            }
+
+            $this->notifications->createOrUpdate(
+                $member,
+                'project_member_left',
+                $title,
+                $body,
+                $url,
+                Project::class,
+                (int) $project->project_id,
+                metadata: [
+                    'course_id' => $project->assessment?->course_id,
+                    'project_id' => $project->project_id,
+                    'former_member_id' => $formerMember->user_id,
+                ],
+                dedupeKey: 'project_member_left:'.$project->project_id.':'.$member->user_id.':'.$formerMember->user_id.':'.now()->timestamp,
+            );
+        }
+    }
+
+    public function notifyMoved(User $user, Project $project): void
+    {
+        $url = route('projects.show', $project);
+
+        $this->notifications->createOrUpdate(
+            $user,
+            'project_member_moved',
+            __('projects.notify_moved_title'),
+            __('projects.notify_moved_body', [
+                'project' => $project->title,
+                'members' => $this->rosterLines($project, exceptUserId: (int) $user->user_id),
+            ]),
+            $url,
+            Project::class,
+            (int) $project->project_id,
+            metadata: [
+                'course_id' => $project->assessment?->course_id,
+                'project_id' => $project->project_id,
+            ],
+            dedupeKey: 'project_member_moved:'.$project->project_id.':'.$user->user_id.':'.now()->timestamp,
+        );
+    }
+
     public function notifyChangeRequested(ProjectChangeRequest $request): void
     {
         $assessment = $request->assessment;
