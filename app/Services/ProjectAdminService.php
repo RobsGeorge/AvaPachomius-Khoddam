@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectDeliverable;
+use App\Models\ProjectDeliverableSubmission;
 use App\Models\ProjectPhase;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -150,6 +151,7 @@ class ProjectAdminService
 
         $id = $assessment->project_assessment_id;
         app(ProjectGradingService::class)->deleteGradesForAssessment($assessment);
+        app(ProjectSubmissionService::class)->deleteForAssessment($assessment);
         foreach ($assessment->projects as $project) {
             $project->phases()->delete();
             $project->deliverables()->delete();
@@ -186,11 +188,36 @@ class ProjectAdminService
         }
 
         if (array_key_exists('deliverables', $data)) {
+            $this->assertNoDeliverableSubmissions($project);
             $project->deliverables()->delete();
             $this->syncDeliverables($project, $data['deliverables'] ?? []);
         }
 
         return $project->fresh(['phases', 'deliverables']);
+    }
+
+    public function updateTeamWorkspace(Project $project, array $data): Project
+    {
+        $url = isset($data['team_workspace_url']) ? trim((string) $data['team_workspace_url']) : null;
+        if ($url !== null && $url !== '' && ! filter_var($url, FILTER_VALIDATE_URL)) {
+            throw ValidationException::withMessages([
+                'team_workspace_url' => [__('projects.workspace_url_invalid')],
+            ]);
+        }
+
+        $project->update([
+            'team_workspace_url' => ($url === '' ? null : $url),
+            'team_announcement' => isset($data['team_announcement'])
+                ? (trim((string) $data['team_announcement']) ?: null)
+                : $project->team_announcement,
+        ]);
+
+        AuditLogService::recordEvent('project.workspace_updated', [
+            'project_id' => $project->project_id,
+            'project_assessment_id' => $project->project_assessment_id,
+        ]);
+
+        return $project->fresh();
     }
 
     public function deleteProject(Project $project): void
@@ -203,6 +230,7 @@ class ProjectAdminService
 
         $id = $project->project_id;
         app(ProjectGradingService::class)->deleteGradesForProject($project);
+        app(ProjectSubmissionService::class)->deleteForProject($project);
         $project->phases()->delete();
         $project->deliverables()->delete();
         $project->delete();
@@ -334,7 +362,7 @@ class ProjectAdminService
     }
 
     /**
-     * @param  list<array{title?:string, description?:?string, due_at?:?string}>  $deliverables
+     * @param  list<array{title?:string, description?:?string, instructions?:?string, due_at?:?string, submission_type?:?string, file_mode?:?string, is_required?:mixed, allow_late?:mixed}>  $deliverables
      */
     private function syncDeliverables(Project $project, array $deliverables): void
     {
@@ -344,12 +372,46 @@ class ProjectAdminService
                 continue;
             }
 
+            $type = (string) ($deliverable['submission_type'] ?? ProjectDeliverable::TYPE_PDF);
+            if (! in_array($type, ProjectDeliverable::submissionTypes(), true)) {
+                throw ValidationException::withMessages([
+                    'deliverables' => [__('projects.submission_type_invalid')],
+                ]);
+            }
+
+            $fileMode = (string) ($deliverable['file_mode'] ?? ProjectDeliverable::FILE_MODE_SINGLE);
+            if (! in_array($fileMode, ProjectDeliverable::fileModes(), true)) {
+                $fileMode = ProjectDeliverable::FILE_MODE_SINGLE;
+            }
+
             ProjectDeliverable::create([
                 'project_id' => $project->project_id,
                 'title' => $title,
                 'description' => $deliverable['description'] ?? null,
+                'instructions' => $deliverable['instructions'] ?? null,
                 'due_at' => $deliverable['due_at'] ?? null,
                 'sort_order' => $index,
+                'submission_type' => $type,
+                'file_mode' => $fileMode,
+                'is_required' => (bool) ($deliverable['is_required'] ?? true),
+                'allow_late' => (bool) ($deliverable['allow_late'] ?? true),
+            ]);
+        }
+    }
+
+    /**
+     * Deliverable rows are replaced wholesale on edit, which would orphan the
+     * team submissions pointing at them. Block the edit instead of deleting work.
+     */
+    private function assertNoDeliverableSubmissions(Project $project): void
+    {
+        $hasSubmissions = ProjectDeliverableSubmission::query()
+            ->where('project_id', $project->project_id)
+            ->exists();
+
+        if ($hasSubmissions) {
+            throw ValidationException::withMessages([
+                'deliverables' => [__('projects.cannot_replace_deliverables_with_submissions')],
             ]);
         }
     }

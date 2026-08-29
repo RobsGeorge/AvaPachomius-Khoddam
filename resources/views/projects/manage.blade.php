@@ -125,6 +125,31 @@
                             <div class="col-md-4"><input type="text" name="deliverables[0][title]" class="form-control" placeholder="{{ __('projects.deliverable') }}"></div>
                             <div class="col-md-4"><input type="datetime-local" name="deliverables[0][due_at]" class="form-control"></div>
                             <div class="col-md-4"><input type="text" name="deliverables[0][description]" class="form-control" placeholder="{{ __('projects.description') }}"></div>
+                            <div class="col-md-4">
+                                <select name="deliverables[0][submission_type]" class="form-select" aria-label="{{ __('projects.submission_type') }}">
+                                    @foreach(\App\Models\ProjectDeliverable::submissionTypes() as $type)
+                                        <option value="{{ $type }}">{{ __('projects.submission_type_'.$type) }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select name="deliverables[0][file_mode]" class="form-select" aria-label="{{ __('projects.file_mode') }}">
+                                    <option value="single">{{ __('projects.file_mode_single') }}</option>
+                                    <option value="multi">{{ __('projects.file_mode_multi', ['max' => \App\Models\ProjectDeliverable::MAX_FILES]) }}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-center gap-3">
+                                <div class="form-check mb-0">
+                                    <input type="hidden" name="deliverables[0][is_required]" value="0">
+                                    <input class="form-check-input" type="checkbox" value="1" name="deliverables[0][is_required]" id="deliverable-0-required" checked>
+                                    <label class="form-check-label small" for="deliverable-0-required">{{ __('projects.is_required') }}</label>
+                                </div>
+                                <div class="form-check mb-0">
+                                    <input type="hidden" name="deliverables[0][allow_late]" value="0">
+                                    <input class="form-check-input" type="checkbox" value="1" name="deliverables[0][allow_late]" id="deliverable-0-late" checked>
+                                    <label class="form-check-label small" for="deliverable-0-late">{{ __('projects.allow_late') }}</label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-repeat="deliverables">{{ __('projects.add_deliverable') }}</button>
@@ -238,6 +263,38 @@
                             <p class="small text-warning-emphasis mt-2 mb-0">{{ __('projects.below_minimum_hint') }}</p>
                         @endif
 
+                        @php $teamProgress = $submissionProgress[$project->project_id] ?? null; @endphp
+                        @if($teamProgress && $teamProgress['required'] > 0)
+                            <p class="small mt-2 mb-0">
+                                <span class="badge {{ $teamProgress['missing'] === 0 ? 'bg-success' : 'bg-light text-dark border' }}">
+                                    {{ __('projects.deliverables_progress', [
+                                        'submitted' => $teamProgress['required'] - $teamProgress['missing'],
+                                        'required' => $teamProgress['required'],
+                                    ]) }}
+                                </span>
+                                @if($teamProgress['late'] > 0)
+                                    <span class="badge bg-warning text-dark">{{ __('projects.late') }}: {{ $teamProgress['late'] }}</span>
+                                @endif
+                            </p>
+                        @endif
+
+                        <form method="POST" action="{{ route('projects.workspace.update', $project) }}" class="row g-2 align-items-end mt-2">
+                            @csrf
+                            <div class="col-md-5">
+                                <label class="form-label small mb-1">{{ __('projects.team_workspace_url') }}</label>
+                                <input type="url" name="team_workspace_url" class="form-control form-control-sm"
+                                       value="{{ $project->team_workspace_url }}" placeholder="https://">
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label small mb-1">{{ __('projects.team_announcement') }}</label>
+                                <input type="text" name="team_announcement" class="form-control form-control-sm"
+                                       value="{{ $project->team_announcement }}">
+                            </div>
+                            <div class="col-md-2">
+                                <button class="btn btn-sm btn-outline-secondary">{{ __('projects.save_workspace') }}</button>
+                            </div>
+                        </form>
+
                         @if($project->activeMemberships->isNotEmpty())
                             <ul class="list-unstyled mt-3 mb-0">
                                 @foreach($project->activeMemberships as $row)
@@ -328,7 +385,51 @@
 
 @include('projects.partials.countdown-script')
 
+@php
+    $deliverableTypeLabels = [];
+    foreach (\App\Models\ProjectDeliverable::submissionTypes() as $deliverableType) {
+        $deliverableTypeLabels[$deliverableType] = __('projects.submission_type_'.$deliverableType);
+    }
+    $deliverableFileModeLabels = [
+        'single' => __('projects.file_mode_single'),
+        'multi' => __('projects.file_mode_multi', ['max' => \App\Models\ProjectDeliverable::MAX_FILES]),
+    ];
+    $deliverableFieldLabels = [
+        'is_required' => __('projects.is_required'),
+        'allow_late' => __('projects.allow_late'),
+        'submission_type' => __('projects.submission_type'),
+        'file_mode' => __('projects.file_mode'),
+    ];
+@endphp
 <script>
+var deliverableTypeOptions = @json($deliverableTypeLabels);
+var deliverableFileModes = @json($deliverableFileModeLabels);
+var deliverableLabels = @json($deliverableFieldLabels);
+
+function deliverableTypeFields(index) {
+    var typeOptions = Object.keys(deliverableTypeOptions).map(function (value) {
+        return '<option value="' + value + '">' + deliverableTypeOptions[value] + '</option>';
+    }).join('');
+    var modeOptions = Object.keys(deliverableFileModes).map(function (value) {
+        return '<option value="' + value + '">' + deliverableFileModes[value] + '</option>';
+    }).join('');
+
+    return '<div class="col-md-4"><select name="deliverables[' + index + '][submission_type]" class="form-select" aria-label="' + deliverableLabels.submission_type + '">' + typeOptions + '</select></div>' +
+        '<div class="col-md-4"><select name="deliverables[' + index + '][file_mode]" class="form-select" aria-label="' + deliverableLabels.file_mode + '">' + modeOptions + '</select></div>' +
+        '<div class="col-md-4 d-flex align-items-center gap-3">' +
+        '<div class="form-check mb-0">' +
+        '<input type="hidden" name="deliverables[' + index + '][is_required]" value="0">' +
+        '<input class="form-check-input" type="checkbox" value="1" name="deliverables[' + index + '][is_required]" id="deliverable-' + index + '-required" checked>' +
+        '<label class="form-check-label small" for="deliverable-' + index + '-required">' + deliverableLabels.is_required + '</label>' +
+        '</div>' +
+        '<div class="form-check mb-0">' +
+        '<input type="hidden" name="deliverables[' + index + '][allow_late]" value="0">' +
+        '<input class="form-check-input" type="checkbox" value="1" name="deliverables[' + index + '][allow_late]" id="deliverable-' + index + '-late" checked>' +
+        '<label class="form-check-label small" for="deliverable-' + index + '-late">' + deliverableLabels.allow_late + '</label>' +
+        '</div>' +
+        '</div>';
+}
+
 document.querySelectorAll('[data-repeat]').forEach(function (btn) {
     btn.addEventListener('click', function () {
         var key = btn.getAttribute('data-repeat');
@@ -340,7 +441,8 @@ document.querySelectorAll('[data-repeat]').forEach(function (btn) {
         row.innerHTML =
             '<div class="col-md-4"><input type="text" name="' + key + '[' + index + '][title]" class="form-control"></div>' +
             '<div class="col-md-4"><input type="datetime-local" name="' + key + '[' + index + '][' + second + ']" class="form-control"></div>' +
-            '<div class="col-md-4"><input type="text" name="' + key + '[' + index + '][description]" class="form-control"></div>';
+            '<div class="col-md-4"><input type="text" name="' + key + '[' + index + '][description]" class="form-control"></div>' +
+            (key === 'deliverables' ? deliverableTypeFields(index) : '');
         wrap.appendChild(row);
     });
 });

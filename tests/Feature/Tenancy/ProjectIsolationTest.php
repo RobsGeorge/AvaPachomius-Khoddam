@@ -6,14 +6,20 @@ use App\Models\Church;
 use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectDeliverable;
+use App\Models\ProjectDeliverableSubmission;
 use App\Models\ProjectGradeCriterion;
 use App\Models\ProjectMemberGrade;
 use App\Models\ProjectMembership;
+use App\Models\ProjectSubmissionFile;
 use App\Models\ProjectTeamGrade;
 use App\Tenancy\TenantContext;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradingService;
+use App\Services\ProjectSubmissionService;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\EventModuleTestCase;
 
 class ProjectIsolationTest extends EventModuleTestCase
@@ -107,6 +113,61 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(ProjectMembership::find($membershipId));
         $this->assertNotNull(Project::find($seated->project_id));
+    }
+
+    public function test_project_submissions_and_files_are_scoped_by_church(): void
+    {
+        Storage::fake('public');
+
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-sub-isol-b', 'name' => 'Sub B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_UA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod UA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-sub-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-sub-student-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_SUB_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminA);
+
+        $projectA = $assessmentA->projects()->firstOrFail();
+        $deliverableA = ProjectDeliverable::create([
+            'project_id' => $projectA->project_id,
+            'title' => 'Report',
+            'sort_order' => 0,
+            'submission_type' => ProjectDeliverable::TYPE_PDF,
+            'file_mode' => ProjectDeliverable::FILE_MODE_SINGLE,
+        ]);
+
+        $submissionA = app(ProjectSubmissionService::class)->submit(
+            $projectA,
+            $deliverableA,
+            $studentA,
+            [],
+            [UploadedFile::fake()->create('iso.pdf', 12, 'application/pdf')]
+        );
+        $fileIdA = (int) $submissionA->files->first()->project_submission_file_id;
+
+        $this->assertSame((int) $churchA->church_id, (int) $submissionA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $submissionA->files->first()->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectDeliverableSubmission::find($submissionA->project_deliverable_submission_id));
+        $this->assertNull(ProjectSubmissionFile::find($fileIdA));
+        $this->assertSame(0, ProjectDeliverableSubmission::query()->count());
+        $this->assertSame(0, ProjectSubmissionFile::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectDeliverableSubmission::find($submissionA->project_deliverable_submission_id));
+        $this->assertNotNull(ProjectSubmissionFile::find($fileIdA));
     }
 
     public function test_project_grades_are_scoped_by_church(): void

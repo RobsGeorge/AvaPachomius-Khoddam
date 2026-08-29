@@ -696,6 +696,9 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::post('/projects/{project}/cancel', [ProjectAdminController::class, 'cancelProject'])->name('projects.cancel');
     Route::post('/projects/{project}/merge', [ProjectAdminController::class, 'mergeProjects'])->name('projects.merge');
     Route::post('/projects/memberships/{membership}/move', [ProjectAdminController::class, 'moveMember'])->name('projects.members.move');
+    Route::post('/projects/{project}/workspace', [ProjectAdminController::class, 'updateWorkspace'])->name('projects.workspace.update');
+    Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submitDeliverable'])->name('projects.deliverables.submit');
+    Route::delete('/projects/{project}/submission-files/{file}', [ProjectController::class, 'destroySubmissionFile'])->name('projects.submission-files.destroy');
     Route::post('/projects/change-requests/{changeRequest}/approve', [ProjectAdminController::class, 'approveChange'])->name('projects.change-requests.approve');
     Route::post('/projects/change-requests/{changeRequest}/reject', [ProjectAdminController::class, 'rejectChange'])->name('projects.change-requests.reject');
     Route::put('/projects/{project}', [ProjectAdminController::class, 'updateProject'])->name('projects.update');
