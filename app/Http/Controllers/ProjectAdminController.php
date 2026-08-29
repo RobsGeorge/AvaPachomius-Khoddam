@@ -9,15 +9,18 @@ use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
 use App\Models\ProjectMembership;
 use App\Models\User;
+use App\Services\AuditLogService;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
+use App\Services\ProjectGradebookSyncService;
 use App\Services\ProjectGradingService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectAdminController extends Controller
 {
@@ -27,6 +30,7 @@ class ProjectAdminController extends Controller
         private ProjectAssignmentService $assignments,
         private ProjectGradingService $grading,
         private ProjectSubmissionService $submissions,
+        private ProjectGradebookSyncService $gradebook,
     ) {}
 
     public function manage()
@@ -39,6 +43,7 @@ class ProjectAdminController extends Controller
             'course',
             'projects.activeMemberships.user',
             'projects.deliverables',
+            'projects.teamGrade',
             'changeRequests' => fn ($q) => $q->where('status', ProjectChangeRequest::STATUS_PENDING),
         ])->orderByDesc('created_at');
 
@@ -54,13 +59,43 @@ class ProjectAdminController extends Controller
         $modules = $this->modulesForCourse($course);
 
         $submissionProgress = [];
+        $overview = [];
         foreach ($assessments as $assessment) {
-            foreach ($assessment->projects as $project) {
-                $submissionProgress[$project->project_id] = $this->submissions->progress($project);
+            $teams = $assessment->projects;
+            $seated = 0;
+            $requiredDeliverables = 0;
+            $missingDeliverables = 0;
+
+            foreach ($teams as $project) {
+                $progress = $this->submissions->progress($project);
+                $submissionProgress[$project->project_id] = $progress;
+                $seated += $project->activeMemberships->count();
+                $requiredDeliverables += $progress['required'];
+                $missingDeliverables += $progress['missing'];
             }
+
+            $live = $teams->reject(fn (Project $p) => $p->isCancelled());
+            $overview[$assessment->project_assessment_id] = [
+                'teams' => $live->count(),
+                'cancelled' => $teams->count() - $live->count(),
+                'locked' => $live->filter(fn (Project $p) => $p->isLocked())->count(),
+                'below_minimum' => $live->filter(fn (Project $p) => (bool) $p->below_minimum)->count(),
+                'full' => $live->filter(fn (Project $p) => $p->isClosed())->count(),
+                'seated' => $seated,
+                'capacity' => $live->count() * (int) $assessment->max_team_size,
+                'required_deliverables' => $requiredDeliverables,
+                'missing_deliverables' => $missingDeliverables,
+                'graded_teams' => $live->filter(fn (Project $p) => $p->teamGrade !== null)->count(),
+            ];
         }
 
-        return view('projects.manage', compact('assessments', 'modules', 'course', 'submissionProgress'));
+        return view('projects.manage', compact(
+            'assessments',
+            'modules',
+            'course',
+            'submissionProgress',
+            'overview'
+        ));
     }
 
     public function store(Request $request)
@@ -90,9 +125,15 @@ class ProjectAdminController extends Controller
             'passing_percent' => 'nullable|integer|min:0|max:100',
             'join_closes_at' => 'required|date',
             'seed_pool_size' => 'nullable|integer|min:1|max:200',
+            'sync_to_gradebook' => 'nullable|boolean',
         ]);
 
-        $this->admin->updateAssessment($projectAssessment, $validated);
+        $assessment = $this->admin->updateAssessment($projectAssessment, $validated);
+
+        // Turning the toggle on after the announcement should still push the grades.
+        if ($assessment->sync_to_gradebook && $assessment->areResultsAnnounced()) {
+            $this->gradebook->sync($assessment, Auth::user());
+        }
 
         return back()->with('success', __('projects.assessment_updated'));
     }
@@ -341,6 +382,115 @@ class ProjectAdminController extends Controller
         ]);
     }
 
+    /** CSV of every team, member, submission progress and grade for one assessment. */
+    public function exportCsv(ProjectAssessment $projectAssessment): StreamedResponse
+    {
+        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        $projectAssessment->load([
+            'course',
+            'module',
+            'projects.activeMemberships.user',
+            'projects.deliverables',
+            'projects.teamGrade',
+            'memberGrades',
+        ]);
+
+        $memberGrades = $projectAssessment->memberGrades->keyBy('user_id');
+        $maxPoints = $this->grading->maxPoints($projectAssessment);
+        $filename = 'project-roster-'.$projectAssessment->project_assessment_id.'-'.now()->format('Y-m-d').'.csv';
+
+        $rows = [];
+        foreach ($projectAssessment->projects as $project) {
+            $progress = $this->submissions->progress($project);
+            $teamGrade = $project->teamGrade;
+
+            $memberships = $project->activeMemberships;
+            if ($memberships->isEmpty()) {
+                $rows[] = [$project, null, $progress, $teamGrade];
+
+                continue;
+            }
+
+            foreach ($memberships as $membership) {
+                $rows[] = [$project, $membership, $progress, $teamGrade];
+            }
+        }
+
+        AuditLogService::recordEvent('project.roster_exported', [
+            'project_assessment_id' => $projectAssessment->project_assessment_id,
+            'course_id' => $projectAssessment->course_id,
+            'row_count' => count($rows),
+            'actor_user_id' => Auth::id(),
+        ]);
+
+        return response()->streamDownload(function () use ($projectAssessment, $rows, $memberGrades, $maxPoints) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, [
+                'assessment_id',
+                'assessment_title',
+                'course_title',
+                'module_title',
+                'team_title',
+                'team_status',
+                'is_locked',
+                'below_minimum',
+                'is_cancelled',
+                'seats_filled',
+                'max_team_size',
+                'deliverables_required',
+                'deliverables_submitted',
+                'deliverables_missing',
+                'deliverables_late',
+                'team_points',
+                'team_percent',
+                'student_name',
+                'student_email',
+                'student_mobile',
+                'student_points',
+                'student_percent',
+                'grade_source',
+                'max_points',
+            ]);
+
+            foreach ($rows as [$project, $membership, $progress, $teamGrade]) {
+                $student = $membership?->user;
+                $memberGrade = $student ? $memberGrades->get($student->user_id) : null;
+
+                fputcsv($out, [
+                    $projectAssessment->project_assessment_id,
+                    $projectAssessment->title,
+                    $projectAssessment->course?->title,
+                    $projectAssessment->module?->title,
+                    $project->title,
+                    $project->isClosed() ? 'closed' : 'open',
+                    $project->is_locked ? '1' : '0',
+                    $project->below_minimum ? '1' : '0',
+                    $project->isCancelled() ? '1' : '0',
+                    $project->activeMemberships->count(),
+                    $projectAssessment->max_team_size,
+                    $progress['required'],
+                    $progress['submitted'],
+                    $progress['missing'],
+                    $progress['late'],
+                    $teamGrade ? number_format((float) $teamGrade->points, 2, '.', '') : '',
+                    $teamGrade ? number_format((float) $teamGrade->percent, 2, '.', '') : '',
+                    $student?->displayName(),
+                    $student?->email,
+                    $student?->mobile_number,
+                    $memberGrade ? number_format((float) $memberGrade->points, 2, '.', '') : '',
+                    $memberGrade ? number_format((float) $memberGrade->percent, 2, '.', '') : '',
+                    $memberGrade?->source,
+                    $maxPoints,
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
     public function syncTeamCriteria(Request $request, Project $project)
     {
         $project->load('assessment.criteria');
@@ -483,6 +633,7 @@ class ProjectAdminController extends Controller
             'passing_percent' => 'nullable|integer|min:0|max:100',
             'join_closes_at' => 'required|date',
             'seed_pool_size' => 'nullable|integer|min:1|max:200',
+            'sync_to_gradebook' => 'nullable|boolean',
             'criteria' => 'nullable|array',
             'criteria.*.title' => 'nullable|string|max:255',
             'criteria.*.max_points' => 'nullable|numeric|min:0.01|max:9999.99',
@@ -529,6 +680,7 @@ class ProjectAdminController extends Controller
             'seed_pool_size' => isset($validated['seed_pool_size'])
                 ? (int) $validated['seed_pool_size']
                 : null,
+            'sync_to_gradebook' => (bool) ($validated['sync_to_gradebook'] ?? false),
             'criteria' => $validated['criteria'] ?? [],
             'project_count' => (int) ($validated['project_count'] ?? 1),
             'project_titles' => $titles,

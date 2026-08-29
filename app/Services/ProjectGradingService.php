@@ -650,6 +650,9 @@ class ProjectGradingService
             'module_id' => $assessment->module_id,
         ]);
 
+        $assessment = $assessment->fresh();
+        app(ProjectGradebookSyncService::class)->sync($assessment, $actor);
+
         return $assessment->fresh();
     }
 
