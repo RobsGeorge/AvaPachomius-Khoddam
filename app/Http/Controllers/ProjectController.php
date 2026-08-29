@@ -53,6 +53,20 @@ class ProjectController extends Controller
         return view('projects.index', compact('assessments', 'memberships', 'canManage', 'gradeVisibility'));
     }
 
+    public function leave(Request $request, ProjectAssessment $projectAssessment)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        $this->assertCanJoin($projectAssessment);
+        abort_unless($projectAssessment->is_published, 404);
+
+        $project = $this->assignments->leaveAndReassign($projectAssessment, $user);
+
+        return redirect()
+            ->route('projects.show', $project)
+            ->with('success', __('projects.left_and_reassigned'));
+    }
+
     public function show(Project $project)
     {
         $user = Auth::user();
@@ -75,6 +89,7 @@ class ProjectController extends Controller
             ? $assessment->pendingChangeRequestFor((int) $user->user_id)
             : null;
         $changeUsed = $assessment->hasUsedChangeChance((int) $user->user_id);
+        $joinWindowOpen = $assessment->isJoinWindowOpen();
 
         $gradeVisibility = $this->gradeVisibilityFor($user, $assessment);
 
@@ -85,6 +100,7 @@ class ProjectController extends Controller
             'canManage',
             'pendingChange',
             'changeUsed',
+            'joinWindowOpen',
             'gradeVisibility'
         ));
     }
@@ -103,19 +119,18 @@ class ProjectController extends Controller
             ->with('success', __('projects.assigned_success'));
     }
 
+    /**
+     * Retired in Projects v2: students now leave-and-reassign themselves once
+     * (`projects.leave`). The route and history table stay so old links and the
+     * admin review screen keep working for requests filed under v1.
+     */
     public function storeChangeRequest(Request $request, ProjectAssessment $projectAssessment)
     {
         $user = Auth::user();
         abort_unless($user, 403);
         $this->assertCanJoin($projectAssessment);
 
-        $validated = $request->validate([
-            'reason' => 'required|string|min:3|max:2000',
-        ]);
-
-        $this->assignments->requestChange($projectAssessment, $user, $validated['reason']);
-
-        return back()->with('success', __('projects.change_requested'));
+        return back()->with('error', __('projects.change_request_retired'));
     }
 
     private function assertCanView(): void

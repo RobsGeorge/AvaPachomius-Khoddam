@@ -27,10 +27,16 @@ class Project extends Model
         'requirements',
         'status',
         'sort_order',
+        'is_locked',
+        'below_minimum',
+        'cancelled_at',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
+        'is_locked' => 'boolean',
+        'below_minimum' => 'boolean',
+        'cancelled_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -103,6 +109,35 @@ class Project extends Model
     public function isClosed(): bool
     {
         return $this->status === self::STATUS_CLOSED;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancelled_at !== null;
+    }
+
+    public function isLocked(): bool
+    {
+        return (bool) $this->is_locked;
+    }
+
+    /**
+     * Seatable = pack-fill may still place a student here.
+     */
+    public function acceptsNewMembers(?ProjectAssessment $assessment = null): bool
+    {
+        return ! $this->isCancelled()
+            && ! $this->isLocked()
+            && $this->remainingSeats($assessment) > 0;
+    }
+
+    public function isBelowMinimum(?ProjectAssessment $assessment = null): bool
+    {
+        $assessment ??= $this->assessment;
+        $min = (int) ($assessment?->min_team_size ?? 0);
+        $count = $this->activeMemberCount();
+
+        return $min > 0 && $count > 0 && $count < $min;
     }
 
     public function teamGrade(): HasOne

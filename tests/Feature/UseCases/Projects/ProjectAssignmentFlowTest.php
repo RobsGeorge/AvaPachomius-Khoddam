@@ -10,6 +10,7 @@ use App\Models\ProjectChangeRequest;
 use App\Models\UserNotification;
 use App\Services\CourseContextService;
 use App\Services\ProjectAdminService;
+use App\Services\ProjectAssignmentService;
 use Illuminate\Support\Facades\Mail;
 use Tests\Support\EventModuleTestCase;
 
@@ -28,6 +29,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
                 'min_team_size' => 2,
                 'max_team_size' => 3,
                 'project_count' => 2,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
                 'requirements' => 'Visit a family',
                 'phases' => [
                     ['title' => 'Plan', 'deadline' => now()->addWeek()->format('Y-m-d H:i:s')],
@@ -69,6 +71,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
                 'title' => 'Field Visits',
                 'min_team_size' => 1,
                 'max_team_size' => 3,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
                 'subprojects' => [
                     ['title' => 'Elderly home', 'requirements' => 'Visit twice'],
                     ['title' => 'Orphanage'],
@@ -90,6 +93,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
                 'title' => 'Dup Project',
                 'min_team_size' => 1,
                 'max_team_size' => 2,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
                 'subprojects' => [
                     ['title' => 'Same topic'],
                     ['title' => 'same topic'],
@@ -103,6 +107,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
                 'title' => 'Empty Subs',
                 'min_team_size' => 1,
                 'max_team_size' => 2,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
                 'subprojects' => [
                     ['title' => ''],
                     ['title' => ''],
@@ -219,6 +224,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
             'min_team_size' => 1,
             'max_team_size' => 2,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
         ], $admin);
 
         app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
@@ -236,7 +242,67 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
             ->assertNotFound();
     }
 
-    public function test_change_request_approve_reassigns_to_another_team(): void
+    public function test_student_leaves_once_and_is_immediately_reassigned(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 2, max: 2);
+        $assessment = ProjectAssessment::query()->where('course_id', $course->course_id)->first();
+
+        app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
+        $this->actingAs($students[0])->post(route('projects.join', $assessment))->assertRedirect();
+        app(CourseContextService::class)->setCurrentCourse($students[1], $course->course_id);
+        $this->actingAs($students[1])->post(route('projects.join', $assessment))->assertRedirect();
+
+        $fromId = (int) $assessment->activeMembershipFor((int) $students[0]->user_id)->project_id;
+
+        app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
+        $this->actingAs($students[0])
+            ->post(route('projects.leave', $assessment))
+            ->assertRedirect();
+
+        $newMembership = $assessment->fresh()->activeMembershipFor((int) $students[0]->user_id);
+        $this->assertNotNull($newMembership);
+        $this->assertNotSame($fromId, (int) $newMembership->project_id);
+        $this->assertTrue($assessment->hasUsedChangeChance((int) $students[0]->user_id));
+        $this->assertTrue(ActivityLog::query()->where('route_name', 'project.member_self_left')->exists());
+
+        $this->assertTrue(
+            UserNotification::query()
+                ->where('user_id', $students[1]->user_id)
+                ->where('type', 'project_member_left')
+                ->exists(),
+            'Remaining teammate should be told someone left.'
+        );
+
+        $this->actingAs($students[0])
+            ->post(route('projects.leave', $assessment))
+            ->assertSessionHasErrors('project');
+    }
+
+    public function test_join_and_leave_are_blocked_after_the_join_window_closes(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 2, max: 2);
+        $assessment = ProjectAssessment::query()->where('course_id', $course->course_id)->first();
+
+        app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
+        $this->actingAs($students[0])->post(route('projects.join', $assessment))->assertRedirect();
+
+        $assessment->forceFill(['join_closes_at' => now()->subMinute()])->save();
+
+        $this->actingAs($students[0])
+            ->post(route('projects.leave', $assessment))
+            ->assertSessionHasErrors('project');
+
+        app(CourseContextService::class)->setCurrentCourse($students[1], $course->course_id);
+        $this->actingAs($students[1])
+            ->post(route('projects.join', $assessment))
+            ->assertSessionHasErrors('project');
+
+        $this->assertNull($assessment->fresh()->activeMembershipFor((int) $students[1]->user_id));
+    }
+
+    public function test_student_change_request_create_path_is_retired(): void
     {
         Mail::fake();
         [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 2, max: 2);
@@ -244,39 +310,18 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
 
         app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
         $this->actingAs($students[0])->post(route('projects.join', $assessment));
-        $fromId = $assessment->activeMembershipFor((int) $students[0]->user_id)->project_id;
 
         $this->actingAs($students[0])
             ->post(route('projects.change-requests.store', $assessment), [
                 'reason' => 'Schedule conflict with the other members',
             ])
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('error', __('projects.change_request_retired'));
 
-        $this->actingAs($students[0])
-            ->post(route('projects.change-requests.store', $assessment), [
-                'reason' => 'Trying again',
-            ])
-            ->assertSessionHasErrors('reason');
-
-        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
-        $change = ProjectChangeRequest::query()->where('user_id', $students[0]->user_id)->first();
-        $this->actingAs($admin)
-            ->post(route('projects.change-requests.approve', $change))
-            ->assertRedirect();
-
-        $newMembership = $assessment->fresh()->activeMembershipFor((int) $students[0]->user_id);
-        $this->assertNotNull($newMembership);
-        $this->assertNotSame($fromId, $newMembership->project_id);
-        $this->assertTrue($assessment->hasUsedChangeChance((int) $students[0]->user_id));
-
-        $this->actingAs($students[0])
-            ->post(route('projects.change-requests.store', $assessment), [
-                'reason' => 'One more time',
-            ])
-            ->assertSessionHasErrors('reason');
+        $this->assertSame(0, ProjectChangeRequest::query()->count());
     }
 
-    public function test_rejected_change_does_not_consume_the_chance(): void
+    public function test_admin_can_still_decide_legacy_change_requests(): void
     {
         Mail::fake();
         [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 2, max: 2);
@@ -284,24 +329,108 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
 
         app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
         $this->actingAs($students[0])->post(route('projects.join', $assessment));
-        $this->actingAs($students[0])->post(route('projects.change-requests.store', $assessment), [
-            'reason' => 'Need a different team',
-        ]);
+        $fromId = (int) $assessment->activeMembershipFor((int) $students[0]->user_id)->project_id;
+
+        app(ProjectAssignmentService::class)->requestChange($assessment, $students[0], 'Legacy request');
 
         app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
-        $change = ProjectChangeRequest::query()->where('user_id', $students[0]->user_id)->first();
+        $change = ProjectChangeRequest::query()->where('user_id', $students[0]->user_id)->firstOrFail();
         $this->actingAs($admin)
-            ->post(route('projects.change-requests.reject', $change), ['admin_notes' => 'Stay'])
+            ->post(route('projects.change-requests.approve', $change))
             ->assertRedirect();
 
-        $this->assertFalse($assessment->hasUsedChangeChance((int) $students[0]->user_id));
+        $newMembership = $assessment->fresh()->activeMembershipFor((int) $students[0]->user_id);
+        $this->assertNotSame($fromId, (int) $newMembership->project_id);
+        $this->assertTrue($assessment->hasUsedChangeChance((int) $students[0]->user_id));
+    }
+
+    public function test_admin_moves_a_member_to_another_team(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 2, max: 2);
+        $assessment = ProjectAssessment::query()->where('course_id', $course->course_id)->first();
 
         app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
-        $this->actingAs($students[0])
-            ->post(route('projects.change-requests.store', $assessment), [
-                'reason' => 'Trying again after reject',
-            ])
+        $this->actingAs($students[0])->post(route('projects.join', $assessment));
+
+        $membership = $assessment->activeMembershipFor((int) $students[0]->user_id);
+        $target = $assessment->projects()
+            ->where('project_id', '!=', $membership->project_id)
+            ->firstOrFail();
+
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+        $this->actingAs($admin)
+            ->post(route('projects.members.move', $membership), ['to_project_id' => $target->project_id])
             ->assertRedirect();
+
+        $moved = $assessment->fresh()->activeMembershipFor((int) $students[0]->user_id);
+        $this->assertSame((int) $target->project_id, (int) $moved->project_id);
+        $this->assertTrue(ActivityLog::query()->where('route_name', 'project.member_moved')->exists());
+        $this->assertFalse(
+            $assessment->hasUsedChangeChance((int) $students[0]->user_id),
+            'An admin move must not burn the student self-change chance.'
+        );
+    }
+
+    public function test_admin_locks_cancels_and_merges_teams(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 3, max: 3, min: 2);
+        $assessment = ProjectAssessment::query()->where('course_id', $course->course_id)->first();
+        $projects = $assessment->projects()->orderBy('sort_order')->get();
+
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+
+        $this->actingAs($admin)
+            ->post(route('projects.lock', $projects[0]))
+            ->assertRedirect();
+        $this->assertTrue($projects[0]->fresh()->isLocked());
+        $this->assertTrue(ActivityLog::query()->where('route_name', 'project.team_locked')->exists());
+
+        $this->actingAs($admin)
+            ->post(route('projects.cancel', $projects[2]))
+            ->assertRedirect();
+        $this->assertTrue($projects[2]->fresh()->isCancelled());
+
+        // Locked + cancelled teams are skipped, so the joiner lands on team #2.
+        app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
+        $this->actingAs($students[0])->post(route('projects.join', $assessment))->assertRedirect();
+        $seated = $assessment->fresh()->activeMembershipFor((int) $students[0]->user_id);
+        $this->assertSame((int) $projects[1]->project_id, (int) $seated->project_id);
+
+        // Under minimum after the window shuts: the manage screen flags it.
+        $assessment->forceFill(['join_closes_at' => now()->subMinute()])->save();
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+        $this->actingAs($admin)->get(route('projects.manage'))->assertOk();
+        $this->assertTrue((bool) $projects[1]->fresh()->below_minimum);
+
+        // Rescue: merge the under-min team into the locked one.
+        $this->actingAs($admin)
+            ->post(route('projects.merge', $projects[1]), ['into_project_id' => $projects[0]->project_id])
+            ->assertRedirect();
+
+        $merged = $assessment->fresh()->activeMembershipFor((int) $students[0]->user_id);
+        $this->assertSame((int) $projects[0]->project_id, (int) $merged->project_id);
+        $this->assertTrue($projects[1]->fresh()->isCancelled());
+        $this->assertTrue(ActivityLog::query()->where('route_name', 'project.teams_merged')->exists());
+    }
+
+    public function test_cancelling_a_team_with_members_is_rejected(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin, $students] = $this->publishedFixture(projectCount: 2, max: 2);
+        $assessment = ProjectAssessment::query()->where('course_id', $course->course_id)->first();
+
+        app(CourseContextService::class)->setCurrentCourse($students[0], $course->course_id);
+        $this->actingAs($students[0])->post(route('projects.join', $assessment));
+        $seated = $assessment->activeMembershipFor((int) $students[0]->user_id)->project;
+
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+        $this->actingAs($admin)
+            ->post(route('projects.cancel', $seated))
+            ->assertSessionHasErrors('project');
+
+        $this->assertFalse($seated->fresh()->isCancelled());
     }
 
     public function test_destroy_writes_audit_and_is_blocked_when_members_exist(): void
@@ -325,6 +454,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
             'min_team_size' => 1,
             'max_team_size' => 2,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
         ], $admin);
 
         $this->actingAs($admin)
@@ -374,16 +504,18 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
     /**
      * @return array{0: Course, 1: Module, 2: \App\Models\User, 3: list<\App\Models\User>}
      */
-    private function publishedFixture(int $projectCount, int $max): array
+    private function publishedFixture(int $projectCount, int $max, int $min = 1): array
     {
         [$course, $module, $admin, $students] = $this->staffWithStudents(3);
         $assessment = app(ProjectAdminService::class)->createAssessment([
             'course_id' => $course->course_id,
             'module_id' => $module->module_id,
             'title' => 'Ministry Project',
-            'min_team_size' => 1,
+            'min_team_size' => $min,
             'max_team_size' => $max,
             'project_count' => $projectCount,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'seed_pool_size' => 1,
             'requirements' => 'Visit a family',
             'phases' => [['title' => 'Plan', 'deadline' => now()->addWeek()->toDateTimeString()]],
             'deliverables' => [['title' => 'Report', 'due_at' => now()->addWeeks(2)->toDateTimeString()]],

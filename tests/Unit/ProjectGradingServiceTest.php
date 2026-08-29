@@ -111,6 +111,7 @@ class ProjectGradingServiceTest extends EventModuleTestCase
             'max_points' => 100,
             'passing_percent' => 50,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
         ], $admin);
         $assessment->update(['is_published' => true]);
 

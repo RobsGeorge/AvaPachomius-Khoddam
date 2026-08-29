@@ -71,6 +71,8 @@ return [
         'project_assigned' => 'تعيين فريق المشروع',
         'project_teammate_joined' => 'زميل جديد في المشروع',
         'project_team_completed' => 'اكتمال فريق المشروع',
+        'project_member_left' => 'مغادرة زميل من الفريق',
+        'project_member_moved' => 'نقلك إلى فريق آخر',
         'project_change_requested' => 'طلب تغيير فريق المشروع',
         'project_change_decided' => 'قرار تغيير فريق المشروع',
         'exam_upcoming' => 'امتحانات قادمة',
