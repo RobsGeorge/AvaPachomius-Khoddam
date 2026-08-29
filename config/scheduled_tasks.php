@@ -134,5 +134,25 @@ return [
                 'timezone' => 'attendance.timezone',
             ],
         ],
+        'audit.prune' => [
+            'label' => 'scheduled_tasks.tasks.audit_prune',
+            'description' => 'scheduled_tasks.audit_prune_desc',
+            'type' => 'command',
+            'command' => 'audit:prune',
+            'schedule' => [
+                'frequency' => 'daily_at',
+                'time' => '03:15',
+            ],
+        ],
+        'observability.prune' => [
+            'label' => 'scheduled_tasks.tasks.observability_prune',
+            'description' => 'scheduled_tasks.observability_prune_desc',
+            'type' => 'command',
+            'command' => 'observability:prune',
+            'schedule' => [
+                'frequency' => 'daily_at',
+                'time' => '03:30',
+            ],
+        ],
     ],
 ];

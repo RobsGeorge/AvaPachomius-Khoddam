@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\UserNotificationReminder;
+use App\Services\AuditLogService;
 use App\Services\NotificationPreferenceService;
 use App\Support\PasswordRules;
 use Illuminate\Http\JsonResponse;
@@ -56,6 +57,17 @@ class AccountController extends Controller
 
         $user->password = Hash::make((string) $request->input('password'));
         $user->save();
+
+        AuditLogService::setPasswordResult($request, [
+            'success' => true,
+            'user_id' => $user->user_id,
+            'email' => $user->email,
+        ]);
+
+        AuditLogService::recordEvent('auth.password_changed', [
+            'user_id' => $user->user_id,
+            'source' => 'account',
+        ]);
 
         return redirect()->route('account.index')->with('success', __('account.password_updated'));
     }

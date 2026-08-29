@@ -172,6 +172,12 @@ final class CredentialChangeService
                 ],
             ]);
 
+            AuditLogService::recordEvent('auth.password_changed', [
+                'user_id' => $user->user_id,
+                'source' => 'recovery_otp',
+                'tier' => $challenge?->tier ?? 'self_serve',
+            ]);
+
             return $user->fresh();
         });
     }

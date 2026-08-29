@@ -43,6 +43,22 @@ class AuditLogService
         'superadmin.logs',
     ];
 
+    /** Route names (exact or prefix) that still get GET activity even without query params. */
+    private const AUTH_RELATED_GET_ROUTES = [
+        'login',
+        'logout',
+        'logout.perform',
+        'password.request',
+        'password.reset',
+        'password.update',
+        'password.set',
+        'password.set.store',
+        'account.index',
+        'account.password.update',
+        'otp.verify',
+        'register',
+    ];
+
     public static function shouldLogRequest(Request $request): bool
     {
         if (self::shouldSkipRoute($request)) {
@@ -53,11 +69,18 @@ class AuditLogService
             return false;
         }
 
-        if ($request->method() === 'GET') {
-            return Auth::check() || $request->query->count() > 0;
+        // Mutating methods always log (volume is low; secrets are redacted).
+        if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+            return true;
         }
 
-        return in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true);
+        // GET: skip noisy authenticated page views without query.
+        // Keep GETs that carry filters/search, plus auth-related surfaces.
+        if ($request->query->count() > 0) {
+            return true;
+        }
+
+        return self::isAuthRelatedGet($request);
     }
 
     public static function capturePasswordFields(Request $request): void
@@ -74,11 +97,13 @@ class AuditLogService
             return;
         }
 
+        // Never snapshot secret values — only presence flags + email for trial correlation.
         $request->attributes->set(self::PASSWORD_SNAPSHOT_KEY, [
-            'password_attempt'      => self::inputString($request, 'password') ?? self::inputString($request, 'new_password'),
-            'password_confirmation' => self::inputString($request, 'password_confirmation'),
-            'current_password'      => self::inputString($request, 'current_password'),
-            'email'                 => self::inputString($request, 'email'),
+            'had_password_attempt'      => self::inputString($request, 'password') !== null
+                || self::inputString($request, 'new_password') !== null,
+            'had_password_confirmation' => self::inputString($request, 'password_confirmation') !== null,
+            'had_current_password'      => self::inputString($request, 'current_password') !== null,
+            'email'                     => self::inputString($request, 'email'),
         ]);
     }
 
@@ -106,9 +131,9 @@ class AuditLogService
         self::logLoginTrial($request, [
             'user_id'               => $explicit['user_id'] ?? null,
             'email'                 => $explicit['email'] ?? $snapshot['email'] ?? null,
-            'password_attempt'      => $snapshot['password_attempt'] ?? '',
-            'password_confirmation' => $snapshot['password_confirmation'] ?? null,
-            'current_password'      => $snapshot['current_password'] ?? null,
+            'password_attempt'      => '',
+            'password_confirmation' => null,
+            'current_password'      => null,
             'context'               => self::resolvePasswordContext($request),
             'route_name'            => $request->route()?->getName(),
             'url'                   => Str::limit($request->fullUrl(), 2000, ''),
@@ -229,19 +254,14 @@ class AuditLogService
                 $userId = User::where('email', $email)->value('user_id');
             }
 
-            $passwordAttempt = (string) ($data['password_attempt'] ?? $request->input('password', ''));
-            $currentPassword = $data['current_password'] ?? $request->input('current_password');
-
-            if ($passwordAttempt === '' && $currentPassword) {
-                $passwordAttempt = (string) $currentPassword;
-            }
-
+            // Never persist password material (columns retained for expand-contract).
+            // password_attempt is NOT NULL historically — store empty string, not secrets.
             LoginTrial::create([
                 'user_id'                => $userId ?? Auth::id(),
                 'email'                  => $email,
-                'password_attempt'       => $passwordAttempt,
-                'password_confirmation'  => $data['password_confirmation'] ?? $request->input('password_confirmation'),
-                'current_password'       => $currentPassword,
+                'password_attempt'       => '',
+                'password_confirmation'  => null,
+                'current_password'       => null,
                 'context'                => $data['context'],
                 'route_name'             => $data['route_name'] ?? $request->route()?->getName(),
                 'url'                    => $data['url'] ?? Str::limit($request->fullUrl(), 2000, ''),
@@ -367,6 +387,24 @@ class AuditLogService
         return false;
     }
 
+    private static function isAuthRelatedGet(Request $request): bool
+    {
+        $routeName = $request->route()?->getName();
+        if (! $routeName) {
+            return false;
+        }
+
+        foreach (self::AUTH_RELATED_GET_ROUTES as $name) {
+            if ($routeName === $name || Str::startsWith($routeName, $name.'.')) {
+                return true;
+            }
+        }
+
+        return Str::startsWith($routeName, 'password.')
+            || Str::startsWith($routeName, 'otp.')
+            || Str::startsWith($routeName, 'register.');
+    }
+
     private static function requestHasPasswordInput(Request $request): bool
     {
         foreach (self::PASSWORD_INPUT_KEYS as $key) {
@@ -391,10 +429,11 @@ class AuditLogService
         $routeName = $request->route()?->getName();
 
         return match ($routeName) {
-            'login'              => 'login',
-            'password.update'    => 'password_reset',
-            'password.set.store' => 'set_password',
-            default              => $routeName ? Str::limit($routeName, 30, '') : 'form_password',
+            'login'                   => 'login',
+            'password.update'         => 'password_reset',
+            'password.set.store'      => 'set_password',
+            'account.password.update' => 'password_change',
+            default                   => $routeName ? Str::limit($routeName, 30, '') : 'form_password',
         };
     }
 
