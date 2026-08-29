@@ -56,6 +56,11 @@ class NewPasswordController extends Controller
         ]);
 
         if ($status === Password::PASSWORD_RESET) {
+            AuditLogService::recordEvent('auth.password_changed', [
+                'email' => $request->input('email'),
+                'source' => 'email_reset',
+            ]);
+
             $enrollmentUserId = session(PendingRegistrationService::SESSION_ENROLLMENT_USER_KEY);
 
             if ($enrollmentUserId) {

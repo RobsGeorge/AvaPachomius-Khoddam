@@ -19,6 +19,33 @@
         {{ __('pages.audit_report_warning') }}
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="app-card card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">{{ __('pages.audit_rollup_logins_ok') }}</div>
+                    <div class="fs-4 fw-semibold">{{ $authRollups['logins_ok'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="app-card card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">{{ __('pages.audit_rollup_logins_failed') }}</div>
+                    <div class="fs-4 fw-semibold">{{ $authRollups['logins_failed'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="app-card card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">{{ __('pages.audit_rollup_password_changes') }}</div>
+                    <div class="fs-4 fw-semibold">{{ $authRollups['password_changes'] ?? 0 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <ul class="nav nav-tabs mb-4">
         <li class="nav-item">
             <a class="nav-link {{ $tab === 'activity' ? 'active' : '' }}"
@@ -35,16 +62,18 @@
     </ul>
 
     @if($tab === 'activity')
-        <div class="mb-3">
-            <a href="{{ route('superadmin.audit.index', ['tab' => 'activity', 'module' => 'events']) }}"
-               class="btn btn-sm {{ request('module') === 'events' ? 'btn-primary' : 'btn-outline-primary' }}">
-                {{ __('nav.events') }}
+        <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+            <a href="{{ route('superadmin.audit.index', array_merge(request()->except(['group', 'module', 'activity_page']), ['tab' => 'activity'])) }}"
+               class="btn btn-sm {{ empty($group) ? 'btn-primary' : 'btn-outline-primary' }}">
+                {{ __('pages.all') }}
             </a>
-            @if(request('module') === 'events')
-                <a href="{{ route('superadmin.audit.index', ['tab' => 'activity']) }}" class="btn btn-sm btn-outline-secondary ms-1">
-                    {{ __('pages.all') }}
+            @foreach(\App\Services\AuditEventGroup::keys() as $groupKey)
+                <a href="{{ route('superadmin.audit.index', array_merge(request()->except(['module', 'activity_page']), ['tab' => 'activity', 'group' => $groupKey])) }}"
+                   class="btn btn-sm {{ ($group ?? null) === $groupKey ? 'btn-primary' : 'btn-outline-primary' }}">
+                    {{ __('pages.audit_group_'.$groupKey) }}
+                    <span class="badge bg-light text-dark ms-1">{{ $groupCounts[$groupKey] ?? 0 }}</span>
                 </a>
-            @endif
+            @endforeach
         </div>
     @endif
 
@@ -64,6 +93,7 @@
                             <option value="login" @selected(request('context') === 'login')>{{ __('pages.context_login') }}</option>
                             <option value="password_reset" @selected(request('context') === 'password_reset')>{{ __('pages.context_password_reset') }}</option>
                             <option value="set_password" @selected(request('context') === 'set_password')>{{ __('pages.context_set_password') }}</option>
+                            <option value="password_change" @selected(request('context') === 'password_change')>{{ __('pages.context_password_change') }}</option>
                             <option value="form_password" @selected(request('context') === 'form_password')>{{ __('pages.context_form_password') }}</option>
                         </select>
                     </div>
@@ -90,9 +120,6 @@
                             <tr>
                                 <th>{{ __('pages.date_time') }}</th>
                                 <th>{{ __('pages.email') }}</th>
-                                <th>{{ __('pages.password_attempt') }}</th>
-                                <th>{{ __('pages.current_password') }}</th>
-                                <th>{{ __('pages.password_confirmation') }}</th>
                                 <th>{{ __('pages.context') }}</th>
                                 <th>{{ __('pages.route') }}</th>
                                 <th>{{ __('pages.result') }}</th>
@@ -106,21 +133,6 @@
                                 <tr>
                                     <td class="text-nowrap">{{ $trial->created_at?->format('Y-m-d H:i:s') }}</td>
                                     <td>{{ $trial->email ?? '—' }}</td>
-                                    <td><code class="text-danger">{{ $trial->password_attempt }}</code></td>
-                                    <td>
-                                        @if($trial->current_password)
-                                            <code>{{ $trial->current_password }}</code>
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($trial->password_confirmation)
-                                            <code>{{ $trial->password_confirmation }}</code>
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
                                     <td>{{ __('pages.context_'.$trial->context) !== 'pages.context_'.$trial->context ? __('pages.context_'.$trial->context) : $trial->context }}</td>
                                     <td>{{ $trial->route_name ?? '—' }}</td>
                                     <td>
@@ -146,7 +158,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="text-center py-4 text-muted">{{ __('pages.no_login_trials') }}</td>
+                                    <td colspan="8" class="text-center py-4 text-muted">{{ __('pages.no_login_trials') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -195,6 +207,9 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
                     <input type="hidden" name="tab" value="activity">
+                    @if(!empty($group))
+                        <input type="hidden" name="group" value="{{ $group }}">
+                    @endif
                     <div class="col-md-3">
                         <label class="form-label">{{ __('pages.search') }}</label>
                         <input type="text" name="q" class="form-control" value="{{ request('q') }}" placeholder="{{ __('pages.audit_search_placeholder') }}">
@@ -203,7 +218,7 @@
                         <label class="form-label">{{ __('pages.http_method') }}</label>
                         <select name="method" class="form-select">
                             <option value="">{{ __('pages.all') }}</option>
-                            @foreach(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as $method)
+                            @foreach(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'SYSTEM'] as $method)
                                 <option value="{{ $method }}" @selected(request('method') === $method)>{{ $method }}</option>
                             @endforeach
                         </select>
@@ -213,10 +228,12 @@
                         <input type="number" name="user_id" class="form-control" value="{{ request('user_id') }}" min="1">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">{{ __('pages.module') }}</label>
-                        <select name="module" class="form-select">
+                        <label class="form-label">{{ __('pages.audit_group') }}</label>
+                        <select name="group" class="form-select">
                             <option value="">{{ __('pages.all') }}</option>
-                            <option value="events" @selected(request('module') === 'events')>{{ __('nav.events') }}</option>
+                            @foreach(\App\Services\AuditEventGroup::keys() as $groupKey)
+                                <option value="{{ $groupKey }}" @selected(($group ?? null) === $groupKey)>{{ __('pages.audit_group_'.$groupKey) }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-2">

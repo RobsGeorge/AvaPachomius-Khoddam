@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\UseCases\Account;
 
-use App\Models\User;
+use App\Models\ActivityLog;
+use App\Models\LoginTrial;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\EventModuleTestCase;
 
@@ -41,6 +42,25 @@ class AccountCenterTest extends EventModuleTestCase
         $response->assertRedirect(route('account.index'));
         $response->assertSessionHas('success');
         $this->assertTrue(Hash::check('NewPass1!', $user->fresh()->password));
+
+        $event = ActivityLog::query()
+            ->where('route_name', 'auth.password_changed')
+            ->where('user_id', $user->user_id)
+            ->latest('activity_log_id')
+            ->first();
+        $this->assertNotNull($event);
+        $this->assertSame('account', $event->request_input['source'] ?? null);
+
+        $trial = LoginTrial::query()
+            ->where('user_id', $user->user_id)
+            ->where('context', 'password_change')
+            ->latest('login_trial_id')
+            ->first();
+        $this->assertNotNull($trial);
+        $this->assertSame('', (string) $trial->password_attempt);
+        $this->assertNull($trial->password_confirmation);
+        $this->assertNull($trial->current_password);
+        $this->assertTrue($trial->success);
     }
 
     public function test_password_change_is_rejected_when_the_current_password_is_wrong(): void
@@ -56,6 +76,9 @@ class AccountCenterTest extends EventModuleTestCase
 
         $response->assertSessionHasErrors('current_password');
         $this->assertSame($originalHash, $user->fresh()->password); // unchanged
+        $this->assertFalse(
+            ActivityLog::query()->where('route_name', 'auth.password_changed')->where('user_id', $user->user_id)->exists()
+        );
     }
 
     public function test_password_change_enforces_strength_and_confirmation(): void

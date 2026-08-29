@@ -309,7 +309,23 @@ server load, and church/service usage windows — portable across cloud provider
   W5 church portal → W6 sinks/alerts/retention.
 
 **Status:** **Landed** on staging (PR #91). Follow-ups: optional Hostinger infra adapter;
-church-admin stack sanitization polish; `login_trials` plaintext password debt (separate).
+church-admin stack sanitization polish. `login_trials` no longer stores plaintext passwords
+(writers store empty/null); **Phase 5 contraction:** drop `password_attempt` /
+`password_confirmation` / `current_password` columns once prod has been scrubbed.
+
+## Audit retention / grouping (2026-08-29)
+
+**Landed (feature/audit-grouping-retention):** SuperAdmin event-family groups + auth rollups;
+`auth.password_changed`; `audit:prune` + scheduled `observability:prune`; stop writing secrets
+to `login_trials`.
+
+**Still parked:**
+
+1. Phase 5: drop unused password columns on `login_trials`.
+2. Church-admin-facing audit UI (still SuperAdmin-only).
+3. Tenant-scope `login_trials`.
+4. Auto-retention for `access_ledger` / `communication_logs` (compliance decision).
+5. One-time scrub of historical plaintext password rows already in prod `login_trials`.
 
 ## Team projects — v1 landed, follow-ups parked (2026-08-22)
 
