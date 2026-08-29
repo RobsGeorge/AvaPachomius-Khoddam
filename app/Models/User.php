@@ -327,7 +327,11 @@ class User extends Authenticatable
                     && (int) $courseId === (int) session(RolePreviewService::SESSION_COURSE_ID);
             }
 
-            return in_array($slug, ['admin', 'church-admin'], true)
+            // Church-admin preview is church-scoped, not the course/system admin this
+            // method documents — including its slug here let a previewing superadmin
+            // keep real system-level admin access (e.g. the legacy AdminMiddleware's
+            // SYSTEM_PERMS gate), defeating the point of masking the superadmin bypass.
+            return $slug === 'admin'
                 || $this->canInSystem('system.role.manage');
         }
 
