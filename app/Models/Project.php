@@ -30,6 +30,8 @@ class Project extends Model
         'is_locked',
         'below_minimum',
         'cancelled_at',
+        'team_workspace_url',
+        'team_announcement',
     ];
 
     protected $casts = [
@@ -66,6 +68,11 @@ class Project extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(ProjectMembership::class, 'project_id', 'project_id');
+    }
+
+    public function deliverableSubmissions(): HasMany
+    {
+        return $this->hasMany(ProjectDeliverableSubmission::class, 'project_id', 'project_id');
     }
 
     public function activeMemberships(): HasMany

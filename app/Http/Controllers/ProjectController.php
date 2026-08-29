@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Project;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectDeliverable;
 use App\Models\ProjectMemberGrade;
+use App\Models\ProjectSubmissionFile;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectResultsVisibilityService;
+use App\Services\ProjectSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +20,7 @@ class ProjectController extends Controller
         private CoursePermissionResolver $permissions,
         private ProjectAssignmentService $assignments,
         private ProjectResultsVisibilityService $visibility,
+        private ProjectSubmissionService $submissions,
     ) {}
 
     public function index()
@@ -92,6 +96,9 @@ class ProjectController extends Controller
         $joinWindowOpen = $assessment->isJoinWindowOpen();
 
         $gradeVisibility = $this->gradeVisibilityFor($user, $assessment);
+        $checklist = $this->submissions->checklist($project);
+        $progress = $this->submissions->progress($project);
+        $isMember = $membership && (int) $membership->project_id === (int) $project->project_id;
 
         return view('projects.show', compact(
             'project',
@@ -101,8 +108,76 @@ class ProjectController extends Controller
             'pendingChange',
             'changeUsed',
             'joinWindowOpen',
-            'gradeVisibility'
+            'gradeVisibility',
+            'checklist',
+            'progress',
+            'isMember'
         ));
+    }
+
+    public function submitDeliverable(Request $request, Project $project, ProjectDeliverable $deliverable)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        abort_unless((int) $deliverable->project_id === (int) $project->project_id, 404);
+
+        $this->assertCanJoin($assessment);
+        $membership = $assessment->activeMembershipFor((int) $user->user_id);
+        abort_unless($membership && (int) $membership->project_id === (int) $project->project_id, 403);
+
+        $rules = [
+            'body' => 'nullable|string|max:20000',
+            'link_url' => 'nullable|string|max:2048',
+            'replace_files' => 'nullable|boolean',
+        ];
+
+        if ($deliverable->expectsFiles()) {
+            $extensions = implode(',', ProjectDeliverable::extensionsFor($deliverable->type()));
+            $rules['files'] = 'nullable|array|max:'.$deliverable->maxFiles();
+            $rules['files.*'] = 'file|mimes:'.$extensions.'|max:'.ProjectDeliverable::MAX_UPLOAD_KB;
+        }
+
+        $validated = $request->validate($rules);
+
+        $this->submissions->submit(
+            $project,
+            $deliverable,
+            $user,
+            [
+                'body' => $validated['body'] ?? null,
+                'link_url' => $validated['link_url'] ?? null,
+                'replace_files' => (bool) ($validated['replace_files'] ?? false),
+            ],
+            $request->file('files') ?? [],
+        );
+
+        return back()->with('success', __('projects.submission_saved'));
+    }
+
+    public function destroySubmissionFile(Project $project, ProjectSubmissionFile $file)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+
+        $submission = $file->submission;
+        abort_unless($submission && (int) $submission->project_id === (int) $project->project_id, 404);
+
+        $this->assertCanJoin($assessment);
+        $membership = $assessment->activeMembershipFor((int) $user->user_id);
+        abort_unless($membership && (int) $membership->project_id === (int) $project->project_id, 403);
+        abort_unless($submission->deliverable?->acceptsSubmissionNow(), 422, __('projects.submission_closed'));
+
+        $this->submissions->deleteFile($file, $user);
+
+        return back()->with('success', __('projects.submission_file_deleted'));
     }
 
     public function join(Request $request, ProjectAssessment $projectAssessment)
