@@ -72,6 +72,15 @@
                         <input type="number" name="seed_pool_size" id="seed_pool_size" class="form-control" min="1" max="200" value="{{ old('seed_pool_size') }}">
                         <div class="form-text">{{ __('projects.seed_pool_help') }}</div>
                     </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="form-check">
+                            <input type="hidden" name="sync_to_gradebook" value="0">
+                            <input class="form-check-input" type="checkbox" value="1" name="sync_to_gradebook"
+                                   id="sync_to_gradebook" @checked(old('sync_to_gradebook'))>
+                            <label class="form-check-label" for="sync_to_gradebook">{{ __('projects.sync_to_gradebook') }}</label>
+                        </div>
+                        <div class="form-text">{{ __('projects.sync_to_gradebook_help') }}</div>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <div class="fw-semibold mb-2">{{ __('projects.criteria') }}</div>
@@ -185,6 +194,11 @@
                     · {{ __('projects.seed_pool_size') }}: {{ $assessment->seed_pool_size ?: __('projects.seed_pool_auto') }}
                 </p>
 
+                @include('projects.partials.assessment-overview', [
+                    'assessment' => $assessment,
+                    'stats' => $overview[$assessment->project_assessment_id] ?? null,
+                ])
+
                 @include('projects.partials.join-countdown', ['assessment' => $assessment])
 
                 <form method="POST" action="{{ route('projects.assessments.update', $assessment) }}" class="row g-2 align-items-end mb-3">
@@ -204,9 +218,28 @@
                                value="{{ $assessment->seed_pool_size }}">
                     </div>
                     <div class="col-md-4">
+                        <div class="form-check mb-2">
+                            <input type="hidden" name="sync_to_gradebook" value="0">
+                            <input class="form-check-input" type="checkbox" value="1" name="sync_to_gradebook"
+                                   id="sync-gradebook-{{ $assessment->project_assessment_id }}"
+                                   @checked($assessment->sync_to_gradebook)>
+                            <label class="form-check-label small" for="sync-gradebook-{{ $assessment->project_assessment_id }}">
+                                {{ __('projects.sync_to_gradebook') }}
+                            </label>
+                        </div>
                         <button class="btn btn-sm btn-outline-secondary">{{ __('projects.assessment_updated_action') }}</button>
                     </div>
                 </form>
+
+                @if($assessment->sync_to_gradebook)
+                    <p class="small text-muted">
+                        @if($assessment->gradebook_synced_at)
+                            {{ __('projects.gradebook_synced_at', ['when' => $assessment->gradebook_synced_at->format('Y-m-d H:i')]) }}
+                        @else
+                            {{ __('projects.gradebook_sync_pending') }}
+                        @endif
+                    </p>
+                @endif
 
                 @php
                     $belowMinimum = $assessment->projects->filter(fn ($p) => $p->below_minimum && ! $p->isCancelled());
@@ -351,6 +384,7 @@
 
                 <div class="d-flex flex-wrap gap-2 border-top pt-3">
                     <a href="{{ route('projects.grades', $assessment) }}" class="btn btn-sm btn-outline-primary">{{ __('projects.grades') }}</a>
+                    <a href="{{ route('projects.export', $assessment) }}" class="btn btn-sm btn-outline-secondary">{{ __('projects.export_csv') }}</a>
                     <form method="POST" action="{{ route('projects.assessments.publish', $assessment) }}">
                         @csrf
                         <button class="btn btn-sm btn-outline-success">{{ $assessment->is_published ? __('projects.unpublish') : __('projects.publish') }}</button>

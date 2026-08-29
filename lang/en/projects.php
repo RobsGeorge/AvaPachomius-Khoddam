@@ -277,4 +277,22 @@ return [
     'rubric_breakdown' => 'Rubric breakdown',
     'criterion_percent' => ':percent%',
     'criterion_not_scored' => 'Not scored',
+
+    // v2 — overview, CSV export and gradebook sync
+    'overview_seated' => 'Students seated',
+    'overview_teams' => 'Teams',
+    'overview_full' => ':count full',
+    'overview_locked' => ':count locked',
+    'overview_cancelled' => ':count cancelled',
+    'overview_deliverables' => 'Required deliverables in',
+    'overview_missing' => ':count still missing',
+    'overview_graded' => 'Teams graded',
+    'overview_announced' => 'Grades announced',
+    'overview_not_announced' => 'Not announced yet',
+    'overview_below_minimum' => ':count team(s) are below the minimum size — merge or rescue them.',
+    'export_csv' => 'Export CSV',
+    'sync_to_gradebook' => 'Send grades to the gradebook when announced',
+    'sync_to_gradebook_help' => 'Requires a “Projects” grade category on the course. One grade item is created per assessment.',
+    'gradebook_synced_at' => 'Sent to the gradebook :when.',
+    'gradebook_sync_pending' => 'Grades will be sent to the gradebook when you announce them.',
 ];

@@ -277,4 +277,22 @@ return [
     'rubric_breakdown' => 'تفصيل المعايير',
     'criterion_percent' => ':percent%',
     'criterion_not_scored' => 'لم تُقيَّم',
+
+    // v2 — النظرة العامة والتصدير ومزامنة سجل الدرجات
+    'overview_seated' => 'الطلاب المُوزَّعون',
+    'overview_teams' => 'الفرق',
+    'overview_full' => ':count مكتملة',
+    'overview_locked' => ':count مقفلة',
+    'overview_cancelled' => ':count ملغاة',
+    'overview_deliverables' => 'المُخرَجات الإلزامية المُسلَّمة',
+    'overview_missing' => 'ما زال ناقصًا :count',
+    'overview_graded' => 'الفرق المُقيَّمة',
+    'overview_announced' => 'أُعلنت الدرجات',
+    'overview_not_announced' => 'لم تُعلن بعد',
+    'overview_below_minimum' => ':count فريق أقل من الحد الأدنى — ادمجها أو أنقذها.',
+    'export_csv' => 'تصدير CSV',
+    'sync_to_gradebook' => 'إرسال الدرجات لسجل الدرجات عند الإعلان',
+    'sync_to_gradebook_help' => 'يتطلب وجود فئة درجات «مشاريع» في الدورة. يُنشأ عنصر درجات واحد لكل تقييم.',
+    'gradebook_synced_at' => 'أُرسلت لسجل الدرجات :when.',
+    'gradebook_sync_pending' => 'ستُرسل الدرجات لسجل الدرجات عند إعلانها.',
 ];

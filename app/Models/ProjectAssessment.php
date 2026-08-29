@@ -29,6 +29,9 @@ class ProjectAssessment extends Model
         'seed_pool_size',
         'results_announced_at',
         'results_announced_by_user_id',
+        'sync_to_gradebook',
+        'gradebook_item_id',
+        'gradebook_synced_at',
         'created_by_user_id',
     ];
 
@@ -41,6 +44,8 @@ class ProjectAssessment extends Model
         'join_closes_at' => 'datetime',
         'seed_pool_size' => 'integer',
         'results_announced_at' => 'datetime',
+        'sync_to_gradebook' => 'boolean',
+        'gradebook_synced_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
