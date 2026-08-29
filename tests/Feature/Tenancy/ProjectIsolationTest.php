@@ -8,11 +8,13 @@ use App\Models\GradeItem;
 use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectChangeRequest;
 use App\Models\ProjectDeliverable;
 use App\Models\ProjectDeliverableSubmission;
 use App\Models\ProjectGradeCriterion;
 use App\Models\ProjectMemberGrade;
 use App\Models\ProjectMembership;
+use App\Models\ProjectPhase;
 use App\Models\ProjectSubmissionFile;
 use App\Models\ProjectTeamCriterionScore;
 use App\Models\ProjectTeamGrade;
@@ -264,6 +266,60 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(GradeItem::find($itemId));
         $this->assertSame(1, StudentGrade::query()->where('item_id', $itemId)->count());
+    }
+
+    public function test_briefs_and_change_requests_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-brief-isol-b', 'name' => 'Brief B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_BA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod BA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-brief-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-brief-student-a@example.com']);
+
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_BRIEF_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 2,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'seed_pool_size' => 1,
+            'phases' => [['title' => 'Plan', 'deadline' => now()->addWeek()->toDateTimeString()]],
+            'deliverables' => [['title' => 'Report', 'submission_type' => ProjectDeliverable::TYPE_TEXT]],
+        ], $adminA);
+
+        $projectA = app(ProjectAssignmentService::class)->assignStudent($assessmentA, $studentA, notify: false);
+        $phaseA = $projectA->phases()->firstOrFail();
+        $deliverableA = $projectA->deliverables()->firstOrFail();
+        $changeA = ProjectChangeRequest::create([
+            'project_assessment_id' => $assessmentA->project_assessment_id,
+            'user_id' => $studentA->user_id,
+            'from_project_id' => $projectA->project_id,
+            'reason' => 'Legacy v1 request',
+            'status' => ProjectChangeRequest::STATUS_PENDING,
+        ]);
+
+        $this->assertSame((int) $churchA->church_id, (int) $phaseA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $deliverableA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $changeA->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectPhase::find($phaseA->project_phase_id));
+        $this->assertNull(ProjectDeliverable::find($deliverableA->project_deliverable_id));
+        $this->assertNull(ProjectChangeRequest::find($changeA->project_change_request_id));
+        $this->assertSame(0, ProjectPhase::query()->count());
+        $this->assertSame(0, ProjectDeliverable::query()->count());
+        $this->assertSame(0, ProjectChangeRequest::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectPhase::find($phaseA->project_phase_id));
+        $this->assertNotNull(ProjectDeliverable::find($deliverableA->project_deliverable_id));
+        $this->assertNotNull(ProjectChangeRequest::find($changeA->project_change_request_id));
     }
 
     public function test_per_team_rubric_rows_are_scoped_by_church(): void
