@@ -327,20 +327,33 @@ to `login_trials`.
 4. Auto-retention for `access_ledger` / `communication_logs` (compliance decision).
 5. One-time scrub of historical plaintext password rows already in prod `login_trials`.
 
-## Team projects — v1 landed, follow-ups parked (2026-08-22)
+## Team projects — v1 + v2 landed, follow-ups parked (2026-08-29)
 
-**Landed:** module-linked project assessments, pack-fill random assignment, min/max team size,
-first-member / teammate / team-complete notifications, one approved team-change request,
-criteria + team/student grading, one-shot announce, exam-style feedback gate.
+**v1 landed (2026-08-22):** module-linked project assessments, pack-fill random assignment,
+min/max team size, first-member / teammate / team-complete notifications, one approved
+team-change request, criteria + team/student grading, one-shot announce, exam-style feedback gate.
+
+**v2 landed (2026-08-29):** required join window + countdowns; self-service leave-once with
+immediate random reassignment (student change-request create path retired, table kept for v1
+history); seed pool so pack-fill opens only as many subprojects as the remaining students need;
+admin seating (force-move, lock/unlock, cancel/restore, merge, below-minimum flag after the
+window closes); “someone left” notification; typed deliverables (pdf/document/image/zip/link/text
+× single/multi) with team submissions, files, checklist and late badges; team workspace URL +
+announcement; additive per-team rubric overrides with student-facing percentages; assessment
+overview, CSV roster export, opt-in gradebook sync on announce; student `/api/v1` endpoints.
 Design: `docs/product/use-cases/projects.md`.
 
 **Still parked:**
 
-1. File deliverable uploads per phase.
-2. Mobile `/api/v1` read/join endpoints.
-3. Admin manual seat assignment / lock a team before max.
-4. “Someone left” notification to remaining teammates.
-5. Gradebook weighted category for project scores (projects now have their own announce + visibility).
+1. **Peer / intra-team evaluation** — members scoring each other's contribution, feeding a
+   weighted individual grade. Needs its own product decisions (visibility, anonymity, whether
+   it can move a student's mark) before any schema.
+2. Real team workspace integration (chat/drive provisioning) — today it is a stored link plus a
+   free-text announcement.
+3. Deliverable-level grading (per-deliverable scores rolling up to the team grade).
+4. Instructor-side submission review UI beyond the checklist counts (inline feedback per submission).
+5. Student-visible team change history / audit trail.
+6. Reminder notifications before a deliverable due date (needs the reminder scheduler).
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

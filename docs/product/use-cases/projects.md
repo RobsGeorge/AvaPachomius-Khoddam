@@ -158,6 +158,22 @@ grade category of type `project`, keeps one `grade_items` row per assessment
 (`gradebook_item_id`), and upserts one `student_grades` row per member grade. Without a
 `project` category the sync is a no-op, so the announcement itself never fails.
 
+## Mobile API (`/api/v1`, Sanctum + `capability:projects`)
+
+| Method | Path | Permission |
+|---|---|---|
+| GET | `/courses/{course}/projects` | `project.view` |
+| GET | `/projects/{project}` | `project.view` + own membership |
+| POST | `/project-assessments/{assessment}/join` | `project.join` |
+| POST | `/project-assessments/{assessment}/leave` | `project.join` |
+| POST | `/projects/{project}/deliverables/{deliverable}/submit` | `project.join` + own membership |
+| DELETE | `/projects/{project}/submission-files/{file}` | `project.join` + own membership |
+
+Thin wrappers over `ProjectAssignmentService`, `ProjectSubmissionService`,
+`ProjectGradingService` and `ProjectResultsVisibilityService` — the join window,
+one-change rule, submission typing and grade visibility gate all behave exactly as on
+the web, and validation failures surface as 422 with the same messages.
+
 ## Coverage
 
 `UseCases/Projects/ProjectAssignmentFlowTest`, `UseCases/Projects/ProjectGradingTest`,
@@ -165,4 +181,4 @@ grade category of type `project`, keeps one `grade_items` row per assessment
 `UseCases/Projects/ProjectGradebookAndExportTest`,
 `Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
 `Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`,
-`Tenancy/ProjectIsolationTest`.
+`Api/ProjectApiTest`, `Tenancy/ProjectIsolationTest`.
