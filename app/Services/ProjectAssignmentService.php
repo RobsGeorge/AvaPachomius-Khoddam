@@ -45,13 +45,7 @@ class ProjectAssignmentService
             $project = $this->pickProject($assessment, $excludeProjectId);
             $wasFirst = $project->activeMemberCount() === 0;
 
-            ProjectMembership::create([
-                'project_assessment_id' => $assessment->project_assessment_id,
-                'project_id' => $project->project_id,
-                'user_id' => $user->user_id,
-                'status' => ProjectMembership::STATUS_ACTIVE,
-                'assigned_at' => now(),
-            ]);
+            $this->seatMember($assessment, $project, (int) $user->user_id);
 
             $project = $project->fresh();
             $justCompleted = $this->syncTeamStatus($project, $assessment);
@@ -311,14 +305,7 @@ class ProjectAssignmentService
                 'moved_by_user_id' => $actor->user_id,
             ]);
 
-            $moved = ProjectMembership::create([
-                'project_assessment_id' => $assessment->project_assessment_id,
-                'project_id' => $target->project_id,
-                'user_id' => $student->user_id,
-                'status' => ProjectMembership::STATUS_ACTIVE,
-                'assigned_at' => now(),
-                'moved_by_user_id' => $actor->user_id,
-            ]);
+            $moved = $this->seatMember($assessment, $target, (int) $student->user_id, (int) $actor->user_id);
 
             if ($fromProject) {
                 $this->syncTeamStatus($fromProject->fresh(), $assessment);
@@ -580,6 +567,33 @@ class ProjectAssignmentService
         if ($project) {
             $this->syncTeamStatus($project, $assessment ?? $project->assessment);
         }
+    }
+
+    /**
+     * `project_memberships` is unique on (project_id, user_id), so a student who
+     * comes back to a team they were once on must revive that row instead of
+     * inserting a second one. `change_chance_used_at` is left untouched: the
+     * chance is spent for the whole assessment, not per seat.
+     */
+    private function seatMember(
+        ProjectAssessment $assessment,
+        Project $project,
+        int $userId,
+        ?int $movedByUserId = null,
+    ): ProjectMembership {
+        return ProjectMembership::updateOrCreate(
+            [
+                'project_id' => $project->project_id,
+                'user_id' => $userId,
+            ],
+            [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'status' => ProjectMembership::STATUS_ACTIVE,
+                'assigned_at' => now(),
+                'left_at' => null,
+                'moved_by_user_id' => $movedByUserId,
+            ]
+        );
     }
 
     /**
