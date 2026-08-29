@@ -18,9 +18,9 @@ return new class extends Migration
         SchemaGuards::createTableIfMissing('project_team_grade_criteria', function (Blueprint $table) {
             $table->id('project_team_grade_criterion_id');
             $table->unsignedBigInteger('church_id')->index();
-            $table->unsignedBigInteger('project_assessment_id')->index();
-            $table->unsignedBigInteger('project_id')->index();
-            $table->unsignedBigInteger('project_grade_criterion_id')->nullable()->index();
+            $table->unsignedBigInteger('project_assessment_id')->index('ptgc_assessment_idx');
+            $table->unsignedBigInteger('project_id')->index('ptgc_project_idx');
+            $table->unsignedBigInteger('project_grade_criterion_id')->nullable()->index('ptgc_shared_criterion_idx');
             $table->string('title', 255)->nullable();
             $table->decimal('max_points', 8, 2)->default(0);
             $table->boolean('is_excluded')->default(false);
@@ -29,21 +29,21 @@ return new class extends Migration
 
             $table->unique(
                 ['project_id', 'project_grade_criterion_id'],
-                'project_team_grade_criteria_override_unique'
+                'ptgc_override_unique'
             );
         });
 
         SchemaGuards::createTableIfMissing('project_team_criterion_scores', function (Blueprint $table) {
             $table->id('project_team_criterion_score_id');
             $table->unsignedBigInteger('church_id')->index();
-            $table->unsignedBigInteger('project_team_grade_id')->index();
-            $table->unsignedBigInteger('project_team_grade_criterion_id')->index();
+            $table->unsignedBigInteger('project_team_grade_id')->index('ptcs_team_grade_idx');
+            $table->unsignedBigInteger('project_team_grade_criterion_id')->index('ptcs_team_criterion_idx');
             $table->decimal('points', 8, 2);
             $table->timestamps();
 
             $table->unique(
                 ['project_team_grade_id', 'project_team_grade_criterion_id'],
-                'project_team_criterion_scores_unique'
+                'ptcs_grade_criterion_unique'
             );
         });
     }
