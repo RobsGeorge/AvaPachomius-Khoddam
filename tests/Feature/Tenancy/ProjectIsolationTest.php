@@ -3,6 +3,8 @@
 namespace Tests\Feature\Tenancy;
 
 use App\Models\Church;
+use App\Models\GradeCategory;
+use App\Models\GradeItem;
 use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
@@ -15,9 +17,11 @@ use App\Models\ProjectSubmissionFile;
 use App\Models\ProjectTeamCriterionScore;
 use App\Models\ProjectTeamGrade;
 use App\Models\ProjectTeamGradeCriterion;
+use App\Models\StudentGrade;
 use App\Tenancy\TenantContext;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
+use App\Services\ProjectGradebookSyncService;
 use App\Services\ProjectGradingService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\UploadedFile;
@@ -209,6 +213,57 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(ProjectGradeCriterion::find($criterionA->project_grade_criterion_id));
         $this->assertNotNull(ProjectTeamGrade::query()->where('project_id', $projectA->project_id)->first());
+    }
+
+    public function test_gradebook_sync_rows_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-gb-isol-b', 'name' => 'Gradebook B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_GBA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod GBA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-gb-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-gb-student-a@example.com']);
+        GradeCategory::create([
+            'course_id' => $courseA->course_id,
+            'type' => ProjectGradebookSyncService::CATEGORY_TYPE,
+            'name' => 'Projects',
+            'weight_percentage' => 20,
+            'ordering' => 1,
+        ]);
+
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_GB_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'max_points' => 100,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'sync_to_gradebook' => true,
+        ], $adminA);
+
+        $projectA = $assessmentA->projects()->firstOrFail();
+        app(ProjectAssignmentService::class)->assignStudent($assessmentA, $studentA, notify: false);
+
+        $grading = app(ProjectGradingService::class);
+        $grading->gradeTeam($assessmentA, $projectA, [], $adminA, null, 90.0);
+        $grading->announce($assessmentA, $adminA);
+
+        $itemId = (int) $assessmentA->fresh()->gradebook_item_id;
+        $this->assertNotSame(0, $itemId);
+        $this->assertSame((int) $churchA->church_id, (int) GradeItem::findOrFail($itemId)->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(GradeItem::find($itemId));
+        $this->assertSame(0, StudentGrade::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(GradeItem::find($itemId));
+        $this->assertSame(1, StudentGrade::query()->where('item_id', $itemId)->count());
     }
 
     public function test_per_team_rubric_rows_are_scoped_by_church(): void

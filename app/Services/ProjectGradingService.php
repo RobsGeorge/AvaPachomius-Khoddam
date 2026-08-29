@@ -12,6 +12,7 @@ use App\Models\ProjectTeamGradeCriterion;
 use App\Models\ProjectTeamGradeScore;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class ProjectGradingService
@@ -651,7 +652,18 @@ class ProjectGradingService
         ]);
 
         $assessment = $assessment->fresh();
-        app(ProjectGradebookSyncService::class)->sync($assessment, $actor);
+
+        // Announcing is one-shot (a second attempt is a 409), so a gradebook
+        // problem must not strand the instructor. Saving the assessment again
+        // retries the sync.
+        try {
+            app(ProjectGradebookSyncService::class)->sync($assessment, $actor);
+        } catch (\Throwable $e) {
+            Log::warning('Project gradebook sync failed after announce', [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return $assessment->fresh();
     }
