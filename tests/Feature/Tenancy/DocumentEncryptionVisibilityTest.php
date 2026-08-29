@@ -216,6 +216,76 @@ class DocumentEncryptionVisibilityTest extends EventModuleTestCase
         $this->assertSame($custodial->document_id, $visible->first()->document_id);
     }
 
+    public function test_unrelated_servant_cannot_see_sensitive_or_pastoral_via_generic_permission(): void
+    {
+        [$priest] = $this->seedChurchMember('priest', 'doc-vis-priest2');
+        [$servant] = $this->seedChurchMember('servant', 'doc-vis-servant');
+        $person = $this->makePerson('غريب');
+
+        $custodial = $this->documents->store('custodial-bytes', $priest, [
+            'documentable_type' => Document::DOCUMENTABLE_PERSON,
+            'documentable_id' => (int) $person->person_id,
+            'kind' => 'home_photo',
+            'visibility_layer' => Document::LAYER_CUSTODIAL,
+            'is_sensitive' => false,
+        ]);
+
+        $pastoral = $this->documents->store('pastoral-bytes', $priest, [
+            'documentable_type' => Document::DOCUMENTABLE_PERSON,
+            'documentable_id' => (int) $person->person_id,
+            'kind' => 'visit_attachment',
+            'visibility_layer' => Document::LAYER_PASTORAL,
+            'is_sensitive' => false,
+        ]);
+
+        $sensitive = $this->documents->store('SENSITIVE-BYTES', $priest, [
+            'documentable_type' => Document::DOCUMENTABLE_PERSON,
+            'documentable_id' => (int) $person->person_id,
+            'kind' => 'id_scan',
+            'visibility_layer' => Document::LAYER_CUSTODIAL,
+            'is_sensitive' => true,
+        ]);
+
+        // The servant role template grants documents.view/upload but has no relationship
+        // (family/uploader/priest/admin) to this unrelated person's documents.
+        $this->assertTrue($this->visibility->canView($servant, $custodial));
+        $this->assertFalse($this->visibility->canView($servant, $pastoral));
+        $this->assertFalse($this->visibility->canView($servant, $sensitive));
+
+        $visible = $this->visibility->visibleFor(
+            $servant,
+            Document::DOCUMENTABLE_PERSON,
+            (int) $person->person_id
+        );
+        $this->assertCount(1, $visible);
+        $this->assertSame($custodial->document_id, $visible->first()->document_id);
+    }
+
+    public function test_safeguarding_restricted_subject_hides_documents_from_generic_permission_holder(): void
+    {
+        [$priest] = $this->seedChurchMember('priest', 'doc-vis-priest3');
+        [$servant] = $this->seedChurchMember('servant', 'doc-vis-servant2');
+        [, , $ward] = $this->seedGuardianWard();
+
+        Relationship::withoutTenancy()
+            ->guardianOf()
+            ->where('related_person_id', $ward->person_id)
+            ->update(['guardian_visibility' => Relationship::VISIBILITY_RESTRICTED]);
+
+        $custodial = $this->documents->store('restricted-custodial-bytes', $priest, [
+            'documentable_type' => Document::DOCUMENTABLE_PERSON,
+            'documentable_id' => (int) $ward->person_id,
+            'kind' => 'home_photo',
+            'visibility_layer' => Document::LAYER_CUSTODIAL,
+            'is_sensitive' => false,
+        ]);
+
+        // Even a non-sensitive custodial document is hidden from the generic-permission
+        // servant once the subject's guardian edge is safeguarding-restricted.
+        $this->assertFalse($this->visibility->canView($servant, $custodial));
+        $this->assertTrue($this->visibility->canView($priest, $custodial));
+    }
+
     public function test_documentable_must_exist_in_app(): void
     {
         [$priest] = $this->seedChurchMember('priest', 'doc-orphan');

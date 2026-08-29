@@ -159,6 +159,7 @@ class BreakGlassTest extends EventModuleTestCase
     {
         $church = Church::main();
         $staff = $this->createUser(['is_superadmin' => true, 'email' => 'bg-platform@example.com']);
+        $this->actingAs($staff);
         $request = Request::create('/');
         $request->setLaravelSession(app('session.store'));
 
@@ -179,6 +180,55 @@ class BreakGlassTest extends EventModuleTestCase
             1,
             AccessLedgerEntry::query()->where('action', AccessLedgerEntry::ACTION_BREAK_GLASS_OPEN)->count()
         );
+    }
+
+    public function test_revoking_grant_ends_an_already_active_platform_access_session(): void
+    {
+        $church = Church::main();
+        $staff = $this->createUser(['is_superadmin' => true, 'email' => 'bg-revoke-live@example.com']);
+        $this->actingAs($staff);
+        $request = Request::create('/');
+        $request->setLaravelSession(app('session.store'));
+
+        $org = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        $grant = app(BreakGlassService::class)->grant($staff, $staff, $org, 'Support session', 60);
+
+        PlatformAccessService::start($church, $staff, $request);
+        $this->assertTrue(PlatformAccessService::isActive());
+
+        app(BreakGlassService::class)->revoke($staff, $grant);
+
+        // The session flag alone would still say "active" — isActive() must re-check
+        // the grant itself, not just the session, and tear the stale session down.
+        $this->assertFalse(PlatformAccessService::isActive());
+        $this->assertFalse(session()->has(PlatformAccessService::SESSION_KEY));
+
+        $this->assertNotNull(
+            \App\Models\ActivityLog::query()
+                ->where('route_name', 'platform_church_access_expired')
+                ->latest('activity_log_id')
+                ->first()
+        );
+    }
+
+    public function test_expired_grant_ends_an_already_active_platform_access_session(): void
+    {
+        $church = Church::main();
+        $staff = $this->createUser(['is_superadmin' => true, 'email' => 'bg-expire-live@example.com']);
+        $this->actingAs($staff);
+        $request = Request::create('/');
+        $request->setLaravelSession(app('session.store'));
+
+        $org = TenantDatabaseResolver::resolvePlacementOrganization($church);
+        app(BreakGlassService::class)->grant($staff, $staff, $org, 'Short support session', 5);
+
+        PlatformAccessService::start($church, $staff, $request);
+        $this->assertTrue(PlatformAccessService::isActive());
+
+        $this->travel(6)->minutes();
+
+        $this->assertFalse(PlatformAccessService::isActive());
+        $this->assertFalse(session()->has(PlatformAccessService::SESSION_KEY));
     }
 
     public function test_grant_ui_creates_self_approved_grant(): void
