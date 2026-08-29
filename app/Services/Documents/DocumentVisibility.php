@@ -55,6 +55,20 @@ final class DocumentVisibility
             return true;
         }
 
+        // Safeguarding override: only priest/church-admin (already returned above) may see
+        // a restricted subject's documents — no generic-permission fallback past this point.
+        if ($this->subjectIsSafeguardingRestricted($document)) {
+            return false;
+        }
+
+        // Sensitive or pastoral-layer documents are never granted by the generic
+        // documents.view permission alone — only priest/church-admin/uploader (checked
+        // above) may see them. Mirrors VisitNoteVisibility::canViewNote's "no permission
+        // fallback for pastoral content" rule.
+        if ($document->is_sensitive || $document->visibility_layer === Document::LAYER_PASTORAL) {
+            return false;
+        }
+
         return $this->resolver->canInChurch(
             $viewer,
             'documents.view',
