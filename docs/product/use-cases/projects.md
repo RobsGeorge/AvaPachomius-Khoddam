@@ -74,6 +74,9 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-14 | Instructor | Announce grades once | Second announce → 409 | `project.grade` |
 | UC-PRJ-15 | Student | See own points / percent / pass-fail after announce + required module feedback | Hidden while pending announcement or pending feedback | `project.view` |
 | UC-PRJ-16 | Instructor | Add or rename a team’s unique subproject title | Duplicate (case-insensitive) → validation | `project.manage` |
+| UC-PRJ-30 | Instructor | Read the assessment overview: seats filled, teams full / locked / cancelled / below-minimum, required deliverables in, teams graded, announcement state | — | `project.manage` |
+| UC-PRJ-31 | Instructor | Export the assessment roster as CSV (one row per member, empty teams included) | Logged to `audit_log` | `project.manage` |
+| UC-PRJ-32 | Instructor | Opt an assessment into gradebook sync; announcing pushes member grades to the course gradebook | No `project` grade category → skipped silently; turning the toggle on after announcing backfills; re-sync updates the same grade item | `project.manage` (toggle), `project.grade` (announce) |
 
 ## Pack-fill algorithm
 
@@ -147,10 +150,19 @@ excluded rows skipped), then the team-only criteria in `sort_order`. Each carrie
 `shared:{id}` or `team:{id}`, which is what the grading form posts. The grading service
 still accepts a bare shared criterion id so the v1 form and API payloads keep working.
 
+## Gradebook sync
+
+Opt-in per assessment (`project_assessments.sync_to_gradebook`). On announce — and on any
+later save while results are announced — `ProjectGradebookSyncService` looks for the course
+grade category of type `project`, keeps one `grade_items` row per assessment
+(`gradebook_item_id`), and upserts one `student_grades` row per member grade. Without a
+`project` category the sync is a no-op, so the announcement itself never fails.
+
 ## Coverage
 
 `UseCases/Projects/ProjectAssignmentFlowTest`, `UseCases/Projects/ProjectGradingTest`,
 `UseCases/Projects/ProjectSubmissionTest`, `UseCases/Projects/ProjectTeamRubricFlowTest`,
+`UseCases/Projects/ProjectGradebookAndExportTest`,
 `Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
 `Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`,
 `Tenancy/ProjectIsolationTest`.

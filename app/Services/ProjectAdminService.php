@@ -26,6 +26,7 @@ class ProjectAdminService
      *     passing_percent?:int,
      *     join_closes_at?:?string,
      *     seed_pool_size?:?int,
+     *     sync_to_gradebook?:bool,
      *     criteria?:list<array{title:string, max_points:float|int}>,
      *     project_count?:int,
      *     project_titles?:list<string>,
@@ -52,6 +53,7 @@ class ProjectAdminService
                 'passing_percent' => $data['passing_percent'] ?? 50,
                 'join_closes_at' => $joinClosesAt,
                 'seed_pool_size' => $data['seed_pool_size'] ?? null,
+                'sync_to_gradebook' => (bool) ($data['sync_to_gradebook'] ?? false),
                 'is_published' => false,
                 'created_by_user_id' => $creator->user_id,
             ]);
@@ -113,7 +115,7 @@ class ProjectAdminService
     }
 
     /**
-     * @param  array{title?:string, description?:?string, min_team_size?:int, max_team_size?:int, max_points?:float|int, passing_percent?:int, join_closes_at?:?string, seed_pool_size?:?int}  $data
+     * @param  array{title?:string, description?:?string, min_team_size?:int, max_team_size?:int, max_points?:float|int, passing_percent?:int, join_closes_at?:?string, seed_pool_size?:?int, sync_to_gradebook?:bool}  $data
      */
     public function updateAssessment(ProjectAssessment $assessment, array $data): ProjectAssessment
     {
