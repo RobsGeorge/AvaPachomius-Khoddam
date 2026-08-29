@@ -116,6 +116,26 @@
                 <div class="card-body">
                     @if($membership)
                         @include('projects.partials.grade-status', ['visibility' => $gradeVisibility ?? null])
+                        @if(($rubric ?? []) !== [] && ($gradeVisibility['can_view'] ?? false))
+                            <div class="mb-3">
+                                <div class="small fw-semibold">{{ __('projects.rubric_breakdown') }}</div>
+                                <ul class="list-unstyled small mb-0">
+                                    @foreach($rubric as $criterion)
+                                        <li class="d-flex justify-content-between gap-2 border-bottom py-1">
+                                            <span>{{ $criterion['title'] }}</span>
+                                            <span class="text-muted">
+                                                @if($criterion['points'] === null)
+                                                    {{ __('projects.criterion_not_scored') }}
+                                                @else
+                                                    {{ number_format($criterion['points'], 1) }}/{{ number_format($criterion['max_points'], 1) }}
+                                                    · {{ __('projects.criterion_percent', ['percent' => number_format((float) $criterion['percent'], 0)]) }}
+                                                @endif
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     @endif
                     <h2 class="h5 fw-bold">{{ __('projects.team_members') }}</h2>
                     <p class="small text-muted">

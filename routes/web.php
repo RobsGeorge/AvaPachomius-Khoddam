@@ -686,6 +686,8 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::put('/projects/assessments/{projectAssessment}/grades/criteria', [ProjectAdminController::class, 'syncCriteria'])->name('projects.grades.criteria');
     Route::post('/projects/assessments/{projectAssessment}/grades/announce', [ProjectAdminController::class, 'announce'])->name('projects.grades.announce');
     Route::post('/projects/{project}/grade', [ProjectAdminController::class, 'gradeTeam'])->name('projects.grades.team');
+    Route::put('/projects/{project}/grades/criteria', [ProjectAdminController::class, 'syncTeamCriteria'])->name('projects.grades.team-criteria');
+    Route::delete('/projects/{project}/grades/criteria', [ProjectAdminController::class, 'resetTeamCriteria'])->name('projects.grades.team-criteria.reset');
     Route::post('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'gradeStudent'])->name('projects.grades.student');
     Route::delete('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'clearStudentGrade'])->name('projects.grades.student.clear');
     Route::post('/projects/assessments/{projectAssessment}/projects', [ProjectAdminController::class, 'storeProject'])->name('projects.store');

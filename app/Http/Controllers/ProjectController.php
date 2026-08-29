@@ -9,6 +9,7 @@ use App\Models\ProjectMemberGrade;
 use App\Models\ProjectSubmissionFile;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAssignmentService;
+use App\Services\ProjectGradingService;
 use App\Services\ProjectResultsVisibilityService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class ProjectController extends Controller
         private ProjectAssignmentService $assignments,
         private ProjectResultsVisibilityService $visibility,
         private ProjectSubmissionService $submissions,
+        private ProjectGradingService $grading,
     ) {}
 
     public function index()
@@ -100,6 +102,11 @@ class ProjectController extends Controller
         $progress = $this->submissions->progress($project);
         $isMember = $membership && (int) $membership->project_id === (int) $project->project_id;
 
+        // The rubric breakdown follows the same gate as the numeric grade.
+        $rubric = ($gradeVisibility['can_view'] ?? false) || $canManage
+            ? $this->grading->criterionBreakdown($assessment, $project)
+            : [];
+
         return view('projects.show', compact(
             'project',
             'assessment',
@@ -111,7 +118,8 @@ class ProjectController extends Controller
             'gradeVisibility',
             'checklist',
             'progress',
-            'isMember'
+            'isMember',
+            'rubric'
         ));
     }
 

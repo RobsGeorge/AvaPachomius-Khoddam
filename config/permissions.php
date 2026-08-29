@@ -162,6 +162,8 @@ return [
                     'projects.grades.scale',
                     'projects.grades.criteria',
                     'projects.grades.team',
+                    'projects.grades.team-criteria',
+                    'projects.grades.team-criteria.reset',
                     'projects.grades.student',
                     'projects.grades.student.clear',
                 ],
