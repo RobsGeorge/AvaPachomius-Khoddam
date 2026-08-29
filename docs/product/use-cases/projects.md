@@ -179,6 +179,10 @@ the web, and validation failures surface as 422 with the same messages.
 `UseCases/Projects/ProjectAssignmentFlowTest`, `UseCases/Projects/ProjectGradingTest`,
 `UseCases/Projects/ProjectSubmissionTest`, `UseCases/Projects/ProjectTeamRubricFlowTest`,
 `UseCases/Projects/ProjectGradebookAndExportTest`,
+`UseCases/Projects/ProjectJoinWindowAndLeaveTest`, `UseCases/Projects/ProjectAdminSeatingTest`,
+`UseCases/Projects/ProjectDeliverableTypeMatrixTest`,
+`UseCases/Projects/ProjectAnnounceResilienceTest`,
 `Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
-`Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`,
-`Api/ProjectApiTest`, `Tenancy/ProjectIsolationTest`.
+`Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`, `Unit/ProjectPackFillTest`,
+`Api/ProjectApiTest`, `Api/ProjectApiGuardsTest`,
+`Tenancy/ProjectIsolationTest`, `Tenancy/ProjectCapabilityGateTest`.
