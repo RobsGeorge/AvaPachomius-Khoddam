@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\GradeController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\NotificationSettingsController;
+use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\RegistrationApplicationController;
 use App\Http\Controllers\Api\V1\ServiceController;
 use App\Http\Controllers\Api\V1\SessionController;
@@ -98,6 +99,20 @@ Route::prefix('v1')->group(function () {
             Route::get('/assignments/{assignment}', [AssignmentController::class, 'show'])->whereNumber('assignment');
             Route::post('/assignments/{assignment}/submit', [AssignmentController::class, 'submit'])->whereNumber('assignment');
             Route::post('/submissions/{submission}', [AssignmentController::class, 'updateSubmission'])->whereNumber('submission');
+        });
+
+        // Team projects (Wave E) — T2: gated on the church's projects capability
+        Route::middleware('capability:projects')->group(function () {
+            Route::get('/courses/{course}/projects', [ProjectController::class, 'index'])->whereNumber('course');
+            Route::get('/projects/{project}', [ProjectController::class, 'show'])->whereNumber('project');
+            Route::post('/project-assessments/{projectAssessment}/join', [ProjectController::class, 'join'])
+                ->whereNumber('projectAssessment');
+            Route::post('/project-assessments/{projectAssessment}/leave', [ProjectController::class, 'leave'])
+                ->whereNumber('projectAssessment');
+            Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submit'])
+                ->whereNumber('project')->whereNumber('deliverable');
+            Route::delete('/projects/{project}/submission-files/{file}', [ProjectController::class, 'destroySubmissionFile'])
+                ->whereNumber('project')->whereNumber('file');
         });
 
         // Certificates (Wave B) — T2: certificates live under the grades capability
