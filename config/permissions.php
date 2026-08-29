@@ -146,6 +146,7 @@ return [
                     'projects.merge',
                     'projects.members.move',
                     'projects.workspace.update',
+                    'projects.export',
                     'projects.change-requests.index',
                     'projects.change-requests.approve',
                     'projects.change-requests.reject',
