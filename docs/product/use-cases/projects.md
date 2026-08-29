@@ -14,6 +14,11 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Container | `project_assessments` linked to one course + one module (required, like exams). |
 | Team = unique subproject | One `projects` row is one team **and** one unique title/topic. Shared brief (phases, deliverables, default requirements) is copied onto every team. Optional per-team requirements override the shared text. |
 | Fill algorithm | **Pack-then-open:** never start an empty team while a started team is below `max_team_size`. Among started teams, prefer the fullest; ties broken randomly. |
+| Seed pool (v2) | When only empty teams remain, the random pick is bounded to the first `seed_pool_size` empty teams by `sort_order`. Default is `ceil(unassigned students / max_team_size)`; an admin may override it on the assessment. |
+| Join window (v2) | `join_closes_at` is **required** on every new assessment. After it: no joining, no self-service team change. Legacy v1 rows keep a null window and stay open. |
+| Self-service change (v2) | Student may **leave once** per assessment; they are immediately re-packed onto a random **other** team. The student create path for change requests is retired; `project_change_requests` stays for history and the admin decision screen. |
+| Admin seating (v2) | Force-move a member (does not burn their change chance), lock a team below max, cancel an empty team (restorable), or merge an under-min team into another. All four write `audit_log`. |
+| Below minimum (v2) | Once the join window closes, every started team under `min_team_size` is flagged `below_minimum` so the manage dashboard can offer merge/rescue. Cancelling a team clears the flag. |
 | Team complete | Team **closes** when active members = `max_team_size`. Confirmation email/portal notification lists all members + phones + project URL. |
 | Below min | Teams under `min_team_size` stay open (not complete). Admin is expected to create enough teams (`ceil(enrollment / max)`). |
 | No seats | Join fails if every team is at max. Admin must add another project/team. |
@@ -39,8 +44,13 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-05 | Teammates | Existing members notified of a new teammate (name + phone) | First member: only the “you are first” notice | recipient-scoped |
 | UC-PRJ-06 | Team | When the last seat fills, **all** members get a completion notice + full roster + project link | — | recipient-scoped |
 | UC-PRJ-07 | Student | Open own project page: title, requirements, phases, deadlines, deliverables, teammates, remaining seats | Other teams’ briefs hidden from students | `project.view`; own membership |
-| UC-PRJ-08 | Student | Request a team change with a reason | Second pending blocked; chance already used → blocked | `project.join` |
-| UC-PRJ-09 | Instructor | Approve / reject change request | Approve reassigns to another team; no other seat → error, request stays pending | `project.manage` |
+| UC-PRJ-08 | Student | **Leave this team** once → immediate random reassignment excluding the old team | Chance used → blocked; join window closed → blocked; no other open seat → error and the student keeps their seat | `project.join` |
+| UC-PRJ-09 | Instructor | Decide change requests filed under v1 | Approve reassigns to another team; no other seat → error, request stays pending | `project.manage` |
+| UC-PRJ-17 | Instructor | Force-move a member to a named team | Same team → validation; cancelled or full target → validation; does **not** burn the student's change chance | `project.manage` |
+| UC-PRJ-18 | Instructor | Lock / unlock a team so pack-fill skips it | — | `project.manage` |
+| UC-PRJ-19 | Instructor | Cancel an empty team; restore it later | Cancel blocked while active members remain | `project.manage` |
+| UC-PRJ-20 | Instructor | Merge an under-minimum team into another, cancelling the emptied one | Source empty → validation; target lacks seats → validation | `project.manage` |
+| UC-PRJ-21 | Teammates | Notified when someone leaves or is moved off the team | — | recipient-scoped |
 | UC-PRJ-10 | Instructor | Review roster: fill counts, remaining seats, pending change requests | — | `project.manage` |
 | UC-PRJ-11 | Instructor | Set max grade, passing %, and one or more grading criteria | Criteria sum becomes `max_points` | `project.grade` |
 | UC-PRJ-12 | Instructor | Enter a **team** grade (per criterion or total); all active members inherit it | Members with an individual override are left unchanged | `project.grade` |
@@ -52,17 +62,23 @@ project row is one team/topic. Min/max team size live on the parent **project as
 ## Pack-fill algorithm
 
 ```
-open = teams where active_members < max
+seatable = teams that are not cancelled and not locked
+open = seatable where active_members < max
 started = open where active_members > 0
 empty = open where active_members == 0
 
 if started is not empty:
     pick uniformly at random among started teams with the highest member count
 else:
-    pick uniformly at random among empty teams
+    pool = first seed_pool_size teams of empty, ordered by sort_order
+    pick uniformly at random inside pool
+
+seed_pool_size = assessment override
+              ?: max(1, ceil(unassigned_students / max_team_size))
 ```
 
-This finishes one team up to `max` before opening the next empty team.
+This finishes one team up to `max` before opening the next empty team, and keeps the
+number of distinct subprojects in play down to what the remaining students need.
 
 ## Unique subprojects
 
@@ -82,7 +98,9 @@ deliverables). Each `projects` row is one team **and** one unique topic.
 | `project_assigned` | student | Joiner: first-member copy **or** current teammates + phones |
 | `project_teammate_joined` | student | Existing members when someone new joins |
 | `project_team_completed` | student | All members when team reaches max |
-| `project_change_requested` | instructor, admin | Staff with `project.manage` on that course |
+| `project_member_left` | student | Remaining members when someone leaves or is moved away |
+| `project_member_moved` | student | The student an admin force-moved |
+| `project_change_requested` | instructor, admin | Staff with `project.manage` on that course (v1 requests only) |
 | `project_change_decided` | student | Approve or reject |
 
 ## Coverage

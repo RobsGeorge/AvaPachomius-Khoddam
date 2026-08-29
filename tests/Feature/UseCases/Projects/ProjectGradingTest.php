@@ -182,6 +182,7 @@ class ProjectGradingTest extends EventModuleTestCase
             'max_points' => 100,
             'passing_percent' => 50,
             'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
             'criteria' => [
                 ['title' => 'Content', 'max_points' => 60],
                 ['title' => 'Presentation', 'max_points' => 40],

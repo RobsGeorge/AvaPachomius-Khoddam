@@ -7,6 +7,7 @@ use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
+use App\Models\ProjectMembership;
 use App\Models\User;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAdminService;
@@ -43,6 +44,10 @@ class ProjectAdminController extends Controller
         }
 
         $assessments = $query->get();
+        foreach ($assessments as $assessment) {
+            $this->assignments->markBelowMinimumAfterJoinClose($assessment);
+        }
+        $assessments = $query->get();
         $modules = $this->modulesForCourse($course);
 
         return view('projects.manage', compact('assessments', 'modules', 'course'));
@@ -73,6 +78,8 @@ class ProjectAdminController extends Controller
             'max_team_size' => 'required|integer|min:1|max:50',
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'nullable|integer|min:0|max:100',
+            'join_closes_at' => 'required|date',
+            'seed_pool_size' => 'nullable|integer|min:1|max:200',
         ]);
 
         $this->admin->updateAssessment($projectAssessment, $validated);
@@ -154,6 +161,76 @@ class ProjectAdminController extends Controller
         $this->admin->deleteProject($project);
 
         return back()->with('success', __('projects.project_deleted'));
+    }
+
+    public function lockProject(Request $request, Project $project)
+    {
+        $project->load('assessment');
+        $this->assertCanManageCourse((int) $project->assessment->course_id);
+        $locked = ! $project->isLocked();
+        $this->assignments->lockTeam($project, Auth::user(), $locked);
+
+        return back()->with('success', $locked
+            ? __('projects.team_locked')
+            : __('projects.team_unlocked'));
+    }
+
+    public function cancelProject(Project $project)
+    {
+        $project->load('assessment');
+        $this->assertCanManageCourse((int) $project->assessment->course_id);
+
+        if ($project->isCancelled()) {
+            $this->assignments->restoreTeam($project, Auth::user());
+
+            return back()->with('success', __('projects.team_restored'));
+        }
+
+        $this->assignments->cancelTeam($project, Auth::user());
+
+        return back()->with('success', __('projects.team_cancelled_done'));
+    }
+
+    public function moveMember(Request $request, ProjectMembership $membership)
+    {
+        $membership->load('assessment');
+        $assessment = $membership->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanManageCourse((int) $assessment->course_id);
+
+        $validated = $request->validate([
+            'to_project_id' => 'required|integer',
+        ]);
+
+        $target = Project::query()
+            ->where('project_assessment_id', $assessment->project_assessment_id)
+            ->whereKey((int) $validated['to_project_id'])
+            ->firstOrFail();
+
+        $this->assignments->moveMember($membership, $target, Auth::user());
+
+        return back()->with('success', __('projects.member_moved'));
+    }
+
+    public function mergeProjects(Request $request, Project $project)
+    {
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanManageCourse((int) $assessment->course_id);
+
+        $validated = $request->validate([
+            'into_project_id' => 'required|integer',
+        ]);
+
+        $into = Project::query()
+            ->where('project_assessment_id', $assessment->project_assessment_id)
+            ->whereKey((int) $validated['into_project_id'])
+            ->firstOrFail();
+
+        $result = $this->assignments->mergeTeams($project, $into, Auth::user());
+
+        return back()->with('success', __('projects.teams_merged', ['count' => $result['moved']]));
     }
 
     public function changeRequests(Request $request)
@@ -323,6 +400,8 @@ class ProjectAdminController extends Controller
             'max_team_size' => 'required|integer|min:1|max:50',
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'nullable|integer|min:0|max:100',
+            'join_closes_at' => 'required|date',
+            'seed_pool_size' => 'nullable|integer|min:1|max:200',
             'criteria' => 'nullable|array',
             'criteria.*.title' => 'nullable|string|max:255',
             'criteria.*.max_points' => 'nullable|numeric|min:0.01|max:9999.99',
@@ -360,6 +439,10 @@ class ProjectAdminController extends Controller
             'max_team_size' => (int) $validated['max_team_size'],
             'max_points' => $validated['max_points'] ?? 100,
             'passing_percent' => (int) ($validated['passing_percent'] ?? 50),
+            'join_closes_at' => $validated['join_closes_at'] ?? null,
+            'seed_pool_size' => isset($validated['seed_pool_size'])
+                ? (int) $validated['seed_pool_size']
+                : null,
             'criteria' => $validated['criteria'] ?? [],
             'project_count' => (int) ($validated['project_count'] ?? 1),
             'project_titles' => $titles,

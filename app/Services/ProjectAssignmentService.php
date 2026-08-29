@@ -15,6 +15,7 @@ class ProjectAssignmentService
 {
     public function __construct(
         private ProjectNotificationService $notifications,
+        private StudentRosterService $roster,
     ) {}
 
     public function assignStudent(
@@ -22,12 +23,17 @@ class ProjectAssignmentService
         User $user,
         ?int $excludeProjectId = null,
         bool $notify = true,
+        bool $enforceJoinWindow = true,
     ): Project {
-        return DB::transaction(function () use ($assessment, $user, $excludeProjectId, $notify) {
+        return DB::transaction(function () use ($assessment, $user, $excludeProjectId, $notify, $enforceJoinWindow) {
             $assessment = ProjectAssessment::query()
                 ->whereKey($assessment->project_assessment_id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if ($enforceJoinWindow) {
+                $this->assertJoinWindowOpen($assessment);
+            }
 
             $existing = $assessment->activeMembershipFor((int) $user->user_id);
             if ($existing) {
@@ -62,6 +68,67 @@ class ProjectAssignmentService
             }
 
             return $project->fresh(['assessment', 'phases', 'deliverables', 'activeMemberships.user']);
+        });
+    }
+
+    /**
+     * Projects v2 self-service: one leave per student per assessment, followed by an
+     * immediate random reassignment that excludes the team they just left.
+     */
+    public function leaveAndReassign(ProjectAssessment $assessment, User $user): Project
+    {
+        return DB::transaction(function () use ($assessment, $user) {
+            $assessment = ProjectAssessment::query()
+                ->whereKey($assessment->project_assessment_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->assertJoinWindowOpen($assessment);
+
+            $membership = $assessment->activeMembershipFor((int) $user->user_id);
+            if (! $membership) {
+                throw ValidationException::withMessages([
+                    'project' => [__('projects.not_assigned')],
+                ]);
+            }
+
+            if ($assessment->hasUsedChangeChance((int) $user->user_id)) {
+                throw ValidationException::withMessages([
+                    'project' => [__('projects.change_chance_used')],
+                ]);
+            }
+
+            $fromProjectId = (int) $membership->project_id;
+            $fromProject = Project::query()->whereKey($fromProjectId)->first();
+
+            $this->leaveTeam($membership, $assessment, chanceUsed: true);
+
+            try {
+                $project = $this->assignStudent(
+                    $assessment,
+                    $user,
+                    excludeProjectId: $fromProjectId,
+                    notify: true,
+                    enforceJoinWindow: false,
+                );
+            } catch (ValidationException) {
+                throw ValidationException::withMessages([
+                    'project' => [__('projects.no_other_team_self')],
+                ]);
+            }
+
+            AuditLogService::recordEvent('project.member_self_left', [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'user_id' => $user->user_id,
+                'from_project_id' => $fromProjectId,
+                'to_project_id' => $project->project_id,
+            ]);
+
+            if ($fromProject) {
+                $this->notifications->notifyMemberLeft($fromProject->fresh(['assessment', 'activeMemberships.user']), $user);
+            }
+
+            return $project;
         });
     }
 
@@ -136,7 +203,13 @@ class ProjectAssignmentService
             $student = User::query()->whereKey($request->user_id)->firstOrFail();
 
             try {
-                $project = $this->assignStudent($assessment, $student, (int) $request->from_project_id, notify: true);
+                $project = $this->assignStudent(
+                    $assessment,
+                    $student,
+                    excludeProjectId: (int) $request->from_project_id,
+                    notify: true,
+                    enforceJoinWindow: false,
+                );
             } catch (ValidationException $e) {
                 throw ValidationException::withMessages([
                     'change' => [__('projects.no_other_team')],
@@ -189,12 +262,256 @@ class ProjectAssignmentService
     }
 
     /**
+     * Admin force-move. Bypasses the join window and the student's change chance;
+     * the target team must still have a free seat and not be cancelled.
+     */
+    public function moveMember(ProjectMembership $membership, Project $target, User $actor): ProjectMembership
+    {
+        return DB::transaction(function () use ($membership, $target, $actor) {
+            $assessment = ProjectAssessment::query()
+                ->whereKey($membership->project_assessment_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((int) $target->project_assessment_id !== (int) $assessment->project_assessment_id) {
+                abort(404);
+            }
+
+            if (! $membership->isActive()) {
+                throw ValidationException::withMessages([
+                    'membership' => [__('projects.not_assigned')],
+                ]);
+            }
+
+            $fromProjectId = (int) $membership->project_id;
+            if ($fromProjectId === (int) $target->project_id) {
+                throw ValidationException::withMessages([
+                    'to_project_id' => [__('projects.move_same_team')],
+                ]);
+            }
+
+            $target = Project::query()->whereKey($target->project_id)->lockForUpdate()->firstOrFail();
+            if ($target->isCancelled()) {
+                throw ValidationException::withMessages([
+                    'to_project_id' => [__('projects.team_cancelled')],
+                ]);
+            }
+            if ($target->remainingSeats($assessment) < 1) {
+                throw ValidationException::withMessages([
+                    'to_project_id' => [__('projects.no_seats_in_team')],
+                ]);
+            }
+
+            $student = User::query()->whereKey($membership->user_id)->firstOrFail();
+            $fromProject = Project::query()->whereKey($fromProjectId)->first();
+
+            $membership->update([
+                'status' => ProjectMembership::STATUS_LEFT,
+                'left_at' => now(),
+                'moved_by_user_id' => $actor->user_id,
+            ]);
+
+            $moved = ProjectMembership::create([
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'project_id' => $target->project_id,
+                'user_id' => $student->user_id,
+                'status' => ProjectMembership::STATUS_ACTIVE,
+                'assigned_at' => now(),
+                'moved_by_user_id' => $actor->user_id,
+            ]);
+
+            if ($fromProject) {
+                $this->syncTeamStatus($fromProject->fresh(), $assessment);
+            }
+            $target = $target->fresh();
+            $justCompleted = $this->syncTeamStatus($target, $assessment);
+            app(ProjectGradingService::class)->inheritTeamGradeIfNeeded($assessment, $target, $student);
+
+            AuditLogService::recordEvent('project.member_moved', [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'user_id' => $student->user_id,
+                'from_project_id' => $fromProjectId,
+                'to_project_id' => $target->project_id,
+                'actor_user_id' => $actor->user_id,
+            ]);
+
+            $this->notifications->notifyMoved($student, $target->fresh(['assessment', 'activeMemberships.user']));
+            if ($fromProject) {
+                $this->notifications->notifyMemberLeft($fromProject->fresh(['assessment', 'activeMemberships.user']), $student);
+            }
+            if ($justCompleted) {
+                $this->notifications->notifyTeamCompleted($target->fresh(['assessment', 'activeMemberships.user']));
+            }
+
+            return $moved->fresh();
+        });
+    }
+
+    /**
+     * Locked teams keep their roster but are skipped by pack-fill, so an admin can
+     * close a team below max (e.g. after the join window shut).
+     */
+    public function lockTeam(Project $project, User $actor, bool $locked = true): Project
+    {
+        $project->update(['is_locked' => $locked]);
+
+        AuditLogService::recordEvent($locked ? 'project.team_locked' : 'project.team_unlocked', [
+            'project_id' => $project->project_id,
+            'project_assessment_id' => $project->project_assessment_id,
+            'actor_user_id' => $actor->user_id,
+        ]);
+
+        return $project->fresh();
+    }
+
+    public function cancelTeam(Project $project, User $actor): Project
+    {
+        if ($project->activeMemberCount() > 0) {
+            throw ValidationException::withMessages([
+                'project' => [__('projects.cancel_needs_empty_team')],
+            ]);
+        }
+
+        $project->update([
+            'cancelled_at' => now(),
+            'below_minimum' => false,
+            'status' => Project::STATUS_CLOSED,
+        ]);
+
+        AuditLogService::recordEvent('project.team_cancelled', [
+            'project_id' => $project->project_id,
+            'project_assessment_id' => $project->project_assessment_id,
+            'actor_user_id' => $actor->user_id,
+        ]);
+
+        return $project->fresh();
+    }
+
+    public function restoreTeam(Project $project, User $actor): Project
+    {
+        $project->update(['cancelled_at' => null]);
+        $this->syncTeamStatus($project->fresh(), $project->assessment);
+
+        AuditLogService::recordEvent('project.team_restored', [
+            'project_id' => $project->project_id,
+            'project_assessment_id' => $project->project_assessment_id,
+            'actor_user_id' => $actor->user_id,
+        ]);
+
+        return $project->fresh();
+    }
+
+    /**
+     * Rescue path for under-minimum teams: move every active member of $from into
+     * $into, then cancel the emptied team.
+     *
+     * @return array{moved:int, into:Project, from:Project}
+     */
+    public function mergeTeams(Project $from, Project $into, User $actor): array
+    {
+        if ((int) $from->project_id === (int) $into->project_id) {
+            throw ValidationException::withMessages([
+                'into_project_id' => [__('projects.move_same_team')],
+            ]);
+        }
+
+        if ((int) $from->project_assessment_id !== (int) $into->project_assessment_id) {
+            abort(404);
+        }
+
+        return DB::transaction(function () use ($from, $into, $actor) {
+            $assessment = ProjectAssessment::query()
+                ->whereKey($from->project_assessment_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $memberships = $from->activeMemberships()->get();
+            if ($memberships->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'from_project_id' => [__('projects.merge_source_empty')],
+                ]);
+            }
+
+            $into = Project::query()->whereKey($into->project_id)->lockForUpdate()->firstOrFail();
+            if ($into->isCancelled()) {
+                throw ValidationException::withMessages([
+                    'into_project_id' => [__('projects.team_cancelled')],
+                ]);
+            }
+            if ($into->remainingSeats($assessment) < $memberships->count()) {
+                throw ValidationException::withMessages([
+                    'into_project_id' => [__('projects.merge_target_too_small', [
+                        'needed' => $memberships->count(),
+                        'available' => $into->remainingSeats($assessment),
+                    ])],
+                ]);
+            }
+
+            foreach ($memberships as $membership) {
+                $this->moveMember($membership, $into, $actor);
+            }
+
+            $from = $from->fresh();
+            $this->cancelTeam($from, $actor);
+
+            AuditLogService::recordEvent('project.teams_merged', [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'from_project_id' => $from->project_id,
+                'into_project_id' => $into->project_id,
+                'moved' => $memberships->count(),
+                'actor_user_id' => $actor->user_id,
+            ]);
+
+            return [
+                'moved' => $memberships->count(),
+                'into' => $into->fresh(),
+                'from' => $from->fresh(),
+            ];
+        });
+    }
+
+    /**
+     * After the join window closes, flag every started team that never reached
+     * `min_team_size` so the manage dashboard can surface merge/rescue actions.
+     */
+    public function markBelowMinimumAfterJoinClose(ProjectAssessment $assessment): int
+    {
+        if ($assessment->isJoinWindowOpen()) {
+            return 0;
+        }
+
+        $flagged = 0;
+        foreach ($assessment->projects()->get() as $project) {
+            $below = ! $project->isCancelled() && $project->isBelowMinimum($assessment);
+            if ((bool) $project->below_minimum === $below) {
+                continue;
+            }
+
+            $project->update(['below_minimum' => $below]);
+            if ($below) {
+                $flagged++;
+            }
+        }
+
+        if ($flagged > 0) {
+            AuditLogService::recordEvent('project.below_minimum_flagged', [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'flagged' => $flagged,
+            ]);
+        }
+
+        return $flagged;
+    }
+
+    /**
      * Pack-fill: finish started teams up to max before opening an empty team.
-     * Among started teams, prefer the fullest; ties are random.
+     * Among started teams, prefer the fullest; ties are random. When only empty
+     * teams remain, the random pick is bounded to a seed pool sized to the number
+     * of teams actually needed for the students still unassigned.
      */
     public function pickProject(ProjectAssessment $assessment, ?int $excludeProjectId = null): Project
     {
-        $projects = $this->lockOpenProjects($assessment, $excludeProjectId);
+        $projects = $this->lockSeatableProjects($assessment, $excludeProjectId);
         $max = (int) $assessment->max_team_size;
 
         $open = $projects->filter(fn (Project $project) => (int) $project->active_count < $max);
@@ -205,19 +522,59 @@ class ProjectAssignmentService
         }
 
         $started = $open->filter(fn (Project $project) => (int) $project->active_count > 0);
-        $pool = $started->isNotEmpty() ? $started : $open;
-        $highest = (int) $pool->max('active_count');
-        $candidates = $pool->filter(fn (Project $project) => (int) $project->active_count === $highest)->values();
+        if ($started->isNotEmpty()) {
+            $highest = (int) $started->max('active_count');
 
-        return $candidates->random();
+            return $started
+                ->filter(fn (Project $project) => (int) $project->active_count === $highest)
+                ->values()
+                ->random();
+        }
+
+        return $this->seedPool($assessment, $open)->random();
     }
 
-    public function leaveTeam(ProjectMembership $membership, ?ProjectAssessment $assessment = null): void
+    /**
+     * Number of empty teams pack-fill may seed at once:
+     * ceil(students still unassigned / max_team_size), or the admin override.
+     */
+    public function seedPoolSize(ProjectAssessment $assessment): int
     {
-        $membership->update([
+        if ($assessment->seed_pool_size !== null && (int) $assessment->seed_pool_size > 0) {
+            return (int) $assessment->seed_pool_size;
+        }
+
+        $max = max(1, (int) $assessment->max_team_size);
+        $remaining = $this->unassignedStudentCount($assessment);
+
+        return max(1, (int) ceil($remaining / $max));
+    }
+
+    public function unassignedStudentCount(ProjectAssessment $assessment): int
+    {
+        $course = $assessment->course;
+        if (! $course) {
+            return 0;
+        }
+
+        $enrolled = $this->roster->enrolledStudents($course)->count();
+        $assigned = $assessment->memberships()
+            ->where('status', ProjectMembership::STATUS_ACTIVE)
+            ->count();
+
+        return max($enrolled - $assigned, 0);
+    }
+
+    public function leaveTeam(
+        ProjectMembership $membership,
+        ?ProjectAssessment $assessment = null,
+        bool $chanceUsed = false,
+    ): void {
+        $membership->update(array_filter([
             'status' => ProjectMembership::STATUS_LEFT,
             'left_at' => now(),
-        ]);
+            'change_chance_used_at' => $chanceUsed ? now() : null,
+        ], fn ($value) => $value !== null));
 
         $project = Project::query()->whereKey($membership->project_id)->first();
         if ($project) {
@@ -226,22 +583,52 @@ class ProjectAssignmentService
     }
 
     /**
+     * @param  Collection<int, Project>  $open
      * @return Collection<int, Project>
      */
-    private function lockOpenProjects(ProjectAssessment $assessment, ?int $excludeProjectId): Collection
+    private function seedPool(ProjectAssessment $assessment, Collection $open): Collection
     {
-        $query = Project::query()
+        $ordered = $open
+            ->sortBy([
+                fn (Project $a, Project $b) => (int) $a->sort_order <=> (int) $b->sort_order,
+                fn (Project $a, Project $b) => (int) $a->project_id <=> (int) $b->project_id,
+            ])
+            ->values();
+
+        return $ordered->take(max(1, $this->seedPoolSize($assessment)))->values();
+    }
+
+    /**
+     * @return Collection<int, Project>
+     */
+    private function lockSeatableProjects(ProjectAssessment $assessment, ?int $excludeProjectId): Collection
+    {
+        return Project::query()
             ->where('project_assessment_id', $assessment->project_assessment_id)
             ->when($excludeProjectId, fn ($q) => $q->where('project_id', '!=', $excludeProjectId))
+            ->whereNull('cancelled_at')
+            ->where(fn ($q) => $q->where('is_locked', false)->orWhereNull('is_locked'))
             ->lockForUpdate()
-            ->withCount(['memberships as active_count' => fn ($q) => $q->where('status', ProjectMembership::STATUS_ACTIVE)]);
+            ->withCount(['memberships as active_count' => fn ($q) => $q->where('status', ProjectMembership::STATUS_ACTIVE)])
+            ->get();
+    }
 
-        return $query->get();
+    private function assertJoinWindowOpen(ProjectAssessment $assessment): void
+    {
+        if ($assessment->hasJoinWindowClosed()) {
+            throw ValidationException::withMessages([
+                'project' => [__('projects.join_window_closed')],
+            ]);
+        }
     }
 
     private function syncTeamStatus(Project $project, ?ProjectAssessment $assessment = null): bool
     {
         $assessment ??= $project->assessment;
+        if ($project->isCancelled()) {
+            return false;
+        }
+
         $count = $project->activeMemberCount();
         $max = (int) ($assessment?->max_team_size ?? 0);
         $shouldClose = $max > 0 && $count >= $max;

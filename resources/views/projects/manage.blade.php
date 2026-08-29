@@ -59,6 +59,19 @@
                         <label class="form-label" for="passing_percent">{{ __('projects.passing_percent') }}</label>
                         <input type="number" name="passing_percent" id="passing_percent" class="form-control" min="0" max="100" value="{{ old('passing_percent', 50) }}" required>
                     </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="join_closes_at">{{ __('projects.join_closes_at') }}</label>
+                        <input type="datetime-local" name="join_closes_at" id="join_closes_at"
+                               class="form-control @error('join_closes_at') is-invalid @enderror"
+                               value="{{ old('join_closes_at', now()->addWeek()->format('Y-m-d\TH:i')) }}" required>
+                        <div class="form-text">{{ __('projects.join_closes_at_help') }}</div>
+                        @error('join_closes_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="seed_pool_size">{{ __('projects.seed_pool_size') }}</label>
+                        <input type="number" name="seed_pool_size" id="seed_pool_size" class="form-control" min="1" max="200" value="{{ old('seed_pool_size') }}">
+                        <div class="form-text">{{ __('projects.seed_pool_help') }}</div>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <div class="fw-semibold mb-2">{{ __('projects.criteria') }}</div>
@@ -144,12 +157,47 @@
                     · {{ __('projects.max_team') }}: {{ $assessment->max_team_size }}
                     · {{ __('projects.max_points') }}: {{ number_format((float) $assessment->max_points, 1) }}
                     · {{ __('projects.passing_percent') }}: {{ (int) $assessment->passing_percent }}%
+                    · {{ __('projects.seed_pool_size') }}: {{ $assessment->seed_pool_size ?: __('projects.seed_pool_auto') }}
                 </p>
+
+                @include('projects.partials.join-countdown', ['assessment' => $assessment])
+
+                <form method="POST" action="{{ route('projects.assessments.update', $assessment) }}" class="row g-2 align-items-end mb-3">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="title" value="{{ $assessment->title }}">
+                    <input type="hidden" name="min_team_size" value="{{ $assessment->min_team_size }}">
+                    <input type="hidden" name="max_team_size" value="{{ $assessment->max_team_size }}">
+                    <div class="col-md-5">
+                        <label class="form-label small mb-1">{{ __('projects.join_closes_at') }}</label>
+                        <input type="datetime-local" name="join_closes_at" class="form-control form-control-sm"
+                               value="{{ optional($assessment->join_closes_at)->format('Y-m-d\TH:i') }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">{{ __('projects.seed_pool_size') }}</label>
+                        <input type="number" name="seed_pool_size" class="form-control form-control-sm" min="1" max="200"
+                               value="{{ $assessment->seed_pool_size }}">
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-sm btn-outline-secondary">{{ __('projects.assessment_updated_action') }}</button>
+                    </div>
+                </form>
+
+                @php
+                    $belowMinimum = $assessment->projects->filter(fn ($p) => $p->below_minimum && ! $p->isCancelled());
+                    $seatableTargets = $assessment->projects->filter(fn ($p) => ! $p->isCancelled());
+                @endphp
+                @if($assessment->hasJoinWindowClosed() && $belowMinimum->isNotEmpty())
+                    <div class="alert alert-warning py-2">
+                        <div class="fw-semibold">{{ __('projects.rescue_title') }}</div>
+                        <div class="small">{{ __('projects.rescue_hint') }}</div>
+                    </div>
+                @endif
 
                 @foreach($assessment->projects as $project)
                     <div class="border rounded p-3 mb-2">
                         <div class="d-flex flex-wrap justify-content-between gap-2">
-                            <div>
+                            <div class="flex-grow-1">
                                 <div class="small text-muted">{{ __('projects.subproject') }}</div>
                                 <a href="{{ route('projects.show', $project) }}" class="fw-semibold">{{ $project->title }}</a>
                                 <div class="small text-muted">
@@ -170,9 +218,76 @@
                                     </div>
                                 </form>
                             </div>
-                            <span class="badge {{ $project->isClosed() ? 'bg-success' : 'bg-info text-dark' }}">
-                                {{ $project->isClosed() ? __('projects.team_closed') : __('projects.team_open') }}
-                            </span>
+                            <div class="d-flex flex-column align-items-end gap-1">
+                                <span class="badge {{ $project->isClosed() ? 'bg-success' : 'bg-info text-dark' }}">
+                                    {{ $project->isClosed() ? __('projects.team_closed') : __('projects.team_open') }}
+                                </span>
+                                @if($project->isLocked())
+                                    <span class="badge bg-dark">{{ __('projects.locked_badge') }}</span>
+                                @endif
+                                @if($project->below_minimum)
+                                    <span class="badge bg-warning text-dark">{{ __('projects.below_minimum_badge') }}</span>
+                                @endif
+                                @if($project->isCancelled())
+                                    <span class="badge bg-danger">{{ __('projects.cancelled_badge') }}</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if($project->below_minimum && ! $project->isCancelled())
+                            <p class="small text-warning-emphasis mt-2 mb-0">{{ __('projects.below_minimum_hint') }}</p>
+                        @endif
+
+                        @if($project->activeMemberships->isNotEmpty())
+                            <ul class="list-unstyled mt-3 mb-0">
+                                @foreach($project->activeMemberships as $row)
+                                    <li class="d-flex flex-wrap align-items-center gap-2 border-top py-2">
+                                        <span class="fw-semibold">{{ $row->user?->displayName() }}</span>
+                                        <span class="small text-muted">{{ $row->user?->mobile_number ?: __('projects.phone_missing') }}</span>
+                                        <form method="POST" action="{{ route('projects.members.move', $row) }}" class="d-flex gap-1 ms-auto">
+                                            @csrf
+                                            <select name="to_project_id" class="form-select form-select-sm" required>
+                                                <option value="">{{ __('projects.move_to_team') }}</option>
+                                                @foreach($seatableTargets as $target)
+                                                    @if((int) $target->project_id !== (int) $project->project_id)
+                                                        <option value="{{ $target->project_id }}">{{ $target->title }}</option>
+                                                    @endif
+                                                @endforeach
+                                            </select>
+                                            <button class="btn btn-sm btn-outline-secondary">{{ __('projects.move_member') }}</button>
+                                        </form>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <form method="POST" action="{{ route('projects.lock', $project) }}">
+                                @csrf
+                                <button class="btn btn-sm btn-outline-dark">
+                                    {{ $project->isLocked() ? __('projects.unlock_team') : __('projects.lock_team') }}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('projects.cancel', $project) }}">
+                                @csrf
+                                <button class="btn btn-sm btn-outline-danger">
+                                    {{ $project->isCancelled() ? __('projects.restore_team') : __('projects.cancel_team') }}
+                                </button>
+                            </form>
+                            @if($project->activeMemberships->isNotEmpty() && $seatableTargets->count() > 1)
+                                <form method="POST" action="{{ route('projects.merge', $project) }}" class="d-flex gap-1">
+                                    @csrf
+                                    <select name="into_project_id" class="form-select form-select-sm" required>
+                                        <option value="">{{ __('projects.merge_team') }}</option>
+                                        @foreach($seatableTargets as $target)
+                                            @if((int) $target->project_id !== (int) $project->project_id)
+                                                <option value="{{ $target->project_id }}">{{ $target->title }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                    <button class="btn btn-sm btn-outline-warning">{{ __('projects.merge_submit') }}</button>
+                                </form>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -210,6 +325,8 @@
         <p class="text-muted">{{ __('projects.empty_manage') }}</p>
     @endforelse
 </div>
+
+@include('projects.partials.countdown-script')
 
 <script>
 document.querySelectorAll('[data-repeat]').forEach(function (btn) {

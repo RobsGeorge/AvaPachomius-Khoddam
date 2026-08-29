@@ -40,17 +40,21 @@
                             @endif
                         </div>
 
+                        @include('projects.partials.join-countdown', ['assessment' => $assessment])
+
                         @if($membership && $assignedProject)
                             <p class="mb-3">{{ __('projects.assigned_to', ['title' => $assignedProject->title]) }}</p>
                             @include('projects.partials.grade-status', ['visibility' => $gradeVisibility[$assessment->project_assessment_id] ?? null])
                             <a href="{{ route('projects.show', $assignedProject) }}" class="btn btn-outline-primary">
                                 {{ __('projects.open_project') }}
                             </a>
-                        @elseif($assessment->is_published)
+                        @elseif($assessment->is_published && $assessment->isJoinWindowOpen())
                             <form method="POST" action="{{ route('projects.join', $assessment) }}" class="d-inline">
                                 @csrf
                                 <button type="submit" class="btn btn-primary">{{ __('projects.get_assigned') }}</button>
                             </form>
+                        @elseif($assessment->is_published)
+                            <p class="text-muted mb-0">{{ __('projects.join_window_closed') }}</p>
                         @else
                             <p class="text-muted mb-0">{{ __('projects.unpublished') }}</p>
                         @endif
@@ -60,4 +64,5 @@
         @endforeach
     </div>
 </div>
+@include('projects.partials.countdown-script')
 @endsection
