@@ -24,6 +24,9 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Submissions vs join window (v2) | Submissions stay open after `join_closes_at`; only joining and self-service change close. |
 | Deliverable edits (v2) | Editing a team's deliverables replaces the rows, so it is blocked once that team has any submission. |
 | Team workspace (v2) | Optional per-team `team_workspace_url` + `team_announcement` set by staff; shown to members and staff on the team page. Link-out only — no chat is hosted in the app. |
+| Per-team rubric (v2) | The assessment rubric is shared. A team may deviate: reweight a shared criterion, rename it, drop it, or add a team-only criterion. The **effective** criteria for every team must still sum to the assessment `max_points`, so all teams are graded out of the same total and percentages stay comparable. |
+| Rubric edits (v2) | Editing the shared criteria clears every per-team deviation, because those rows are expressed against the shared rubric. |
+| Student rubric view (v2) | Once grades are announced (and required feedback is in), the student sees their team's effective criteria with points and a per-criterion percentage. |
 | Team complete | Team **closes** when active members = `max_team_size`. Confirmation email/portal notification lists all members + phones + project URL. |
 | Below min | Teams under `min_team_size` stay open (not complete). Admin is expected to create enough teams (`ceil(enrollment / max)`). |
 | No seats | Join fails if every team is at max. Admin must add another project/team. |
@@ -61,6 +64,9 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-24 | Student | See the deliverables checklist with submitted / late / overdue state and the team's progress count | Optional deliverables are excluded from the required count | `project.view` |
 | UC-PRJ-25 | Student | Remove one file from a multi-file submission | Closed deliverable → 422; non-member → 403 | `project.join`; own membership |
 | UC-PRJ-26 | Instructor | Set the team workspace link and announcement | Invalid URL → validation | `project.manage` |
+| UC-PRJ-27 | Instructor | Customise one team's rubric: reweight, rename, drop a shared criterion, or add a team-only one | Effective total ≠ assessment max → validation; same shared criterion adjusted twice → validation; no shared criteria yet → validation; criterion from another assessment → 404 | `project.grade` |
+| UC-PRJ-28 | Instructor | Revert a team to the shared rubric | Team-only scores are dropped and the grade is recomputed | `project.grade` |
+| UC-PRJ-29 | Student | See the per-criterion breakdown of their team's grade with percentages | Hidden until announced + required feedback submitted | `project.view`; own membership |
 | UC-PRJ-10 | Instructor | Review roster: fill counts, remaining seats, pending change requests | — | `project.manage` |
 | UC-PRJ-11 | Instructor | Set max grade, passing %, and one or more grading criteria | Criteria sum becomes `max_points` | `project.grade` |
 | UC-PRJ-12 | Instructor | Enter a **team** grade (per criterion or total); all active members inherit it | Members with an individual override are left unchanged | `project.grade` |
@@ -127,9 +133,24 @@ project_submission_files         0..N files per submission (public disk, 10 MB e
   offers an explicit "replace submission" checkbox.
 - Deleting a team or an assessment removes its submissions and the stored files.
 
+## Per-team rubric
+
+```
+project_team_grade_criteria    one row per deviation, unique(project_id, project_grade_criterion_id)
+    project_grade_criterion_id set   → override of a shared criterion (max_points, optional title, is_excluded)
+    project_grade_criterion_id null  → team-only criterion
+project_team_criterion_scores  scores for team-only criteria (shared criteria keep using project_team_grade_scores)
+```
+
+Effective criteria for a team = shared criteria in `sort_order` (with overrides applied,
+excluded rows skipped), then the team-only criteria in `sort_order`. Each carries a key of
+`shared:{id}` or `team:{id}`, which is what the grading form posts. The grading service
+still accepts a bare shared criterion id so the v1 form and API payloads keep working.
+
 ## Coverage
 
 `UseCases/Projects/ProjectAssignmentFlowTest`, `UseCases/Projects/ProjectGradingTest`,
-`UseCases/Projects/ProjectSubmissionTest`, `Unit/ProjectAssignmentServiceTest`,
-`Unit/ProjectGradingServiceTest`, `Unit/ProjectSubmissionServiceTest`,
+`UseCases/Projects/ProjectSubmissionTest`, `UseCases/Projects/ProjectTeamRubricFlowTest`,
+`Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
+`Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`,
 `Tenancy/ProjectIsolationTest`.

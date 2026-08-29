@@ -50,4 +50,10 @@ class ProjectTeamGrade extends Model
     {
         return $this->hasMany(ProjectTeamGradeScore::class, 'project_team_grade_id', 'project_team_grade_id');
     }
+
+    /** Scores for the team's own extra rubric rows (v2 per-team criteria). */
+    public function teamCriterionScores(): HasMany
+    {
+        return $this->hasMany(ProjectTeamCriterionScore::class, 'project_team_grade_id', 'project_team_grade_id');
+    }
 }

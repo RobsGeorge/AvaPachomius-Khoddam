@@ -104,13 +104,19 @@
     @foreach($assessment->projects as $project)
         @php
             $teamGrade = $project->teamGrade;
-            $scores = $teamGrade?->scores?->keyBy('project_grade_criterion_id') ?? collect();
+            $rubric = $teamRubrics[$project->project_id] ?? ['criteria' => [], 'custom' => false];
+            $effectiveCriteria = $rubric['criteria'];
         @endphp
         <div class="app-card card shadow-sm mb-4">
             <div class="card-body">
                 <div class="d-flex justify-content-between flex-wrap gap-2 mb-3">
                     <div>
-                        <h2 class="h5 fw-bold mb-0">{{ $project->title }}</h2>
+                        <h2 class="h5 fw-bold mb-0">
+                            {{ $project->title }}
+                            @if($rubric['custom'])
+                                <span class="badge bg-info text-dark">{{ __('projects.team_rubric_custom_badge') }}</span>
+                            @endif
+                        </h2>
                         <div class="small text-muted">
                             {{ __('projects.seats_of', [
                                 'current' => $project->activeMemberships->count(),
@@ -128,18 +134,23 @@
 
                 <form method="POST" action="{{ route('projects.grades.team', $project) }}" class="mb-4">
                     @csrf
-                    @if($hasCriteria)
-                        @foreach($criteria as $criterion)
+                    @if($effectiveCriteria !== [])
+                        @foreach($effectiveCriteria as $criterion)
                             <div class="row g-2 align-items-center mb-2">
-                                <div class="col-md-6">{{ $criterion->title }} ({{ number_format((float) $criterion->max_points, 1) }})</div>
+                                <div class="col-md-6">
+                                    {{ $criterion['title'] }} ({{ number_format($criterion['max_points'], 1) }})
+                                    @if($criterion['kind'] === 'team')
+                                        <span class="badge bg-light text-dark border">{{ __('projects.team_rubric_custom_badge') }}</span>
+                                    @endif
+                                </div>
                                 <div class="col-md-6">
                                     <input type="number"
-                                           name="scores[{{ $criterion->project_grade_criterion_id }}]"
+                                           name="scores[{{ $criterion['key'] }}]"
                                            class="form-control"
                                            min="0"
-                                           max="{{ number_format((float) $criterion->max_points, 2, '.', '') }}"
+                                           max="{{ number_format($criterion['max_points'], 2, '.', '') }}"
                                            step="0.01"
-                                           value="{{ $scores->get($criterion->project_grade_criterion_id) ? number_format((float) $scores->get($criterion->project_grade_criterion_id)->points, 2, '.', '') : '' }}"
+                                           value="{{ $criterion['points'] !== null ? number_format($criterion['points'], 2, '.', '') : '' }}"
                                            required>
                                 </div>
                             </div>
@@ -157,6 +168,17 @@
                     </div>
                     <button class="btn btn-outline-primary">{{ __('projects.save_team_grade') }}</button>
                 </form>
+
+                @if($hasCriteria)
+                    @include('projects.partials.team-rubric-form', [
+                        'assessment' => $assessment,
+                        'project' => $project,
+                        'criteria' => $criteria,
+                        'effectiveCriteria' => $effectiveCriteria,
+                        'maxPoints' => $maxPoints,
+                        'isCustom' => $rubric['custom'],
+                    ])
+                @endif
 
                 <h3 class="h6 fw-bold">{{ __('projects.student_overrides') }}</h3>
                 <p class="small text-muted">{{ __('projects.student_overrides_hint') }}</p>
@@ -212,6 +234,19 @@ document.querySelectorAll('[data-repeat-grade-criteria]').forEach(function (btn)
             '<div class="col-md-8"><input type="text" name="criteria[' + index + '][title]" class="form-control"></div>' +
             '<div class="col-md-4"><input type="number" name="criteria[' + index + '][max_points]" class="form-control" min="0.01" step="0.01"></div>';
         wrap.appendChild(row);
+    });
+});
+document.querySelectorAll('[data-add-team-criterion]').forEach(function (btn) {
+    var nextIndex = parseInt(btn.getAttribute('data-start-index'), 10) || 0;
+    btn.addEventListener('click', function () {
+        var wrap = document.getElementById(btn.getAttribute('data-add-team-criterion') + '-extras');
+        var row = document.createElement('div');
+        row.className = 'row g-2 align-items-end mb-2';
+        row.innerHTML =
+            '<div class="col-md-5"><input type="text" name="team_criteria[' + nextIndex + '][title]" class="form-control form-control-sm"></div>' +
+            '<div class="col-md-3"><input type="number" name="team_criteria[' + nextIndex + '][max_points]" class="form-control form-control-sm" min="0.01" step="0.01"></div>';
+        wrap.appendChild(row);
+        nextIndex++;
     });
 });
 </script>

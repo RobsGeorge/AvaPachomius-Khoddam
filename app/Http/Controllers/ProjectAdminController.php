@@ -325,11 +325,57 @@ class ProjectAdminController extends Controller
 
         $memberGrades = $projectAssessment->memberGrades->keyBy('user_id');
 
+        $teamRubrics = [];
+        foreach ($projectAssessment->projects as $project) {
+            $teamRubrics[$project->project_id] = [
+                'criteria' => $this->grading->criterionBreakdown($projectAssessment, $project),
+                'custom' => $this->grading->teamHasCustomRubric($project),
+            ];
+        }
+
         return view('projects.grades', [
             'assessment' => $projectAssessment,
             'memberGrades' => $memberGrades,
             'maxPoints' => $this->grading->maxPoints($projectAssessment),
+            'teamRubrics' => $teamRubrics,
         ]);
+    }
+
+    public function syncTeamCriteria(Request $request, Project $project)
+    {
+        $project->load('assessment.criteria');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanGradeCourse((int) $assessment->course_id);
+
+        $validated = $request->validate([
+            'team_criteria' => 'nullable|array',
+            'team_criteria.*.project_grade_criterion_id' => 'nullable|integer',
+            'team_criteria.*.title' => 'nullable|string|max:255',
+            'team_criteria.*.max_points' => 'nullable|numeric|min:0|max:9999.99',
+            'team_criteria.*.is_excluded' => 'nullable|boolean',
+        ]);
+
+        $this->grading->syncTeamCriteria(
+            $assessment,
+            $project,
+            $validated['team_criteria'] ?? [],
+            Auth::user()
+        );
+
+        return back()->with('success', __('projects.team_rubric_saved'));
+    }
+
+    public function resetTeamCriteria(Project $project)
+    {
+        $project->load('assessment.criteria');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanGradeCourse((int) $assessment->course_id);
+
+        $this->grading->resetTeamCriteria($assessment, $project, Auth::user());
+
+        return back()->with('success', __('projects.team_rubric_reset_done'));
     }
 
     public function syncCriteria(Request $request, ProjectAssessment $projectAssessment)
