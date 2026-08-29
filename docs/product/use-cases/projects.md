@@ -19,6 +19,11 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Self-service change (v2) | Student may **leave once** per assessment; they are immediately re-packed onto a random **other** team. The student create path for change requests is retired; `project_change_requests` stays for history and the admin decision screen. |
 | Admin seating (v2) | Force-move a member (does not burn their change chance), lock a team below max, cancel an empty team (restorable), or merge an under-min team into another. All four write `audit_log`. |
 | Below minimum (v2) | Once the join window closes, every started team under `min_team_size` is flagged `below_minimum` so the manage dashboard can offer merge/rescue. Cancelling a team clears the flag. |
+| Typed deliverables (v2) | Each deliverable carries `submission_type` (`pdf`, `document`, `image`, `zip`, `link`, `text`), `file_mode` (`single`, `multi`, cap 10 files), `is_required` and `allow_late`. Uploads mirror the assignment ceiling: 10 MB per file on the `public` disk. |
+| Team submission (v2) | **One** submission row per team per deliverable, replaceable by any active member. `submitted_at` + `submitted_by_user_id` record who last submitted; `is_late` is stamped when the deliverable is past `due_at`. Deliverables with `allow_late = false` reject submissions after the deadline. |
+| Submissions vs join window (v2) | Submissions stay open after `join_closes_at`; only joining and self-service change close. |
+| Deliverable edits (v2) | Editing a team's deliverables replaces the rows, so it is blocked once that team has any submission. |
+| Team workspace (v2) | Optional per-team `team_workspace_url` + `team_announcement` set by staff; shown to members and staff on the team page. Link-out only — no chat is hosted in the app. |
 | Team complete | Team **closes** when active members = `max_team_size`. Confirmation email/portal notification lists all members + phones + project URL. |
 | Below min | Teams under `min_team_size` stay open (not complete). Admin is expected to create enough teams (`ceil(enrollment / max)`). |
 | No seats | Join fails if every team is at max. Admin must add another project/team. |
@@ -51,6 +56,11 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-19 | Instructor | Cancel an empty team; restore it later | Cancel blocked while active members remain | `project.manage` |
 | UC-PRJ-20 | Instructor | Merge an under-minimum team into another, cancelling the emptied one | Source empty → validation; target lacks seats → validation | `project.manage` |
 | UC-PRJ-21 | Teammates | Notified when someone leaves or is moved off the team | — | recipient-scoped |
+| UC-PRJ-22 | Instructor | Define a deliverable's submission type, file mode, required flag and late policy | Unknown type → validation; replacing deliverables after a submission exists → validation | `project.manage` |
+| UC-PRJ-23 | Student | Submit the team deliverable (files, link, or written answer) and replace it later | Wrong extension / over 10 MB → validation; missing payload for the type → validation; past deadline with `allow_late = false` → validation; non-member → 403 | `project.join`; own membership |
+| UC-PRJ-24 | Student | See the deliverables checklist with submitted / late / overdue state and the team's progress count | Optional deliverables are excluded from the required count | `project.view` |
+| UC-PRJ-25 | Student | Remove one file from a multi-file submission | Closed deliverable → 422; non-member → 403 | `project.join`; own membership |
+| UC-PRJ-26 | Instructor | Set the team workspace link and announcement | Invalid URL → validation | `project.manage` |
 | UC-PRJ-10 | Instructor | Review roster: fill counts, remaining seats, pending change requests | — | `project.manage` |
 | UC-PRJ-11 | Instructor | Set max grade, passing %, and one or more grading criteria | Criteria sum becomes `max_points` | `project.grade` |
 | UC-PRJ-12 | Instructor | Enter a **team** grade (per criterion or total); all active members inherit it | Members with an individual override are left unchanged | `project.grade` |
@@ -103,8 +113,23 @@ deliverables). Each `projects` row is one team **and** one unique topic.
 | `project_change_requested` | instructor, admin | Staff with `project.manage` on that course (v1 requests only) |
 | `project_change_decided` | student | Approve or reject |
 
+## Deliverable submissions
+
+```
+project_deliverables          submission_type, file_mode, is_required, allow_late, instructions
+project_deliverable_submissions  one row per (project_id, project_deliverable_id)
+project_submission_files         0..N files per submission (public disk, 10 MB each, max 10)
+```
+
+- File types accepted per `submission_type`: `pdf` → pdf; `document` → pdf/doc/docx/odt/rtf/txt/ppt(x)/xls(x);
+  `image` → jpg/jpeg/png/webp/heic; `zip` → zip. `link` and `text` carry no files.
+- `single` file mode replaces the file on every submit. `multi` appends up to 10 files and
+  offers an explicit "replace submission" checkbox.
+- Deleting a team or an assessment removes its submissions and the stored files.
+
 ## Coverage
 
 `UseCases/Projects/ProjectAssignmentFlowTest`, `UseCases/Projects/ProjectGradingTest`,
-`Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
+`UseCases/Projects/ProjectSubmissionTest`, `Unit/ProjectAssignmentServiceTest`,
+`Unit/ProjectGradingServiceTest`, `Unit/ProjectSubmissionServiceTest`,
 `Tenancy/ProjectIsolationTest`.

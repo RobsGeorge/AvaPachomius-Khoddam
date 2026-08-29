@@ -13,6 +13,7 @@ use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradingService;
+use App\Services\ProjectSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,7 @@ class ProjectAdminController extends Controller
         private ProjectAdminService $admin,
         private ProjectAssignmentService $assignments,
         private ProjectGradingService $grading,
+        private ProjectSubmissionService $submissions,
     ) {}
 
     public function manage()
@@ -36,6 +38,7 @@ class ProjectAdminController extends Controller
             'module',
             'course',
             'projects.activeMemberships.user',
+            'projects.deliverables',
             'changeRequests' => fn ($q) => $q->where('status', ProjectChangeRequest::STATUS_PENDING),
         ])->orderByDesc('created_at');
 
@@ -50,7 +53,14 @@ class ProjectAdminController extends Controller
         $assessments = $query->get();
         $modules = $this->modulesForCourse($course);
 
-        return view('projects.manage', compact('assessments', 'modules', 'course'));
+        $submissionProgress = [];
+        foreach ($assessments as $assessment) {
+            foreach ($assessment->projects as $project) {
+                $submissionProgress[$project->project_id] = $this->submissions->progress($project);
+            }
+        }
+
+        return view('projects.manage', compact('assessments', 'modules', 'course', 'submissionProgress'));
     }
 
     public function store(Request $request)
@@ -119,7 +129,12 @@ class ProjectAdminController extends Controller
             'deliverables' => 'nullable|array',
             'deliverables.*.title' => 'nullable|string|max:255',
             'deliverables.*.description' => 'nullable|string',
+            'deliverables.*.instructions' => 'nullable|string',
             'deliverables.*.due_at' => 'nullable|date',
+            'deliverables.*.submission_type' => 'nullable|string|in:pdf,document,image,zip,link,text',
+            'deliverables.*.file_mode' => 'nullable|string|in:single,multi',
+            'deliverables.*.is_required' => 'nullable|boolean',
+            'deliverables.*.allow_late' => 'nullable|boolean',
         ]);
 
         $this->admin->createProject($projectAssessment, [
@@ -146,7 +161,12 @@ class ProjectAdminController extends Controller
             'deliverables' => 'nullable|array',
             'deliverables.*.title' => 'nullable|string|max:255',
             'deliverables.*.description' => 'nullable|string',
+            'deliverables.*.instructions' => 'nullable|string',
             'deliverables.*.due_at' => 'nullable|date',
+            'deliverables.*.submission_type' => 'nullable|string|in:pdf,document,image,zip,link,text',
+            'deliverables.*.file_mode' => 'nullable|string|in:single,multi',
+            'deliverables.*.is_required' => 'nullable|boolean',
+            'deliverables.*.allow_late' => 'nullable|boolean',
         ]);
 
         $this->admin->updateProject($project, $validated);
@@ -161,6 +181,21 @@ class ProjectAdminController extends Controller
         $this->admin->deleteProject($project);
 
         return back()->with('success', __('projects.project_deleted'));
+    }
+
+    public function updateWorkspace(Request $request, Project $project)
+    {
+        $project->load('assessment');
+        $this->assertCanManageCourse((int) $project->assessment->course_id);
+
+        $validated = $request->validate([
+            'team_workspace_url' => 'nullable|string|max:2048',
+            'team_announcement' => 'nullable|string|max:4000',
+        ]);
+
+        $this->admin->updateTeamWorkspace($project, $validated);
+
+        return back()->with('success', __('projects.workspace_saved'));
     }
 
     public function lockProject(Request $request, Project $project)
@@ -418,7 +453,12 @@ class ProjectAdminController extends Controller
             'deliverables' => 'nullable|array',
             'deliverables.*.title' => 'nullable|string|max:255',
             'deliverables.*.description' => 'nullable|string',
+            'deliverables.*.instructions' => 'nullable|string',
             'deliverables.*.due_at' => 'nullable|date',
+            'deliverables.*.submission_type' => 'nullable|string|in:pdf,document,image,zip,link,text',
+            'deliverables.*.file_mode' => 'nullable|string|in:single,multi',
+            'deliverables.*.is_required' => 'nullable|boolean',
+            'deliverables.*.allow_late' => 'nullable|boolean',
         ]);
     }
 

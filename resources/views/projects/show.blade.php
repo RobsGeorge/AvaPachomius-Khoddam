@@ -40,6 +40,23 @@
         </div>
     </div>
 
+    @if(($isMember ?? false) || $canManage)
+        @if($project->team_announcement)
+            <div class="alert alert-info">
+                <div class="fw-semibold">{{ __('projects.team_announcement') }}</div>
+                <div style="white-space: pre-wrap;">{{ $project->team_announcement }}</div>
+            </div>
+        @endif
+        @if($project->team_workspace_url)
+            <div class="mb-3">
+                <a href="{{ $project->team_workspace_url }}"
+                   class="btn btn-outline-primary btn-sm"
+                   target="_blank"
+                   rel="noopener noreferrer">{{ __('projects.team_workspace_open') }}</a>
+            </div>
+        @endif
+    @endif
+
     <div class="row g-3">
         <div class="col-lg-8">
             <div class="app-card card shadow-sm mb-3">
@@ -70,19 +87,25 @@
 
             <div class="app-card card shadow-sm mb-3">
                 <div class="card-body">
-                    <h2 class="h5 fw-bold">{{ __('projects.deliverables') }}</h2>
-                    @forelse($project->deliverables as $deliverable)
-                        <div class="border-bottom py-2">
-                            <div class="fw-semibold">{{ $deliverable->title }}</div>
-                            @if($deliverable->due_at)
-                                <div class="small text-muted">{{ __('projects.due_at') }}: {{ $deliverable->due_at->format('Y-m-d H:i') }}</div>
-                            @endif
-                            @if($deliverable->description)
-                                <div class="small" style="white-space: pre-wrap;">{{ $deliverable->description }}</div>
-                            @endif
-                        </div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                        <h2 class="h5 fw-bold mb-0">{{ __('projects.deliverables_checklist') }}</h2>
+                        @if(($progress['required'] ?? 0) > 0)
+                            <span class="badge {{ ($progress['missing'] ?? 0) === 0 ? 'bg-success' : 'bg-light text-dark border' }}">
+                                {{ __('projects.deliverables_progress', [
+                                    'submitted' => $progress['required'] - $progress['missing'],
+                                    'required' => $progress['required'],
+                                ]) }}
+                            </span>
+                        @endif
+                    </div>
+                    @forelse($checklist ?? [] as $row)
+                        @include('projects.partials.deliverable-card', [
+                            'row' => $row,
+                            'project' => $project,
+                            'isMember' => $isMember ?? false,
+                        ])
                     @empty
-                        <p class="text-muted mb-0">—</p>
+                        <p class="text-muted mb-0 mt-2">{{ __('projects.no_deliverables') }}</p>
                     @endforelse
                 </div>
             </div>
