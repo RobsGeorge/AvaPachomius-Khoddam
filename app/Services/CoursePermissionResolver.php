@@ -455,7 +455,15 @@ class CoursePermissionResolver
 
     private function previewPermissionsInSystem(): Collection
     {
-        if (! RolePreviewService::isGeneral() || ! $this->systemRbacReady()) {
+        // Church-admin preview (startChurchAdminRole) also sets is_general=true (to
+        // suppress course-context UI) but its role is church-scoped, not a real
+        // system role — treating its permissions as system-level here would let a
+        // previewing superadmin retain real superadmin-only access (e.g. the legacy
+        // AdminMiddleware's SYSTEM_PERMS whitelist), defeating the whole point of
+        // masking the superadmin bypass during preview.
+        if (! RolePreviewService::isGeneral()
+            || RolePreviewService::isChurchAdminMode()
+            || ! $this->systemRbacReady()) {
             return collect();
         }
 
