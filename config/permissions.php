@@ -120,7 +120,13 @@ return [
                 'label_en' => 'Join a project team',
                 'label_ar' => 'الانضمام لفريق مشروع',
                 'type' => 'endpoint',
-                'routes' => ['projects.join', 'projects.leave', 'projects.change-requests.store'],
+                'routes' => [
+                    'projects.join',
+                    'projects.leave',
+                    'projects.change-requests.store',
+                    'projects.deliverables.submit',
+                    'projects.submission-files.destroy',
+                ],
             ],
             'project.manage' => [
                 'label_en' => 'Manage projects',
@@ -139,6 +145,7 @@ return [
                     'projects.cancel',
                     'projects.merge',
                     'projects.members.move',
+                    'projects.workspace.update',
                     'projects.change-requests.index',
                     'projects.change-requests.approve',
                     'projects.change-requests.reject',
