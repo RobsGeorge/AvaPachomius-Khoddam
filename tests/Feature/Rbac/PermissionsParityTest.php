@@ -263,6 +263,18 @@ class PermissionsParityTest extends EventModuleTestCase
             'observability.client-errors',
             'public.church.profile',
             'church-registration',
+            // Self-serve recovery ladder — public, throttled, pre-authentication.
+            // Distinct from recovery.create/store (permission:people.recovery.assist)
+            // and recovery.index/store (superadmin) which stay permission-mapped.
+            'recovery.rebind',
+            'recovery.rebind.start',
+            'recovery.otp.show',
+            'recovery.otp.verify',
+            'recovery.confirm',
+            'recovery.confirm.store',
+            // Authenticated self-service; authorized via GuardianVisibilityGate on the
+            // ward relationship, not a permission key — same shape as notifications.*.
+            'attendance.guardian.check-in',
         ];
         $unmapped = collect(\Illuminate\Support\Facades\Route::getRoutes())
             ->map(fn ($route) => $route->getName())

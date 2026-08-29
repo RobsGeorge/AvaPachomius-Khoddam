@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\Church;
+use App\Models\Person;
+use App\Models\PersonPlacement;
 use App\Models\Role;
 use App\Models\Session;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Support\Structure\RosterStatus;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -141,6 +144,13 @@ class AttendanceCloseService
             'permission_reason' => $status === 'Permission' ? $permissionReason : null,
         ];
 
+        // Dual-write person_id whenever the account is linked to a record, so
+        // legacy user_id-keyed roster marking still populates the ADR's
+        // record-based attendance column going forward.
+        if (Schema::hasColumn('attendance', 'person_id') && $user->person_id) {
+            $attributes['person_id'] = $user->person_id;
+        }
+
         $attendance = Attendance::updateOrCreate(
             [
                 'session_id' => $session->session_id,
@@ -153,6 +163,124 @@ class AttendanceCloseService
         $this->latePolicy->syncAttendanceGradeForRecord($session, $fresh, $actorId);
 
         return $fresh;
+    }
+
+    /**
+     * Mark attendance for a served-person RECORD — no User account required.
+     * Rung-0 children (ADR §28): custodial marking never touches an account.
+     */
+    public function createOrUpdateForPerson(
+        Session $session,
+        int $personId,
+        string $status,
+        int $actorId,
+        ?string $permissionReason = null,
+        bool $allowNonEnrolled = false,
+    ): Attendance {
+        $this->assertValidStatus($status);
+
+        if ($status === 'Permission' && blank($permissionReason)) {
+            throw ValidationException::withMessages([
+                'permission_reason' => __('pages.enter_permission_reason'),
+            ]);
+        }
+
+        $person = Person::withoutTenancy()->active()->find($personId);
+
+        if (! $person) {
+            throw ValidationException::withMessages([
+                'person_id' => __('pages.student_not_found'),
+            ]);
+        }
+
+        $this->assertPersonCanBeRecorded($session, $person, $allowNonEnrolled);
+
+        $now = now();
+        $attributes = [
+            'status' => $status,
+            'taken_by_id' => $actorId,
+            'attendance_time' => $now,
+            'permission_reason' => $status === 'Permission' ? $permissionReason : null,
+            'user_id' => null,
+        ];
+
+        $attendance = Attendance::updateOrCreate(
+            [
+                'session_id' => $session->session_id,
+                'person_id' => $person->person_id,
+            ],
+            $attributes,
+        );
+
+        $fresh = $attendance->fresh(['takenBy', 'session']);
+        $this->latePolicy->syncAttendanceGradeForRecord($session, $fresh, $actorId);
+
+        return $fresh;
+    }
+
+    /** @return Collection<int, array{person_id: int, user_id: ?int, label: string, mobile_number: ?string}> */
+    public function searchPeopleForSession(Session $session, string $query, bool $includeNonEnrolled = false): Collection
+    {
+        $query = trim($query);
+
+        if ($query === '' || ! Schema::hasTable('people')) {
+            return collect();
+        }
+
+        $like = '%'.$query.'%';
+
+        $peopleQuery = Person::withoutTenancy()
+            ->active()
+            ->where(function ($q) use ($like) {
+                $q->where('first_name', 'like', $like)
+                    ->orWhere('second_name', 'like', $like)
+                    ->orWhere('third_name', 'like', $like)
+                    ->orWhere('display_name', 'like', $like)
+                    ->orWhere('mobile_number', 'like', $like);
+            })
+            ->limit(20);
+
+        if (! $includeNonEnrolled && $session->course_id) {
+            $enrolledPersonIds = $this->enrolledPersonIdsForCourse($session->course_id);
+            $peopleQuery->whereIn('person_id', $enrolledPersonIds);
+        }
+
+        return $peopleQuery->get()->map(fn (Person $person) => [
+            'person_id' => (int) $person->person_id,
+            'user_id' => User::query()->where('person_id', $person->person_id)->value('user_id'),
+            'label' => trim($person->display_name ?: ($person->first_name.' '.$person->second_name.' '.($person->third_name ?? ''))),
+            'mobile_number' => $person->mobile_number,
+        ])->values();
+    }
+
+    /** @return Collection<int, int> */
+    public function enrolledPersonIdsForCourse(?int $courseId): Collection
+    {
+        if (! $courseId || ! Schema::hasTable('person_placements')) {
+            return collect();
+        }
+
+        return PersonPlacement::withoutTenancy()
+            ->where('course_id', $courseId)
+            ->where('roster_status', RosterStatus::ACTIVE)
+            ->pluck('person_id')
+            ->unique()
+            ->values();
+    }
+
+    private function assertPersonCanBeRecorded(Session $session, Person $person, bool $allowNonEnrolled): void
+    {
+        if ($allowNonEnrolled) {
+            return;
+        }
+
+        $enrolledIds = $this->enrolledPersonIdsForCourse($session->course_id);
+
+        if (! $enrolledIds->contains((int) $person->person_id)) {
+            throw ValidationException::withMessages([
+                'person_id' => __('pages.attendance_student_not_in_course'),
+            ]);
+        }
     }
 
     /** @return Collection<int, int> */
