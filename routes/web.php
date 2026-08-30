@@ -701,6 +701,9 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::post('/projects/{project}/workspace', [ProjectAdminController::class, 'updateWorkspace'])->name('projects.workspace.update');
     Route::get('/projects/assessments/{projectAssessment}/export', [ProjectAdminController::class, 'exportCsv'])->name('projects.export');
     Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submitDeliverable'])->name('projects.deliverables.submit');
+    Route::post('/projects/{project}/submissions/{submission}/review', [ProjectAdminController::class, 'reviewSubmission'])->name('projects.submissions.review');
+    Route::post('/projects/{project}/peer-ratings', [ProjectController::class, 'submitPeerRatings'])->name('projects.peer-ratings.store');
+    Route::put('/projects/assessments/{projectAssessment}/peer-eval', [ProjectAdminController::class, 'updatePeerEval'])->name('projects.peer-eval.update');
     Route::delete('/projects/{project}/submission-files/{file}', [ProjectController::class, 'destroySubmissionFile'])->name('projects.submission-files.destroy');
     Route::post('/projects/change-requests/{changeRequest}/approve', [ProjectAdminController::class, 'approveChange'])->name('projects.change-requests.approve');
     Route::post('/projects/change-requests/{changeRequest}/reject', [ProjectAdminController::class, 'rejectChange'])->name('projects.change-requests.reject');

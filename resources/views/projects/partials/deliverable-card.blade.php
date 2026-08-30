@@ -80,7 +80,32 @@
                     </ul>
                 </div>
             @endif
+            @if($submission->hasInstructorFeedback())
+                <div class="alert alert-secondary py-2 px-3 mt-2 mb-0 small">
+                    <div class="fw-semibold">{{ __('projects.instructor_feedback') }}</div>
+                    <div style="white-space: pre-wrap;">{{ $submission->instructor_feedback }}</div>
+                    @if($submission->reviewed_at)
+                        <div class="text-muted mt-1">{{ __('projects.reviewed_at', ['when' => $submission->reviewed_at->format('Y-m-d H:i')]) }}</div>
+                    @endif
+                </div>
+            @endif
         </div>
+    @endif
+
+    @if(($canManage ?? false) && $submission)
+        <form method="POST"
+              action="{{ route('projects.submissions.review', [$project, $submission]) }}"
+              class="mt-2">
+            @csrf
+            <label class="form-label small" for="{{ $formId }}-feedback">{{ __('projects.instructor_feedback') }}</label>
+            <textarea id="{{ $formId }}-feedback"
+                      name="instructor_feedback"
+                      rows="3"
+                      class="form-control form-control-sm @error('instructor_feedback') is-invalid @enderror"
+                      required>{{ old('instructor_feedback', $submission->instructor_feedback) }}</textarea>
+            @error('instructor_feedback')<div class="invalid-feedback d-block small">{{ $message }}</div>@enderror
+            <button type="submit" class="btn btn-sm btn-outline-primary mt-2">{{ __('projects.save_submission_feedback') }}</button>
+        </form>
     @endif
 
     @if(($isMember ?? false))
