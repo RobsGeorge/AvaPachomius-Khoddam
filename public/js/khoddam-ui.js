@@ -25,7 +25,7 @@
     }
 
     function swalPopupClass(extra = '') {
-        return ['khoddam-swal-popup', 'animate__animated', 'animate__fadeInUp', 'animate__faster', extra]
+        return ['khoddam-swal-popup', 'khoddam-swal-animate', extra]
             .filter(Boolean)
             .join(' ');
     }
@@ -495,15 +495,20 @@
             return;
         }
 
+        // Full document reloads on every nav — skip entrance motion on phones.
+        if (window.matchMedia && window.matchMedia('(max-width: 767.98px)').matches) {
+            return;
+        }
+
         if (last === path) {
             return;
         }
 
         document.querySelectorAll('.app-card, .app-tile, .hub-tile, .hub-link-tile, .animate-in').forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.12, 0.84)}s`;
+            el.style.animationDelay = `${Math.min(index * 0.04, 0.24)}s`;
         });
         document.querySelectorAll('.accordion-item, .roles-hub-panel').forEach((el, index) => {
-            el.style.animationDelay = `${Math.min(index * 0.1, 0.7)}s`;
+            el.style.animationDelay = `${Math.min(index * 0.03, 0.18)}s`;
         });
 
         document.body.classList.add('js-page-reveal');

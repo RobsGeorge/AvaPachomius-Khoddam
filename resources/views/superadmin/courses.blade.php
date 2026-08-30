@@ -7,7 +7,7 @@
     @include('superadmin.partials.header', ['title' => __('pages.manage_services_and_courses')])
 
     <h2 class="h5 mb-3 mt-2">
-        <i class="fas fa-church me-1"></i> {{ __('pages.manage_services_section') }}
+        <i class="bi bi-building me-1"></i> {{ __('pages.manage_services_section') }}
     </h2>
     <p class="text-muted-theme small mb-3">
         {{ ($requiresChurch ?? false) ? __('service.manage_intro_console') : __('service.manage_intro') }}
@@ -80,7 +80,7 @@
                                     @php $service = $serviceCourses->first()?->service; @endphp
                                     <tr class="table-light">
                                         <td colspan="4" class="ps-4 text-muted-theme small fw-semibold">
-                                            <i class="fas fa-church me-1"></i>
+                                            <i class="bi bi-building me-1"></i>
                                             {{ $service?->localizedTitle() ?? __('service.label') }}
                                         </td>
                                     </tr>

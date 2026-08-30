@@ -20,7 +20,7 @@
         <div class="d-flex flex-wrap gap-3 align-items-center">
             @if($service ?? null)
                 <span class="badge bg-primary-subtle text-primary-emphasis border">
-                    <i class="fas fa-church me-1"></i>{{ $service->localizedTitle() }}
+                    <i class="bi bi-building me-1"></i>{{ $service->localizedTitle() }}
                 </span>
             @endif
             @if($manageableCourses->isNotEmpty())

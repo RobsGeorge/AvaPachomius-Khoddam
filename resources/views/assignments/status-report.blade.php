@@ -26,7 +26,7 @@
                                   data-confirm="{{ __('pages.confirm_remind_unsubmitted') }}">
                                 @csrf
                                 <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-bell me-1"></i>
+                                    <i class="bi bi-bell me-1"></i>
                                     {{ __('pages.remind_unsubmitted') }}
                                 </button>
                             </form>
@@ -64,7 +64,7 @@
 
                     @if($stats['not_submitted'] > 0 && $assignment->isSubmissionOpen())
                         <div class="alert alert-warning">
-                            <i class="fas fa-bell me-2"></i>
+                            <i class="bi bi-bell me-2"></i>
                             {{ __('pages.alert_late_students') }}: <strong>{{ $stats['not_submitted'] }}</strong>
                         </div>
                     @endif
