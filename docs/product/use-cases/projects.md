@@ -77,6 +77,7 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-30 | Instructor | Read the assessment overview: seats filled, teams full / locked / cancelled / below-minimum, required deliverables in, teams graded, announcement state | — | `project.manage` |
 | UC-PRJ-31 | Instructor | Export the assessment roster as CSV (one row per member, empty teams included) | Logged to `audit_log` | `project.manage` |
 | UC-PRJ-32 | Instructor | Opt an assessment into gradebook sync; announcing pushes member grades to the course gradebook | No `project` grade category → skipped silently; turning the toggle on after announcing backfills; re-sync updates the same grade item | `project.manage` (toggle), `project.grade` (announce) |
+| UC-PRJ-33 | Student | See the team change history (joined / left / moved / merged) on the team page and in the mobile API | Hidden from non-members | `project.view`; own membership |
 
 ## Pack-fill algorithm
 
@@ -121,6 +122,7 @@ deliverables). Each `projects` row is one team **and** one unique topic.
 | `project_member_moved` | student | The student an admin force-moved |
 | `project_change_requested` | instructor, admin | Staff with `project.manage` on that course (v1 requests only) |
 | `project_change_decided` | student | Approve or reject |
+| `project_deliverable_deadline` | student | Active members of published, non-cancelled teams when a deliverable `due_at` is within their `lead_hours` window and the team has **no** submission yet. Dedupe: one per user / deliverable / calendar day. |
 
 ## Deliverable submissions
 
@@ -182,6 +184,8 @@ the web, and validation failures surface as 422 with the same messages.
 `UseCases/Projects/ProjectJoinWindowAndLeaveTest`, `UseCases/Projects/ProjectAdminSeatingTest`,
 `UseCases/Projects/ProjectDeliverableTypeMatrixTest`,
 `UseCases/Projects/ProjectAnnounceResilienceTest`,
+`UseCases/Projects/ProjectDeliverableDeadlineReminderTest`,
+`UseCases/Projects/ProjectMembershipHistoryTest`,
 `Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
 `Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`, `Unit/ProjectPackFillTest`,
 `Api/ProjectApiTest`, `Api/ProjectApiGuardsTest`,
