@@ -114,11 +114,17 @@ class ProjectController extends Controller
             ? $project->membershipEvents
             : collect();
         $peerEvalOpen = $this->peerEval->isOpen($assessment);
-        $peerPending = ($isMember && $peerEvalOpen)
-            ? $this->peerEval->pendingTeammates($project, $user)
+        $peerEligible = ($isMember && $peerEvalOpen)
+            ? $this->peerEval->eligibleRateeTeams($assessment, $user)
             : collect();
-        $peerAverages = $canManage
-            ? $this->peerEval->adminAverages($project)
+        $peerRatings = ($isMember && $peerEvalOpen)
+            ? $this->peerEval->ratingsByRater($assessment, $user)
+            : collect();
+        $peerProgress = ($isMember && $peerEvalOpen)
+            ? $this->peerEval->progress($assessment, $user)
+            : null;
+        $peerTeamAverages = $canManage
+            ? $this->peerEval->adminTeamAverages($assessment)
             : [];
 
         // The rubric breakdown follows the same gate as the numeric grade.
@@ -141,8 +147,45 @@ class ProjectController extends Controller
             'rubric',
             'teamHistory',
             'peerEvalOpen',
-            'peerPending',
-            'peerAverages'
+            'peerEligible',
+            'peerRatings',
+            'peerProgress',
+            'peerTeamAverages'
+        ));
+    }
+
+    public function peerReview(Project $project)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $project->load([
+            'assessment.module',
+            'assessment.course',
+            'deliverables',
+            'deliverableSubmissions.files',
+            'deliverableSubmissions.deliverable',
+            'deliverableSubmissions.submitter',
+        ]);
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        $this->assertSameCourse($assessment);
+
+        $canManage = $this->userCanManageCourse((int) $assessment->course_id);
+        abort_unless($canManage || $this->peerEval->canPeerReview($project, $user), 403);
+
+        $checklist = $this->submissions->checklist($project);
+        // Peer reviewers only see deliverables that have a submission.
+        $checklist = array_values(array_filter(
+            $checklist,
+            fn (array $row) => (bool) ($row['submitted'] ?? false)
+        ));
+
+        return view('projects.peer-review', compact(
+            'project',
+            'assessment',
+            'checklist',
+            'canManage'
         ));
     }
 
@@ -161,12 +204,21 @@ class ProjectController extends Controller
 
         $validated = $request->validate([
             'ratings' => 'required|array|min:1',
-            'ratings.*.ratee_user_id' => 'required|integer',
-            'ratings.*.score' => 'required|integer|min:1|max:10',
+            'ratings.*.ratee_project_id' => 'required|integer',
+            'ratings.*.score' => 'nullable|integer|min:1|max:10',
             'ratings.*.comment' => 'nullable|string|max:2000',
         ]);
 
-        $this->peerEval->submitRatings($project, $user, $validated['ratings']);
+        $ratings = collect($validated['ratings'])
+            ->filter(fn (array $row) => filled($row['score'] ?? null))
+            ->values()
+            ->all();
+
+        if ($ratings === []) {
+            return back()->withErrors(['ratings' => __('projects.peer_eval_ratings_required')]);
+        }
+
+        $this->peerEval->submitTeamRatings($assessment, $user, $ratings);
 
         return back()->with('success', __('projects.peer_eval_saved'));
     }
