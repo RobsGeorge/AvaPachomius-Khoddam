@@ -126,6 +126,7 @@ return [
                     'projects.change-requests.store',
                     'projects.deliverables.submit',
                     'projects.submission-files.destroy',
+                    'projects.peer-ratings.store',
                 ],
             ],
             'project.manage' => [
@@ -167,6 +168,8 @@ return [
                     'projects.grades.team-criteria.reset',
                     'projects.grades.student',
                     'projects.grades.student.clear',
+                    'projects.submissions.review',
+                    'projects.peer-eval.update',
                 ],
             ],
         ],

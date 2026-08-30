@@ -204,6 +204,41 @@ class ProjectSubmissionService
     }
 
     /**
+     * Save instructor feedback on a team submission. Notifies active members
+     * the first time feedback is stored (not on later edits).
+     */
+    public function saveInstructorFeedback(
+        ProjectDeliverableSubmission $submission,
+        User $reviewer,
+        string $feedback,
+    ): ProjectDeliverableSubmission {
+        $feedback = trim($feedback);
+        $wasFirst = ! $submission->hasInstructorFeedback();
+
+        $submission->update([
+            'instructor_feedback' => $feedback === '' ? null : $feedback,
+            'reviewed_at' => now(),
+            'reviewed_by_user_id' => $reviewer->user_id,
+        ]);
+
+        AuditLogService::recordEvent('project.submission_reviewed', [
+            'project_deliverable_submission_id' => $submission->project_deliverable_submission_id,
+            'project_id' => $submission->project_id,
+            'project_deliverable_id' => $submission->project_deliverable_id,
+            'actor_user_id' => $reviewer->user_id,
+            'first_feedback' => $wasFirst && $feedback !== '',
+        ]);
+
+        if ($wasFirst && $feedback !== '') {
+            app(ProjectNotificationService::class)->notifySubmissionFeedback(
+                $submission->fresh(['project.assessment', 'deliverable', 'project.activeMemberships.user'])
+            );
+        }
+
+        return $submission->fresh(['files', 'submitter', 'reviewer']);
+    }
+
+    /**
      * @param  list<UploadedFile>  $files
      */
     private function assertPayloadMatchesType(

@@ -17,6 +17,14 @@ class Project extends Model
 
     public const STATUS_CLOSED = 'closed';
 
+    public const WORKSPACE_CUSTOM = 'custom';
+
+    public const WORKSPACE_DRIVE = 'drive';
+
+    public const WORKSPACE_WHATSAPP = 'whatsapp';
+
+    public const WORKSPACE_TELEGRAM = 'telegram';
+
     protected $table = 'projects';
 
     protected $primaryKey = 'project_id';
@@ -30,6 +38,7 @@ class Project extends Model
         'is_locked',
         'below_minimum',
         'cancelled_at',
+        'workspace_provider',
         'team_workspace_url',
         'team_announcement',
     ];
@@ -155,5 +164,78 @@ class Project extends Model
     public function memberGrades(): HasMany
     {
         return $this->hasMany(ProjectMemberGrade::class, 'project_id', 'project_id');
+    }
+
+    public function membershipEvents(): HasMany
+    {
+        return $this->hasMany(ProjectMembershipEvent::class, 'project_id', 'project_id')
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('project_membership_event_id');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function workspaceProviders(): array
+    {
+        return [
+            self::WORKSPACE_CUSTOM,
+            self::WORKSPACE_DRIVE,
+            self::WORKSPACE_WHATSAPP,
+            self::WORKSPACE_TELEGRAM,
+        ];
+    }
+
+    public function workspaceProvider(): string
+    {
+        $provider = $this->workspace_provider ?: self::WORKSPACE_CUSTOM;
+
+        return in_array($provider, self::workspaceProviders(), true)
+            ? $provider
+            : self::WORKSPACE_CUSTOM;
+    }
+
+    /**
+     * Light host allow-lists for known providers. Custom accepts any valid URL.
+     *
+     * @return list<string>
+     */
+    public static function workspaceHostsFor(string $provider): array
+    {
+        return match ($provider) {
+            self::WORKSPACE_DRIVE => ['drive.google.com', 'docs.google.com'],
+            self::WORKSPACE_WHATSAPP => ['chat.whatsapp.com', 'wa.me', 'api.whatsapp.com', 'web.whatsapp.com'],
+            self::WORKSPACE_TELEGRAM => ['t.me', 'telegram.me', 'telegram.org'],
+            default => [],
+        };
+    }
+
+    public static function workspaceUrlMatchesProvider(?string $url, string $provider): bool
+    {
+        if ($url === null || trim($url) === '') {
+            return true;
+        }
+
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        if ($provider === self::WORKSPACE_CUSTOM || $provider === '') {
+            return true;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+
+        foreach (self::workspaceHostsFor($provider) as $allowed) {
+            $allowed = strtolower($allowed);
+            if ($host === $allowed || str_ends_with($host, '.'.$allowed)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
