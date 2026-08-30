@@ -10,6 +10,7 @@ use App\Models\ProjectSubmissionFile;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradingService;
+use App\Services\ProjectPeerEvaluationService;
 use App\Services\ProjectResultsVisibilityService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ class ProjectController extends Controller
         private ProjectResultsVisibilityService $visibility,
         private ProjectSubmissionService $submissions,
         private ProjectGradingService $grading,
+        private ProjectPeerEvaluationService $peerEval,
     ) {}
 
     public function index()
@@ -78,7 +80,14 @@ class ProjectController extends Controller
         $user = Auth::user();
         abort_unless($user, 403);
 
-        $project->load(['assessment.module', 'assessment.course', 'phases', 'deliverables', 'activeMemberships.user']);
+        $project->load([
+            'assessment.module',
+            'assessment.course',
+            'phases',
+            'deliverables',
+            'activeMemberships.user',
+            'membershipEvents.user',
+        ]);
         $assessment = $project->assessment;
         abort_unless($assessment, 404);
 
@@ -101,6 +110,16 @@ class ProjectController extends Controller
         $checklist = $this->submissions->checklist($project);
         $progress = $this->submissions->progress($project);
         $isMember = $membership && (int) $membership->project_id === (int) $project->project_id;
+        $teamHistory = ($isMember || $canManage)
+            ? $project->membershipEvents
+            : collect();
+        $peerEvalOpen = $this->peerEval->isOpen($assessment);
+        $peerPending = ($isMember && $peerEvalOpen)
+            ? $this->peerEval->pendingTeammates($project, $user)
+            : collect();
+        $peerAverages = $canManage
+            ? $this->peerEval->adminAverages($project)
+            : [];
 
         // The rubric breakdown follows the same gate as the numeric grade.
         $rubric = ($gradeVisibility['can_view'] ?? false) || $canManage
@@ -119,8 +138,37 @@ class ProjectController extends Controller
             'checklist',
             'progress',
             'isMember',
-            'rubric'
+            'rubric',
+            'teamHistory',
+            'peerEvalOpen',
+            'peerPending',
+            'peerAverages'
         ));
+    }
+
+    public function submitPeerRatings(Request $request, Project $project)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanJoin($assessment);
+
+        $membership = $assessment->activeMembershipFor((int) $user->user_id);
+        abort_unless($membership && (int) $membership->project_id === (int) $project->project_id, 403);
+
+        $validated = $request->validate([
+            'ratings' => 'required|array|min:1',
+            'ratings.*.ratee_user_id' => 'required|integer',
+            'ratings.*.score' => 'required|integer|min:1|max:10',
+            'ratings.*.comment' => 'nullable|string|max:2000',
+        ]);
+
+        $this->peerEval->submitRatings($project, $user, $validated['ratings']);
+
+        return back()->with('success', __('projects.peer_eval_saved'));
     }
 
     public function submitDeliverable(Request $request, Project $project, ProjectDeliverable $deliverable)

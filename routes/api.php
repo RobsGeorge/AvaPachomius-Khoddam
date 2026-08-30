@@ -113,6 +113,10 @@ Route::prefix('v1')->group(function () {
                 ->whereNumber('project')->whereNumber('deliverable');
             Route::delete('/projects/{project}/submission-files/{file}', [ProjectController::class, 'destroySubmissionFile'])
                 ->whereNumber('project')->whereNumber('file');
+            Route::get('/projects/{project}/peer-ratings/pending', [ProjectController::class, 'pendingPeerRatings'])
+                ->whereNumber('project');
+            Route::post('/projects/{project}/peer-ratings', [ProjectController::class, 'storePeerRatings'])
+                ->whereNumber('project');
         });
 
         // Certificates (Wave B) — T2: certificates live under the grades capability

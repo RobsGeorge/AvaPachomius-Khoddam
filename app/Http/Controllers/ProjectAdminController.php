@@ -15,6 +15,7 @@ use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradebookSyncService;
 use App\Services\ProjectGradingService;
+use App\Services\ProjectPeerEvaluationService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,7 @@ class ProjectAdminController extends Controller
         private ProjectGradingService $grading,
         private ProjectSubmissionService $submissions,
         private ProjectGradebookSyncService $gradebook,
+        private ProjectPeerEvaluationService $peerEval,
     ) {}
 
     public function manage()
@@ -176,6 +178,7 @@ class ProjectAdminController extends Controller
             'deliverables.*.file_mode' => 'nullable|string|in:single,multi',
             'deliverables.*.is_required' => 'nullable|boolean',
             'deliverables.*.allow_late' => 'nullable|boolean',
+            'deliverables.*.max_points' => 'nullable|numeric|min:0|max:9999.99',
         ]);
 
         $this->admin->createProject($projectAssessment, [
@@ -230,6 +233,7 @@ class ProjectAdminController extends Controller
         $this->assertCanManageCourse((int) $project->assessment->course_id);
 
         $validated = $request->validate([
+            'workspace_provider' => 'nullable|string|in:custom,drive,whatsapp,telegram',
             'team_workspace_url' => 'nullable|string|max:2048',
             'team_announcement' => 'nullable|string|max:4000',
         ]);
@@ -360,6 +364,7 @@ class ProjectAdminController extends Controller
             'course',
             'criteria',
             'projects.activeMemberships.user',
+            'projects.deliverables',
             'projects.teamGrade.scores',
             'memberGrades',
         ]);
@@ -367,11 +372,18 @@ class ProjectAdminController extends Controller
         $memberGrades = $projectAssessment->memberGrades->keyBy('user_id');
 
         $teamRubrics = [];
+        $deliverableBreakdowns = [];
         foreach ($projectAssessment->projects as $project) {
             $teamRubrics[$project->project_id] = [
                 'criteria' => $this->grading->criterionBreakdown($projectAssessment, $project),
                 'custom' => $this->grading->teamHasCustomRubric($project),
             ];
+            if ($projectAssessment->usesDeliverableGrading()) {
+                $deliverableBreakdowns[$project->project_id] = $this->grading->deliverableBreakdown(
+                    $projectAssessment,
+                    $project
+                );
+            }
         }
 
         return view('projects.grades', [
@@ -379,6 +391,7 @@ class ProjectAdminController extends Controller
             'memberGrades' => $memberGrades,
             'maxPoints' => $this->grading->maxPoints($projectAssessment),
             'teamRubrics' => $teamRubrics,
+            'deliverableBreakdowns' => $deliverableBreakdowns,
         ]);
     }
 
@@ -549,7 +562,13 @@ class ProjectAdminController extends Controller
         $validated = $request->validate([
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'required|integer|min:0|max:100',
+            'grading_mode' => 'nullable|string|in:rubric,deliverables',
         ]);
+
+        if (! empty($validated['grading_mode'])) {
+            $this->grading->setGradingMode($projectAssessment, $validated['grading_mode'], Auth::user());
+            $projectAssessment = $projectAssessment->fresh();
+        }
 
         $this->grading->updateScale($projectAssessment, $validated);
 
@@ -566,7 +585,7 @@ class ProjectAdminController extends Controller
 
     public function gradeTeam(Request $request, Project $project)
     {
-        $project->load('assessment.criteria');
+        $project->load(['assessment.criteria', 'deliverables']);
         $assessment = $project->assessment;
         abort_unless($assessment, 404);
         $this->assertCanGradeCourse((int) $assessment->course_id);
@@ -579,16 +598,26 @@ class ProjectAdminController extends Controller
         ];
         $validated = $request->validate($rules);
 
-        $this->grading->gradeTeam(
-            $assessment,
-            $project,
-            $validated['scores'] ?? [],
-            Auth::user(),
-            $validated['notes'] ?? null,
-            array_key_exists('points', $validated) && $validated['points'] !== null
-                ? (float) $validated['points']
-                : null,
-        );
+        if ($assessment->usesDeliverableGrading()) {
+            $this->grading->gradeTeamByDeliverables(
+                $assessment,
+                $project,
+                $validated['scores'] ?? [],
+                Auth::user(),
+                $validated['notes'] ?? null,
+            );
+        } else {
+            $this->grading->gradeTeam(
+                $assessment,
+                $project,
+                $validated['scores'] ?? [],
+                Auth::user(),
+                $validated['notes'] ?? null,
+                array_key_exists('points', $validated) && $validated['points'] !== null
+                    ? (float) $validated['points']
+                    : null,
+            );
+        }
 
         return back()->with('success', __('projects.team_grade_saved'));
     }
@@ -616,6 +645,46 @@ class ProjectAdminController extends Controller
         $this->grading->clearStudentOverride($projectAssessment, $user, Auth::user());
 
         return back()->with('success', __('projects.student_override_cleared'));
+    }
+
+    public function reviewSubmission(
+        Request $request,
+        Project $project,
+        \App\Models\ProjectDeliverableSubmission $submission,
+    ) {
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+        abort_unless((int) $submission->project_id === (int) $project->project_id, 404);
+        $this->assertCanGradeCourse((int) $assessment->course_id);
+
+        $validated = $request->validate([
+            'instructor_feedback' => 'required|string|max:10000',
+        ]);
+
+        $this->submissions->saveInstructorFeedback(
+            $submission,
+            Auth::user(),
+            $validated['instructor_feedback']
+        );
+
+        return back()->with('success', __('projects.submission_feedback_saved'));
+    }
+
+    public function updatePeerEval(Request $request, ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        $validated = $request->validate([
+            'peer_eval_enabled' => 'nullable|boolean',
+            'peer_eval_opens_at' => 'nullable|date',
+            'peer_eval_closes_at' => 'nullable|date|after_or_equal:peer_eval_opens_at',
+            'peer_eval_scale_max' => 'nullable|integer|min:1|max:10',
+            'peer_eval_prompt' => 'nullable|string|max:4000',
+        ]);
+
+        $this->peerEval->updateSettings($projectAssessment, $validated, Auth::user());
+
+        return back()->with('success', __('projects.peer_eval_settings_saved'));
     }
 
     private function validateAssessment(Request $request): array

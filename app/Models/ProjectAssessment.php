@@ -24,6 +24,7 @@ class ProjectAssessment extends Model
         'max_team_size',
         'max_points',
         'passing_percent',
+        'grading_mode',
         'is_published',
         'join_closes_at',
         'seed_pool_size',
@@ -33,6 +34,11 @@ class ProjectAssessment extends Model
         'gradebook_item_id',
         'gradebook_synced_at',
         'created_by_user_id',
+        'peer_eval_enabled',
+        'peer_eval_opens_at',
+        'peer_eval_closes_at',
+        'peer_eval_scale_max',
+        'peer_eval_prompt',
     ];
 
     protected $casts = [
@@ -46,11 +52,24 @@ class ProjectAssessment extends Model
         'results_announced_at' => 'datetime',
         'sync_to_gradebook' => 'boolean',
         'gradebook_synced_at' => 'datetime',
+        'peer_eval_enabled' => 'boolean',
+        'peer_eval_opens_at' => 'datetime',
+        'peer_eval_closes_at' => 'datetime',
+        'peer_eval_scale_max' => 'integer',
     ];
+
+    public const GRADING_MODE_RUBRIC = 'rubric';
+
+    public const GRADING_MODE_DELIVERABLES = 'deliverables';
 
     public function getRouteKeyName(): string
     {
         return 'project_assessment_id';
+    }
+
+    public function usesDeliverableGrading(): bool
+    {
+        return ($this->grading_mode ?: self::GRADING_MODE_RUBRIC) === self::GRADING_MODE_DELIVERABLES;
     }
 
     public function course(): BelongsTo

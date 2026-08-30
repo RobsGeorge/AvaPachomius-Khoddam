@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectDeliverable;
+use App\Models\ProjectDeliverableGrade;
 use App\Models\ProjectGradeCriterion;
 use App\Models\ProjectMemberGrade;
 use App\Models\ProjectTeamCriterionScore;
@@ -19,6 +21,21 @@ class ProjectGradingService
 {
     public function maxPoints(ProjectAssessment $assessment): float
     {
+        if ($assessment->usesDeliverableGrading()) {
+            $sum = 0.0;
+            foreach ($assessment->projects as $project) {
+                $deliverables = $project->relationLoaded('deliverables')
+                    ? $project->deliverables
+                    : $project->deliverables()->get();
+                $sum = round((float) $deliverables->sum('max_points'), 2);
+                break; // Shared brief: every team copies the same deliverable points.
+            }
+
+            if ($sum > 0) {
+                return $sum;
+            }
+        }
+
         $criteria = $assessment->relationLoaded('criteria')
             ? $assessment->criteria
             : $assessment->criteria()->get();
@@ -28,6 +45,198 @@ class ProjectGradingService
         }
 
         return round((float) $assessment->max_points, 2);
+    }
+
+    /**
+     * Switch grading mode. Deliverables mode requires every team's deliverable
+     * max_points to sum to the assessment maximum.
+     */
+    public function setGradingMode(ProjectAssessment $assessment, string $mode, User $actor): ProjectAssessment
+    {
+        if (! in_array($mode, [
+            ProjectAssessment::GRADING_MODE_RUBRIC,
+            ProjectAssessment::GRADING_MODE_DELIVERABLES,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'grading_mode' => [__('projects.grading_mode_invalid')],
+            ]);
+        }
+
+        if ($mode === ProjectAssessment::GRADING_MODE_DELIVERABLES) {
+            $this->assertDeliverablePointsSum($assessment);
+        }
+
+        $assessment->update(['grading_mode' => $mode]);
+
+        AuditLogService::recordEvent('project.grading_mode_changed', [
+            'project_assessment_id' => $assessment->project_assessment_id,
+            'grading_mode' => $mode,
+            'actor_user_id' => $actor->user_id,
+        ]);
+
+        return $assessment->fresh();
+    }
+
+    public function assertDeliverablePointsSum(ProjectAssessment $assessment): void
+    {
+        $expected = round((float) $assessment->max_points, 2);
+        if ($expected <= 0) {
+            throw ValidationException::withMessages([
+                'max_points' => [__('projects.max_points_required')],
+            ]);
+        }
+
+        foreach ($assessment->projects()->with('deliverables')->get() as $project) {
+            $actual = round((float) $project->deliverables->sum('max_points'), 2);
+            if (abs($actual - $expected) > 0.001) {
+                throw ValidationException::withMessages([
+                    'deliverables' => [__('projects.deliverable_points_sum_mismatch', [
+                        'team' => $project->title,
+                        'total' => number_format($actual, 2, '.', ''),
+                        'max' => number_format($expected, 2, '.', ''),
+                    ])],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Grade a team by per-deliverable scores; roll up into the team grade and
+     * propagate to members without individual overrides.
+     *
+     * @param  array<int|string, float|int|string|null>  $scoresByDeliverableId
+     */
+    public function gradeTeamByDeliverables(
+        ProjectAssessment $assessment,
+        Project $project,
+        array $scoresByDeliverableId,
+        User $grader,
+        ?string $notes = null,
+    ): ProjectTeamGrade {
+        if ((int) $project->project_assessment_id !== (int) $assessment->project_assessment_id) {
+            abort(404);
+        }
+        if (! $assessment->usesDeliverableGrading()) {
+            throw ValidationException::withMessages([
+                'grading_mode' => [__('projects.grading_mode_not_deliverables')],
+            ]);
+        }
+
+        $deliverables = $project->relationLoaded('deliverables')
+            ? $project->deliverables
+            : $project->deliverables()->orderBy('sort_order')->get();
+
+        if ($deliverables->isEmpty()) {
+            throw ValidationException::withMessages([
+                'scores' => [__('projects.no_deliverables')],
+            ]);
+        }
+
+        $expected = round((float) $assessment->max_points, 2);
+        $configured = round((float) $deliverables->sum('max_points'), 2);
+        if (abs($configured - $expected) > 0.001) {
+            throw ValidationException::withMessages([
+                'scores' => [__('projects.deliverable_points_sum_mismatch', [
+                    'team' => $project->title,
+                    'total' => number_format($configured, 2, '.', ''),
+                    'max' => number_format($expected, 2, '.', ''),
+                ])],
+            ]);
+        }
+
+        $total = 0.0;
+        $rows = [];
+        foreach ($deliverables as $deliverable) {
+            $id = (int) $deliverable->project_deliverable_id;
+            $max = round((float) ($deliverable->max_points ?? 0), 2);
+            $raw = $scoresByDeliverableId[$id] ?? $scoresByDeliverableId[(string) $id] ?? null;
+            if ($raw === null || $raw === '') {
+                throw ValidationException::withMessages([
+                    'scores' => [__('projects.deliverable_score_required', ['title' => $deliverable->title])],
+                ]);
+            }
+            $score = round((float) $raw, 2);
+            if ($score < 0 || $score > $max) {
+                throw ValidationException::withMessages([
+                    'scores' => [__('projects.deliverable_score_range', [
+                        'title' => $deliverable->title,
+                        'max' => number_format($max, 2, '.', ''),
+                    ])],
+                ]);
+            }
+            $rows[$id] = $score;
+            $total += $score;
+        }
+        $total = round($total, 2);
+        $percent = $this->percentFor($total, $assessment);
+
+        return DB::transaction(function () use ($assessment, $project, $grader, $notes, $rows, $total, $percent) {
+            foreach ($rows as $deliverableId => $score) {
+                ProjectDeliverableGrade::updateOrCreate(
+                    [
+                        'project_id' => $project->project_id,
+                        'project_deliverable_id' => $deliverableId,
+                    ],
+                    [
+                        'project_assessment_id' => $assessment->project_assessment_id,
+                        'points' => $score,
+                        'graded_by_user_id' => $grader->user_id,
+                        'graded_at' => now(),
+                    ]
+                );
+            }
+
+            $grade = ProjectTeamGrade::updateOrCreate(
+                ['project_id' => $project->project_id],
+                [
+                    'project_assessment_id' => $assessment->project_assessment_id,
+                    'points' => $total,
+                    'percent' => $percent,
+                    'notes' => $notes,
+                    'graded_by_user_id' => $grader->user_id,
+                    'graded_at' => now(),
+                ]
+            );
+
+            $this->propagateTeamGrade($assessment, $project, $grade, $grader);
+
+            AuditLogService::recordEvent('project.team_graded_by_deliverables', [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'project_id' => $project->project_id,
+                'points' => $total,
+                'percent' => $percent,
+            ]);
+
+            return $grade->fresh();
+        });
+    }
+
+    /**
+     * @return list<array{project_deliverable_id:int, title:string, max_points:float, points:?float}>
+     */
+    public function deliverableBreakdown(ProjectAssessment $assessment, Project $project): array
+    {
+        $deliverables = $project->relationLoaded('deliverables')
+            ? $project->deliverables
+            : $project->deliverables()->orderBy('sort_order')->get();
+
+        $grades = ProjectDeliverableGrade::query()
+            ->where('project_id', $project->project_id)
+            ->get()
+            ->keyBy('project_deliverable_id');
+
+        $rows = [];
+        foreach ($deliverables as $deliverable) {
+            $grade = $grades->get($deliverable->project_deliverable_id);
+            $rows[] = [
+                'project_deliverable_id' => (int) $deliverable->project_deliverable_id,
+                'title' => $deliverable->title,
+                'max_points' => round((float) ($deliverable->max_points ?? 0), 2),
+                'points' => $grade ? round((float) $grade->points, 2) : null,
+            ];
+        }
+
+        return $rows;
     }
 
     public function percentFor(float $points, ProjectAssessment $assessment): float
@@ -679,6 +888,9 @@ class ProjectGradingService
         ProjectTeamGradeCriterion::query()
             ->where('project_assessment_id', $assessment->project_assessment_id)
             ->delete();
+        ProjectDeliverableGrade::query()
+            ->where('project_assessment_id', $assessment->project_assessment_id)
+            ->delete();
         $assessment->criteria()->delete();
     }
 
@@ -689,6 +901,7 @@ class ProjectGradingService
         $grade?->teamCriterionScores()->delete();
         $grade?->delete();
         ProjectTeamGradeCriterion::query()->where('project_id', $project->project_id)->delete();
+        ProjectDeliverableGrade::query()->where('project_id', $project->project_id)->delete();
         ProjectMemberGrade::query()->where('project_id', $project->project_id)->delete();
     }
 

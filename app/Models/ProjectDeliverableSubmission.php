@@ -28,11 +28,15 @@ class ProjectDeliverableSubmission extends Model
         'link_url',
         'submitted_at',
         'is_late',
+        'instructor_feedback',
+        'reviewed_at',
+        'reviewed_by_user_id',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
         'is_late' => 'boolean',
+        'reviewed_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -60,6 +64,11 @@ class ProjectDeliverableSubmission extends Model
         return $this->belongsTo(User::class, 'submitted_by_user_id', 'user_id');
     }
 
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by_user_id', 'user_id');
+    }
+
     public function files(): HasMany
     {
         return $this->hasMany(
@@ -67,5 +76,10 @@ class ProjectDeliverableSubmission extends Model
             'project_deliverable_submission_id',
             'project_deliverable_submission_id'
         )->orderBy('project_submission_file_id');
+    }
+
+    public function hasInstructorFeedback(): bool
+    {
+        return filled($this->instructor_feedback);
     }
 }

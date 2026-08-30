@@ -207,7 +207,21 @@ class ProjectAdminService
             ]);
         }
 
+        $provider = (string) ($data['workspace_provider'] ?? $project->workspaceProvider());
+        if (! in_array($provider, Project::workspaceProviders(), true)) {
+            throw ValidationException::withMessages([
+                'workspace_provider' => [__('projects.workspace_provider_invalid')],
+            ]);
+        }
+
+        if ($url !== null && $url !== '' && ! Project::workspaceUrlMatchesProvider($url, $provider)) {
+            throw ValidationException::withMessages([
+                'team_workspace_url' => [__('projects.workspace_host_mismatch')],
+            ]);
+        }
+
         $project->update([
+            'workspace_provider' => $provider,
             'team_workspace_url' => ($url === '' ? null : $url),
             'team_announcement' => isset($data['team_announcement'])
                 ? (trim((string) $data['team_announcement']) ?: null)
@@ -217,6 +231,7 @@ class ProjectAdminService
         AuditLogService::recordEvent('project.workspace_updated', [
             'project_id' => $project->project_id,
             'project_assessment_id' => $project->project_assessment_id,
+            'workspace_provider' => $provider,
         ]);
 
         return $project->fresh();
@@ -397,6 +412,9 @@ class ProjectAdminService
                 'file_mode' => $fileMode,
                 'is_required' => (bool) ($deliverable['is_required'] ?? true),
                 'allow_late' => (bool) ($deliverable['allow_late'] ?? true),
+                'max_points' => isset($deliverable['max_points']) && $deliverable['max_points'] !== ''
+                    ? round((float) $deliverable['max_points'], 2)
+                    : null,
             ]);
         }
     }

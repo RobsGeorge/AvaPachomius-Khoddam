@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
 use App\Models\ProjectMembership;
+use App\Models\ProjectMembershipEvent;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -45,13 +46,13 @@ class ProjectAssignmentService
             $project = $this->pickProject($assessment, $excludeProjectId);
             $wasFirst = $project->activeMemberCount() === 0;
 
-            ProjectMembership::create([
-                'project_assessment_id' => $assessment->project_assessment_id,
-                'project_id' => $project->project_id,
-                'user_id' => $user->user_id,
-                'status' => ProjectMembership::STATUS_ACTIVE,
-                'assigned_at' => now(),
-            ]);
+            $this->seatMember($assessment, $project, (int) $user->user_id);
+            $this->recordMembershipEvent(
+                $assessment,
+                $project,
+                (int) $user->user_id,
+                ProjectMembershipEvent::EVENT_JOINED,
+            );
 
             $project = $project->fresh();
             $justCompleted = $this->syncTeamStatus($project, $assessment);
@@ -265,9 +266,14 @@ class ProjectAssignmentService
      * Admin force-move. Bypasses the join window and the student's change chance;
      * the target team must still have a free seat and not be cancelled.
      */
-    public function moveMember(ProjectMembership $membership, Project $target, User $actor): ProjectMembership
+    public function moveMember(
+        ProjectMembership $membership,
+        Project $target,
+        User $actor,
+        string $inboundEvent = ProjectMembershipEvent::EVENT_MOVED_IN,
+    ): ProjectMembership
     {
-        return DB::transaction(function () use ($membership, $target, $actor) {
+        return DB::transaction(function () use ($membership, $target, $actor, $inboundEvent) {
             $assessment = ProjectAssessment::query()
                 ->whereKey($membership->project_assessment_id)
                 ->lockForUpdate()
@@ -311,14 +317,26 @@ class ProjectAssignmentService
                 'moved_by_user_id' => $actor->user_id,
             ]);
 
-            $moved = ProjectMembership::create([
-                'project_assessment_id' => $assessment->project_assessment_id,
-                'project_id' => $target->project_id,
-                'user_id' => $student->user_id,
-                'status' => ProjectMembership::STATUS_ACTIVE,
-                'assigned_at' => now(),
-                'moved_by_user_id' => $actor->user_id,
-            ]);
+            if ($fromProject) {
+                $this->recordMembershipEvent(
+                    $assessment,
+                    $fromProject,
+                    (int) $student->user_id,
+                    ProjectMembershipEvent::EVENT_MOVED_OUT,
+                    (int) $actor->user_id,
+                    ['to_project_id' => (int) $target->project_id],
+                );
+            }
+
+            $moved = $this->seatMember($assessment, $target, (int) $student->user_id, (int) $actor->user_id);
+            $this->recordMembershipEvent(
+                $assessment,
+                $target,
+                (int) $student->user_id,
+                $inboundEvent,
+                (int) $actor->user_id,
+                ['from_project_id' => $fromProjectId],
+            );
 
             if ($fromProject) {
                 $this->syncTeamStatus($fromProject->fresh(), $assessment);
@@ -448,7 +466,12 @@ class ProjectAssignmentService
             }
 
             foreach ($memberships as $membership) {
-                $this->moveMember($membership, $into, $actor);
+                $this->moveMember(
+                    $membership,
+                    $into,
+                    $actor,
+                    ProjectMembershipEvent::EVENT_MERGED_IN,
+                );
             }
 
             $from = $from->fresh();
@@ -570,16 +593,79 @@ class ProjectAssignmentService
         ?ProjectAssessment $assessment = null,
         bool $chanceUsed = false,
     ): void {
+        $assessment ??= ProjectAssessment::query()
+            ->whereKey($membership->project_assessment_id)
+            ->first();
+        $project = Project::query()->whereKey($membership->project_id)->first();
+
         $membership->update(array_filter([
             'status' => ProjectMembership::STATUS_LEFT,
             'left_at' => now(),
             'change_chance_used_at' => $chanceUsed ? now() : null,
         ], fn ($value) => $value !== null));
 
-        $project = Project::query()->whereKey($membership->project_id)->first();
-        if ($project) {
+        if ($assessment && $project) {
+            $this->recordMembershipEvent(
+                $assessment,
+                $project,
+                (int) $membership->user_id,
+                ProjectMembershipEvent::EVENT_LEFT,
+            );
+            $this->syncTeamStatus($project, $assessment);
+        } elseif ($project) {
             $this->syncTeamStatus($project, $assessment ?? $project->assessment);
         }
+    }
+
+    /**
+     * Student-visible append-only timeline row for a team.
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public function recordMembershipEvent(
+        ProjectAssessment $assessment,
+        Project $project,
+        int $userId,
+        string $event,
+        ?int $actorUserId = null,
+        array $meta = [],
+    ): ProjectMembershipEvent {
+        return ProjectMembershipEvent::create([
+            'project_assessment_id' => $assessment->project_assessment_id,
+            'project_id' => $project->project_id,
+            'user_id' => $userId,
+            'actor_user_id' => $actorUserId,
+            'event' => $event,
+            'meta' => $meta === [] ? null : $meta,
+            'occurred_at' => now(),
+        ]);
+    }
+
+    /**
+     * `project_memberships` is unique on (project_id, user_id), so a student who
+     * comes back to a team they were once on must revive that row instead of
+     * inserting a second one. `change_chance_used_at` is left untouched: the
+     * chance is spent for the whole assessment, not per seat.
+     */
+    private function seatMember(
+        ProjectAssessment $assessment,
+        Project $project,
+        int $userId,
+        ?int $movedByUserId = null,
+    ): ProjectMembership {
+        return ProjectMembership::updateOrCreate(
+            [
+                'project_id' => $project->project_id,
+                'user_id' => $userId,
+            ],
+            [
+                'project_assessment_id' => $assessment->project_assessment_id,
+                'status' => ProjectMembership::STATUS_ACTIVE,
+                'assigned_at' => now(),
+                'left_at' => null,
+                'moved_by_user_id' => $movedByUserId,
+            ]
+        );
     }
 
     /**

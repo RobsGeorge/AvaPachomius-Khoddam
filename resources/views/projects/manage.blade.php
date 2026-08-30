@@ -313,12 +313,22 @@
 
                         <form method="POST" action="{{ route('projects.workspace.update', $project) }}" class="row g-2 align-items-end mt-2">
                             @csrf
-                            <div class="col-md-5">
+                            <div class="col-md-3">
+                                <label class="form-label small mb-1">{{ __('projects.workspace_provider') }}</label>
+                                <select name="workspace_provider" class="form-select form-select-sm">
+                                    @foreach(\App\Models\Project::workspaceProviders() as $provider)
+                                        <option value="{{ $provider }}" @selected(($project->workspace_provider ?: 'custom') === $provider)>
+                                            {{ __('projects.workspace_provider_'.$provider) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label small mb-1">{{ __('projects.team_workspace_url') }}</label>
                                 <input type="url" name="team_workspace_url" class="form-control form-control-sm"
                                        value="{{ $project->team_workspace_url }}" placeholder="https://">
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-3">
                                 <label class="form-label small mb-1">{{ __('projects.team_announcement') }}</label>
                                 <input type="text" name="team_announcement" class="form-control form-control-sm"
                                        value="{{ $project->team_announcement }}">
