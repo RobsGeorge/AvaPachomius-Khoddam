@@ -24,6 +24,10 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Submissions vs join window (v2) | Submissions stay open after `join_closes_at`; only joining and self-service change close. |
 | Deliverable edits (v2) | Editing a team's deliverables replaces the rows, so it is blocked once that team has any submission. |
 | Team workspace (v2) | Optional per-team `team_workspace_url` + `team_announcement` set by staff; shown to members and staff on the team page. Link-out only — no chat is hosted in the app. |
+| Workspace provider (v3) | Optional `workspace_provider` on the team (`custom`, `drive`, `whatsapp`, `telegram`). When set, `team_workspace_url` must match the provider host pattern. Deep-link only — no OAuth or provisioning. |
+| Submission review (v3) | Instructors may save inline feedback on a team deliverable submission (`review_feedback`, `reviewed_at`, `reviewed_by_user_id`). First save notifies the submitter via `project_submission_feedback`. |
+| Deliverable grading (v3) | Assessment `grading_mode`: `rubric` (default) or `deliverables`. In deliverables mode, staff score each deliverable per team in `project_deliverable_grades`; `ProjectGradingService::gradeTeamByDeliverables()` rolls up to the team grade via `propagateTeamGrade`. |
+| Peer evaluation (v3) | Optional anonymous peer ratings between active teammates (`project_peer_ratings`). Windowed via `peer_eval_*` settings on the assessment. **Informational only** — never writes `project_member_grades`. Admins see anonymous averages. |
 | Per-team rubric (v2) | The assessment rubric is shared. A team may deviate: reweight a shared criterion, rename it, drop it, or add a team-only criterion. The **effective** criteria for every team must still sum to the assessment `max_points`, so all teams are graded out of the same total and percentages stay comparable. |
 | Rubric edits (v2) | Editing the shared criteria clears every per-team deviation, because those rows are expressed against the shared rubric. |
 | Student rubric view (v2) | Once grades are announced (and required feedback is in), the student sees their team's effective criteria with points and a per-criterion percentage. |
@@ -78,6 +82,13 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-31 | Instructor | Export the assessment roster as CSV (one row per member, empty teams included) | Logged to `audit_log` | `project.manage` |
 | UC-PRJ-32 | Instructor | Opt an assessment into gradebook sync; announcing pushes member grades to the course gradebook | No `project` grade category → skipped silently; turning the toggle on after announcing backfills; re-sync updates the same grade item | `project.manage` (toggle), `project.grade` (announce) |
 | UC-PRJ-33 | Student | See the team change history (joined / left / moved / merged) on the team page and in the mobile API | Hidden from non-members | `project.view`; own membership |
+| UC-PRJ-34 | Instructor | Save inline feedback on a team's deliverable submission | Non-manager → 403; first save notifies submitter | `project.manage` |
+| UC-PRJ-35 | Instructor | Grade teams by deliverable scores when `grading_mode = deliverables` | Rollup propagates to member grades like rubric mode | `project.grade` |
+| UC-PRJ-36 | Instructor | Configure peer evaluation window, scale and prompt on the grades screen | Disabled by default | `project.grade` |
+| UC-PRJ-37 | Student | Rate each unrated active teammate during the peer eval window | Self-rating → validation; non-teammate → validation; closed window → validation | `project.join`; own membership |
+| UC-PRJ-38 | Instructor | View anonymous peer averages per team member on the team page | Individual raters never exposed | `project.manage` |
+| UC-PRJ-39 | Instructor | Pick a workspace provider when setting the team link; URL must match provider | Invalid host → validation | `project.manage` |
+| UC-PRJ-40 | Student | Receive a deliverable deadline reminder when a required deliverable is due soon and the team has not submitted | Dedupe: one per user / deliverable / calendar day | recipient-scoped |
 
 ## Pack-fill algorithm
 
@@ -123,6 +134,7 @@ deliverables). Each `projects` row is one team **and** one unique topic.
 | `project_change_requested` | instructor, admin | Staff with `project.manage` on that course (v1 requests only) |
 | `project_change_decided` | student | Approve or reject |
 | `project_deliverable_deadline` | student | Active members of published, non-cancelled teams when a deliverable `due_at` is within their `lead_hours` window and the team has **no** submission yet. Dedupe: one per user / deliverable / calendar day. |
+| `project_submission_feedback` | student | Submitter when an instructor saves review feedback on their team's deliverable submission for the **first** time. |
 
 ## Deliverable submissions
 
@@ -170,6 +182,8 @@ grade category of type `project`, keeps one `grade_items` row per assessment
 | POST | `/project-assessments/{assessment}/leave` | `project.join` |
 | POST | `/projects/{project}/deliverables/{deliverable}/submit` | `project.join` + own membership |
 | DELETE | `/projects/{project}/submission-files/{file}` | `project.join` + own membership |
+| GET | `/projects/{project}/peer-ratings/pending` | `project.join` + own membership |
+| POST | `/projects/{project}/peer-ratings` | `project.join` + own membership |
 
 Thin wrappers over `ProjectAssignmentService`, `ProjectSubmissionService`,
 `ProjectGradingService` and `ProjectResultsVisibilityService` — the join window,
@@ -185,6 +199,12 @@ the web, and validation failures surface as 422 with the same messages.
 `UseCases/Projects/ProjectDeliverableTypeMatrixTest`,
 `UseCases/Projects/ProjectAnnounceResilienceTest`,
 `UseCases/Projects/ProjectDeliverableDeadlineReminderTest`,
+`UseCases/Projects/ProjectMembershipHistoryTest`,
+`UseCases/Projects/ProjectSubmissionReviewTest`,
+`UseCases/Projects/ProjectDeliverableGradingTest`,
+`UseCases/Projects/ProjectWorkspaceProviderTest`,
+`UseCases/Projects/ProjectPeerEvaluationTest`,
 `Unit/ProjectAssignmentServiceTest`, `Unit/ProjectGradingServiceTest`,
-`Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`,
-`Api/ProjectApiTest`, `Tenancy/ProjectIsolationTest`.
+`Unit/ProjectSubmissionServiceTest`, `Unit/ProjectTeamRubricTest`, `Unit/ProjectPackFillTest`,
+`Api/ProjectApiTest`, `Api/ProjectApiGuardsTest`,
+`Tenancy/ProjectIsolationTest`, `Tenancy/ProjectCapabilityGateTest`.
