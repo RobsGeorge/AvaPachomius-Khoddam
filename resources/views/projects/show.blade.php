@@ -64,7 +64,8 @@
         <div class="col-lg-8">
             <div class="app-card card shadow-sm mb-3">
                 <div class="card-body">
-                    <h2 class="h5 fw-bold">{{ __('projects.requirements') }}</h2>
+                    <h2 class="h5 fw-bold">{{ __('projects.team_description_label') }}</h2>
+                    <p class="small text-muted">{{ __('projects.team_description_student_help') }}</p>
                     <p class="mb-0" style="white-space: pre-wrap;">{{ $project->requirements ?: '—' }}</p>
                 </div>
             </div>

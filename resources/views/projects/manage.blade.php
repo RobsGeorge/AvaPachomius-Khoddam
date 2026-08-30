@@ -12,52 +12,88 @@
         </div>
     </div>
 
+    <div class="alert alert-info mb-4">
+        <div class="fw-semibold mb-1">{{ __('projects.onboarding_admin_title') }}</div>
+        <p class="mb-2 small">{{ __('projects.onboarding_admin_intro') }}</p>
+        <ol class="small mb-0 ps-3">
+            <li>{{ __('projects.onboarding_admin_step_1') }}</li>
+            <li>{{ __('projects.onboarding_admin_step_2') }}</li>
+            <li>{{ __('projects.onboarding_admin_step_3') }}</li>
+            <li>{{ __('projects.onboarding_admin_step_4') }}</li>
+        </ol>
+    </div>
     <div class="app-card card shadow-sm mb-4">
         <div class="card-body">
-            <h2 class="h5 fw-bold mb-3">{{ __('projects.create') }}</h2>
+            <h2 class="h5 fw-bold mb-1">{{ __('projects.create') }}</h2>
+            <p class="small text-muted mb-3">{{ __('projects.create_help') }}</p>
             <form method="POST" action="{{ route('projects.assessments.store') }}">
                 @csrf
-                @if(! $course)
-                    <div class="mb-3">
-                        <label class="form-label" for="course_id">{{ __('pages.course') }}</label>
-                        <input type="number" name="course_id" id="course_id" class="form-control" value="{{ old('course_id') }}" required>
-                    </div>
-                @endif
+                <div class="mb-3">
+                    <label class="form-label" for="course_id">{{ __('pages.course') }}</label>
+                    @if($courseLocked ?? false)
+                        <input type="hidden" name="course_id" value="{{ $course->course_id }}">
+                        <input type="text" id="course_id" class="form-control" disabled
+                               value="{{ $course->localizedTitle() }}@if($course->year) ({{ $course->year }})@endif">
+                        <div class="form-text">{{ __('projects.course_locked_help') }}</div>
+                    @else
+                        <select name="course_id" id="course_id" class="form-select @error('course_id') is-invalid @enderror" required>
+                            <option value="">{{ __('projects.course_select_placeholder') }}</option>
+                            @foreach($courses ?? [] as $optionCourse)
+                                <option value="{{ $optionCourse->course_id }}"
+                                    @selected(old('course_id') == $optionCourse->course_id)>
+                                    {{ $optionCourse->localizedTitle() }}@if($optionCourse->year) ({{ $optionCourse->year }})@endif
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">{{ __('projects.course_select_help') }}</div>
+                        @error('course_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @if(($courses ?? collect())->isEmpty())
+                            <div class="text-danger small mt-1">{{ __('projects.course_select_empty') }}</div>
+                        @endif
+                    @endif
+                </div>
                 <div class="mb-3">
                     <label class="form-label" for="module_id">{{ __('projects.module') }}</label>
                     <select name="module_id" id="module_id" class="form-select @error('module_id') is-invalid @enderror" required>
-                        <option value="">—</option>
+                        <option value="">{{ __('projects.module_select_placeholder') }}</option>
                         @foreach($modules as $module)
                             <option value="{{ $module->module_id }}" @selected(old('module_id') == $module->module_id)>{{ $module->title }}</option>
                         @endforeach
                     </select>
+                    <div class="form-text">{{ __('projects.module_help') }}</div>
                     @error('module_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="title">{{ __('projects.assessment') }}</label>
+                    <label class="form-label" for="title">{{ __('projects.assessment_title_label') }}</label>
                     <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" required>
+                    <div class="form-text">{{ __('projects.assessment_title_help') }}</div>
                     @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="description">{{ __('projects.description') }}</label>
+                    <label class="form-label" for="description">{{ __('projects.assessment_description_label') }}</label>
                     <textarea name="description" id="description" class="form-control" rows="2">{{ old('description') }}</textarea>
+                    <div class="form-text">{{ __('projects.assessment_description_help') }}</div>
                 </div>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="min_team_size">{{ __('projects.min_team') }}</label>
                         <input type="number" name="min_team_size" id="min_team_size" class="form-control" min="1" max="50" value="{{ old('min_team_size', 2) }}" required>
+                        <div class="form-text">{{ __('projects.min_team_help') }}</div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="max_team_size">{{ __('projects.max_team') }}</label>
                         <input type="number" name="max_team_size" id="max_team_size" class="form-control" min="1" max="50" value="{{ old('max_team_size', 4) }}" required>
+                        <div class="form-text">{{ __('projects.max_team_help') }}</div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="max_points">{{ __('projects.max_points') }}</label>
                         <input type="number" name="max_points" id="max_points" class="form-control" min="0.01" max="9999.99" step="0.01" value="{{ old('max_points', 100) }}">
+                        <div class="form-text">{{ __('projects.max_points_help') }}</div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="passing_percent">{{ __('projects.passing_percent') }}</label>
                         <input type="number" name="passing_percent" id="passing_percent" class="form-control" min="0" max="100" value="{{ old('passing_percent', 50) }}" required>
+                        <div class="form-text">{{ __('projects.passing_percent_help') }}</div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="join_closes_at">{{ __('projects.join_closes_at') }}</label>
@@ -87,8 +123,14 @@
                     <p class="small text-muted">{{ __('projects.criteria_hint') }}</p>
                     <div id="criteria-wrap">
                         <div class="row g-2 mb-2">
-                            <div class="col-md-8"><input type="text" name="criteria[0][title]" class="form-control" placeholder="{{ __('projects.criterion_title') }}"></div>
-                            <div class="col-md-4"><input type="number" name="criteria[0][max_points]" class="form-control" min="0.01" step="0.01" placeholder="{{ __('projects.criterion_max') }}"></div>
+                            <div class="col-md-8">
+                                <label class="form-label small mb-1">{{ __('projects.criterion_title') }}</label>
+                                <input type="text" name="criteria[0][title]" class="form-control" placeholder="{{ __('projects.criterion_title') }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.criterion_max') }}</label>
+                                <input type="number" name="criteria[0][max_points]" class="form-control" min="0.01" step="0.01" placeholder="{{ __('projects.criterion_max') }}">
+                            </div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-repeat-criteria>{{ __('projects.add_criterion') }}</button>
@@ -102,10 +144,14 @@
                         @foreach($oldSubs as $index => $row)
                             <div class="row g-2 mb-2">
                                 <div class="col-md-5">
-                                    <input type="text" name="subprojects[{{ $index }}][title]" class="form-control" value="{{ $row['title'] ?? '' }}" placeholder="{{ __('projects.subproject_title') }}">
+                                    <label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label>
+                                    <input type="text" name="subprojects[{{ $index }}][title]" class="form-control" value="{{ $row['title'] ?? '' }}" placeholder="{{ __('projects.subproject_title_placeholder') }}">
+                                    <div class="form-text">{{ __('projects.subproject_title_help') }}</div>
                                 </div>
                                 <div class="col-md-7">
-                                    <input type="text" name="subprojects[{{ $index }}][requirements]" class="form-control" value="{{ $row['requirements'] ?? '' }}" placeholder="{{ __('projects.subproject_requirements') }}">
+                                    <label class="form-label small mb-1">{{ __('projects.subproject_requirements') }}</label>
+                                    <input type="text" name="subprojects[{{ $index }}][requirements]" class="form-control" value="{{ $row['requirements'] ?? '' }}" placeholder="{{ __('projects.subproject_requirements_placeholder') }}">
+                                    <div class="form-text">{{ __('projects.subproject_requirements_help') }}</div>
                                 </div>
                             </div>
                         @endforeach
@@ -115,26 +161,48 @@
                 <div class="mb-3">
                     <label class="form-label" for="requirements">{{ __('projects.shared_requirements') }}</label>
                     <textarea name="requirements" id="requirements" class="form-control" rows="3">{{ old('requirements') }}</textarea>
+                    <div class="form-text">{{ __('projects.shared_requirements_help') }}</div>
                 </div>
                 <div class="mb-3">
                     <div class="fw-semibold mb-2">{{ __('projects.phases') }}</div>
+                    <p class="small text-muted">{{ __('projects.phases_help') }}</p>
                     <div id="phases-wrap">
                         <div class="row g-2 mb-2">
-                            <div class="col-md-4"><input type="text" name="phases[0][title]" class="form-control" placeholder="{{ __('projects.phase') }}"></div>
-                            <div class="col-md-4"><input type="datetime-local" name="phases[0][deadline]" class="form-control"></div>
-                            <div class="col-md-4"><input type="text" name="phases[0][description]" class="form-control" placeholder="{{ __('projects.description') }}"></div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.phase_title') }}</label>
+                                <input type="text" name="phases[0][title]" class="form-control" placeholder="{{ __('projects.phase') }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.phase_deadline') }}</label>
+                                <input type="datetime-local" name="phases[0][deadline]" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.phase_description') }}</label>
+                                <input type="text" name="phases[0][description]" class="form-control" placeholder="{{ __('projects.description') }}">
+                            </div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary" data-repeat="phases">{{ __('projects.add_phase') }}</button>
                 </div>
                 <div class="mb-3">
                     <div class="fw-semibold mb-2">{{ __('projects.deliverables') }}</div>
+                    <p class="small text-muted">{{ __('projects.deliverables_help') }}</p>
                     <div id="deliverables-wrap">
                         <div class="row g-2 mb-2">
-                            <div class="col-md-4"><input type="text" name="deliverables[0][title]" class="form-control" placeholder="{{ __('projects.deliverable') }}"></div>
-                            <div class="col-md-4"><input type="datetime-local" name="deliverables[0][due_at]" class="form-control"></div>
-                            <div class="col-md-4"><input type="text" name="deliverables[0][description]" class="form-control" placeholder="{{ __('projects.description') }}"></div>
                             <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.deliverable_title') }}</label>
+                                <input type="text" name="deliverables[0][title]" class="form-control" placeholder="{{ __('projects.deliverable') }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.due_at') }}</label>
+                                <input type="datetime-local" name="deliverables[0][due_at]" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.deliverable_description') }}</label>
+                                <input type="text" name="deliverables[0][description]" class="form-control" placeholder="{{ __('projects.description') }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.submission_type') }}</label>
                                 <select name="deliverables[0][submission_type]" class="form-select" aria-label="{{ __('projects.submission_type') }}">
                                     @foreach(\App\Models\ProjectDeliverable::submissionTypes() as $type)
                                         <option value="{{ $type }}">{{ __('projects.submission_type_'.$type) }}</option>
@@ -142,6 +210,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label small mb-1">{{ __('projects.file_mode') }}</label>
                                 <select name="deliverables[0][file_mode]" class="form-select" aria-label="{{ __('projects.file_mode') }}">
                                     <option value="single">{{ __('projects.file_mode_single') }}</option>
                                     <option value="multi">{{ __('projects.file_mode_multi', ['max' => \App\Models\ProjectDeliverable::MAX_FILES]) }}</option>
@@ -256,7 +325,7 @@
                     <div class="border rounded p-3 mb-2">
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div class="flex-grow-1">
-                                <div class="small text-muted">{{ __('projects.subproject') }}</div>
+                                <div class="small text-muted">{{ __('projects.subproject') }} · {{ __('projects.assessment') }}: {{ $assessment->title }}</div>
                                 <a href="{{ route('projects.show', $project) }}" class="fw-semibold">{{ $project->title }}</a>
                                 <div class="small text-muted">
                                     {{ __('projects.fill') }}:
@@ -265,15 +334,23 @@
                                         'max' => $assessment->max_team_size,
                                     ]) }}
                                 </div>
-                                <form method="POST" action="{{ route('projects.update', $project) }}" class="row g-2 align-items-end mt-2">
+                                @if($project->requirements)
+                                    <div class="small mt-1" style="white-space: pre-wrap;">{{ \Illuminate\Support\Str::limit($project->requirements, 160) }}</div>
+                                @endif
+                                <form method="POST" action="{{ route('projects.update', $project) }}" class="mt-2">
                                     @csrf
                                     @method('PUT')
-                                    <div class="col-md-8">
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label>
                                         <input type="text" name="title" class="form-control form-control-sm" value="{{ $project->title }}" required>
+                                        <div class="form-text">{{ __('projects.subproject_title_help') }}</div>
                                     </div>
-                                    <div class="col-md-4">
-                                        <button class="btn btn-sm btn-outline-secondary">{{ __('projects.rename_subproject') }}</button>
+                                    <div class="mb-2">
+                                        <label class="form-label small mb-1">{{ __('projects.team_description_label') }}</label>
+                                        <textarea name="requirements" class="form-control form-control-sm" rows="2">{{ $project->requirements }}</textarea>
+                                        <div class="form-text">{{ __('projects.team_description_help') }}</div>
                                     </div>
+                                    <button class="btn btn-sm btn-outline-secondary">{{ __('projects.save_team_details') }}</button>
                                 </form>
                             </div>
                             <div class="d-flex flex-column align-items-end gap-1">
@@ -322,16 +399,19 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <div class="form-text">{{ __('projects.workspace_provider_help') }}</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small mb-1">{{ __('projects.team_workspace_url') }}</label>
                                 <input type="url" name="team_workspace_url" class="form-control form-control-sm"
                                        value="{{ $project->team_workspace_url }}" placeholder="https://">
+                                <div class="form-text">{{ __('projects.team_workspace_url_help') }}</div>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small mb-1">{{ __('projects.team_announcement') }}</label>
                                 <input type="text" name="team_announcement" class="form-control form-control-sm"
                                        value="{{ $project->team_announcement }}">
+                                <div class="form-text">{{ __('projects.team_announcement_hint') }}</div>
                             </div>
                             <div class="col-md-2">
                                 <button class="btn btn-sm btn-outline-secondary">{{ __('projects.save_workspace') }}</button>
@@ -411,14 +491,19 @@
                 <form method="POST" action="{{ route('projects.store', $assessment) }}" class="mt-3">
                     @csrf
                     <div class="row g-2 align-items-end">
-                        <div class="col-md-7">
-                            <label class="form-label">{{ __('projects.add_subproject') }}</label>
-                            <input type="text" name="title" class="form-control" required placeholder="{{ __('projects.subproject_title') }}">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ __('projects.subproject_title') }}</label>
+                            <input type="text" name="title" class="form-control" required placeholder="{{ __('projects.subproject_title_placeholder') }}">
                         </div>
                         <div class="col-md-5">
+                            <label class="form-label">{{ __('projects.team_description_label') }}</label>
+                            <input type="text" name="requirements" class="form-control" placeholder="{{ __('projects.subproject_requirements_placeholder') }}">
+                        </div>
+                        <div class="col-md-3">
                             <button class="btn btn-outline-primary">{{ __('projects.add_subproject') }}</button>
                         </div>
                     </div>
+                    <div class="form-text">{{ __('projects.add_subproject_help') }}</div>
                 </form>
             </div>
         </div>
@@ -497,8 +582,8 @@ document.querySelectorAll('[data-repeat-subprojects]').forEach(function (btn) {
         var row = document.createElement('div');
         row.className = 'row g-2 mb-2';
         row.innerHTML =
-            '<div class="col-md-5"><input type="text" name="subprojects[' + index + '][title]" class="form-control"></div>' +
-            '<div class="col-md-7"><input type="text" name="subprojects[' + index + '][requirements]" class="form-control"></div>';
+            '<div class="col-md-5"><label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label><input type="text" name="subprojects[' + index + '][title]" class="form-control" placeholder="{{ __('projects.subproject_title_placeholder') }}"></div>' +
+            '<div class="col-md-7"><label class="form-label small mb-1">{{ __('projects.subproject_requirements') }}</label><input type="text" name="subprojects[' + index + '][requirements]" class="form-control" placeholder="{{ __('projects.subproject_requirements_placeholder') }}"></div>';
         wrap.appendChild(row);
     });
 });
