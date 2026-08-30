@@ -345,15 +345,12 @@ Design: `docs/product/use-cases/projects.md`.
 
 **Still parked:**
 
-1. **Peer / intra-team evaluation** — members scoring each other's contribution, feeding a
-   weighted individual grade. Needs its own product decisions (visibility, anonymity, whether
-   it can move a student's mark) before any schema.
-2. Real team workspace integration (chat/drive provisioning) — today it is a stored link plus a
-   free-text announcement.
-3. Deliverable-level grading (per-deliverable scores rolling up to the team grade).
-4. Instructor-side submission review UI beyond the checklist counts (inline feedback per submission).
-5. Student-visible team change history / audit trail.
-6. Reminder notifications before a deliverable due date (needs the reminder scheduler).
+1. ~~**Peer / intra-team evaluation**~~ → building in Projects v3 (anonymous, informational only).
+2. Real team workspace integration (chat/drive provisioning) — v3 ships provider deep-links only (no OAuth).
+3. ~~Deliverable-level grading (per-deliverable scores rolling up to the team grade).~~ → building in Projects v3.
+4. ~~Instructor-side submission review UI beyond the checklist counts (inline feedback per submission).~~ → building in Projects v3.
+5. ~~Student-visible team change history / audit trail.~~ → building in Projects v3.
+6. ~~Reminder notifications before a deliverable due date (needs the reminder scheduler).~~ → landed: `project_deliverable_deadline` via `NotificationScannerService::scanProjectDeliverableDeadlines` (lead_hours, one per user/deliverable/calendar day).
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or

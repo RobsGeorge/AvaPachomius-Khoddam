@@ -21,6 +21,8 @@ return [
             'project_member_moved',
             'project_change_requested',
             'project_change_decided',
+            'project_deliverable_deadline',
+            'project_submission_feedback',
             'exam_upcoming',
             'session_upcoming',
             'grade_posted',
@@ -166,6 +168,28 @@ return [
         ],
         'project_change_decided' => [
             'label' => 'notifications.types.project_change_decided',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_deliverable_deadline' => [
+            'label' => 'notifications.types.project_deliverable_deadline',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => ['lead_hours' => 24],
+            ],
+        ],
+        'project_submission_feedback' => [
+            'label' => 'notifications.types.project_submission_feedback',
             'category' => 'academic',
             'audience' => ['student'],
             'defaults' => [
