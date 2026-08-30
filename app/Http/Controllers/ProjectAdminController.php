@@ -392,6 +392,8 @@ class ProjectAdminController extends Controller
             'maxPoints' => $this->grading->maxPoints($projectAssessment),
             'teamRubrics' => $teamRubrics,
             'deliverableBreakdowns' => $deliverableBreakdowns,
+            'peerEvalStatus' => $this->peerEval->status($projectAssessment),
+            'peerTeamAverages' => $this->peerEval->adminTeamAverages($projectAssessment),
         ]);
     }
 
@@ -673,18 +675,36 @@ class ProjectAdminController extends Controller
 
     public function updatePeerEval(Request $request, ProjectAssessment $projectAssessment)
     {
-        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
         $validated = $request->validate([
             'peer_eval_enabled' => 'nullable|boolean',
             'peer_eval_opens_at' => 'nullable|date',
             'peer_eval_closes_at' => 'nullable|date|after_or_equal:peer_eval_opens_at',
             'peer_eval_scale_max' => 'nullable|integer|min:1|max:10',
             'peer_eval_prompt' => 'nullable|string|max:4000',
+            'peer_eval_min_picks' => 'nullable|integer|min:1|max:50',
+            'peer_eval_max_picks' => 'nullable|integer|min:1|max:50',
         ]);
 
         $this->peerEval->updateSettings($projectAssessment, $validated, Auth::user());
 
         return back()->with('success', __('projects.peer_eval_settings_saved'));
+    }
+
+    public function openPeerEval(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $this->peerEval->openNow($projectAssessment, Auth::user());
+
+        return back()->with('success', __('projects.peer_eval_opened'));
+    }
+
+    public function closePeerEval(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanGradeCourse((int) $projectAssessment->course_id);
+        $this->peerEval->closeNow($projectAssessment, Auth::user());
+
+        return back()->with('success', __('projects.peer_eval_closed_now'));
     }
 
     private function validateAssessment(Request $request): array

@@ -27,7 +27,7 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | Workspace provider (v3) | Optional `workspace_provider` on the team (`custom`, `drive`, `whatsapp`, `telegram`). When set, `team_workspace_url` must match the provider host pattern. Deep-link only — no OAuth or provisioning. |
 | Submission review (v3) | Instructors may save inline feedback on a team deliverable submission (`review_feedback`, `reviewed_at`, `reviewed_by_user_id`). First save notifies the submitter via `project_submission_feedback`. |
 | Deliverable grading (v3) | Assessment `grading_mode`: `rubric` (default) or `deliverables`. In deliverables mode, staff score each deliverable per team in `project_deliverable_grades`; `ProjectGradingService::gradeTeamByDeliverables()` rolls up to the team grade via `propagateTeamGrade`. |
-| Peer evaluation (v3) | Optional anonymous peer ratings between active teammates (`project_peer_ratings`). Windowed via `peer_eval_*` settings on the assessment. **Informational only** — never writes `project_member_grades`. Admins see anonymous averages. |
+| Peer evaluation (v3) | Optional **cross-team** anonymous ratings (`project_peer_ratings.ratee_project_id`). Students **self-pick** other teams that have ≥1 submission; admin sets min/max picks and can **Open now**. **Informational only** — never writes `project_member_grades`. Admins see overall + per-rater-team averages (no rater user ids). Replaces within-team peer eval. |
 | Per-team rubric (v2) | The assessment rubric is shared. A team may deviate: reweight a shared criterion, rename it, drop it, or add a team-only criterion. The **effective** criteria for every team must still sum to the assessment `max_points`, so all teams are graded out of the same total and percentages stay comparable. |
 | Rubric edits (v2) | Editing the shared criteria clears every per-team deviation, because those rows are expressed against the shared rubric. |
 | Student rubric view (v2) | Once grades are announced (and required feedback is in), the student sees their team's effective criteria with points and a per-criterion percentage. |
@@ -84,9 +84,9 @@ project row is one team/topic. Min/max team size live on the parent **project as
 | UC-PRJ-33 | Student | See the team change history (joined / left / moved / merged) on the team page and in the mobile API | Hidden from non-members | `project.view`; own membership |
 | UC-PRJ-34 | Instructor | Save inline feedback on a team's deliverable submission | Non-manager → 403; first save notifies submitter | `project.manage` |
 | UC-PRJ-35 | Instructor | Grade teams by deliverable scores when `grading_mode = deliverables` | Rollup propagates to member grades like rubric mode | `project.grade` |
-| UC-PRJ-36 | Instructor | Configure peer evaluation window, scale and prompt on the grades screen | Disabled by default | `project.grade` |
-| UC-PRJ-37 | Student | Rate each unrated active teammate during the peer eval window | Self-rating → validation; non-teammate → validation; closed window → validation | `project.join`; own membership |
-| UC-PRJ-38 | Instructor | View anonymous peer averages per team member on the team page | Individual raters never exposed | `project.manage` |
+| UC-PRJ-36 | Instructor | Configure peer evaluation: window, scale, prompt, min/max team picks; **Open now** / **Close now** | Disabled by default; Open now enables + sets opens_at to now | `project.grade` |
+| UC-PRJ-37 | Student | Self-pick and rate other teams that have submitted work (title + deliverables read-only) during the open window | Own team / no submission / over max picks → validation; blank rows skipped | `project.join`; own membership |
+| UC-PRJ-38 | Instructor | View anonymous peer averages per ratee team (overall + by rater team) | Individual raters never exposed | `project.grade` / `project.manage` |
 | UC-PRJ-39 | Instructor | Pick a workspace provider when setting the team link; URL must match provider | Invalid host → validation | `project.manage` |
 | UC-PRJ-40 | Student | Receive a deliverable deadline reminder when a required deliverable is due soon and the team has not submitted | Dedupe: one per user / deliverable / calendar day | recipient-scoped |
 

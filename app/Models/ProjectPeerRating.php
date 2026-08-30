@@ -7,7 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Anonymous peer rating. Informational only — never writes member grades.
+ * Anonymous cross-team peer rating. Informational only — never writes member grades.
+ * ratee_project_id is the team being rated; project_id is the rater's team.
+ * ratee_user_id is legacy (within-team) and unused for new rows (stored as 0).
  */
 class ProjectPeerRating extends Model
 {
@@ -20,6 +22,7 @@ class ProjectPeerRating extends Model
     protected $fillable = [
         'project_assessment_id',
         'project_id',
+        'ratee_project_id',
         'rater_user_id',
         'ratee_user_id',
         'score',
@@ -40,13 +43,13 @@ class ProjectPeerRating extends Model
         return $this->belongsTo(Project::class, 'project_id', 'project_id');
     }
 
+    public function rateeProject(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'ratee_project_id', 'project_id');
+    }
+
     public function rater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rater_user_id', 'user_id');
-    }
-
-    public function ratee(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'ratee_user_id', 'user_id');
     }
 }
