@@ -233,6 +233,42 @@ class ProjectNotificationService
         );
     }
 
+    public function notifySubmissionFeedback(\App\Models\ProjectDeliverableSubmission $submission): void
+    {
+        $project = $submission->project;
+        $deliverable = $submission->deliverable;
+        if (! $project || ! $deliverable) {
+            return;
+        }
+
+        $url = route('projects.show', $project);
+        $title = __('projects.notify_submission_feedback_title', [
+            'deliverable' => $deliverable->title,
+        ]);
+        $body = __('projects.notify_submission_feedback_body', [
+            'project' => $project->title,
+            'deliverable' => $deliverable->title,
+        ]);
+
+        foreach ($project->activeMembers() as $member) {
+            $this->notifications->createOrUpdate(
+                $member,
+                'project_submission_feedback',
+                $title,
+                $body,
+                $url,
+                \App\Models\ProjectDeliverableSubmission::class,
+                (int) $submission->project_deliverable_submission_id,
+                metadata: [
+                    'course_id' => $project->assessment?->course_id,
+                    'project_id' => $project->project_id,
+                    'project_deliverable_id' => $deliverable->project_deliverable_id,
+                ],
+                dedupeKey: 'project_submission_feedback:'.$submission->project_deliverable_submission_id.':'.$member->user_id,
+            );
+        }
+    }
+
     private function rosterLines(Project $project, ?int $exceptUserId = null): string
     {
         $lines = $project->activeMembers()
