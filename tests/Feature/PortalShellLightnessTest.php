@@ -51,19 +51,29 @@ class PortalShellLightnessTest extends EventModuleTestCase
         $this->assertDoesNotMatchRegularExpression("/\bclass='[^']*\\bfas\\s+fa-/", $html);
     }
 
-    public function test_theme_css_uses_fast_reveal_and_no_loader_blur(): void
+    public function test_theme_css_keeps_orbit_loader_without_blur(): void
     {
         $css = file_get_contents(public_path('css/khoddam-theme.css'));
         $this->assertNotFalse($css);
 
         $this->assertMatchesRegularExpression('/--reveal-duration:\s*0\.4s/', $css);
-        $this->assertStringContainsString('@keyframes kh-nav-progress', $css);
+        $this->assertStringContainsString('.kh-page-loader__disc', $css);
         $this->assertStringContainsString('khoddam-swal-animate', $css);
-        // Full-screen navigation blur was removed; keep card blurs untouched.
+        // Brand Orbit overlay stays; GPU blur on the full-page scrim stays off.
         $this->assertDoesNotMatchRegularExpression(
             '/\.kh-page-loader\s*\{[^}]*backdrop-filter:\s*blur/s',
             $css
         );
+    }
+
+    public function test_page_loader_partial_renders_orbit_brand(): void
+    {
+        $partial = file_get_contents(resource_path('views/layouts/partials/page-loader.blade.php'));
+        $this->assertNotFalse($partial);
+        $this->assertStringContainsString('id="kh-page-loader"', $partial);
+        $this->assertStringContainsString('<x-orbit', $partial);
+        $this->assertStringContainsString('kh-page-loader__disc', $partial);
+        $this->assertStringNotContainsString('visually-hidden">{{ __(\'app.loading\') }}', $partial);
     }
 
     public function test_student_photo_partial_is_lazy_loaded(): void
