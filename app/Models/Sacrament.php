@@ -136,6 +136,11 @@ class Sacrament extends Model
         return $this->belongsTo(self::class, 'corrects_sacrament_id', 'sacrament_id');
     }
 
+    public function certificate(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'certificate_document_id', 'document_id');
+    }
+
     public function formattedDate(?string $locale = null): string
     {
         return SacramentDateFormatter::format($this, $locale);

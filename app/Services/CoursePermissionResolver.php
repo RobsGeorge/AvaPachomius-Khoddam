@@ -27,8 +27,8 @@ class CoursePermissionResolver
     private const WRITE_SUFFIXES = ['.manage', '.grade', '.author', '.record', '.edit', '.close', '.publish', '.host', '.admin', '.configure'];
 
     private const LIFECYCLE_DENIED = [
-        Course::STATUS_GRADING_LOCKED => ['grade.manage', 'exam.author', 'assignment.manage'],
-        Course::STATUS_ANNOUNCED => ['grade.manage', 'exam.author', 'assignment.manage', 'curriculum.manage', 'announcement.manage', 'role.manage'],
+        Course::STATUS_GRADING_LOCKED => ['grade.manage', 'exam.author', 'assignment.manage', 'project.manage'],
+        Course::STATUS_ANNOUNCED => ['grade.manage', 'exam.author', 'assignment.manage', 'project.manage', 'curriculum.manage', 'announcement.manage', 'role.manage'],
         Course::STATUS_CLOSED => ['role.manage', 'user.assign_role'],
         Course::STATUS_ARCHIVED => ['role.manage', 'user.assign_role'],
     ];
@@ -38,6 +38,8 @@ class CoursePermissionResolver
         'curriculum.manage',
         'attendance.record',
         'assignment.manage',
+        'project.manage',
+        'project.grade',
         'exam.author',
         'grade.manage',
         'role.manage',
@@ -46,6 +48,7 @@ class CoursePermissionResolver
     /** Learner permission keys (student template) used for authz bundles. */
     public const LEARNER_PERMISSION_KEYS = [
         'assignment.submit',
+        'project.join',
         'exam.take',
         'attendance.view_own',
     ];
@@ -427,7 +430,7 @@ class CoursePermissionResolver
 
         return in_array($permission, [
             'user.assign_role', 'course.close', 'assignment.submit',
-            'exam.take', 'exam.proctor', 'events.reserve',
+            'project.join', 'exam.take', 'exam.proctor', 'events.reserve',
         ], true);
     }
 
@@ -452,7 +455,15 @@ class CoursePermissionResolver
 
     private function previewPermissionsInSystem(): Collection
     {
-        if (! RolePreviewService::isGeneral() || ! $this->systemRbacReady()) {
+        // Church-admin preview (startChurchAdminRole) also sets is_general=true (to
+        // suppress course-context UI) but its role is church-scoped, not a real
+        // system role — treating its permissions as system-level here would let a
+        // previewing superadmin retain real superadmin-only access (e.g. the legacy
+        // AdminMiddleware's SYSTEM_PERMS whitelist), defeating the whole point of
+        // masking the superadmin bypass during preview.
+        if (! RolePreviewService::isGeneral()
+            || RolePreviewService::isChurchAdminMode()
+            || ! $this->systemRbacReady()) {
             return collect();
         }
 

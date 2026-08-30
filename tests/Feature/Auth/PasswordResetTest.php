@@ -5,7 +5,9 @@ namespace Tests\Feature\Auth;
 use App\Mail\ResetPasswordMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 /**
@@ -42,5 +44,60 @@ class PasswordResetTest extends TestCase
             ->assertRedirect();
 
         Mail::assertNotSent(ResetPasswordMail::class);
+    }
+
+    public function test_invalid_reset_token_uses_localized_passwords_token_in_arabic(): void
+    {
+        $user = User::factory()->create();
+
+        $this->withSession(['locale' => 'ar'])
+            ->from(route('password.reset', ['token' => 'invalid-token']))
+            ->post(route('password.update'), [
+                'token' => 'invalid-token',
+                'email' => $user->email,
+                'password' => 'NewPass1!',
+                'password_confirmation' => 'NewPass1!',
+            ])
+            ->assertSessionHasErrors(['email' => __('passwords.token')]);
+
+        $this->assertSame('رمز إعادة تعيين كلمة المرور غير صالح.', __('passwords.token'));
+    }
+
+    public function test_invalid_reset_token_uses_localized_passwords_token_in_english(): void
+    {
+        $user = User::factory()->create();
+
+        $this->withSession(['locale' => 'en'])
+            ->from(route('password.reset', ['token' => 'invalid-token']))
+            ->post(route('password.update'), [
+                'token' => 'invalid-token',
+                'email' => $user->email,
+                'password' => 'NewPass1!',
+                'password_confirmation' => 'NewPass1!',
+            ])
+            ->assertSessionHasErrors(['email' => __('passwords.token')]);
+
+        $this->assertSame('This password reset token is invalid.', __('passwords.token'));
+    }
+
+    public function test_reused_reset_token_uses_localized_passwords_token(): void
+    {
+        $user = User::factory()->create();
+        $token = Password::broker()->createToken($user);
+
+        $payload = [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'NewPass1!',
+            'password_confirmation' => 'NewPass1!',
+        ];
+
+        $this->post(route('password.update'), $payload)->assertRedirect(route('login'));
+        $this->assertTrue(Hash::check('NewPass1!', $user->fresh()->password));
+
+        $this->withSession(['locale' => 'ar'])
+            ->from(route('password.reset', ['token' => $token]))
+            ->post(route('password.update'), $payload)
+            ->assertSessionHasErrors(['email' => __('passwords.token')]);
     }
 }

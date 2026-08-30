@@ -29,6 +29,7 @@ return [
     'applicant_view' => 'Applicant view',
     'applicant_preview_banner' => 'Preview mode — this is how applicants see the form. Submissions are disabled.',
     'preview_no_steps' => 'Add at least one step before previewing the applicant view.',
+    'signup_default_step' => 'Applicant details',
     'manage_form' => 'Application form',
     'filter_all' => 'All applications',
     'filter_course' => 'Course',

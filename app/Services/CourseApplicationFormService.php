@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\CourseApplicationForm;
 use App\Models\CourseApplicationFormField;
 use App\Models\CourseApplicationFormStep;
+use App\Models\RegistrationApplication;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,136 @@ class CourseApplicationFormService
                 'created_by_user_id' => $creator?->user_id,
             ]
         );
+    }
+
+    /**
+     * Public signup (and course create) must be able to submit a course application
+     * even when admins never opened the form builder. Closed/archived courses are
+     * excluded by the caller via {@see Course::isActive()}.
+     */
+    public function ensureReadyForPublicSignup(Course $course): CourseApplicationForm
+    {
+        $this->ensureStudentRoleForCourse($course);
+
+        $form = $this->getOrCreateForCourse($course);
+        $studentRole = Role::studentRoleForCourse($course->course_id);
+
+        $dirty = false;
+        if (! $form->is_enabled) {
+            $form->is_enabled = true;
+            $dirty = true;
+        }
+        if (! $form->default_role_id && $studentRole) {
+            $form->default_role_id = $studentRole->role_id;
+            $dirty = true;
+        }
+        if (! filled($form->title)) {
+            $form->title = $course->title;
+            $dirty = true;
+        }
+        if ($dirty) {
+            $form->save();
+        }
+
+        $this->ensureDefaultSignupFields($form);
+
+        return $form->fresh(['steps.fields']);
+    }
+
+    /**
+     * Backfill every currently-active course so existing rows become enrollable.
+     * Cross-church on purpose: migrate/console has no request tenant.
+     */
+    public function provisionActiveCoursesForPublicSignup(): int
+    {
+        $count = 0;
+
+        // withoutTenancy: artisan/migrate backfill must cover every church, not
+        // only a bound Tenant Zero (CLAUDE.md rule 3).
+        Course::query()
+            ->withoutTenancy()
+            ->orderBy('course_id')
+            ->get()
+            ->filter(fn (Course $course) => $course->isActive())
+            ->each(function (Course $course) use (&$count) {
+                $this->ensureReadyForPublicSignup($course);
+                $count++;
+            });
+
+        return $count;
+    }
+
+    public function ensureDefaultSignupFields(CourseApplicationForm $form): void
+    {
+        $form->loadMissing('steps.fields');
+        $existingKeys = $form->steps
+            ->flatMap(fn (CourseApplicationFormStep $step) => $step->fields)
+            ->pluck('field_key')
+            ->filter()
+            ->all();
+
+        if ($existingKeys !== []) {
+            return;
+        }
+
+        $step = $form->steps->first();
+        if (! $step) {
+            $step = $this->createStep($form, [
+                'title' => __('course_applications.signup_default_step'),
+            ]);
+        }
+
+        foreach ($this->defaultSignupFieldDefs() as $def) {
+            $this->createField($step, [
+                'field_key' => $def['field_key'],
+                'type' => $def['type'],
+                'label' => __('registration_review.fields.'.$def['field_key']),
+                'required' => $def['required'],
+            ]);
+        }
+    }
+
+    /** @return list<array{field_key: string, type: string, required: bool}> */
+    private function defaultSignupFieldDefs(): array
+    {
+        $types = [
+            'first_name' => CourseApplicationFormField::TYPE_SHORT_TEXT,
+            'second_name' => CourseApplicationFormField::TYPE_SHORT_TEXT,
+            'third_name' => CourseApplicationFormField::TYPE_SHORT_TEXT,
+            'national_id' => CourseApplicationFormField::TYPE_SHORT_TEXT,
+            'mobile_number' => CourseApplicationFormField::TYPE_PHONE,
+            'email' => CourseApplicationFormField::TYPE_EMAIL,
+            'job' => CourseApplicationFormField::TYPE_SHORT_TEXT,
+            'date_of_birth' => CourseApplicationFormField::TYPE_DATE,
+            'profile_photo' => CourseApplicationFormField::TYPE_IMAGE,
+        ];
+
+        $defs = [];
+        foreach (RegistrationApplication::REVIEWABLE_FIELDS as $key) {
+            $defs[] = [
+                'field_key' => $key,
+                'type' => $types[$key] ?? CourseApplicationFormField::TYPE_SHORT_TEXT,
+                'required' => $key !== 'profile_photo' && $key !== 'job',
+            ];
+        }
+
+        return $defs;
+    }
+
+    private function ensureStudentRoleForCourse(Course $course): void
+    {
+        if (Role::studentRoleForCourse($course->course_id)) {
+            return;
+        }
+
+        $templates = app(RoleTemplateService::class);
+        $templates->ensureSystemTemplates();
+
+        if (Role::studentRoleForCourse($course->course_id)) {
+            return;
+        }
+
+        $templates->cloneTemplatesIntoCourse($course);
     }
 
     public function updateForm(CourseApplicationForm $form, array $data): CourseApplicationForm

@@ -1,0 +1,385 @@
+<?php
+
+namespace Tests\Feature\Tenancy;
+
+use App\Models\Church;
+use App\Models\GradeCategory;
+use App\Models\GradeItem;
+use App\Models\Module;
+use App\Models\Project;
+use App\Models\ProjectAssessment;
+use App\Models\ProjectChangeRequest;
+use App\Models\ProjectDeliverable;
+use App\Models\ProjectDeliverableSubmission;
+use App\Models\ProjectGradeCriterion;
+use App\Models\ProjectMemberGrade;
+use App\Models\ProjectMembership;
+use App\Models\ProjectPhase;
+use App\Models\ProjectSubmissionFile;
+use App\Models\ProjectTeamCriterionScore;
+use App\Models\ProjectTeamGrade;
+use App\Models\ProjectTeamGradeCriterion;
+use App\Models\StudentGrade;
+use App\Tenancy\TenantContext;
+use App\Services\ProjectAdminService;
+use App\Services\ProjectAssignmentService;
+use App\Services\ProjectGradebookSyncService;
+use App\Services\ProjectGradingService;
+use App\Services\ProjectSubmissionService;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\Support\EventModuleTestCase;
+
+class ProjectIsolationTest extends EventModuleTestCase
+{
+    protected function tearDown(): void
+    {
+        TenantContext::clear();
+        parent::tearDown();
+    }
+
+    public function test_project_assessments_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-isol-b', 'name' => 'Project B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_A', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod A', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-isol-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_PRJ_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminA);
+        $this->assertSame((int) $churchA->church_id, (int) $assessmentA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $assessmentA->projects->first()->church_id);
+
+        TenantContext::set($churchB);
+        $courseB = $this->createCourse(['title' => 'PRJ_B', 'church_id' => $churchB->church_id]);
+        $moduleB = Module::create(['title' => 'Mod B', 'description' => 'B']);
+        $courseB->modules()->attach($moduleB->module_id);
+        $adminB = $this->createUser(['email' => 'prj-isol-b@example.com']);
+        $assessmentB = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseB->course_id,
+            'module_id' => $moduleB->module_id,
+            'title' => 'ISO_PRJ_B',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminB);
+
+        $this->assertNull(ProjectAssessment::find($assessmentA->project_assessment_id));
+        $this->assertNotNull(ProjectAssessment::find($assessmentB->project_assessment_id));
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectAssessment::find($assessmentA->project_assessment_id));
+        $this->assertNull(ProjectAssessment::find($assessmentB->project_assessment_id));
+    }
+
+    public function test_project_memberships_and_seating_flags_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-seat-isol-b', 'name' => 'Seat B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_SA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod SA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-seat-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-seat-student-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_SEAT_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 2,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'seed_pool_size' => 1,
+        ], $adminA);
+
+        $assignments = app(ProjectAssignmentService::class);
+        $seated = $assignments->assignStudent($assessmentA, $studentA, notify: false);
+        $assignments->lockTeam($seated, $adminA);
+        $membershipId = (int) $assessmentA->activeMembershipFor((int) $studentA->user_id)->project_membership_id;
+
+        $this->assertSame((int) $churchA->church_id, (int) $seated->church_id);
+        $this->assertTrue($seated->fresh()->isLocked());
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectMembership::find($membershipId));
+        $this->assertNull(Project::find($seated->project_id));
+        $this->assertSame(0, ProjectMembership::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectMembership::find($membershipId));
+        $this->assertNotNull(Project::find($seated->project_id));
+    }
+
+    public function test_project_submissions_and_files_are_scoped_by_church(): void
+    {
+        Storage::fake('public');
+
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-sub-isol-b', 'name' => 'Sub B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_UA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod UA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-sub-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-sub-student-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_SUB_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminA);
+
+        $projectA = $assessmentA->projects()->firstOrFail();
+        $deliverableA = ProjectDeliverable::create([
+            'project_id' => $projectA->project_id,
+            'title' => 'Report',
+            'sort_order' => 0,
+            'submission_type' => ProjectDeliverable::TYPE_PDF,
+            'file_mode' => ProjectDeliverable::FILE_MODE_SINGLE,
+        ]);
+
+        $submissionA = app(ProjectSubmissionService::class)->submit(
+            $projectA,
+            $deliverableA,
+            $studentA,
+            [],
+            [UploadedFile::fake()->create('iso.pdf', 12, 'application/pdf')]
+        );
+        $fileIdA = (int) $submissionA->files->first()->project_submission_file_id;
+
+        $this->assertSame((int) $churchA->church_id, (int) $submissionA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $submissionA->files->first()->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectDeliverableSubmission::find($submissionA->project_deliverable_submission_id));
+        $this->assertNull(ProjectSubmissionFile::find($fileIdA));
+        $this->assertSame(0, ProjectDeliverableSubmission::query()->count());
+        $this->assertSame(0, ProjectSubmissionFile::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectDeliverableSubmission::find($submissionA->project_deliverable_submission_id));
+        $this->assertNotNull(ProjectSubmissionFile::find($fileIdA));
+    }
+
+    public function test_project_grades_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-grade-isol-b', 'name' => 'Grade B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_GA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod GA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-grade-isol-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_GRADE_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminA);
+        $grading = app(ProjectGradingService::class);
+        $assessmentA = $grading->syncCriteria($assessmentA, [
+            ['title' => 'Work', 'max_points' => 10],
+        ]);
+        $projectA = $assessmentA->projects()->first();
+        $criterionA = $assessmentA->criteria->first();
+        $grading->gradeTeam($assessmentA, $projectA, [
+            $criterionA->project_grade_criterion_id => 8,
+        ], $adminA);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectGradeCriterion::find($criterionA->project_grade_criterion_id));
+        $this->assertNull(ProjectTeamGrade::query()->where('project_id', $projectA->project_id)->first());
+        $this->assertSame(0, ProjectMemberGrade::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectGradeCriterion::find($criterionA->project_grade_criterion_id));
+        $this->assertNotNull(ProjectTeamGrade::query()->where('project_id', $projectA->project_id)->first());
+    }
+
+    public function test_gradebook_sync_rows_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-gb-isol-b', 'name' => 'Gradebook B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_GBA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod GBA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-gb-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-gb-student-a@example.com']);
+        GradeCategory::create([
+            'course_id' => $courseA->course_id,
+            'type' => ProjectGradebookSyncService::CATEGORY_TYPE,
+            'name' => 'Projects',
+            'weight_percentage' => 20,
+            'ordering' => 1,
+        ]);
+
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_GB_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'max_points' => 100,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'sync_to_gradebook' => true,
+        ], $adminA);
+
+        $projectA = $assessmentA->projects()->firstOrFail();
+        app(ProjectAssignmentService::class)->assignStudent($assessmentA, $studentA, notify: false);
+
+        $grading = app(ProjectGradingService::class);
+        $grading->gradeTeam($assessmentA, $projectA, [], $adminA, null, 90.0);
+        $grading->announce($assessmentA, $adminA);
+
+        $itemId = (int) $assessmentA->fresh()->gradebook_item_id;
+        $this->assertNotSame(0, $itemId);
+        $this->assertSame((int) $churchA->church_id, (int) GradeItem::findOrFail($itemId)->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(GradeItem::find($itemId));
+        $this->assertSame(0, StudentGrade::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(GradeItem::find($itemId));
+        $this->assertSame(1, StudentGrade::query()->where('item_id', $itemId)->count());
+    }
+
+    public function test_briefs_and_change_requests_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-brief-isol-b', 'name' => 'Brief B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_BA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod BA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-brief-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-brief-student-a@example.com']);
+
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_BRIEF_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 2,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+            'seed_pool_size' => 1,
+            'phases' => [['title' => 'Plan', 'deadline' => now()->addWeek()->toDateTimeString()]],
+            'deliverables' => [['title' => 'Report', 'submission_type' => ProjectDeliverable::TYPE_TEXT]],
+        ], $adminA);
+
+        $projectA = app(ProjectAssignmentService::class)->assignStudent($assessmentA, $studentA, notify: false);
+        $phaseA = $projectA->phases()->firstOrFail();
+        $deliverableA = $projectA->deliverables()->firstOrFail();
+        $changeA = ProjectChangeRequest::create([
+            'project_assessment_id' => $assessmentA->project_assessment_id,
+            'user_id' => $studentA->user_id,
+            'from_project_id' => $projectA->project_id,
+            'reason' => 'Legacy v1 request',
+            'status' => ProjectChangeRequest::STATUS_PENDING,
+        ]);
+
+        $this->assertSame((int) $churchA->church_id, (int) $phaseA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $deliverableA->church_id);
+        $this->assertSame((int) $churchA->church_id, (int) $changeA->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectPhase::find($phaseA->project_phase_id));
+        $this->assertNull(ProjectDeliverable::find($deliverableA->project_deliverable_id));
+        $this->assertNull(ProjectChangeRequest::find($changeA->project_change_request_id));
+        $this->assertSame(0, ProjectPhase::query()->count());
+        $this->assertSame(0, ProjectDeliverable::query()->count());
+        $this->assertSame(0, ProjectChangeRequest::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectPhase::find($phaseA->project_phase_id));
+        $this->assertNotNull(ProjectDeliverable::find($deliverableA->project_deliverable_id));
+        $this->assertNotNull(ProjectChangeRequest::find($changeA->project_change_request_id));
+    }
+
+    public function test_per_team_rubric_rows_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-rubric-isol-b', 'name' => 'Rubric B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_RA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod RA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-rubric-isol-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_RUBRIC_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'max_points' => 100,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminA);
+
+        $grading = app(ProjectGradingService::class);
+        $assessmentA = $grading->syncCriteria($assessmentA, [
+            ['title' => 'Research', 'max_points' => 40],
+            ['title' => 'Delivery', 'max_points' => 60],
+        ]);
+        $projectA = $assessmentA->projects()->firstOrFail();
+        $criteriaA = $assessmentA->criteria;
+
+        $grading->syncTeamCriteria($assessmentA, $projectA, [
+            ['project_grade_criterion_id' => $criteriaA[0]->project_grade_criterion_id, 'max_points' => 40],
+            ['project_grade_criterion_id' => $criteriaA[1]->project_grade_criterion_id, 'max_points' => 40],
+            ['title' => 'Field visit', 'max_points' => 20],
+        ], $adminA);
+
+        $effective = $grading->effectiveCriteria($assessmentA, $projectA);
+        $grading->gradeTeam($assessmentA, $projectA, [
+            $effective[0]['key'] => 40,
+            $effective[1]['key'] => 40,
+            $effective[2]['key'] => 20,
+        ], $adminA);
+
+        $teamRow = ProjectTeamGradeCriterion::query()
+            ->where('project_id', $projectA->project_id)
+            ->whereNull('project_grade_criterion_id')
+            ->firstOrFail();
+        $teamScoreId = (int) ProjectTeamCriterionScore::query()->firstOrFail()->project_team_criterion_score_id;
+
+        $this->assertSame((int) $churchA->church_id, (int) $teamRow->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectTeamGradeCriterion::find($teamRow->project_team_grade_criterion_id));
+        $this->assertNull(ProjectTeamCriterionScore::find($teamScoreId));
+        $this->assertSame(0, ProjectTeamGradeCriterion::query()->count());
+        $this->assertSame(0, ProjectTeamCriterionScore::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectTeamGradeCriterion::find($teamRow->project_team_grade_criterion_id));
+        $this->assertNotNull(ProjectTeamCriterionScore::find($teamScoreId));
+    }
+}

@@ -2,16 +2,16 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
+use Tests\Support\EventModuleTestCase;
 
-class ExampleTest extends TestCase
+class ExampleTest extends EventModuleTestCase
 {
     /**
      * A basic test example.
      */
-    public function test_the_application_shows_login_at_root_for_guests(): void
+    public function test_the_application_redirects_guests_to_login(): void
     {
-        $this->get('/')->assertOk()->assertViewIs('auth.login');
+        // Unpublished public homepage falls back to login rather than serving a 200.
+        $this->get('/')->assertRedirect(route('login'));
     }
 }

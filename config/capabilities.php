@@ -44,6 +44,14 @@ return [
         'config' => [],
     ],
 
+    'projects' => [
+        'label' => 'capabilities.projects',
+        'permissions' => [
+            'project.view', 'project.join', 'project.manage', 'project.grade',
+        ],
+        'config' => [],
+    ],
+
     'exams' => [
         'label' => 'capabilities.exams',
         'permissions' => [

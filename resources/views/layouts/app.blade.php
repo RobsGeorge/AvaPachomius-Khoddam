@@ -90,7 +90,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
     <script defer src="{{ asset('js/csrf-heal.js') }}?v=20260830a"></script>
     <script defer src="{{ asset('js/kh-loader.js') }}?v=20260830a"></script>
-    <script defer src="{{ asset('js/khoddam-ui.js') }}?v=20260830a"></script>
+    <script defer src="{{ asset('js/khoddam-ui.js') }}?v=20260830-mobile"></script>
     <script defer src="{{ asset('js/observability-beacon.js') }}?v=20260830a"></script>
     @stack('scripts')
 </body>

@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\PermissionGroup;
 use App\Models\Role;
+use App\Models\RoleAssignmentEmailTemplate;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserServiceRole;
 use App\Models\UserSystemRole;
-use App\Models\RoleAssignmentEmailTemplate;
+use App\Policies\RolePermissionPolicy;
 use App\Services\PendingRegistrationService;
 use App\Services\RoleAssignmentMailService;
 use App\Services\RolesHubService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class RolesHubController extends Controller
 {
@@ -26,28 +30,24 @@ class RolesHubController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $this->hub->canAccess($user), 403);
 
-        // F7: the full user directory feeds several assignment <select>s. Load it at most
-        // once per request instead of running the same full-table query 2–3 times.
-        $userDirectory = null;
-        $loadUsers = function () use (&$userDirectory) {
-            return $userDirectory ??= User::orderBy('first_name')->orderBy('second_name')->get();
-        };
-
-        $visibleSections = $this->hub->visibleSections($user);
+        $service = $this->hub->resolveService($user, $request->query('service'), $request->query('course'));
+        $visibleSections = $this->hub->visibleSections($user, $service);
         $section = $request->query('section');
         if (! in_array($section, $visibleSections, true)) {
-            $section = $visibleSections[0] ?? 'course';
+            $section = $visibleSections[0] ?? null;
         }
 
-        $service = $this->hub->resolveService($user, $request->query('service'));
-        $manageableServices = $this->hub->manageableServices($user);
         $manageableCourses = $this->hub->manageableCourses($user, $service);
         $course = $this->hub->resolveCourse($user, $request->query('course'), $service);
+        $systemWide = $this->hub->isSystemWideMode($user, $service);
 
         $roles = collect();
         $assignments = collect();
+        $accountStatuses = collect();
         $canManageCourse = false;
         $canAssignCourse = false;
+        $otherCourses = collect();
+        $assignUsers = collect();
 
         $serviceRoles = collect();
         $serviceMembers = collect();
@@ -61,7 +61,7 @@ class RolesHubController extends Controller
         if ($service) {
             $canManageService = $this->hub->canManageService($user, $service);
             $canAssignService = $this->hub->canAssignInService($user, $service);
-            $canCrossAddService = app(\App\Policies\RolePermissionPolicy::class)
+            $canCrossAddService = app(RolePermissionPolicy::class)
                 ->addCrossServiceMember($user, $service);
 
             if ($canManageService) {
@@ -78,12 +78,17 @@ class RolesHubController extends Controller
             }
 
             if ($canManageService || $canAssignService) {
-                $serviceMembers = \App\Models\UserServiceRole::where('service_id', $service->service_id)
+                $serviceMembers = UserServiceRole::where('service_id', $service->service_id)
                     ->with(['user', 'role'])
                     ->orderByDesc('is_primary')
                     ->orderBy('user_id')
                     ->get();
-                $serviceAssignUsers = $loadUsers();
+                $already = $serviceMembers->pluck('user_id');
+                $serviceAssignUsers = User::query()
+                    ->when($already->isNotEmpty(), fn ($q) => $q->whereNotIn('user_id', $already))
+                    ->orderBy('first_name')
+                    ->orderBy('second_name')
+                    ->get();
             }
 
             if ($canCrossAddService) {
@@ -113,43 +118,23 @@ class RolesHubController extends Controller
                     ->with(['user', 'role'])
                     ->orderBy('user_id')
                     ->get();
+                $accountStatuses = $assignments->mapWithKeys(function (UserCourseRole $assignment) {
+                    $status = $assignment->user
+                        ? PendingRegistrationService::accountStatus($assignment->user)
+                        : PendingRegistrationService::unknownAccountStatus();
+
+                    return [$assignment->user_course_role_id => $status];
+                });
+                $assignUsers = $this->assignableUsersForCourse($course, $service);
             }
-        }
 
-        $allAssignments = collect();
-        $accountStatuses = collect();
-        $users = collect();
-        $rolesByCourse = collect();
-        $legacyRoles = collect();
-        $otherCourses = collect();
-
-        if ($this->hub->canViewAllAssignments($user)) {
-            // F7: paginate the assignment list — it grows linearly with users×courses and
-            // was previously loaded unbounded on every hub request.
-            $allAssignments = UserCourseRole::with(['user', 'course', 'role'])
-                ->orderByDesc('course_id')
-                ->paginate(50)
-                ->withQueryString();
-            $accountStatuses = collect($allAssignments->items())->mapWithKeys(function (UserCourseRole $assignment) {
-                $status = $assignment->user
-                    ? PendingRegistrationService::accountStatus($assignment->user)
-                    : PendingRegistrationService::unknownAccountStatus();
-
-                return [$assignment->user_course_role_id => $status];
-            });
-            $users = $loadUsers();
-            $rolesByCourse = Role::assignableToCourses()
-                ->with('course')
-                ->orderBy('role_name')
-                ->get()
-                ->groupBy('course_id');
-            $legacyRoles = Role::legacyGlobals()->orderBy('role_name')->get();
-        }
-
-        if ($course && $canManageCourse) {
-            $otherCourses = Course::where('course_id', '!=', $course->course_id)
-                ->orderBy('title')
-                ->get();
+            if ($canManageCourse) {
+                $scopeServiceId = $service?->service_id ?? $course->service_id;
+                $otherCourses = Course::where('course_id', '!=', $course->course_id)
+                    ->when($scopeServiceId, fn ($q) => $q->where('service_id', $scopeServiceId))
+                    ->orderBy('title')
+                    ->get();
+            }
         }
 
         $templates = collect();
@@ -158,8 +143,10 @@ class RolesHubController extends Controller
         $systemGroups = collect();
         $systemAssignments = collect();
         $visibilityGroups = collect();
+        $emailTemplates = collect();
+        $users = collect();
 
-        if ($this->hub->canManageTemplates($user)) {
+        if ($systemWide && $this->hub->canManageTemplates($user)) {
             $templates = Role::whereNull('course_id')
                 ->where('is_template', true)
                 ->with('permissions')
@@ -170,7 +157,7 @@ class RolesHubController extends Controller
                 ->get();
         }
 
-        if ($this->hub->canManageSystemRoles($user)) {
+        if ($systemWide && $this->hub->canManageSystemRoles($user)) {
             $systemRoles = Role::whereNull('course_id')
                 ->where('is_template', false)
                 ->where('is_system', true)
@@ -182,20 +169,16 @@ class RolesHubController extends Controller
                 ->orderBy('sort_order')
                 ->get();
             $systemAssignments = UserSystemRole::with(['user', 'role'])->get();
+            $users = User::orderBy('first_name')->orderBy('second_name')->get();
         }
 
-        if ($this->hub->canManageGroupVisibility($user)) {
+        if ($systemWide && $this->hub->canManageGroupVisibility($user)) {
             $visibilityGroups = PermissionGroup::with('visibility')
                 ->orderBy('sort_order')
                 ->get();
         }
 
-        $assignUsers = $canAssignCourse || $canManageCourse
-            ? $loadUsers()
-            : collect();
-
-        $emailTemplates = collect();
-        if ($this->hub->canManageEmailTemplates($user)) {
+        if ($systemWide && $this->hub->canManageEmailTemplates($user)) {
             $this->roleMail->ensureDefaults();
             $emailTemplates = RoleAssignmentEmailTemplate::query()
                 ->orderBy('template_key')
@@ -211,7 +194,7 @@ class RolesHubController extends Controller
             'course',
             'manageableCourses',
             'service',
-            'manageableServices',
+            'systemWide',
             'serviceRoles',
             'serviceMembers',
             'servicePermissionGroups',
@@ -222,13 +205,9 @@ class RolesHubController extends Controller
             'crossCandidateUsers',
             'roles',
             'assignments',
+            'accountStatuses',
             'canManageCourse',
             'canAssignCourse',
-            'allAssignments',
-            'accountStatuses',
-            'users',
-            'rolesByCourse',
-            'legacyRoles',
             'otherCourses',
             'templates',
             'templateGroups',
@@ -238,6 +217,7 @@ class RolesHubController extends Controller
             'visibilityGroups',
             'assignUsers',
             'emailTemplates',
+            'users',
         ));
     }
 
@@ -245,6 +225,7 @@ class RolesHubController extends Controller
     {
         $user = $request->user();
         abort_unless($user instanceof User && $this->hub->canManageEmailTemplates($user), 403);
+        abort_unless($this->hub->isSystemWideMode($user, $this->hub->resolveService($user, null)), 403);
 
         $validated = $request->validate([
             'templates' => ['required', 'array'],
@@ -263,5 +244,20 @@ class RolesHubController extends Controller
 
         return redirect($this->hub->hubUrl(null, 'email-templates'))
             ->with('success', __('rbac.email_templates_saved'));
+    }
+
+    /** @return Collection<int, User> */
+    private function assignableUsersForCourse(Course $course, ?ChurchService $service): Collection
+    {
+        $serviceId = $service?->service_id ?? $course->service_id;
+        if (! $serviceId) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereHas('userServiceRoles', fn ($q) => $q->where('service_id', $serviceId))
+            ->orderBy('first_name')
+            ->orderBy('second_name')
+            ->get();
     }
 }

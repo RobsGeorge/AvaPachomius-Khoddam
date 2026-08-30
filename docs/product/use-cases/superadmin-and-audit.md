@@ -2,8 +2,9 @@
 
 Persona: **SuperAdmin** (bypasses permission checks). Controllers: `SuperAdminController`,
 `SuperAdminAuditController`, `SuperAdminEventTestController`, `SuperAdminSystemTestController`,
-`Admin\TranslationController`, `Admin\ProfilePhotoReportController`; services `AuditLogService`,
-`ImpersonationService`, `ForceLogoutService`, `SystemTestRunner`, `ProfilePhotoAdminService`.
+`SuperAdmin\UserDeletionController`, `Admin\TranslationController`, `Admin\ProfilePhotoReportController`;
+services `AuditLogService`, `ImpersonationService`, `ForceLogoutService`, `UserDeletionService`,
+`SystemTestRunner`, `ProfilePhotoAdminService`.
 
 | UC | Persona | Main path | Alternate / error paths | Authorization boundary |
 |---|---|---|---|---|
@@ -16,6 +17,8 @@ Persona: **SuperAdmin** (bypasses permission checks). Controllers: `SuperAdminCo
 | UC-SA-07 | SuperAdmin | Run the **System testing report** — categorized pipelines, view results/history | Runs on in-memory sqlite; never touches prod DB | superadmin |
 | UC-SA-08 | SuperAdmin | Run the Events-module test dashboard | — | superadmin |
 | UC-SA-09 | SuperAdmin | Manage portal settings (theme, profile-photo gate) | — | superadmin |
+| UC-SA-10 | SuperAdmin | Search users by name / church / service; soft-delete (optional email or WhatsApp notice); hard-delete with typed-email warning | Cannot delete self or last superadmin; hard delete blocked if FKs remain | superadmin (`platform.users.delete`) |
 
-**Coverage:** `SuperAdminEventTestsDashboardTest`, `ProfilePhotoAdminTest`, `ImpersonationTest`;
-console denial in `AuthorizationMatrixTest`; audit-on-destroy `🔲 planned` (CLAUDE.md rule 8).
+**Coverage:** `SuperAdminEventTestsDashboardTest`, `ProfilePhotoAdminTest`, `ImpersonationTest`,
+`SuperadminUserDeletionTest`; console denial in `AuthorizationMatrixTest`; deletion writes `audit_log`
+via `AuditLogService::recordEvent`.

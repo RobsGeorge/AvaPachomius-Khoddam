@@ -44,10 +44,7 @@
                     <label class="form-label">{{ __('pages.due_date') }}</label>
                     <input type="datetime-local" name="due_at" class="form-control" value="{{ old('due_at') }}">
                 </div>
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" name="is_mandatory" value="1" id="is_mandatory" @checked(old('is_mandatory', true))>
-                    <label class="form-check-label" for="is_mandatory">{{ __('pages.feedback_mandatory_label') }}</label>
-                </div>
+                @include('feedback.admin.partials.blocking-attribute', ['isMandatory' => true])
                 <button type="submit" class="btn btn-primary">{{ __('pages.continue_to_builder') }}</button>
             </form>
         </div>

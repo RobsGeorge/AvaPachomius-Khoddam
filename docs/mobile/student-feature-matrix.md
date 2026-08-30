@@ -63,6 +63,11 @@ Suggested waves (priority order for API + Expo work):
 | 34 | Content feedback | `contents.feedback*` | — | **Planned** | **Planned** | C | Lower priority |
 | 35 | Onboarding complete | `onboarding.complete` | — | **Planned** | **Planned** | E | |
 | 36 | Design / marketing homepage | `home` | — | **N/A** | **N/A** | — | Auth app entry = login |
+| 37 | Team projects list | `projects.index` | `project.view` | **Done** `GET /courses/{id}/projects` | **Partial** | C | Expo screens merged; join window + my team per assessment |
+| 38 | My team detail | `projects.show` | `project.view` | **Done** `GET /projects/{id}` | **Partial** | C | Roster, phases, deliverable checklist, grade + rubric % |
+| 39 | Join team / leave once | `projects.join`, `projects.leave` | `project.join` | **Done** `POST /project-assessments/{id}/join`, `…/leave` | **Partial** | C | Leave reassigns immediately; one chance |
+| 40 | Deliverable submit | `projects.deliverables.submit` | `project.join` | **Done** `POST /projects/{id}/deliverables/{id}/submit` | **Partial** | C | Multipart, 10 MB/file, or link/text |
+| 41 | Remove a submitted file | `projects.submission-files.destroy` | `project.join` | **Done** `DELETE /projects/{id}/submission-files/{id}` | **Partial** | C | Multi-file deliverables |
 
 ---
 
@@ -115,6 +120,12 @@ These appear in `web.php` but are **not** student product goals for mobile:
 | GET | `/api/v1/assignments/{id}` | Sanctum |
 | POST | `/api/v1/assignments/{id}/submit` | Sanctum |
 | POST | `/api/v1/submissions/{id}` | Sanctum |
+| GET | `/api/v1/courses/{id}/projects` | Sanctum |
+| GET | `/api/v1/projects/{id}` | Sanctum |
+| POST | `/api/v1/project-assessments/{id}/join` | Sanctum |
+| POST | `/api/v1/project-assessments/{id}/leave` | Sanctum |
+| POST | `/api/v1/projects/{id}/deliverables/{id}/submit` | Sanctum |
+| DELETE | `/api/v1/projects/{id}/submission-files/{id}` | Sanctum |
 | GET | `/api/v1/certificates` | Sanctum |
 | GET | `/api/v1/certificates/{uuid}` | Sanctum |
 | GET | `/api/v1/events` | Sanctum |

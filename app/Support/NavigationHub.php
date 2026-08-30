@@ -38,6 +38,18 @@ class NavigationHub
             ], 'assignment.view', 'assignments'), 'assessment');
         }
 
+        if (self::canAnyCourse($user, $resolver, ['project.view', 'project.join', 'project.manage'])) {
+            $links[] = self::categorized(self::link('projects.index', 'dashboard.view_projects', 'bi-kanban', [
+                'projects.index', 'projects.show', 'projects.join',
+            ], 'project.view', 'projects'), 'assessment');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['project.manage', 'project.grade'])) {
+            $links[] = self::categorized(self::link('projects.manage', 'dashboard.manage_projects', 'bi-kanban-fill', [
+                'projects.manage', 'projects.assessments.*', 'projects.change-requests.*', 'projects.grades*',
+            ], 'project.manage', 'projects'), 'assessment');
+        }
+
         if (self::canAnyCourse($user, $resolver, ['exam.author', 'exam.grade'])) {
             $links[] = self::categorized(self::link('exams.dashboard', 'dashboard.manage_exams', 'bi-patch-check', [
                 'exams.dashboard', 'exams.builder', 'exams.grades', 'exams.admin-dashboard',
@@ -187,7 +199,7 @@ class NavigationHub
         if ($manageable->isNotEmpty()) {
             $serviceForHub = $current && $manageable->contains('service_id', $current->service_id)
                 ? $current
-                : $manageable->first();
+                : ($manageable->count() === 1 ? $manageable->first() : null);
             $links[] = [
                 'url' => $rolesHub->hubUrl(null, 'service', $serviceForHub),
                 'label' => __('rbac.section_service'),
@@ -325,11 +337,15 @@ class NavigationHub
 
         if ($hub->canAccess($user)) {
             $course = current_course();
+            $service = current_service();
+            $manageableCourses = $hub->manageableCourses($user, $service);
             $links[] = self::categorized([
                 'url' => $hub->hubUrl(
-                    $course && $hub->manageableCourses($user)->contains('course_id', $course->course_id)
+                    $course && $manageableCourses->contains('course_id', $course->course_id)
                         ? $course
-                        : null
+                        : null,
+                    $service ? 'service' : null,
+                    $service
                 ),
                 'label' => __('rbac.hub_title'),
                 'icon' => 'bi-shield-check',
@@ -398,6 +414,7 @@ class NavigationHub
         $exclusiveLinks = [
             self::hubLink('superadmin.churches.index', 'tenancy.nav_churches', 'tenancy.nav_churches_desc', 'bi-building', ['superadmin.churches.*'], true),
             self::hubLink('superadmin.people.merge.index', 'people.nav_merge', 'people.nav_merge_desc', 'bi-people', ['superadmin.people.*'], true),
+            self::hubLink('superadmin.users.index', 'user_deletion.nav', 'user_deletion.nav_desc', 'bi-person-x', ['superadmin.users.*'], true),
             self::hubLink('superadmin.courses', 'pages.manage_services_and_courses', 'pages.superadmin_services_and_courses_desc', 'bi-journal-bookmark-fill', ['superadmin.courses'], true),
             self::hubLink('roles.hub', 'rbac.hub_title', 'rbac.hub_intro', 'bi-shield-check', [
                 'roles.hub',

@@ -9,7 +9,7 @@ missing to serve every kind of user well.
 | File | What it is |
 |---|---|
 | [personas.md](personas.md) | The user types (guest → superadmin + accessibility personas), their entry points and permission profiles |
-| [use-cases/](use-cases/) | Per-module use-case catalog (`UC-<MODULE>-<n>`): main path, alternate/error paths, authorization boundary |
+| [use-cases/](use-cases/) | Per-module use-case catalog (`UC-<MODULE>-<n>`): main path, alternate/error paths, authorization boundary. Includes [projects](use-cases/projects.md). |
 | [test-cases/test-case-catalog.md](test-cases/test-case-catalog.md) | `TC-<MODULE>-<n>` → UC mapping, given/when/then, type, **automation status**, priority |
 | [feature-gap-analysis.md](feature-gap-analysis.md) | Prioritized functional backlog to make the system useful to all personas (not implemented) |
 | [accessibility-audit.md](accessibility-audit.md) | WCAG 2.1 AA audit + ranked fixes (RTL, keyboard, screen-reader, contrast, mobile) |

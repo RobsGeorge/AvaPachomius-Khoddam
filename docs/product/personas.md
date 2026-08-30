@@ -26,16 +26,16 @@ templates: service-admin/service-member).
 
 ### 3. Student (course member — `student` template)
 - **Permissions:** `course.view`, `course.access`, `curriculum.view`, `assignment.view`,
-  `assignment.submit`, `exam.view`, `exam.take`, `grade.view`, `certificate.download`,
+  `assignment.submit`, `project.view`, `project.join`, `exam.view`, `exam.take`, `grade.view`, `certificate.download`,
   `attendance.view_own`, `announcement.view`, `feedback.view`, `live_quiz.play`, `events.view`,
   `events.reserve`.
-- **Can:** learn — view curriculum, submit assignments, sit exams, see own grades & attendance,
+- **Can:** learn — view curriculum, submit assignments, join project teams, sit exams, see own grades & attendance,
   download certificate, play live quizzes, give feedback, reserve events.
 - **Refused:** any management/authoring/grading path.
 
 ### 4. Instructor (course staff — `instructor` template)
 - **Permissions:** student-teaching set plus `curriculum.manage`, `assignment.manage`,
-  `assignment.grade`, `exam.author`, `exam.schedule`, `exam.grade`, `grade.manage`,
+  `assignment.grade`, `project.manage`, `project.grade`, `exam.author`, `exam.schedule`, `exam.grade`, `grade.manage`,
   `attendance.record`, `attendance.view_all`, `attendance.report`, `attendance.edit`,
   `announcement.manage`, `announcement.publish`, `roster.view`, `roster.announce`, `session.notify`,
   `graduation.view`, `graduation.configure`, `course.close`, `certificate.manage`, `feedback.manage`,
@@ -73,7 +73,8 @@ templates: service-admin/service-member).
 ### 9. SuperAdmin (`is_superadmin = true`)
 - **Bypasses** all permission checks. Owns the SuperAdmin console: system roles, role templates,
   group visibility, audit log, impersonation, security/session controls, portal settings, event-tests
-  dashboard, and the **System testing report** (`/superadmin/system-tests`).
+  dashboard, the **System testing report** (`/superadmin/system-tests`), and **user deletion**
+  (`/superadmin/users`).
 
 ## Cross-cutting (accessibility) personas
 

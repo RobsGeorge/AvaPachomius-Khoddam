@@ -105,6 +105,18 @@ class ServiceContextService
             return true;
         }
 
+        // Mirrors selectableServices()'s church-admin-preview branch below — without
+        // this, a previewing superadmin sees the previewed church's services listed
+        // as selectable but setCurrentService() rejects selecting any of them
+        // (checked against the real underlying superadmin's own user_service_role
+        // rows, which don't exist), crashing autoSelectSingleService() whenever the
+        // previewed church has exactly one active service.
+        if (RolePreviewService::isChurchAdminMode() && ($user->is_superadmin ?? false)) {
+            $church = RolePreviewService::previewChurch();
+
+            return $church !== null && (int) $service->church_id === (int) $church->church_id;
+        }
+
         if (! Schema::hasTable('user_service_role')) {
             return false;
         }

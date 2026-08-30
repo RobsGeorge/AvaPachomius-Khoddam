@@ -833,12 +833,14 @@ body.theme-dark .app-card .table-responsive,
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     backdrop-filter: blur(12px);
-    /* Keep long dropdowns usable: scroll inside the menu instead of the page behind it. */
+    /* Long menus scroll inside the panel. Cap at 70% of the screen so the last
+       items stay above the OS taskbar / browser chrome instead of filling 100vh. */
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior-y: contain;
-    max-height: calc(100vh - 5rem);
-    max-height: calc(100dvh - 5rem);
+    -webkit-overflow-scrolling: touch;
+    max-height: 70vh;
+    max-height: 70dvh;
 }
 
 .app-dropdown-link {

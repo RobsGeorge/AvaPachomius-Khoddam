@@ -10,6 +10,7 @@ use App\Models\StructureTemplate;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Services\AuditLogService;
+use App\Services\CourseApplicationFormService;
 use App\Services\CourseRoleAssignmentService;
 use App\Services\EventAdminRoleService;
 use App\Services\ForceLogoutService;
@@ -119,7 +120,7 @@ class SuperAdminController extends Controller
         $supportsLocalizedFields = Schema::hasColumn('course', 'title_ar')
             && Schema::hasColumn('course', 'title_en');
 
-        $structureTemplates = StructureTemplate::query()->orderBy('name_en')->get();
+        $structureTemplates = StructureTemplate::orderedForSelect();
         $progressionPolicies = ProgressionPolicy::all();
 
         return view('superadmin.courses', compact(
@@ -302,6 +303,8 @@ class SuperAdminController extends Controller
                 $templates->cloneTemplatesIntoCourse($course);
             }
         }
+
+        app(CourseApplicationFormService::class)->ensureReadyForPublicSignup($course);
 
         return redirect()->route('superadmin.courses')->with('success', __('pages.course_created'));
     }

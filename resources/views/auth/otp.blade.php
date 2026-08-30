@@ -20,7 +20,16 @@
                         <input type="hidden" name="user_id" value="{{ $userId }}">
                         <div class="mb-3">
                             <label for="otp" class="form-label">{{ __('auth.otp_code') }}</label>
-                            <input type="text" name="otp" id="otp" class="form-control" maxlength="6" required>
+                            <input type="text" name="otp" id="otp"
+                                   class="form-control @error('otp') is-invalid @enderror"
+                                   inputmode="numeric" pattern="[0-9]{6}"
+                                   minlength="6" maxlength="6"
+                                   autocomplete="one-time-code"
+                                   title="{{ __('auth.otp_digits_hint') }}"
+                                   required>
+                            @error('otp')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">{{ __('auth.otp_verify') }}</button>

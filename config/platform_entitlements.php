@@ -32,6 +32,12 @@ return [
     'label' => 'billing.features.assignments',
     'sort_order' => 30,
   ],
+  'projects' => [
+    'type' => 'boolean',
+    'maps_to_capability' => 'projects',
+    'label' => 'billing.features.projects',
+    'sort_order' => 35,
+  ],
   'exams' => [
     'type' => 'boolean',
     'maps_to_capability' => 'exams',

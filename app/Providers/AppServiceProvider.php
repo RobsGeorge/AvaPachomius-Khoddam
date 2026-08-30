@@ -10,8 +10,11 @@ use App\Database\SafeMySqlConnection;
 use App\Database\SafeSQLiteConnection;
 use App\Http\View\Composers\AppLayoutComposer;
 use App\Models\Contact;
+use App\Models\Document;
+use App\Models\HomeVisit;
 use App\Models\Person;
 use App\Models\Residence;
+use App\Models\Sacrament;
 use App\Observability\Adapters\LocalProcFsAdapter;
 use App\Observability\Adapters\NullInfraMetricsAdapter;
 use App\Observability\AlertNotifier;
@@ -114,10 +117,14 @@ class AppServiceProvider extends ServiceProvider
         // bound (tenancy dormant) so nav renders unchanged in production until cutover.
         Blade::if('capability', fn (string $key) => TenantContext::current()?->hasCapability($key) ?? true);
 
-        // Contact morph aliases (ADR §24): short types person|residence, not FQCN.
+        // Morph aliases (ADR §24 / §27): short types, not FQCN.
         Relation::morphMap([
             Contact::CONTACTABLE_PERSON => Person::class,
             Contact::CONTACTABLE_RESIDENCE => Residence::class,
+            Document::DOCUMENTABLE_PERSON => Person::class,
+            Document::DOCUMENTABLE_RESIDENCE => Residence::class,
+            Document::DOCUMENTABLE_SACRAMENT => Sacrament::class,
+            Document::DOCUMENTABLE_VISIT => HomeVisit::class,
         ]);
     }
 

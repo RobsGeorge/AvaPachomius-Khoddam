@@ -127,7 +127,7 @@ return [
     'cheater_flag_cleared'      => 'Cheater flag cleared. Grade updated.',
     'override_score'            => 'Optional new score %',
     'announce_results'          => 'Announce results',
-    'confirm_announce_results'  => 'Announce results to students? Scores stay hidden until each student completes any mandatory module survey.',
+    'confirm_announce_results'  => 'Announce results to students? Scores stay hidden until each student completes any blocking survey for this exam\'s module.',
     'results_announced'         => 'Exam results announced.',
     'results_already_announced' => 'Results were already announced.',
     'results_announced_at'      => 'Results announced :when',

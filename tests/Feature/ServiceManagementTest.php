@@ -4,11 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\ChurchService;
 use App\Models\Course;
+use App\Models\CourseApplicationForm;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\StructureTemplate;
+use App\Models\User;
 use App\Models\UserSystemRole;
 use App\Support\NavigationHub;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Tests\Support\EventModuleTestCase;
 
@@ -120,6 +123,45 @@ class ServiceManagementTest extends EventModuleTestCase
         $this->assertSame(ChurchService::STATUS_ACTIVE, $service->fresh()->status);
     }
 
+    public function test_superadmin_courses_loads_when_a_legacy_service_has_no_slug(): void
+    {
+        $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-null-slug@example.com']);
+        $service = $this->createService(['title' => 'Legacy Unslugged Service']);
+        $service->forceFill(['slug' => null])->saveQuietly();
+        $this->assertNull($service->fresh()->slug);
+
+        $this->actingAs($super)
+            ->get(route('superadmin.courses'))
+            ->assertOk()
+            ->assertSee(__('pages.manage_services_and_courses'), false)
+            ->assertSee('Legacy Unslugged Service', false);
+    }
+
+    public function test_superadmin_courses_loads_without_structure_templates_table(): void
+    {
+        if (! Schema::hasTable('structure_templates')) {
+            $this->markTestSkipped('structure_templates not present to drop.');
+        }
+
+        Schema::drop('structure_templates');
+
+        try {
+            $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-no-tpl@example.com']);
+
+            $this->actingAs($super)
+                ->get(route('superadmin.courses'))
+                ->assertOk()
+                ->assertSee(__('pages.manage_services_and_courses'), false);
+        } finally {
+            // DROP TABLE is DDL and cannot roll back on SQLite; restore so later
+            // tests in this process still see the T8a registry.
+            $this->artisan('migrate', [
+                '--path' => 'database/migrations/2026_08_10_000001_create_structure_templates_table.php',
+                '--force' => true,
+            ]);
+        }
+    }
+
     public function test_superadmin_course_create_requires_service_id(): void
     {
         $super = $this->createUser(['is_superadmin' => true, 'email' => 'svc-mgmt-course@example.com']);
@@ -143,6 +185,13 @@ class ServiceManagementTest extends EventModuleTestCase
         $course = Course::query()->where('title', 'Year One')->first();
         $this->assertNotNull($course);
         $this->assertSame($service->service_id, (int) $course->service_id);
+
+        $form = CourseApplicationForm::query()
+            ->where('course_id', $course->course_id)
+            ->first();
+        $this->assertNotNull($form);
+        $this->assertTrue($form->is_enabled);
+        $this->assertNotNull($form->default_role_id);
     }
 
     public function test_superadmin_can_update_course_from_manage_page(): void
@@ -187,7 +236,7 @@ class ServiceManagementTest extends EventModuleTestCase
         $this->assertSame('10:30:00', $course->default_session_start_time);
     }
 
-    protected function grantSystemPermission(\App\Models\User $user, string $permissionKey): void
+    protected function grantSystemPermission(User $user, string $permissionKey): void
     {
         $perm = Permission::query()->where('key', $permissionKey)->first();
         $this->assertNotNull($perm, "Permission {$permissionKey} must exist after sync.");
@@ -207,6 +256,6 @@ class ServiceManagementTest extends EventModuleTestCase
             'role_id' => $role->role_id,
         ]);
 
-        \Illuminate\Support\Facades\Cache::flush();
+        Cache::flush();
     }
 }

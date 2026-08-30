@@ -17,9 +17,58 @@ class PlatformAccessService
 {
     public const SESSION_KEY = 'platform_church_access_id';
 
+    /**
+     * True only while the session flag is set AND the underlying break-glass grant
+     * is still unexpired/unrevoked right now. Re-validates on every call rather than
+     * trusting the session flag alone, so a revoked or expired grant ends an
+     * already-open platform-access session instead of leaving it standing until the
+     * user manually exits or the session naturally times out.
+     */
     public static function isActive(): bool
     {
-        return session()->has(self::SESSION_KEY);
+        $churchId = self::churchId();
+        if ($churchId === null) {
+            return false;
+        }
+
+        $user = auth()->user();
+        if (! $user || ! ($user->is_superadmin ?? false)) {
+            return false;
+        }
+
+        $church = Church::query()->find($churchId);
+        if (! $church) {
+            self::forceEnd('platform_church_access_expired', $churchId);
+
+            return false;
+        }
+
+        $breakGlass = app(BreakGlassService::class);
+        $organization = $breakGlass->placementOrganizationForChurch($church);
+        $grant = $organization ? $breakGlass->activeGrant($user, $organization) : null;
+
+        if ($grant === null) {
+            self::forceEnd('platform_church_access_expired', $churchId);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Tear down a session whose backing grant is no longer active, distinct from a
+     * deliberate stop() so the access ledger shows *why* the session ended.
+     */
+    private static function forceEnd(string $event, int $churchId): void
+    {
+        session()->forget(self::SESSION_KEY);
+
+        try {
+            AuditLogService::recordEvent($event, ['church_id' => $churchId]);
+        } catch (\Throwable) {
+            // Audit must not block the tear-down.
+        }
     }
 
     public static function churchId(): ?int

@@ -10,6 +10,9 @@ use App\Models\EventAdmin;
 use App\Models\ExamSchedule;
 use App\Models\GradeItem;
 use App\Models\Lecture;
+use App\Models\ProjectDeliverable;
+use App\Models\ProjectDeliverableSubmission;
+use App\Models\ProjectMembership;
 use App\Models\Session;
 use App\Models\StudentGrade;
 use App\Models\User;
@@ -35,8 +38,101 @@ class NotificationScannerService
     {
         $count = 0;
         $count += $this->scanAssignmentDeadlines();
+        $count += $this->scanProjectDeliverableDeadlines();
         $count += $this->scanExamUpcoming();
         $count += $this->scanUpcomingSessions();
+
+        return $count;
+    }
+
+    /**
+     * Remind active members of published, non-cancelled teams when a deliverable
+     * is due within their lead_hours window and the team has not submitted yet.
+     * Dedupe: one notification per user / deliverable / calendar day.
+     */
+    public function scanProjectDeliverableDeadlines(): int
+    {
+        $count = 0;
+        $now = Carbon::now();
+        $day = $now->toDateString();
+
+        // Upper bound keeps the query tight; per-user lead_hours still gates below.
+        $maxLeadHours = 168;
+        $deliverables = ProjectDeliverable::query()
+            ->whereNotNull('due_at')
+            ->where('due_at', '>', $now)
+            ->where('due_at', '<=', $now->copy()->addHours($maxLeadHours))
+            ->with([
+                'project.assessment',
+                'project.memberships' => fn ($q) => $q
+                    ->where('status', ProjectMembership::STATUS_ACTIVE)
+                    ->with('user'),
+            ])
+            ->get();
+
+        foreach ($deliverables as $deliverable) {
+            $project = $deliverable->project;
+            if (! $project || $project->isCancelled()) {
+                continue;
+            }
+
+            $assessment = $project->assessment;
+            if (! $assessment || ! $assessment->is_published) {
+                continue;
+            }
+
+            $hasSubmission = ProjectDeliverableSubmission::query()
+                ->where('project_id', $project->project_id)
+                ->where('project_deliverable_id', $deliverable->project_deliverable_id)
+                ->exists();
+
+            if ($hasSubmission) {
+                continue;
+            }
+
+            $members = $project->memberships
+                ->filter(fn (ProjectMembership $m) => $m->isActive() && $m->user)
+                ->map(fn (ProjectMembership $m) => $m->user)
+                ->values();
+
+            foreach ($members as $member) {
+                $this->preferences->ensureDefaults($member);
+                $leadHours = (int) $this->preferences->configValue(
+                    $member,
+                    'project_deliverable_deadline',
+                    'lead_hours',
+                    24
+                );
+                $windowEnd = $now->copy()->addHours(max(1, $leadHours));
+
+                if ($deliverable->due_at->greaterThan($windowEnd)) {
+                    continue;
+                }
+
+                $this->generator->createOrUpdate(
+                    $member,
+                    'project_deliverable_deadline',
+                    __('notifications.generated.project_deliverable_deadline_title', [
+                        'title' => $deliverable->title,
+                    ]),
+                    __('notifications.generated.project_deliverable_deadline_body', [
+                        'project' => $project->title,
+                        'date' => $deliverable->due_at->format('d/m/Y H:i'),
+                    ]),
+                    route('projects.show', $project),
+                    ProjectDeliverable::class,
+                    (int) $deliverable->project_deliverable_id,
+                    UserNotification::PRIORITY_NORMAL,
+                    [
+                        'course_id' => $assessment->course_id,
+                        'project_id' => $project->project_id,
+                        'project_deliverable_id' => $deliverable->project_deliverable_id,
+                    ],
+                    "project_deliverable_deadline:{$deliverable->project_deliverable_id}:user:{$member->user_id}:{$day}"
+                );
+                $count++;
+            }
+        }
 
         return $count;
     }

@@ -247,11 +247,11 @@ class ExamAttemptController extends Controller
         $schedule->load('exam.module', 'exam.course');
         $user = Auth::user();
         $result = ExamResult::where('schedule_id', $schedule->schedule_id)
-            ->where('user_id', Auth::id())
+            ->where('user_id', $user?->user_id)
             ->first();
 
         $attempt = ExamAttempt::where('schedule_id', $schedule->schedule_id)
-            ->where('user_id', Auth::id())
+            ->where('user_id', $user?->user_id)
             ->first();
 
         $exam = $schedule->exam;

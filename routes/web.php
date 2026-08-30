@@ -9,7 +9,6 @@ use App\Http\Controllers\MyLearningController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AssessmentController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\CourseContextController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ModuleController;
@@ -44,6 +43,8 @@ use App\Http\Controllers\ExamBuilderController;
 use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamGradesController;
 use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectAdminController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SuperAdminAuditController;
 use App\Http\Controllers\SuperAdminApplicationLogController;
@@ -54,6 +55,7 @@ use App\Http\Controllers\SuperAdmin\ChurchController as SuperAdminChurchControll
 use App\Http\Controllers\SuperAdmin\ServiceBillingController;
 use App\Http\Controllers\SuperAdmin\SubscriptionPlanController;
 use App\Http\Controllers\SuperAdmin\PersonMergeController as SuperAdminPersonMergeController;
+use App\Http\Controllers\SuperAdmin\UserDeletionController as SuperAdminUserDeletionController;
 use App\Http\Controllers\Church\PriestController;
 use App\Http\Controllers\Church\AppointmentController;
 use App\Http\Controllers\Church\ConfessionController;
@@ -375,7 +377,6 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    Route::resource('users', UserController::class);
     Route::resource('courses', CourseController::class);
     Route::get('/curriculum', [CurriculumController::class, 'index'])->name('curriculum.index');
     Route::resource('sessions', SessionController::class)->only(['index']);
@@ -671,6 +672,49 @@ Route::middleware(['auth', 'permission:staff', 'capability:exams'])->group(funct
     Route::post('/exams/{exam}/grades/{result}/clear-cheater', [ExamGradesController::class, 'clearCheater'])->name('exams.grades.clear-cheater');
 });
 
+// Team project assessments (module-linked)
+Route::middleware(['auth', 'capability:projects'])->group(function () {
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/manage', [ProjectAdminController::class, 'manage'])->name('projects.manage');
+    Route::get('/projects/change-requests', [ProjectAdminController::class, 'changeRequests'])->name('projects.change-requests.index');
+    Route::post('/projects/assessments', [ProjectAdminController::class, 'store'])->name('projects.assessments.store');
+    Route::put('/projects/assessments/{projectAssessment}', [ProjectAdminController::class, 'update'])->name('projects.assessments.update');
+    Route::post('/projects/assessments/{projectAssessment}/publish', [ProjectAdminController::class, 'publish'])->name('projects.assessments.publish');
+    Route::delete('/projects/assessments/{projectAssessment}', [ProjectAdminController::class, 'destroy'])->name('projects.assessments.destroy');
+    Route::get('/projects/assessments/{projectAssessment}/grades', [ProjectAdminController::class, 'grades'])->name('projects.grades');
+    Route::put('/projects/assessments/{projectAssessment}/grades/scale', [ProjectAdminController::class, 'updateScale'])->name('projects.grades.scale');
+    Route::put('/projects/assessments/{projectAssessment}/grades/criteria', [ProjectAdminController::class, 'syncCriteria'])->name('projects.grades.criteria');
+    Route::post('/projects/assessments/{projectAssessment}/grades/announce', [ProjectAdminController::class, 'announce'])->name('projects.grades.announce');
+    Route::post('/projects/{project}/grade', [ProjectAdminController::class, 'gradeTeam'])->name('projects.grades.team');
+    Route::put('/projects/{project}/grades/criteria', [ProjectAdminController::class, 'syncTeamCriteria'])->name('projects.grades.team-criteria');
+    Route::delete('/projects/{project}/grades/criteria', [ProjectAdminController::class, 'resetTeamCriteria'])->name('projects.grades.team-criteria.reset');
+    Route::post('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'gradeStudent'])->name('projects.grades.student');
+    Route::delete('/projects/assessments/{projectAssessment}/members/{user}/grade', [ProjectAdminController::class, 'clearStudentGrade'])->name('projects.grades.student.clear');
+    Route::post('/projects/assessments/{projectAssessment}/projects', [ProjectAdminController::class, 'storeProject'])->name('projects.store');
+    Route::post('/projects/assessments/{projectAssessment}/join', [ProjectController::class, 'join'])->name('projects.join');
+    Route::post('/projects/assessments/{projectAssessment}/leave', [ProjectController::class, 'leave'])->name('projects.leave');
+    Route::post('/projects/assessments/{projectAssessment}/change-requests', [ProjectController::class, 'storeChangeRequest'])->name('projects.change-requests.store');
+    Route::post('/projects/{project}/lock', [ProjectAdminController::class, 'lockProject'])->name('projects.lock');
+    Route::post('/projects/{project}/cancel', [ProjectAdminController::class, 'cancelProject'])->name('projects.cancel');
+    Route::post('/projects/{project}/merge', [ProjectAdminController::class, 'mergeProjects'])->name('projects.merge');
+    Route::post('/projects/memberships/{membership}/move', [ProjectAdminController::class, 'moveMember'])->name('projects.members.move');
+    Route::post('/projects/{project}/workspace', [ProjectAdminController::class, 'updateWorkspace'])->name('projects.workspace.update');
+    Route::get('/projects/assessments/{projectAssessment}/export', [ProjectAdminController::class, 'exportCsv'])->name('projects.export');
+    Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submitDeliverable'])->name('projects.deliverables.submit');
+    Route::post('/projects/{project}/submissions/{submission}/review', [ProjectAdminController::class, 'reviewSubmission'])->name('projects.submissions.review');
+    Route::post('/projects/{project}/peer-ratings', [ProjectController::class, 'submitPeerRatings'])->name('projects.peer-ratings.store');
+    Route::get('/projects/{project}/peer-review', [ProjectController::class, 'peerReview'])->name('projects.peer-review');
+    Route::put('/projects/assessments/{projectAssessment}/peer-eval', [ProjectAdminController::class, 'updatePeerEval'])->name('projects.peer-eval.update');
+    Route::post('/projects/assessments/{projectAssessment}/peer-eval/open', [ProjectAdminController::class, 'openPeerEval'])->name('projects.peer-eval.open');
+    Route::post('/projects/assessments/{projectAssessment}/peer-eval/close', [ProjectAdminController::class, 'closePeerEval'])->name('projects.peer-eval.close');
+    Route::delete('/projects/{project}/submission-files/{file}', [ProjectController::class, 'destroySubmissionFile'])->name('projects.submission-files.destroy');
+    Route::post('/projects/change-requests/{changeRequest}/approve', [ProjectAdminController::class, 'approveChange'])->name('projects.change-requests.approve');
+    Route::post('/projects/change-requests/{changeRequest}/reject', [ProjectAdminController::class, 'rejectChange'])->name('projects.change-requests.reject');
+    Route::put('/projects/{project}', [ProjectAdminController::class, 'updateProject'])->name('projects.update');
+    Route::delete('/projects/{project}', [ProjectAdminController::class, 'destroyProject'])->name('projects.destroy');
+    Route::get('/projects/{project}', [ProjectController::class, 'show'])->name('projects.show');
+});
+
 // Assignment routes
 Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/assignments/dashboard', [AssignmentController::class, 'dashboard'])->name('assignments.dashboard');
@@ -923,6 +967,11 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
     Route::get('/people/merge', [SuperAdminPersonMergeController::class, 'index'])->name('people.merge.index');
     Route::post('/people/merge', [SuperAdminPersonMergeController::class, 'merge'])->name('people.merge.store');
+
+    Route::get('/users', [SuperAdminUserDeletionController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}/delete', [SuperAdminUserDeletionController::class, 'confirm'])->whereNumber('user')->name('users.confirm');
+    Route::post('/users/{user}/soft-delete', [SuperAdminUserDeletionController::class, 'softDelete'])->whereNumber('user')->name('users.soft-delete');
+    Route::post('/users/{user}/hard-delete', [SuperAdminUserDeletionController::class, 'hardDelete'])->whereNumber('user')->name('users.hard-delete');
 
     Route::get('/recovery', [SuperAdminAccountRecoveryController::class, 'index'])->name('recovery.index');
     Route::post('/recovery', [SuperAdminAccountRecoveryController::class, 'store'])->name('recovery.store');

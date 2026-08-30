@@ -32,7 +32,7 @@ referenced) into each tenant, so a church may later tune its own copy without af
 
 | Role | Mechanism | Who it's for | Powers |
 |---|---|---|---|
-| **Superadmin** | `is_superadmin = true` (flag, not a template) | Platform operators | Bypasses permission checks; holds the `platform.*` (`system_only`) keys: church CRUD, impersonation, audit, session flush, service CRUD, role templates, group visibility, people merge. |
+| **Superadmin** | `is_superadmin = true` (flag, not a template) | Platform operators | Bypasses permission checks; holds the `platform.*` (`system_only`) keys: church CRUD, impersonation, audit, session flush, service CRUD, role templates, group visibility, people merge, user deletion. |
 
 > System-wide roles can also be created dynamically (`SystemRoleController`) to delegate
 > specific `system`-scoped keys without full superadmin. That is part of the **advanced**
@@ -74,8 +74,8 @@ keys); `instructor` and `student` are explicit lists.
 | Role | Slug | Who it's for | Permission keys |
 |---|---|---|---|
 | **Admin** | `admin` | Owns a course | *All non-system permissions in `course` + `both` scopes* (computed) |
-| **Instructor** | `instructor` | Teaches a course | `course.access`, `curriculum.view`, `curriculum.manage`, `assignment.view`, `assignment.manage`, `assignment.grade`, `exam.view`, `exam.author`, `exam.schedule`, `exam.grade`, `grade.view`, `grade.manage`, `attendance.record`, `attendance.view_all`, `attendance.report`, `attendance.edit`, `announcement.view`, `announcement.manage`, `announcement.publish`, `communications.report`, `roster.view`, `roster.announce`, `session.notify`, `graduation.view`, `graduation.configure`, `course.close`, `certificate.manage`, `feedback.view`, `feedback.manage`, `feedback.report`, `live_quiz.play`, `live_quiz.host`, `live_quiz.manage`, `events.view`, `events.reserve` |
-| **Student** | `student` | Enrolled learner | `course.view`, `course.access`, `curriculum.view`, `assignment.view`, `assignment.submit`, `exam.view`, `exam.take`, `grade.view`, `certificate.download`, `attendance.view_own`, `announcement.view`, `feedback.view`, `live_quiz.play`, `events.view`, `events.reserve` |
+| **Instructor** | `instructor` | Teaches a course | `course.access`, `curriculum.view`, `curriculum.manage`, `assignment.view`, `assignment.manage`, `assignment.grade`, `project.view`, `project.manage`, `project.grade`, `exam.view`, `exam.author`, `exam.schedule`, `exam.grade`, `grade.view`, `grade.manage`, `attendance.record`, `attendance.view_all`, `attendance.report`, `attendance.edit`, `announcement.view`, `announcement.manage`, `announcement.publish`, `communications.report`, `roster.view`, `roster.announce`, `session.notify`, `graduation.view`, `graduation.configure`, `course.close`, `certificate.manage`, `feedback.view`, `feedback.manage`, `feedback.report`, `live_quiz.play`, `live_quiz.host`, `live_quiz.manage`, `events.view`, `events.reserve` |
+| **Student** | `student` | Enrolled learner | `course.view`, `course.access`, `curriculum.view`, `assignment.view`, `assignment.submit`, `project.view`, `project.join`, `exam.view`, `exam.take`, `grade.view`, `certificate.download`, `attendance.view_own`, `announcement.view`, `feedback.view`, `live_quiz.play`, `events.view`, `events.reserve` |
 
 ---
 

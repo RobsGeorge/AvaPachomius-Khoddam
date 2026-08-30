@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,7 +13,9 @@ class FeedbackSurvey extends Model
     use Concerns\SafelyCastsDates;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_OPEN = 'open';
+
     public const STATUS_CLOSED = 'closed';
 
     protected $primaryKey = 'survey_id';
@@ -67,6 +68,14 @@ class FeedbackSurvey extends Model
     {
         return $this->status === self::STATUS_CLOSED
             || ($this->due_at !== null && $this->due_at->isPast());
+    }
+
+    /**
+     * Blocking surveys hide exam/project results for this survey's module only.
+     */
+    public function blocksModuleResults(): bool
+    {
+        return (bool) $this->is_mandatory;
     }
 
     public function getRouteKeyName(): string

@@ -6,17 +6,27 @@ use App\Models\Church;
 use App\Models\User;
 use App\Services\BreakGlass\BreakGlassService;
 use App\Services\RolePreviewService;
+use App\Services\RoleTemplateService;
 use App\Support\ChurchHost;
 use App\Support\SuperadminWorkspace;
 use App\Tenancy\TenantContext;
 use App\Tenancy\TenantDatabaseResolver;
+use Illuminate\Support\Facades\URL;
 use Tests\Support\EventModuleTestCase;
 
 class SuperadminWorkspaceTest extends EventModuleTestCase
 {
     public function test_superadmin_on_console_hides_member_nav(): void
     {
+        // Laravel's test client always rebuilds the request URI via url(), which
+        // reads Laravel's UrlGenerator singleton — already booted (and its root
+        // cached) from phpunit.xml's forced APP_URL before this test's config()
+        // call runs. Symfony's Request::create() then overwrites whatever
+        // HTTP_HOST withServerVariables() set with that URI's host. config()
+        // alone doesn't reach the cached generator — URL::forceRootUrl() does
+        // (the same mechanism ChurchHost::temporarySignedRoute() already uses).
         config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test']);
+        URL::forceRootUrl('http://admin.test');
 
         $super = $this->createUser([
             'is_superadmin' => true,
@@ -26,7 +36,7 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
 
         $this->withServerVariables(['HTTP_HOST' => 'admin.test'])
             ->actingAs($super)
-            ->get(route('superadmin.index'))
+            ->get('/superadmin')
             ->assertOk()
             ->assertDontSee(__('nav.academic'), false)
             ->assertSee(__('tenancy.console'), false);
@@ -60,6 +70,7 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
         config(['tenancy.enabled' => true]);
 
         $church = Church::main();
+        app(RoleTemplateService::class)->cloneTemplatesIntoChurch($church);
         $super = $this->createUser([
             'is_superadmin' => true,
             'email' => 'workspace-view-church@example.com',
@@ -84,6 +95,7 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
 
         $church = Church::main();
         TenantContext::set($church);
+        app(RoleTemplateService::class)->cloneTemplatesIntoChurch($church);
 
         $super = $this->createUser([
             'is_superadmin' => true,
@@ -94,6 +106,12 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
         RolePreviewService::startChurchAdminRole($super, $church, request());
 
         $host = ChurchHost::hostFor($church);
+        // route('dashboard') reads Laravel's cached UrlGenerator (rooted at
+        // phpunit.xml's forced APP_URL) — without forcing it to $host first, the
+        // dispatched request's real Host ends up 'localhost' regardless of
+        // withServerVariables(), and ResolveTenant re-binds TenantContext off that
+        // instead of the intended church (see test_superadmin_on_console_hides_member_nav).
+        URL::forceRootUrl('http://'.$host);
 
         $this->withServerVariables(['HTTP_HOST' => $host])
             ->actingAs($super)
@@ -137,6 +155,7 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
         config(['tenancy.enabled' => true, 'tenancy.console_host' => 'admin.test', 'tenancy.base_domain' => 'test']);
 
         $church = Church::main();
+        app(RoleTemplateService::class)->cloneTemplatesIntoChurch($church);
         $super = $this->createUser([
             'is_superadmin' => true,
             'email' => 'workspace-registry@example.com',
@@ -164,6 +183,7 @@ class SuperadminWorkspaceTest extends EventModuleTestCase
         ]);
 
         $church = Church::main();
+        app(RoleTemplateService::class)->cloneTemplatesIntoChurch($church);
         $super = $this->createUser([
             'is_superadmin' => true,
             'email' => 'workspace-signed-console@example.com',

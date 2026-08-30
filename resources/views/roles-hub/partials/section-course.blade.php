@@ -128,25 +128,54 @@
 
                             <details class="roles-hub-panel">
                                 <summary class="roles-hub-summary">{{ __('rbac.assignments') }} ({{ $assignments->count() }})</summary>
+                                <p class="small text-muted-theme mb-1 pt-1">{{ __('pages.account_status_admin_hint') }}</p>
                                 <div class="table-responsive pt-1">
                                     <table class="table table-sm table-hover mb-0">
                                         <thead class="table-light">
-                                            <tr><th>{{ __('rbac.user') }}</th><th>{{ __('rbac.role') }}</th><th></th></tr>
+                                            <tr>
+                                                <th>{{ __('rbac.user') }}</th>
+                                                <th>{{ __('rbac.role') }}</th>
+                                                <th>{{ __('pages.account_status') }}</th>
+                                                <th></th>
+                                            </tr>
                                         </thead>
                                         <tbody>
                                             @forelse($assignments as $a)
+                                                @php
+                                                    $accountStatus = $accountStatuses[$a->user_course_role_id]
+                                                        ?? \App\Services\PendingRegistrationService::unknownAccountStatus();
+                                                    $statusClass = match ($accountStatus['key']) {
+                                                        'active' => 'bg-success',
+                                                        'pending_otp' => 'bg-warning text-dark',
+                                                        default => 'bg-secondary',
+                                                    };
+                                                @endphp
                                                 <tr>
                                                     <td>{{ $a->user?->displayName() }}</td>
                                                     <td>{{ $a->role?->role_name }}</td>
+                                                    <td>
+                                                        <span class="badge {{ $statusClass }}">{{ $accountStatus['label'] }}</span>
+                                                    </td>
                                                     <td class="text-end">
-                                                        <form method="POST" action="{{ route('courses.roles.assignments.destroy', [$course, $a]) }}" class="d-inline">
-                                                            @csrf @method('DELETE')
-                                                            <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('rbac.delete') }}</button>
-                                                        </form>
+                                                        <div class="d-inline-flex gap-1">
+                                                            @if($a->user && $accountStatus['key'] !== 'active')
+                                                                <form method="POST" action="{{ route('user-course-roles.send-registration-link', $a->user->user_id) }}" class="d-inline"
+                                                                      data-confirm="{{ __('pages.confirm_send_account_setup_email') }}">
+                                                                    @csrf
+                                                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="{{ __('pages.send_account_setup_email') }}">
+                                                                        <i class="bi bi-envelope"></i>
+                                                                    </button>
+                                                                </form>
+                                                            @endif
+                                                            <form method="POST" action="{{ route('courses.roles.assignments.destroy', [$course, $a]) }}" class="d-inline">
+                                                                @csrf @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">{{ __('rbac.delete') }}</button>
+                                                            </form>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             @empty
-                                                <tr><td colspan="3" class="text-center text-muted-theme py-2">—</td></tr>
+                                                <tr><td colspan="4" class="text-center text-muted-theme py-2">—</td></tr>
                                             @endforelse
                                         </tbody>
                                     </table>
