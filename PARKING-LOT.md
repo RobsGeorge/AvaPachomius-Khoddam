@@ -327,14 +327,16 @@ announcement; additive per-team rubric overrides with student-facing percentages
 overview, CSV roster export, opt-in gradebook sync on announce; student `/api/v1` endpoints.
 Design: `docs/product/use-cases/projects.md`.
 
+**v3 landed (2026-08-30):** deliverable deadline reminders (`project_deliverable_deadline`);
+student-visible team change history (`project_membership_events`); instructor submission review
+feedback; deliverable-level grading rollup (`grading_mode = deliverables`); workspace provider
+deep-links (`custom` / `drive` / `whatsapp` / `telegram`, no OAuth); anonymous informational
+peer evaluation (`project_peer_ratings`, never writes member grades). Design:
+`docs/product/use-cases/projects.md`.
+
 **Still parked:**
 
-1. ~~**Peer / intra-team evaluation**~~ → building in Projects v3 (anonymous, informational only).
-2. Real team workspace integration (chat/drive provisioning) — v3 ships provider deep-links only (no OAuth).
-3. ~~Deliverable-level grading (per-deliverable scores rolling up to the team grade).~~ → building in Projects v3.
-4. ~~Instructor-side submission review UI beyond the checklist counts (inline feedback per submission).~~ → building in Projects v3.
-5. ~~Student-visible team change history / audit trail.~~ → building in Projects v3.
-6. ~~Reminder notifications before a deliverable due date (needs the reminder scheduler).~~ → landed: `project_deliverable_deadline` via `NotificationScannerService::scanProjectDeliverableDeadlines` (lead_hours, one per user/deliverable/calendar day).
+1. Real team workspace integration (chat/drive provisioning) — v3 ships provider deep-links only (no OAuth).
 
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
