@@ -181,7 +181,7 @@
 
 <div class="feedback-container">
     <a href="{{ route('curriculum.index') }}" class="btn-back">
-        <i class="fas fa-arrow-right"></i> {{ __('pages.back_to_content') }}
+        <i class="bi bi-arrow-right"></i> {{ __('pages.back_to_content') }}
     </a>
 
     <h1 class="feedback-title">{{ __('pages.feedback_title') }}</h1>
@@ -199,7 +199,7 @@
 
             <div class="form-section">
                 <h3 class="section-title">
-                    <i class="fas fa-chalkboard-teacher"></i>
+                    <i class="bi bi-easel"></i>
                     {{ __('pages.rate_lecture') }}
                 </h3>
 
@@ -223,7 +223,7 @@
 
             <div class="form-section">
                 <h3 class="section-title">
-                    <i class="fas fa-user-tie"></i>
+                    <i class="bi bi-person-badge"></i>
                     {{ __('pages.rate_lecturer') }}
                 </h3>
 
@@ -247,7 +247,7 @@
 
             <div class="form-section">
                 <h3 class="section-title">
-                    <i class="fas fa-comments"></i>
+                    <i class="bi bi-chat-dots"></i>
                     {{ __('pages.general_feedback') }}
                 </h3>
 
@@ -259,7 +259,7 @@
             </div>
 
             <button type="submit" class="btn-submit">
-                <i class="fas fa-paper-plane"></i>
+                <i class="bi bi-send"></i>
                 {{ $userFeedback ? __('pages.update_feedback') : __('pages.submit_feedback') }}
             </button>
         </form>

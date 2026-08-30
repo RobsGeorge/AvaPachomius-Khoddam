@@ -75,7 +75,7 @@
                                     data-bs-toggle="dropdown"
                                     aria-expanded="false"
                                     aria-label="{{ __('service.switch_service') }}">
-                                <i class="fas fa-church ms-1"></i>
+                                <i class="bi bi-building ms-1"></i>
                                 @if(!empty($currentService))
                                     {{ $currentService->localizedTitle() }}
                                 @elseif($navUser->is_superadmin ?? false)
@@ -117,7 +117,7 @@
                                 @if($hasService)
                                     <li>
                                         <a class="dropdown-item app-dropdown-link" href="{{ route('hubs.service') }}">
-                                            <i class="fas fa-church me-2"></i>{{ __('nav.service') }}
+                                            <i class="bi bi-building me-2"></i>{{ __('nav.service') }}
                                         </a>
                                     </li>
                                 @endif
@@ -125,7 +125,7 @@
                         </div>
                     @elseif(!empty($showServiceContextLabel) && !empty($currentService))
                         <span class="brand-link" title="{{ __('service.current_service') }}">
-                            <i class="fas fa-church ms-1"></i>
+                            <i class="bi bi-building ms-1"></i>
                             {{ $currentService->localizedTitle() }}
                         </span>
                     @endif
@@ -295,7 +295,7 @@
                                     <li>
                                         <a class="dropdown-item app-dropdown-link fw-semibold {{ request()->routeIs('hubs.service') ? 'active' : '' }}"
                                            href="{{ route('hubs.service') }}">
-                                            <i class="fas fa-church me-2"></i>{{ __('nav.service') }}
+                                            <i class="bi bi-building me-2"></i>{{ __('nav.service') }}
                                         </a>
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
@@ -474,7 +474,7 @@
                             </summary>
                             <div class="mobile-nav-submenu d-flex flex-column gap-1">
                                 <a href="{{ route('hubs.service') }}" class="app-nav-link small {{ request()->routeIs('hubs.service') ? 'active' : '' }}" @click="navOpen = false">
-                                    <i class="fas fa-church me-1"></i>{{ __('nav.service') }}
+                                    <i class="bi bi-building me-1"></i>{{ __('nav.service') }}
                                 </a>
                                 @include('partials.nav-link-sections', ['sections' => $serviceSections, 'mobile' => true])
                             </div>

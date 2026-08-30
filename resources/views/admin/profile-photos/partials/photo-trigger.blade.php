@@ -33,6 +33,8 @@
              class="rounded-circle"
              width="{{ $size }}"
              height="{{ $size }}"
+             loading="lazy"
+             decoding="async"
              style="object-fit:cover;">
     </button>
 @endif
