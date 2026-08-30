@@ -183,7 +183,7 @@
                 </div>
             @endif
 
-            @if(($isMember ?? false) && ($peerEvalOpen ?? false) && ($peerPending ?? collect())->isNotEmpty())
+            @if(($isMember ?? false) && ($peerEvalOpen ?? false))
                 <div class="app-card card shadow-sm mb-3">
                     <div class="card-body">
                         <h2 class="h5 fw-bold">{{ __('projects.peer_eval_title') }}</h2>
@@ -191,45 +191,83 @@
                         @if($assessment->peer_eval_prompt)
                             <p class="small" style="white-space: pre-wrap;">{{ $assessment->peer_eval_prompt }}</p>
                         @endif
-                        <form method="POST" action="{{ route('projects.peer-ratings.store', $project) }}">
-                            @csrf
-                            @foreach($peerPending as $index => $teammate)
-                                <div class="border rounded p-2 mb-2">
-                                    <div class="fw-semibold small mb-1">{{ $teammate->displayName() }}</div>
-                                    <input type="hidden" name="ratings[{{ $index }}][ratee_user_id]" value="{{ $teammate->user_id }}">
-                                    <label class="form-label small">{{ __('projects.peer_eval_score') }} (1–{{ (int) ($assessment->peer_eval_scale_max ?: 5) }})</label>
-                                    <input type="number" name="ratings[{{ $index }}][score]" class="form-control form-control-sm mb-1"
-                                           min="1" max="{{ (int) ($assessment->peer_eval_scale_max ?: 5) }}" required>
-                                    <label class="form-label small">{{ __('projects.peer_eval_comment') }}</label>
-                                    <textarea name="ratings[{{ $index }}][comment]" class="form-control form-control-sm" rows="2"></textarea>
-                                </div>
-                            @endforeach
-                            <button type="submit" class="btn btn-sm btn-primary">{{ __('projects.peer_eval_submit') }}</button>
-                        </form>
+                        @if($peerProgress)
+                            <p class="small mb-2">
+                                {{ __('projects.peer_eval_progress', [
+                                    'rated' => $peerProgress['rated'],
+                                    'min' => $peerProgress['min'],
+                                    'max' => $peerProgress['max'],
+                                ]) }}
+                                @if($peerProgress['complete'])
+                                    <span class="badge bg-success">{{ __('projects.peer_eval_complete') }}</span>
+                                @else
+                                    <span class="badge bg-warning text-dark">{{ __('projects.peer_eval_incomplete') }}</span>
+                                @endif
+                            </p>
+                        @endif
+                        @if(($peerEligible ?? collect())->isEmpty())
+                            <p class="text-muted mb-0 small">{{ __('projects.peer_eval_no_eligible_teams') }}</p>
+                        @else
+                            <form method="POST" action="{{ route('projects.peer-ratings.store', $project) }}">
+                                @csrf
+                                @foreach($peerEligible as $index => $ratee)
+                                    @php
+                                        $existing = ($peerRatings ?? collect())->get((int) $ratee->project_id);
+                                    @endphp
+                                    <div class="border rounded p-2 mb-2">
+                                        <div class="d-flex flex-wrap justify-content-between gap-2 mb-1">
+                                            <div class="fw-semibold small">{{ $ratee->title }}</div>
+                                            <a class="small" href="{{ route('projects.peer-review', $ratee) }}" target="_blank" rel="noopener">
+                                                {{ __('projects.peer_eval_review_work') }}
+                                            </a>
+                                        </div>
+                                        <input type="hidden" name="ratings[{{ $index }}][ratee_project_id]" value="{{ $ratee->project_id }}">
+                                        <label class="form-label small">{{ __('projects.peer_eval_score') }} (1–{{ (int) ($assessment->peer_eval_scale_max ?: 5) }})</label>
+                                        <input type="number" name="ratings[{{ $index }}][score]" class="form-control form-control-sm mb-1"
+                                               min="1" max="{{ (int) ($assessment->peer_eval_scale_max ?: 5) }}"
+                                               value="{{ old('ratings.'.$index.'.score', $existing?->score) }}"
+                                               placeholder="{{ __('projects.peer_eval_score_optional') }}">
+                                        <label class="form-label small">{{ __('projects.peer_eval_comment') }}</label>
+                                        <textarea name="ratings[{{ $index }}][comment]" class="form-control form-control-sm" rows="2">{{ old('ratings.'.$index.'.comment', $existing?->comment) }}</textarea>
+                                    </div>
+                                @endforeach
+                                <p class="small text-muted">{{ __('projects.peer_eval_self_pick_help', ['max' => $peerProgress['max'] ?? 3]) }}</p>
+                                @error('ratings')
+                                    <div class="alert alert-danger py-2 small">{{ $message }}</div>
+                                @enderror
+                                <button type="submit" class="btn btn-sm btn-primary">{{ __('projects.peer_eval_submit') }}</button>
+                            </form>
+                        @endif
                     </div>
                 </div>
             @endif
 
-            @if($canManage && ($peerAverages ?? []) !== [])
+            @if($canManage && ($peerTeamAverages ?? []) !== [])
                 <div class="app-card card shadow-sm mb-3">
                     <div class="card-body">
                         <h2 class="h5 fw-bold">{{ __('projects.peer_eval_admin_title') }}</h2>
                         <p class="small text-muted">{{ __('projects.peer_eval_admin_hint') }}</p>
-                        <ul class="list-unstyled mb-0 small">
-                            @foreach($peerAverages as $row)
-                                <li class="d-flex justify-content-between border-bottom py-1">
-                                    <span>{{ $row['display_name'] }}</span>
-                                    <span class="text-muted">
-                                        @if($row['average'] === null)
-                                            —
-                                        @else
-                                            {{ number_format($row['average'], 2) }}
-                                            ({{ __('projects.peer_eval_ratings_count', ['count' => $row['ratings_count']]) }})
-                                        @endif
-                                    </span>
-                                </li>
+                        @foreach($peerTeamAverages as $row)
+                            @if((int) $row['project_id'] !== (int) $project->project_id)
+                                @continue
+                            @endif
+                            <div class="small mb-1">
+                                <span class="fw-semibold">{{ __('projects.peer_eval_overall') }}:</span>
+                                @if($row['overall_avg'] === null)
+                                    —
+                                @else
+                                    {{ number_format($row['overall_avg'], 2) }}
+                                    ({{ __('projects.peer_eval_ratings_count', ['count' => $row['ratings_count']]) }})
+                                @endif
+                            </div>
+                            @foreach($row['by_rater_team'] as $from)
+                                <div class="small text-muted">
+                                    {{ __('projects.peer_eval_from_team', ['team' => $from['title']]) }}:
+                                    {{ number_format($from['average'], 2) }}
+                                    ({{ __('projects.peer_eval_ratings_count', ['count' => $from['ratings_count']]) }})
+                                </div>
                             @endforeach
-                        </ul>
+                        @endforeach
                     </div>
                 </div>
             @endif

@@ -39,6 +39,8 @@ class ProjectAssessment extends Model
         'peer_eval_closes_at',
         'peer_eval_scale_max',
         'peer_eval_prompt',
+        'peer_eval_min_picks',
+        'peer_eval_max_picks',
     ];
 
     protected $casts = [
@@ -56,6 +58,8 @@ class ProjectAssessment extends Model
         'peer_eval_opens_at' => 'datetime',
         'peer_eval_closes_at' => 'datetime',
         'peer_eval_scale_max' => 'integer',
+        'peer_eval_min_picks' => 'integer',
+        'peer_eval_max_picks' => 'integer',
     ];
 
     public const GRADING_MODE_RUBRIC = 'rubric';

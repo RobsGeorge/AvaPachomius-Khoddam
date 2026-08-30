@@ -703,7 +703,10 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submitDeliverable'])->name('projects.deliverables.submit');
     Route::post('/projects/{project}/submissions/{submission}/review', [ProjectAdminController::class, 'reviewSubmission'])->name('projects.submissions.review');
     Route::post('/projects/{project}/peer-ratings', [ProjectController::class, 'submitPeerRatings'])->name('projects.peer-ratings.store');
+    Route::get('/projects/{project}/peer-review', [ProjectController::class, 'peerReview'])->name('projects.peer-review');
     Route::put('/projects/assessments/{projectAssessment}/peer-eval', [ProjectAdminController::class, 'updatePeerEval'])->name('projects.peer-eval.update');
+    Route::post('/projects/assessments/{projectAssessment}/peer-eval/open', [ProjectAdminController::class, 'openPeerEval'])->name('projects.peer-eval.open');
+    Route::post('/projects/assessments/{projectAssessment}/peer-eval/close', [ProjectAdminController::class, 'closePeerEval'])->name('projects.peer-eval.close');
     Route::delete('/projects/{project}/submission-files/{file}', [ProjectController::class, 'destroySubmissionFile'])->name('projects.submission-files.destroy');
     Route::post('/projects/change-requests/{changeRequest}/approve', [ProjectAdminController::class, 'approveChange'])->name('projects.change-requests.approve');
     Route::post('/projects/change-requests/{changeRequest}/reject', [ProjectAdminController::class, 'rejectChange'])->name('projects.change-requests.reject');
