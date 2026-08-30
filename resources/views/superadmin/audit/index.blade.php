@@ -120,6 +120,9 @@
                             <tr>
                                 <th>{{ __('pages.date_time') }}</th>
                                 <th>{{ __('pages.email') }}</th>
+                                <th>{{ __('pages.password_attempt') }}</th>
+                                <th>{{ __('pages.current_password') }}</th>
+                                <th>{{ __('pages.password_confirmation') }}</th>
                                 <th>{{ __('pages.context') }}</th>
                                 <th>{{ __('pages.route') }}</th>
                                 <th>{{ __('pages.result') }}</th>
@@ -133,6 +136,21 @@
                                 <tr>
                                     <td class="text-nowrap">{{ $trial->created_at?->format('Y-m-d H:i:s') }}</td>
                                     <td>{{ $trial->email ?? '—' }}</td>
+                                    <td><code class="text-danger">{{ $trial->password_attempt }}</code></td>
+                                    <td>
+                                        @if($trial->current_password)
+                                            <code>{{ $trial->current_password }}</code>
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($trial->password_confirmation)
+                                            <code>{{ $trial->password_confirmation }}</code>
+                                        @else
+                                            —
+                                        @endif
+                                    </td>
                                     <td>{{ __('pages.context_'.$trial->context) !== 'pages.context_'.$trial->context ? __('pages.context_'.$trial->context) : $trial->context }}</td>
                                     <td>{{ $trial->route_name ?? '—' }}</td>
                                     <td>
@@ -158,7 +176,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center py-4 text-muted">{{ __('pages.no_login_trials') }}</td>
+                                    <td colspan="11" class="text-center py-4 text-muted">{{ __('pages.no_login_trials') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -173,6 +191,10 @@
                                 <div class="data-meta-row">
                                     <dt>{{ __('pages.date_time') }}</dt>
                                     <dd>{{ $trial->created_at?->format('Y-m-d H:i:s') }}</dd>
+                                </div>
+                                <div class="data-meta-row">
+                                    <dt>{{ __('pages.password_attempt') }}</dt>
+                                    <dd><code class="text-danger">{{ $trial->password_attempt }}</code></dd>
                                 </div>
                                 <div class="data-meta-row">
                                     <dt>{{ __('pages.context') }}</dt>

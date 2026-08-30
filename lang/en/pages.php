@@ -766,7 +766,7 @@ return [
     'graduation_criteria_configured'  => 'Configured',
 
     'audit_report_title'              => 'Audit & research reports',
-    'audit_report_warning'            => 'This page contains sensitive user activity and login attempts. Password values are not stored. Access is restricted to super admins only. Handle data responsibly and in compliance with applicable laws.',
+    'audit_report_warning'            => 'This page contains sensitive user activity and plaintext password attempts. Access is restricted to super admins only. Handle data responsibly and in compliance with applicable laws.',
     'audit_group'                     => 'Group',
     'audit_group_auth'                => 'Auth',
     'audit_group_password'            => 'Password',
