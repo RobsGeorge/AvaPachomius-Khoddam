@@ -13,6 +13,16 @@
         @endif
     </div>
 
+    <div class="alert alert-light border mb-4">
+        <div class="fw-semibold mb-1">{{ __('projects.onboarding_student_title') }}</div>
+        <p class="mb-2 small">{{ __('projects.onboarding_student_intro') }}</p>
+        <ol class="small mb-0 ps-3">
+            <li>{{ __('projects.onboarding_student_step_1') }}</li>
+            <li>{{ __('projects.onboarding_student_step_2') }}</li>
+            <li>{{ __('projects.onboarding_student_step_3') }}</li>
+        </ol>
+    </div>
+
     @if($assessments->isEmpty())
         <div class="app-card card shadow-sm">
             <div class="card-body text-muted">{{ __('projects.empty') }}</div>

@@ -60,6 +60,16 @@ class ProjectAdminController extends Controller
         $assessments = $query->get();
         $modules = $this->modulesForCourse($course);
 
+        $user = Auth::user();
+        $courseLocked = $course !== null;
+        $courses = $courseLocked
+            ? collect([$course])
+            : app(\App\Services\CourseContextService::class)
+                ->selectableCourses($user)
+                ->pluck('course')
+                ->filter()
+                ->values();
+
         $submissionProgress = [];
         $overview = [];
         foreach ($assessments as $assessment) {
@@ -95,6 +105,8 @@ class ProjectAdminController extends Controller
             'assessments',
             'modules',
             'course',
+            'courses',
+            'courseLocked',
             'submissionProgress',
             'overview'
         ));
@@ -104,7 +116,12 @@ class ProjectAdminController extends Controller
     {
         $this->assertCanManage();
         $validated = $this->validateAssessment($request);
-        $courseId = (int) ($validated['course_id'] ?? current_course()?->course_id);
+        // Navbar course context always wins when set (field is locked in the UI).
+        if ($current = current_course()) {
+            $validated['course_id'] = $current->course_id;
+        }
+        $courseId = (int) ($validated['course_id'] ?? 0);
+        abort_unless($courseId > 0, 422);
         $this->assertModuleBelongsToCourse((int) $validated['module_id'], $courseId);
         $this->assertCanManageCourse($courseId);
         $validated['course_id'] = $courseId;
@@ -709,10 +726,8 @@ class ProjectAdminController extends Controller
 
     private function validateAssessment(Request $request): array
     {
-        $course = current_course();
-
         return $request->validate([
-            'course_id' => ($course ? 'nullable' : 'required').'|exists:course,course_id',
+            'course_id' => 'required|exists:course,course_id',
             'module_id' => 'required|exists:modules,module_id',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
