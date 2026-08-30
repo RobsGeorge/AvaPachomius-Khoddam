@@ -159,7 +159,7 @@ class NavigationHub
         $manageable = $rolesHub->manageableServices($user);
 
         if ($selectable->isNotEmpty() || ($user->is_superadmin ?? false)) {
-            $links[] = array_merge(self::link('services.select', 'service.select_title', 'fas fa-church', [
+            $links[] = array_merge(self::link('services.select', 'service.select_title', 'bi-building', [
                 'services.select', 'services.select.*',
             ], 'service.view'), ['category' => 'ops']);
         }
@@ -190,7 +190,7 @@ class NavigationHub
             $links[] = array_merge(self::link(
                 'admin.services.index',
                 'service.manage_title',
-                'fas fa-church',
+                'bi-building',
                 ['admin.services.*'],
                 'platform.service_crud'
             ), ['category' => 'admin']);

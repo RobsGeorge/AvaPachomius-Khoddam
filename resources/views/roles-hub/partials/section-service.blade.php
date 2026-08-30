@@ -5,7 +5,7 @@
     <h2 class="accordion-header">
         <button class="accordion-button {{ $open ? '' : 'collapsed' }} py-2" type="button"
                 data-bs-toggle="collapse" data-bs-target="#section-service" aria-expanded="{{ $open ? 'true' : 'false' }}">
-            <i class="fas fa-church me-2"></i>
+            <i class="bi bi-building me-2"></i>
             <span class="fw-semibold">{{ __('rbac.section_service') }}</span>
             @if($service ?? null)
                 <span class="badge bg-info text-dark ms-2">{{ $service->localizedTitle() }}</span>

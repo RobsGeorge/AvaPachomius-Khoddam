@@ -14,7 +14,7 @@
     @if(!empty($currentService))
         <p class="mb-4">
             <span class="badge bg-primary-subtle text-primary-emphasis border">
-                <i class="fas fa-church me-1"></i>{{ $currentService->localizedTitle() }}
+                <i class="bi bi-building me-1"></i>{{ $currentService->localizedTitle() }}
             </span>
             <span class="text-muted-theme small ms-2">{{ __('service.no_academic_hint') }}</span>
         </p>
