@@ -70,6 +70,11 @@ class FeedbackSurvey extends Model
             || ($this->due_at !== null && $this->due_at->isPast());
     }
 
+    public function canStaffDelete(): bool
+    {
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_OPEN], true);
+    }
+
     /**
      * Blocking surveys hide exam/project results for this survey's module only.
      */
