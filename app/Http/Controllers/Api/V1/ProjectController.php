@@ -15,6 +15,7 @@ use App\Models\ProjectSubmissionFile;
 use App\Models\User;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradingService;
+use App\Services\ProjectPeerEvaluationService;
 use App\Services\ProjectResultsVisibilityService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +36,7 @@ class ProjectController extends Controller
         private ProjectSubmissionService $submissions,
         private ProjectGradingService $grading,
         private ProjectResultsVisibilityService $visibility,
+        private ProjectPeerEvaluationService $peerEval,
     ) {}
 
     public function index(Request $request, Course $course): JsonResponse
@@ -61,7 +63,13 @@ class ProjectController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        $project->load(['assessment.module', 'phases', 'deliverables', 'activeMemberships.user']);
+        $project->load([
+            'assessment.module',
+            'phases',
+            'deliverables',
+            'activeMemberships.user',
+            'membershipEvents.user',
+        ]);
         $assessment = $project->assessment;
         abort_unless($assessment, 404);
 
@@ -85,6 +93,7 @@ class ProjectController extends Controller
                 'is_cancelled' => $project->isCancelled(),
                 'remaining_seats' => $project->remainingSeats($assessment),
                 'team_workspace_url' => $project->team_workspace_url,
+                'workspace_provider' => $project->workspaceProvider(),
                 'team_announcement' => $project->team_announcement,
                 'assessment' => $this->serializeAssessment($assessment, $user),
                 'phases' => $project->phases->map(fn ($phase) => [
@@ -97,6 +106,17 @@ class ProjectController extends Controller
                 'progress' => $this->submissions->progress($project),
                 'members' => $project->activeMemberships
                     ->map(fn (ProjectMembership $m) => $this->serializeMember($m, $user))
+                    ->values(),
+                'membership_history' => $project->membershipEvents
+                    ->map(fn ($event) => [
+                        'project_membership_event_id' => (int) $event->project_membership_event_id,
+                        'event' => $event->event,
+                        'user_id' => (int) $event->user_id,
+                        'display_name' => $event->user?->displayName(),
+                        'actor_user_id' => $event->actor_user_id ? (int) $event->actor_user_id : null,
+                        'meta' => $event->meta,
+                        'occurred_at' => $event->occurred_at?->toIso8601String(),
+                    ])
                     ->values(),
                 'grade' => $this->serializeGrade($gradeVisibility),
                 'rubric' => ($gradeVisibility['can_view'] ?? false)
@@ -181,6 +201,61 @@ class ProjectController extends Controller
         );
 
         return response()->json(['data' => $this->serializeSubmission($submission)], 201);
+    }
+
+    public function pendingPeerRatings(Request $request, Project $project): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+
+        $this->authorizeCoursePermission($user, $this->courseFor($assessment), 'project.join');
+        $this->assertMember($assessment, $project, $user);
+
+        $pending = $this->peerEval->isOpen($assessment)
+            ? $this->peerEval->pendingTeammates($project, $user)
+            : collect();
+
+        return response()->json([
+            'data' => [
+                'open' => $this->peerEval->isOpen($assessment),
+                'scale_max' => (int) ($assessment->peer_eval_scale_max ?: 5),
+                'prompt' => $assessment->peer_eval_prompt,
+                'pending' => $pending->map(fn (User $member) => [
+                    'user_id' => (int) $member->user_id,
+                    'display_name' => $member->displayName(),
+                ])->values(),
+            ],
+        ]);
+    }
+
+    public function storePeerRatings(Request $request, Project $project): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $project->load('assessment');
+        $assessment = $project->assessment;
+        abort_unless($assessment, 404);
+
+        $this->authorizeCoursePermission($user, $this->courseFor($assessment), 'project.join');
+        $this->assertMember($assessment, $project, $user);
+
+        $validated = $request->validate([
+            'ratings' => 'required|array|min:1',
+            'ratings.*.ratee_user_id' => 'required|integer',
+            'ratings.*.score' => 'required|integer|min:1|max:10',
+            'ratings.*.comment' => 'nullable|string|max:2000',
+        ]);
+
+        $saved = $this->peerEval->submitRatings($project, $user, $validated['ratings']);
+
+        return response()->json([
+            'data' => [
+                'saved' => $saved->count(),
+            ],
+        ], 201);
     }
 
     public function destroySubmissionFile(

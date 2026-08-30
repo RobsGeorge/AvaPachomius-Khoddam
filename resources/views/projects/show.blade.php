@@ -52,7 +52,10 @@
                 <a href="{{ $project->team_workspace_url }}"
                    class="btn btn-outline-primary btn-sm"
                    target="_blank"
-                   rel="noopener noreferrer">{{ __('projects.team_workspace_open') }}</a>
+                   rel="noopener noreferrer">
+                    {{ __('projects.team_workspace_open') }}
+                    <span class="text-muted small">({{ __('projects.workspace_provider_'.$project->workspaceProvider()) }})</span>
+                </a>
             </div>
         @endif
     @endif
@@ -103,6 +106,7 @@
                             'row' => $row,
                             'project' => $project,
                             'isMember' => $isMember ?? false,
+                            'canManage' => $canManage ?? false,
                         ])
                     @empty
                         <p class="text-muted mb-0 mt-2">{{ __('projects.no_deliverables') }}</p>
@@ -154,6 +158,81 @@
                     </ul>
                 </div>
             </div>
+
+            @if(($isMember ?? false) || $canManage)
+                <div class="app-card card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h2 class="h5 fw-bold">{{ __('projects.team_history') }}</h2>
+                        <ul class="list-unstyled mb-0 small">
+                            @forelse($teamHistory ?? [] as $event)
+                                <li class="border-bottom py-2">
+                                    <div class="fw-semibold">
+                                        {{ __('projects.history_event_'.$event->event, [
+                                            'name' => $event->user?->displayName() ?? '—',
+                                        ]) }}
+                                    </div>
+                                    <div class="text-muted">
+                                        {{ $event->occurred_at?->format('Y-m-d H:i') }}
+                                    </div>
+                                </li>
+                            @empty
+                                <li class="text-muted">{{ __('projects.team_history_empty') }}</li>
+                            @endforelse
+                        </ul>
+                    </div>
+                </div>
+            @endif
+
+            @if(($isMember ?? false) && ($peerEvalOpen ?? false) && ($peerPending ?? collect())->isNotEmpty())
+                <div class="app-card card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h2 class="h5 fw-bold">{{ __('projects.peer_eval_title') }}</h2>
+                        <p class="small text-muted">{{ __('projects.peer_eval_anonymous_hint') }}</p>
+                        @if($assessment->peer_eval_prompt)
+                            <p class="small" style="white-space: pre-wrap;">{{ $assessment->peer_eval_prompt }}</p>
+                        @endif
+                        <form method="POST" action="{{ route('projects.peer-ratings.store', $project) }}">
+                            @csrf
+                            @foreach($peerPending as $index => $teammate)
+                                <div class="border rounded p-2 mb-2">
+                                    <div class="fw-semibold small mb-1">{{ $teammate->displayName() }}</div>
+                                    <input type="hidden" name="ratings[{{ $index }}][ratee_user_id]" value="{{ $teammate->user_id }}">
+                                    <label class="form-label small">{{ __('projects.peer_eval_score') }} (1–{{ (int) ($assessment->peer_eval_scale_max ?: 5) }})</label>
+                                    <input type="number" name="ratings[{{ $index }}][score]" class="form-control form-control-sm mb-1"
+                                           min="1" max="{{ (int) ($assessment->peer_eval_scale_max ?: 5) }}" required>
+                                    <label class="form-label small">{{ __('projects.peer_eval_comment') }}</label>
+                                    <textarea name="ratings[{{ $index }}][comment]" class="form-control form-control-sm" rows="2"></textarea>
+                                </div>
+                            @endforeach
+                            <button type="submit" class="btn btn-sm btn-primary">{{ __('projects.peer_eval_submit') }}</button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
+            @if($canManage && ($peerAverages ?? []) !== [])
+                <div class="app-card card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h2 class="h5 fw-bold">{{ __('projects.peer_eval_admin_title') }}</h2>
+                        <p class="small text-muted">{{ __('projects.peer_eval_admin_hint') }}</p>
+                        <ul class="list-unstyled mb-0 small">
+                            @foreach($peerAverages as $row)
+                                <li class="d-flex justify-content-between border-bottom py-1">
+                                    <span>{{ $row['display_name'] }}</span>
+                                    <span class="text-muted">
+                                        @if($row['average'] === null)
+                                            —
+                                        @else
+                                            {{ number_format($row['average'], 2) }}
+                                            ({{ __('projects.peer_eval_ratings_count', ['count' => $row['ratings_count']]) }})
+                                        @endif
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @endif
 
             @if($membership && ! $canManage)
                 <div class="app-card card shadow-sm">
