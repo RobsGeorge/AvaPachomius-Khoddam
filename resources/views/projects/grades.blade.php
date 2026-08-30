@@ -112,6 +112,32 @@
         <div class="card-body">
             <h2 class="h5 fw-bold mb-2">{{ __('projects.peer_eval_settings') }}</h2>
             <p class="small text-muted">{{ __('projects.peer_eval_settings_hint') }}</p>
+            @php
+                $peerStatus = $peerEvalStatus ?? 'closed';
+            @endphp
+            <p class="mb-3">
+                <span class="badge
+                    @if($peerStatus === 'open') bg-success
+                    @elseif($peerStatus === 'scheduled') bg-info text-dark
+                    @elseif($peerStatus === 'ended') bg-secondary
+                    @else bg-light text-dark border
+                    @endif">
+                    {{ __('projects.peer_eval_status_'.$peerStatus) }}
+                </span>
+            </p>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <form method="POST" action="{{ route('projects.peer-eval.open', $assessment) }}">
+                    @csrf
+                    <button class="btn btn-primary">{{ __('projects.peer_eval_open_now') }}</button>
+                </form>
+                <form method="POST" action="{{ route('projects.peer-eval.close', $assessment) }}">
+                    @csrf
+                    <button class="btn btn-outline-secondary"
+                            @disabled($peerStatus === 'ended' || $peerStatus === 'closed')>
+                        {{ __('projects.peer_eval_close_now') }}
+                    </button>
+                </form>
+            </div>
             <form method="POST" action="{{ route('projects.peer-eval.update', $assessment) }}" class="row g-2 align-items-end">
                 @csrf
                 @method('PUT')
@@ -138,6 +164,16 @@
                     <input type="number" name="peer_eval_scale_max" id="peer_eval_scale_max" class="form-control" min="1" max="10"
                            value="{{ old('peer_eval_scale_max', $assessment->peer_eval_scale_max ?: 5) }}">
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="peer_eval_min_picks">{{ __('projects.peer_eval_min_picks') }}</label>
+                    <input type="number" name="peer_eval_min_picks" id="peer_eval_min_picks" class="form-control" min="1" max="50"
+                           value="{{ old('peer_eval_min_picks', $assessment->peer_eval_min_picks ?: 1) }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="peer_eval_max_picks">{{ __('projects.peer_eval_max_picks') }}</label>
+                    <input type="number" name="peer_eval_max_picks" id="peer_eval_max_picks" class="form-control" min="1" max="50"
+                           value="{{ old('peer_eval_max_picks', $assessment->peer_eval_max_picks ?: 3) }}">
+                </div>
                 <div class="col-12">
                     <label class="form-label" for="peer_eval_prompt">{{ __('projects.peer_eval_prompt') }}</label>
                     <textarea name="peer_eval_prompt" id="peer_eval_prompt" class="form-control" rows="2">{{ old('peer_eval_prompt', $assessment->peer_eval_prompt) }}</textarea>
@@ -146,6 +182,38 @@
                     <button class="btn btn-outline-primary">{{ __('projects.peer_eval_settings_save') }}</button>
                 </div>
             </form>
+
+            @if(($peerTeamAverages ?? []) !== [])
+                <hr class="my-4">
+                <h3 class="h6 fw-bold">{{ __('projects.peer_eval_admin_title') }}</h3>
+                <p class="small text-muted">{{ __('projects.peer_eval_admin_hint') }}</p>
+                @foreach($peerTeamAverages as $row)
+                    <div class="border rounded p-2 mb-2 small">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-semibold">{{ $row['title'] }}</span>
+                            <span class="text-muted">
+                                @if($row['overall_avg'] === null)
+                                    —
+                                @else
+                                    {{ number_format($row['overall_avg'], 2) }}
+                                    ({{ __('projects.peer_eval_ratings_count', ['count' => $row['ratings_count']]) }})
+                                @endif
+                            </span>
+                        </div>
+                        @if(($row['by_rater_team'] ?? []) !== [])
+                            <ul class="list-unstyled mb-0 mt-1 ps-2 text-muted">
+                                @foreach($row['by_rater_team'] as $from)
+                                    <li>
+                                        {{ __('projects.peer_eval_from_team', ['team' => $from['title']]) }}:
+                                        {{ number_format($from['average'], 2) }}
+                                        ({{ __('projects.peer_eval_ratings_count', ['count' => $from['ratings_count']]) }})
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endforeach
+            @endif
         </div>
     </div>
 

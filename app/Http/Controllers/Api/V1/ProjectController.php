@@ -214,19 +214,28 @@ class ProjectController extends Controller
         $this->authorizeCoursePermission($user, $this->courseFor($assessment), 'project.join');
         $this->assertMember($assessment, $project, $user);
 
-        $pending = $this->peerEval->isOpen($assessment)
-            ? $this->peerEval->pendingTeammates($project, $user)
-            : collect();
+        $open = $this->peerEval->isOpen($assessment);
+        $eligible = $open ? $this->peerEval->eligibleRateeTeams($assessment, $user) : collect();
+        $existing = $open ? $this->peerEval->ratingsByRater($assessment, $user) : collect();
+        $progress = $open ? $this->peerEval->progress($assessment, $user) : null;
 
         return response()->json([
             'data' => [
-                'open' => $this->peerEval->isOpen($assessment),
+                'open' => $open,
                 'scale_max' => (int) ($assessment->peer_eval_scale_max ?: 5),
                 'prompt' => $assessment->peer_eval_prompt,
-                'pending' => $pending->map(fn (User $member) => [
-                    'user_id' => (int) $member->user_id,
-                    'display_name' => $member->displayName(),
-                ])->values(),
+                'progress' => $progress,
+                'eligible' => $eligible->map(function (Project $team) use ($existing) {
+                    $rating = $existing->get((int) $team->project_id);
+
+                    return [
+                        'project_id' => (int) $team->project_id,
+                        'title' => $team->title,
+                        'rated' => $rating !== null,
+                        'score' => $rating?->score,
+                        'comment' => $rating?->comment,
+                    ];
+                })->values(),
             ],
         ]);
     }
@@ -244,16 +253,17 @@ class ProjectController extends Controller
 
         $validated = $request->validate([
             'ratings' => 'required|array|min:1',
-            'ratings.*.ratee_user_id' => 'required|integer',
+            'ratings.*.ratee_project_id' => 'required|integer',
             'ratings.*.score' => 'required|integer|min:1|max:10',
             'ratings.*.comment' => 'nullable|string|max:2000',
         ]);
 
-        $saved = $this->peerEval->submitRatings($project, $user, $validated['ratings']);
+        $saved = $this->peerEval->submitTeamRatings($assessment, $user, $validated['ratings']);
 
         return response()->json([
             'data' => [
                 'saved' => $saved->count(),
+                'progress' => $this->peerEval->progress($assessment, $user),
             ],
         ], 201);
     }
