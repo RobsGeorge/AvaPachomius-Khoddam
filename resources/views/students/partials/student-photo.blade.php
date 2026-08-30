@@ -11,6 +11,10 @@
                 aria-label="{{ __('pages.view_photo') }}: {{ $student->displayName() }}">
             <img src="{{ asset('storage/' . $student->profile_photo) }}"
                  alt="{{ $student->displayName() }}"
+                 width="56"
+                 height="56"
+                 loading="lazy"
+                 decoding="async"
                  class="rounded-circle object-fit-cover">
         </button>
     </div>

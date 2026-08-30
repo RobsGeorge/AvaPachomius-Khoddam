@@ -15,7 +15,7 @@
             </a>
         @endif
         <h1 class="page-title mb-0">
-            <i class="fas fa-church me-2"></i>{{ __('service.manage_title') }}
+            <i class="bi bi-building me-2"></i>{{ __('service.manage_title') }}
         </h1>
     </div>
 

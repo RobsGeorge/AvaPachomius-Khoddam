@@ -28,7 +28,13 @@ trait CreatesApplication
      */
     private function forceIsolatedTestingEnvironment(): void
     {
+        // Cursor agent shells (and some IDE runners) export APP_BASE_PATH to the
+        // primary workspace. When PHPUnit runs from a git worktree that must not
+        // win — otherwise views/public assets are loaded from the wrong tree.
+        $appRoot = dirname(__DIR__);
+
         foreach ([
+            'APP_BASE_PATH' => $appRoot,
             'APP_ENV' => 'testing',
             'APP_URL' => 'http://localhost',
             'APP_KEY' => 'base64:QpqWBoNnyF/v8SmlRC/DzLq9d75hjncrv55mbjLWsVc=',

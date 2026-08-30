@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', $assignment->assignment_name)
 
@@ -75,7 +75,7 @@
                         @if($assignment->isOffline())
                             <div class="alert alert-info mb-4">
                                 <h5 class="alert-heading mb-2">
-                                    <i class="fas fa-info-circle me-1"></i>
+                                    <i class="bi bi-info-circle me-1"></i>
                                     {{ __('pages.mode_offline_short') }}
                                 </h5>
                                 <p class="mb-0">{{ __('pages.assignment_offline_student_hint') }}</p>
@@ -83,7 +83,7 @@
                         @else
                             <div class="alert alert-info mb-4">
                                 <h5 class="alert-heading mb-2">
-                                    <i class="fas fa-info-circle me-1"></i>
+                                    <i class="bi bi-info-circle me-1"></i>
                                     {{ __('pages.upload_requirements_title') }}
                                 </h5>
                                 <p class="mb-0">{{ __('pages.upload_requirements_body', ['max' => \App\Models\Assignment::MAX_UPLOAD_MB]) }}</p>
@@ -118,7 +118,7 @@
                     </div>
                         @elseif($assignment->isOnline() && !$currentSubmission && !$submissionOpen)
                             <div class="alert alert-warning mb-4">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <i class="bi bi-exclamation-triangle me-2"></i>
                                 {{ __('pages.deadline_passed', ['date' => $assignment->due_date->copy()->addHours(3)->format('Y-m-d H:i')]) }}
                             </div>
                         @endif
@@ -148,17 +148,17 @@
                                         <div class="mb-3">
                                             <h6 class="fw-bold">{{ __('pages.file_attachment') }}</h6>
                                             <div class="d-flex align-items-center">
-                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
                                                     <a href="{{ Storage::url($currentSubmission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-primary btn-sm">
-                                                    <i class="fas fa-download me-1"></i>
+                                                    <i class="bi bi-download me-1"></i>
                                                     {{ __('pages.download_file') }}
                                                 </a>
                                                     <a href="{{ Storage::url($currentSubmission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-info btn-sm ms-2">
-                                                    <i class="fas fa-eye me-1"></i>
+                                                    <i class="bi bi-eye me-1"></i>
                                                     {{ __('pages.view_file') }}
                                                 </a>
                                             </div>
@@ -213,14 +213,14 @@
                                                         @enderror
                                                     </div>
                                                     <button type="submit" class="btn btn-primary">
-                                                        <i class="fas fa-save me-1"></i>
+                                                        <i class="bi bi-save me-1"></i>
                                                         {{ __('pages.update_submission') }}
                                                     </button>
                                                 </form>
                                             </div>
                                         @elseif($assignment->isOnline() && !$submissionOpen)
                                             <div class="alert alert-warning mt-3">
-                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                <i class="bi bi-exclamation-triangle me-2"></i>
                                                 {{ __('pages.deadline_passed', ['date' => $assignment->due_date->copy()->addHours(3)->format('Y-m-d H:i')]) }}
                                         </div>
                                         @endif
@@ -228,7 +228,7 @@
                                 </div>
                             @else
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
+                                <i class="bi bi-info-circle me-2"></i>
                                 {{ __('pages.no_submissions_yet') }}
                             </div>
                         @endif
@@ -296,17 +296,17 @@
                                         <div class="mb-3">
                                             <h6 class="fw-bold">{{ __('pages.file_attachment') }}</h6>
                                             <div class="d-flex align-items-center">
-                                                <i class="fas fa-file-pdf text-danger me-2"></i>
+                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>
                                                 <a href="{{ Storage::url($submission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-primary btn-sm">
-                                                    <i class="fas fa-download me-1"></i>
+                                                    <i class="bi bi-download me-1"></i>
                                                     {{ __('pages.download_file') }}
                                                 </a>
                                                 <a href="{{ Storage::url($submission->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-outline-info btn-sm ms-2">
-                                                    <i class="fas fa-eye me-1"></i>
+                                                    <i class="bi bi-eye me-1"></i>
                                                     {{ __('pages.view_file') }}
                                                 </a>
                                             </div>
@@ -345,7 +345,7 @@
                                             </div>
                                         </div>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-check me-1"></i>
+                                            <i class="bi bi-check-lg me-1"></i>
                                             {{ __('pages.grade_action') }}
                                         </button>
                                     </form>
@@ -353,7 +353,7 @@
                             </div>
                         @empty
                             <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
+                                <i class="bi bi-info-circle me-2"></i>
                                 {{ __('pages.no_submissions_yet') }}
                             </div>
                         @endforelse
@@ -365,46 +365,3 @@
     </div>
 </div>
 @endsection
-
-@push('styles')
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-@endpush
-
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $('.select2').select2({
-            placeholder: @json(__('pages.select_team_members')),
-            allowClear: true,
-            language: {
-                noResults: function() {
-                    return @json(__('pages.no_results'));
-                },
-                searching: function() {
-                    return @json(__('pages.searching'));
-                }
-            },
-            templateResult: formatUser,
-            templateSelection: formatUserSelection,
-            escapeMarkup: function(markup) {
-                return markup;
-            }
-        });
-    });
-
-    function formatUser(user) {
-        if (!user.id) {
-            return user.text;
-        }
-        return $('<span>' + user.text + '</span>');
-    }
-
-    function formatUserSelection(user) {
-        if (!user.id) {
-            return user.text;
-        }
-        return $('<span>' + user.text + '</span>');
-    }
-</script>
-@endpush 

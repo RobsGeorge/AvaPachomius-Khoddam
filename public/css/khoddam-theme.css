@@ -15,9 +15,9 @@
     --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
 
-    --reveal-duration: 1.5s;
+    --reveal-duration: 0.4s;
     --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --reveal-distance: 8px;
+    --reveal-distance: 6px;
 }
 
 body.theme-light {
@@ -139,9 +139,9 @@ body.theme-dark {
     --transition-fast: 180ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-base: 280ms cubic-bezier(0.4, 0, 0.2, 1);
 
-    --reveal-duration: 1.5s;
+    --reveal-duration: 0.4s;
     --reveal-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    --reveal-distance: 8px;
+    --reveal-distance: 6px;
 
     --swal-surface: rgba(15, 39, 68, 0.96);
     --swal-text: var(--color-text);
@@ -907,12 +907,40 @@ body.js-page-reveal .app-tile,
 body.js-page-reveal .hub-tile,
 body.js-page-reveal .hub-link-tile,
 body.js-page-reveal .animate-in {
-    animation: fadeInUp var(--reveal-duration, 1.5s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation: fadeInUp var(--reveal-duration, 0.4s) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 body.js-page-reveal .accordion-item,
 body.js-page-reveal .roles-hub-panel {
-    animation: khoddamFadeIn calc(var(--reveal-duration, 1.5s) * 0.9) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation: khoddamFadeIn calc(var(--reveal-duration, 0.4s) * 0.9) var(--reveal-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* Mobile: skip expensive entrance motion — every navigation is a full reload. */
+@media (max-width: 767.98px) {
+    body.js-page-reveal .app-card,
+    body.js-page-reveal .card.app-card,
+    body.js-page-reveal .app-tile,
+    body.js-page-reveal .hub-tile,
+    body.js-page-reveal .hub-link-tile,
+    body.js-page-reveal .animate-in,
+    body.js-page-reveal .accordion-item,
+    body.js-page-reveal .roles-hub-panel {
+        animation: none !important;
+    }
+}
+
+/* Local SweetAlert entrance (replaces Animate.css CDN). */
+@keyframes khoddamSwalIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.khoddam-swal-popup.khoddam-swal-animate {
+    animation: khoddamSwalIn 0.22s var(--reveal-ease, ease) both;
+}
+@media (prefers-reduced-motion: reduce) {
+    .khoddam-swal-popup.khoddam-swal-animate {
+        animation: none;
+    }
 }
 
 /* .animate-delay-* remain valid Blade class markers (delays set by initReveal when gated). */
@@ -2443,50 +2471,59 @@ body.theme-dark .report-pct--poor {
     .kh-orbit__ring { animation-duration: 2.6s; }
 }
 
-/* --- full-page navigation overlay --- */
+/* --- navigation progress (thin top bar; no full-screen blur) --- */
 .kh-page-loader {
     position: fixed;
-    inset: 0;
+    top: 0;
+    inset-inline: 0;
     z-index: 2000;
-    display: grid;
-    place-items: center;
-    background: rgba(238, 244, 242, 0.72);
-    background: color-mix(in srgb, var(--color-bg-1, #f5f0ff) 78%, transparent);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    height: 3px;
+    display: block;
+    background: transparent;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.18s ease, visibility 0.18s ease;
+    transition: opacity 0.12s ease, visibility 0.12s ease;
 }
 .kh-page-loader.is-active {
     opacity: 1;
     visibility: visible;
-    pointer-events: auto;
-    animation: kh-loader-fade 0.18s ease;
 }
-.kh-page-loader__box { display: grid; place-items: center; }
-.kh-page-loader__disc {
-    width: 116px;
-    height: 116px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: radial-gradient(120% 120% at 20% 0%, #7c3aed, #0a1628);
-    box-shadow: var(--shadow-lg, 0 16px 40px rgba(15, 74, 78, 0.16));
+.kh-page-loader__box {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
 }
-.kh-page-loader__disc .kh-orbit {
-    --kh-orbit-size: 66px;
-    --kh-orbit-cross: #d4af37;
-    --kh-orbit-ring: #d4af37;
-}
+.kh-page-loader__disc,
 .kh-page-loader__label {
-    margin-top: 0.9rem;
-    font-family: var(--font-display, inherit);
-    font-size: 0.9rem;
-    letter-spacing: 0.02em;
-    color: var(--color-text, #22423f);
-    text-align: center;
+    display: none;
+}
+.kh-page-loader__box::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 40%;
+    background: linear-gradient(90deg, #7c3aed, #d4af37);
+    animation: kh-nav-progress 0.9s ease-in-out infinite;
+}
+@keyframes kh-nav-progress {
+    0%   { transform: translateX(-120%); }
+    100% { transform: translateX(280%); }
+}
+html[dir="rtl"] .kh-page-loader__box::before {
+    animation-name: kh-nav-progress-rtl;
+}
+@keyframes kh-nav-progress-rtl {
+    0%   { transform: translateX(120%); }
+    100% { transform: translateX(-280%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .kh-page-loader__box::before {
+        width: 100%;
+        animation: none;
+        opacity: 0.85;
+    }
 }
 
 /* --- inline / widget loader --- */

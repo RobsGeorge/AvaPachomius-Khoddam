@@ -19,8 +19,12 @@
     @endphp
     <link rel="icon" href="{{ $faviconUrl }}" type="image/svg+xml" />
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
 
     @if($htmlDir === 'rtl')
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
@@ -28,11 +32,9 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     @endif
 
-    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260729-auth">
+    <link rel="stylesheet" href="{{ asset('css/khoddam-theme.css') }}?v=20260830-mobile">
     <link rel="stylesheet" href="{{ asset('css/print.css') }}?v=20260714" media="print">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" referrerpolicy="no-referrer">
 
     @if(!empty($churchBrandingCss))
         <style>{!! $churchBrandingCss !!}</style>
@@ -81,14 +83,15 @@
     @stack('modals')
     @include('students.partials.student-photo-modal')
 
+    {{-- Bootstrap + SweetAlert stay sync so page @stack('scripts') inline code can use them. --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js"></script>
     {{-- Pin Alpine exactly: floating @3.x.x is a supply-chain risk (auto-pulls any new 3.x). --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.12/dist/cdn.min.js"></script>
-    <script src="{{ asset('js/csrf-heal.js') }}?v=20260727a"></script>
-    <script src="{{ asset('js/kh-loader.js') }}?v=20260728a"></script>
-    <script src="{{ asset('js/khoddam-ui.js') }}?v=20260727a"></script>
-    <script src="{{ asset('js/observability-beacon.js') }}?v=20260728a"></script>
+    <script defer src="{{ asset('js/csrf-heal.js') }}?v=20260830a"></script>
+    <script defer src="{{ asset('js/kh-loader.js') }}?v=20260830a"></script>
+    <script defer src="{{ asset('js/khoddam-ui.js') }}?v=20260830a"></script>
+    <script defer src="{{ asset('js/observability-beacon.js') }}?v=20260830a"></script>
     @stack('scripts')
 </body>
 </html>
