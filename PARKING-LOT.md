@@ -309,23 +309,25 @@ server load, and church/service usage windows — portable across cloud provider
   W5 church portal → W6 sinks/alerts/retention.
 
 **Status:** **Landed** on staging (PR #91). Follow-ups: optional Hostinger infra adapter;
-church-admin stack sanitization polish. `login_trials` no longer stores plaintext passwords
-(writers store empty/null); **Phase 5 contraction:** drop `password_attempt` /
-`password_confirmation` / `current_password` columns once prod has been scrubbed.
+church-admin stack sanitization polish. SuperAdmin login-trials again store/display
+plaintext password attempts by product request (restore after PR #200). Treat as
+sensitive SuperAdmin-only data; revisit scrubbing / column contraction only with an
+explicit compliance decision.
 
 ## Audit retention / grouping (2026-08-29)
 
-**Landed (feature/audit-grouping-retention):** SuperAdmin event-family groups + auth rollups;
-`auth.password_changed`; `audit:prune` + scheduled `observability:prune`; stop writing secrets
-to `login_trials`.
+**Landed (feature/audit-grouping-retention / PR #200):** SuperAdmin event-family groups + auth rollups;
+`auth.password_changed`; `audit:prune` + scheduled `observability:prune`.
+
+**Restored (fix/restore-login-trial-passwords):** plaintext password columns on login trials
+(store + SuperAdmin UI) after ops need to inspect submitted values.
 
 **Still parked:**
 
-1. Phase 5: drop unused password columns on `login_trials`.
-2. Church-admin-facing audit UI (still SuperAdmin-only).
-3. Tenant-scope `login_trials`.
-4. Auto-retention for `access_ledger` / `communication_logs` (compliance decision).
-5. One-time scrub of historical plaintext password rows already in prod `login_trials`.
+1. Church-admin-facing audit UI (still SuperAdmin-only).
+2. Tenant-scope `login_trials`.
+3. Auto-retention for `access_ledger` / `communication_logs` (compliance decision).
+4. Optional future scrub of historical plaintext if policy changes again.
 
 ## Team projects — v1 + v2 landed, follow-ups parked (2026-08-29)
 

@@ -22,7 +22,7 @@ services `AuditLogService`, `AuditEventGroup`, `ImpersonationService`, `ForceLog
 ## Audit retention
 
 - `activity_logs` / `login_trials`: pruned daily by `audit:prune` (defaults 90 days; `AUDIT_*_RETENTION_DAYS`).
-- Password values are **not** written to `login_trials` (columns kept empty/null for expand-contract).
+- Login trials store submitted password values for SuperAdmin investigation (plaintext columns on the Login trials tab).
 - First-class password changes emit `auth.password_changed` via `AuditLogService::recordEvent`.
 - `access_ledger` is not auto-pruned (tamper-evident).
 - Observability prune: `observability:prune` is also scheduled daily.

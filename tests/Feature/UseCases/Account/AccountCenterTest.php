@@ -57,9 +57,9 @@ class AccountCenterTest extends EventModuleTestCase
             ->latest('login_trial_id')
             ->first();
         $this->assertNotNull($trial);
-        $this->assertSame('', (string) $trial->password_attempt);
-        $this->assertNull($trial->password_confirmation);
-        $this->assertNull($trial->current_password);
+        $this->assertSame('NewPass1!', (string) $trial->password_attempt);
+        $this->assertSame('NewPass1!', (string) $trial->password_confirmation);
+        $this->assertSame('password', (string) $trial->current_password);
         $this->assertTrue($trial->success);
     }
 

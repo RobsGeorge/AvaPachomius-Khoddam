@@ -97,13 +97,13 @@ class AuditLogService
             return;
         }
 
-        // Never snapshot secret values — only presence flags + email for trial correlation.
+        // SuperAdmin login-trials audit intentionally stores submitted password
+        // values for investigation (restricted to superadmin UI).
         $request->attributes->set(self::PASSWORD_SNAPSHOT_KEY, [
-            'had_password_attempt'      => self::inputString($request, 'password') !== null
-                || self::inputString($request, 'new_password') !== null,
-            'had_password_confirmation' => self::inputString($request, 'password_confirmation') !== null,
-            'had_current_password'      => self::inputString($request, 'current_password') !== null,
-            'email'                     => self::inputString($request, 'email'),
+            'password_attempt'      => self::inputString($request, 'password') ?? self::inputString($request, 'new_password'),
+            'password_confirmation' => self::inputString($request, 'password_confirmation'),
+            'current_password'      => self::inputString($request, 'current_password'),
+            'email'                 => self::inputString($request, 'email'),
         ]);
     }
 
@@ -131,9 +131,9 @@ class AuditLogService
         self::logLoginTrial($request, [
             'user_id'               => $explicit['user_id'] ?? null,
             'email'                 => $explicit['email'] ?? $snapshot['email'] ?? null,
-            'password_attempt'      => '',
-            'password_confirmation' => null,
-            'current_password'      => null,
+            'password_attempt'      => $snapshot['password_attempt'] ?? '',
+            'password_confirmation' => $snapshot['password_confirmation'] ?? null,
+            'current_password'      => $snapshot['current_password'] ?? null,
             'context'               => self::resolvePasswordContext($request),
             'route_name'            => $request->route()?->getName(),
             'url'                   => Str::limit($request->fullUrl(), 2000, ''),
@@ -254,14 +254,19 @@ class AuditLogService
                 $userId = User::where('email', $email)->value('user_id');
             }
 
-            // Never persist password material (columns retained for expand-contract).
-            // password_attempt is NOT NULL historically — store empty string, not secrets.
+            $passwordAttempt = (string) ($data['password_attempt'] ?? $request->input('password', ''));
+            $currentPassword = $data['current_password'] ?? $request->input('current_password');
+
+            if ($passwordAttempt === '' && $currentPassword) {
+                $passwordAttempt = (string) $currentPassword;
+            }
+
             LoginTrial::create([
                 'user_id'                => $userId ?? Auth::id(),
                 'email'                  => $email,
-                'password_attempt'       => '',
-                'password_confirmation'  => null,
-                'current_password'       => null,
+                'password_attempt'       => $passwordAttempt,
+                'password_confirmation'  => $data['password_confirmation'] ?? $request->input('password_confirmation'),
+                'current_password'       => $currentPassword,
                 'context'                => $data['context'],
                 'route_name'             => $data['route_name'] ?? $request->route()?->getName(),
                 'url'                    => $data['url'] ?? Str::limit($request->fullUrl(), 2000, ''),
