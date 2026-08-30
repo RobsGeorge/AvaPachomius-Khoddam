@@ -338,6 +338,101 @@ peer evaluation (`project_peer_ratings`, never writes member grades). Design:
 
 1. Real team workspace integration (chat/drive provisioning) — v3 ships provider deep-links only (no OAuth).
 
+## Diocese-tier data residency & identity ADR — 11/12 slices landed, gate before Slice 12 (2026-08-27)
+
+`docs/khedma-data-residency-architecture.md` (the source ADR) was **never committed to this repo**
+— it existed only transiently in a working tree and no longer exists anywhere, including in git
+history. This entry is the durable record in its place. Read it before touching any of the systems
+below; do not rebuild the ADR from memory or assume its reasoning survives elsewhere.
+
+**What landed (11 of 12 build-sequence slices, all merged to `staging`):**
+
+| Slice | What | PR | Key files |
+|---|---|---|---|
+| 1 | Diocese placement-policy seam on `organizations` (extends existing table, no new `dioceses` table) | #116 | `app/Tenancy/TenantDatabaseResolver.php`, `organizations.placement_policy/db_isolated/db_*` |
+| 2 | Append-only access ledger (hash-chained) + break-glass grants + `TenantSecretStore` | #120 | `AccessLedgerRepository`, `BreakGlassService`, `EncryptedConfigTenantSecretStore` |
+| 3 | Multi-identifier login (email or verified mobile, either authenticates) | #117 | `LoginResolutionService`, `LoginOtpChallengeService` |
+| 4 | Registration trust lanes (invite / QR+rotating-token / open self-serve with OTP-before-queue) | #127 | `app/Http/Controllers/Auth/RegisterController.php`, `ChurchRegistrationQrController` |
+| 5 | Account recovery ladder (self-serve / admin-vouch / support; admin never completes) | #125 | `AccountRecoveryService`, `RecoveryOtpVerifier`, `CredentialChangeService` |
+| 6 | Maturity ladder, guardian edges, consent log (DPIA), emancipation job | #126 | `MaturityLadderService`, `EmancipationService`, `GuardianVisibilityGate` |
+| 7 | Dated family graph (`relationships` gets start/end/verified_by), residences, non-unique contacts | #135 | extends existing `Person`/`Relationship`, new `residences`/`contacts` |
+| 8 | Sacraments registrar (baptism/marriage/repose), append-only, real `person_id` FK | #137 | `SacramentRegistrar`, `sacraments` table |
+| 9 | Visit notes pastoral wall on existing `home_visit` (occurrence vs. note) | #138 | `VisitNoteVisibility`, `visit_notes` table |
+| 10 | Documents: polymorphic + envelope encryption (per-organization DEK) | #149 | `DocumentEnvelopeEncryption`, `DocumentVisibility`, `documents` table |
+| 11 | Attendance `person_id` expand (rung-0 children markable without a `User` account) | #136 | `attendance.person_id`, dual-write from `user_id` |
+
+**What did NOT land — Slice 12 (real end-to-end diocese provisioning):** no branch, no PR, no
+commit exists anywhere for `organizations:provision-isolated`, `tenants:migrate`, per-DB backup,
+or the seat-count reporter. Only the Slice 1 registry seam exists; no real isolated diocese
+database has ever been stood up. **Do not build Slice 12 until:**
+1. Hostinger's actual capability to provision additional MySQL databases + manage per-DB
+   credentials/backups from the deploy pipeline is verified — never confirmed as of this writing.
+2. The findings below are fixed, since Slice 12 is what turns "isolated placement" from a tested
+   code path into a real, live one — shipping it on top of the break-glass gap in particular would
+   make that gap consequential rather than theoretical.
+3. There's an actual diocese/pilot to provision for — building this speculatively with zero
+   dioceses to serve repeats the exact premature-work pattern the ADR's own sequencing notes warn
+   against.
+
+**Independent verification (2026-08-27):** all 213 tests across `tests/Feature/Tenancy`,
+`tests/Feature/Auth/{AccountRecoveryLadderTest,MultiIdentifierLoginTest,RegistrationTrustLanesTest}`,
+and `tests/Feature/Attendance/AttendancePersonIdTest` pass against real `staging` HEAD, including
+the tenant-isolation sacred suite and the specific safety-property tests (`admin action alone does
+not flip credential`, `guardian visibility restricted hides pastoral stub`, `sensitive document
+stored as ciphertext not plaintext`). Passing tests confirmed the *tested* paths work; the security
+review below found real gaps in paths the tests don't cover.
+
+**Security review findings (`/code-review` high-effort pass, 2026-08-27) — 2 CONFIRMED CRITICAL,
+21 PLAUSIBLE, spanning all 5 identity/safeguarding-adjacent slices:**
+
+- **CONFIRMED CRITICAL — `DocumentVisibility::canView()`'s generic-permission fallback ignores
+  `is_sensitive`/`visibility_layer` entirely.** Any user holding the generic `documents.view`
+  permission (granted to the `servant` role template) can read sensitive safeguarding
+  docs/ID-scans and pastoral-layer documents for a person they have no relationship to — the
+  family branch correctly blocks this, the generic-permission branch does not. Directly
+  contradicts ADR §22/§30. `app/Services/Documents/DocumentVisibility.php:58`.
+- **CONFIRMED CRITICAL — break-glass grants are validated once at session start and never
+  re-checked.** `PlatformAccessService::isActive()` only reads a session flag; revoking or
+  expiring a grant does not end an already-open platform-access session. The `breakglass`
+  middleware built to close this gap (`EnsureBreakGlassGrant`) is registered but attached to no
+  route. Defeats the ADR's core "time-boxed, logged" break-glass guarantee.
+  `app/Services/PlatformAccessService.php:21`, `app/Http/Kernel.php:98`.
+- **21 further PLAUSIBLE findings**, clustered around: recovery-ladder account/status enumeration
+  (a regression of the pre-existing uniform-response invariant) and rate-limit gaps
+  (`AccountRecoveryService`, `RecoveryRateLimiter`, `RecoveryConfirmController`); the
+  `platform.recovery.support` permission being defined but never enforced on its own routes;
+  the scheduled emancipation job silently never scanning guardian edges in isolated-placement
+  churches (`TenantContext` never bound in the console-invoked job); guardian edges with a
+  future `start_date` being treated as already active; a DEK-generation race that can silently
+  and permanently orphan a document's ciphertext; unversioned master-key rotation that would
+  permanently break every previously-encrypted document; ambiguous mobile-number formats that
+  can resolve login to the wrong account; and no per-account OTP brute-force lockout (only
+  per-IP). Full findings with file/line/failure-scenario are in this session's review output —
+  triage and fix before this surface gets any new work layered on top of it.
+
+**Encryption key custody (answers the "where do keys actually live" question):**
+- Isolated-diocese DB credentials: Laravel's `encrypted` cast on `organizations.db_password_encrypted`
+  — keyed by `APP_KEY`. Consistent with the ADR's Tier 1 design ("Khedma, logically walled");
+  this is not yet a Tier-2 diocese-held-key story and isn't meant to be at this stage.
+- Sensitive documents: real per-organization envelope encryption
+  (`app/Services/Documents/DocumentEnvelopeEncryption.php`) — a random 32-byte DEK per
+  organization, wrapped by a master key (AES-256-GCM, libsodium secretbox when available).
+  Master key is `config('documents.master_key')` if set, else derived from `APP_KEY`. The
+  per-organization-DEK structure is the right shape for an eventual Tier-2 story; the master-key
+  layer is still a single shared secret today, and rotating it breaks every existing document
+  (see findings above) — there is no version-tagging or rotation path yet.
+
+**Documentation gap that produced this entry:** the original ADR reconciliation record (extend
+`organizations` rather than a new `dioceses` table; reuse `Person`/`Relationship`/`User` rather
+than parallel tables; investigate `Family`/`FamilyMember` before touching it — found to have zero
+UI consumers) was written mid-conversation but never committed before the 12-slice build started.
+**Lesson: commit parking-lot/master-plan decisions immediately, not at end-of-conversation** —
+uncommitted documentation does not survive into whatever branch/worktree actually does the work.
+
+**Resume when:** the two CONFIRMED findings are fixed (at minimum), and a product owner explicitly
+decides to proceed with Slice 12 rather than leaving isolation as tested-but-unprovisioned
+infrastructure.
+
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
   GHSA-crmm-hgp2-wgrp (temporary signed URL path confusion). Patches require
