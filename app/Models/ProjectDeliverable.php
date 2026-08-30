@@ -47,6 +47,7 @@ class ProjectDeliverable extends Model
         'file_mode',
         'is_required',
         'allow_late',
+        'max_points',
     ];
 
     protected $casts = [
@@ -54,6 +55,7 @@ class ProjectDeliverable extends Model
         'sort_order' => 'integer',
         'is_required' => 'boolean',
         'allow_late' => 'boolean',
+        'max_points' => 'decimal:2',
     ];
 
     /**

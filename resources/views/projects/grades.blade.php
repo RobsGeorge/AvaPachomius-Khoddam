@@ -42,22 +42,29 @@
             <form method="POST" action="{{ route('projects.grades.scale', $assessment) }}" class="row g-2 align-items-end">
                 @csrf
                 @method('PUT')
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label" for="max_points">{{ __('projects.max_points') }}</label>
                     <input type="number" name="max_points" id="max_points" class="form-control"
                            min="0.01" max="9999.99" step="0.01"
                            value="{{ number_format((float) $assessment->max_points, 2, '.', '') }}"
-                           @disabled($hasCriteria)>
-                    @if($hasCriteria)
+                           @disabled($hasCriteria && ! $assessment->usesDeliverableGrading())>
+                    @if($hasCriteria && ! $assessment->usesDeliverableGrading())
                         <div class="form-text">{{ __('projects.max_from_criteria') }}</div>
                     @endif
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label" for="passing_percent">{{ __('projects.passing_percent') }}</label>
                     <input type="number" name="passing_percent" id="passing_percent" class="form-control"
                            min="0" max="100" value="{{ (int) $assessment->passing_percent }}" required>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label" for="grading_mode">{{ __('projects.grading_mode') }}</label>
+                    <select name="grading_mode" id="grading_mode" class="form-select">
+                        <option value="rubric" @selected(! $assessment->usesDeliverableGrading())>{{ __('projects.grading_mode_rubric') }}</option>
+                        <option value="deliverables" @selected($assessment->usesDeliverableGrading())>{{ __('projects.grading_mode_deliverables') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <button class="btn btn-outline-primary">{{ __('projects.save_scale') }}</button>
                 </div>
             </form>
@@ -101,6 +108,47 @@
         </div>
     </div>
 
+    <div class="app-card card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 fw-bold mb-2">{{ __('projects.peer_eval_settings') }}</h2>
+            <p class="small text-muted">{{ __('projects.peer_eval_settings_hint') }}</p>
+            <form method="POST" action="{{ route('projects.peer-eval.update', $assessment) }}" class="row g-2 align-items-end">
+                @csrf
+                @method('PUT')
+                <div class="col-md-3">
+                    <div class="form-check mt-4">
+                        <input type="hidden" name="peer_eval_enabled" value="0">
+                        <input class="form-check-input" type="checkbox" value="1" name="peer_eval_enabled" id="peer_eval_enabled"
+                               @checked(old('peer_eval_enabled', $assessment->peer_eval_enabled))>
+                        <label class="form-check-label" for="peer_eval_enabled">{{ __('projects.peer_eval_enabled') }}</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="peer_eval_opens_at">{{ __('projects.peer_eval_opens_at') }}</label>
+                    <input type="datetime-local" name="peer_eval_opens_at" id="peer_eval_opens_at" class="form-control"
+                           value="{{ old('peer_eval_opens_at', optional($assessment->peer_eval_opens_at)->format('Y-m-d\TH:i')) }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="peer_eval_closes_at">{{ __('projects.peer_eval_closes_at') }}</label>
+                    <input type="datetime-local" name="peer_eval_closes_at" id="peer_eval_closes_at" class="form-control"
+                           value="{{ old('peer_eval_closes_at', optional($assessment->peer_eval_closes_at)->format('Y-m-d\TH:i')) }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="peer_eval_scale_max">{{ __('projects.peer_eval_scale_max') }}</label>
+                    <input type="number" name="peer_eval_scale_max" id="peer_eval_scale_max" class="form-control" min="1" max="10"
+                           value="{{ old('peer_eval_scale_max', $assessment->peer_eval_scale_max ?: 5) }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="peer_eval_prompt">{{ __('projects.peer_eval_prompt') }}</label>
+                    <textarea name="peer_eval_prompt" id="peer_eval_prompt" class="form-control" rows="2">{{ old('peer_eval_prompt', $assessment->peer_eval_prompt) }}</textarea>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-outline-primary">{{ __('projects.peer_eval_settings_save') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @foreach($assessment->projects as $project)
         @php
             $teamGrade = $project->teamGrade;
@@ -134,7 +182,25 @@
 
                 <form method="POST" action="{{ route('projects.grades.team', $project) }}" class="mb-4">
                     @csrf
-                    @if($effectiveCriteria !== [])
+                    @if($assessment->usesDeliverableGrading())
+                        @foreach(($deliverableBreakdowns[$project->project_id] ?? []) as $row)
+                            <div class="row g-2 align-items-center mb-2">
+                                <div class="col-md-6">
+                                    {{ $row['title'] }} ({{ number_format($row['max_points'], 1) }})
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="number"
+                                           name="scores[{{ $row['project_deliverable_id'] }}]"
+                                           class="form-control"
+                                           min="0"
+                                           max="{{ number_format($row['max_points'], 2, '.', '') }}"
+                                           step="0.01"
+                                           value="{{ $row['points'] !== null ? number_format($row['points'], 2, '.', '') : '' }}"
+                                           required>
+                                </div>
+                            </div>
+                        @endforeach
+                    @elseif($effectiveCriteria !== [])
                         @foreach($effectiveCriteria as $criterion)
                             <div class="row g-2 align-items-center mb-2">
                                 <div class="col-md-6">
@@ -169,7 +235,7 @@
                     <button class="btn btn-outline-primary">{{ __('projects.save_team_grade') }}</button>
                 </form>
 
-                @if($hasCriteria)
+                @if($hasCriteria && ! $assessment->usesDeliverableGrading())
                     @include('projects.partials.team-rubric-form', [
                         'assessment' => $assessment,
                         'project' => $project,
