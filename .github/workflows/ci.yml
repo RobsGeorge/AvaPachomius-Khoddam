@@ -66,6 +66,9 @@ jobs:
       - name: 1 · Unit pipeline (events)
         run: php artisan test tests/Unit/Events --compact
 
+      - name: 1b · Unit pipeline (testing env / no committed APP_KEY)
+        run: php artisan test tests/Unit/Testing --compact
+
       - name: 2 · Feature pipeline (events)
         run: php artisan test tests/Feature/Events --compact
 
