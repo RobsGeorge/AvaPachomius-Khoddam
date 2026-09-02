@@ -9,6 +9,7 @@ use App\Models\GradeCategory;
 use App\Models\Module;
 use App\Models\Session;
 use App\Models\StudentGrade;
+use App\Models\User;
 use App\Services\AttendanceCloseService;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\EventModuleTestCase;
@@ -20,7 +21,7 @@ use Tests\Support\EventModuleTestCase;
  */
 class CourseAdminClosedAttendanceTest extends EventModuleTestCase
 {
-    /** @return array{admin: \App\Models\User, course: Course, session: Session, student: \App\Models\User, attendance: Attendance} */
+    /** @return array{admin: User, course: Course, session: Session, student: User, attendance: Attendance} */
     private function seedEndedModuleWithClosedSession(): array
     {
         $roles = $this->seedBasicRoles();
@@ -75,10 +76,11 @@ class CourseAdminClosedAttendanceTest extends EventModuleTestCase
     {
         [
             'admin' => $admin,
+            'session' => $session,
             'attendance' => $attendance,
         ] = $this->seedEndedModuleWithClosedSession();
 
-        $this->assertNotNull($attendance->session?->fresh()->attendance_closed_at);
+        $this->assertNotNull($session->fresh()->attendance_closed_at);
 
         $this->actingAs($admin)
             ->postJson(route('attendance.update-status-post', $attendance->attendance_id), [
@@ -88,6 +90,10 @@ class CourseAdminClosedAttendanceTest extends EventModuleTestCase
             ->assertJson(['success' => true]);
 
         $this->assertSame('Present', $attendance->fresh()->status);
+        $this->assertDatabaseHas('activity_logs', [
+            'route_name' => 'attendance.status_updated',
+            'user_id' => $admin->user_id,
+        ]);
     }
 
     public function test_course_admin_can_change_status_via_legacy_update_status_path(): void
