@@ -14,7 +14,7 @@ Controllers: `CurriculumController`, `ModuleController`, `LectureController`,
 | UC-SES-01 | Instructor | Notify students of an upcoming session (targets) → notifications dispatched | Dedup within reminder window | `session.notify` |
 | UC-ATT-01 | Attendance staff | Open today's sessions; record attendance (present/absent/excused) via roster or QR | Late policy applies per `AttendanceLatePolicyService` | `attendance.record` / `attendance.staff` |
 | UC-ATT-02 | Instructor | View all attendance; filter/group by date/session/module; export report | — | `attendance.view_all`, `attendance.report` |
-| UC-ATT-03 | Instructor | Edit an attendance record / permission reason; close a session's attendance | After close, status edits remain allowed and attendance gradebook scores re-sync from status (late % via policy). QR/new scans stay blocked | `attendance.edit` / `attendance.record` |
+| UC-ATT-03 | Instructor / Course Admin | Edit an attendance record / permission reason; close a session's attendance | After session close **or module end**, status edits remain allowed (`attendance.edit` or `attendance.record`) and attendance gradebook scores re-sync from status (late % via policy). QR/new scans stay blocked. Course closed/archived still strips write keys | `attendance.edit` / `attendance.record` |
 | UC-ATT-04 | Student | View **own** attendance record only | Cannot see others' | `attendance.view_own` |
 | UC-ATT-05 | Course Admin | Configure attendance policy (late thresholds, defaults) | — | `attendance.configure` |
 

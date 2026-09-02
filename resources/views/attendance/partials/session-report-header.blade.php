@@ -32,6 +32,7 @@
                             · {{ __('pages.attendance_closed_by', ['name' => $session->attendanceClosedBy->displayName()]) }}
                         @endif
                     </p>
+                    <p class="small text-muted-theme mb-0 mt-1">{{ __('pages.attendance_closed_corrections_allowed') }}</p>
                 @endif
             </div>
             <div class="d-flex flex-wrap gap-2">
