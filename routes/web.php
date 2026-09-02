@@ -487,11 +487,15 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
 });
 
 // Attendance record mutations — POST only. The coarse `staff` gate keeps students out;
-// AttendanceController enforces the real per-record course scope (attendance.record in the
-// record's own course). Paths match the fetch() calls in attendance-table.blade.php.
+    // AttendanceController enforces the real per-record course scope (attendance.record /
+    // attendance.edit in the record's own course). Both paths stay registered: the roster
+    // JS in status-scripts.blade.php posts to /attendance/{id}/status, and
+    // attendance-table.blade.php posts to /attendance/update-status/{id}.
 Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::post('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])
         ->name('attendance.update-status')->whereNumber('id');
+    Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])
+        ->name('attendance.update-status-post')->whereNumber('id');
     Route::post('/attendance/update-permission/{id}', [AttendanceController::class, 'updatePermissionReason'])
         ->name('attendance.update-permission-reason')->whereNumber('id');
 });

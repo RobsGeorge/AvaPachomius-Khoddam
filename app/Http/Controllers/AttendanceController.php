@@ -57,6 +57,9 @@ class AttendanceController extends Controller
     /**
      * Load an attendance record and authorize the acting user to edit it *in that
      * record's own course* (not merely as staff somewhere). Returns the record.
+     *
+     * Session close and module end do not block corrections. Course closed/archived
+     * still strips write keys via CoursePermissionResolver lifecycle filters.
      */
     private function authorizeAttendanceRecord(int|string $id): Attendance
     {
@@ -68,10 +71,11 @@ class AttendanceController extends Controller
         }
 
         $course = $attendance->session?->course;
+        $keys = ['attendance.record', 'attendance.edit'];
         abort_unless(
             $course && (
-                $this->permissions->canInSystem($user, 'attendance.record')
-                || $this->permissions->canInCourse($user, 'attendance.record', $course)
+                $this->permissions->canAnyInSystem($user, $keys)
+                || $this->permissions->canAnyInCourse($user, $keys, $course)
             ),
             403,
             __('pages.not_authorized')
@@ -707,6 +711,9 @@ class AttendanceController extends Controller
                 'new_status'      => $request->status,
             ]);
 
+            $attendance->refresh();
+            $this->resyncAttendanceGrade($attendance);
+
             return response()->json([
                 'success' => true,
                 'message' => __('pages.status_updated'),
@@ -730,6 +737,21 @@ class AttendanceController extends Controller
             'new_status'      => $attendance->status,
         ]);
 
+        $this->resyncAttendanceGrade($attendance);
+
+        return response()->json([
+            'success' => true,
+            'message' => __('pages.status_updated'),
+            'lock_version' => $attendance->lock_version ?? null,
+        ]);
+    }
+
+    /**
+     * Re-apply the attendance gradebook row after a staff correction.
+     * No-ops while the session is still open (grades are first created at close).
+     */
+    private function resyncAttendanceGrade(Attendance $attendance): void
+    {
         $attendance->loadMissing('session');
         if ($attendance->session) {
             $this->latePolicy->syncAttendanceGradeForRecord(
@@ -738,12 +760,6 @@ class AttendanceController extends Controller
                 (int) auth()->user()->user_id,
             );
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => __('pages.status_updated'),
-            'lock_version' => $attendance->lock_version ?? null,
-        ]);
     }
 
     // Update permission reason (POST; authorized to the record's own course).

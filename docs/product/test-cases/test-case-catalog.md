@@ -44,7 +44,7 @@ Priority: **P0** (deploy gate), **P1** (should automate soon), **P2** (nice to h
 |---|---|---|---|---|
 | TC-AUTH-01..12 | UC-AUTH-* | login/register/otp/reset/logout/locale | ✅ `Auth/*Test`, `OtpVerificationTest`, `RegistrationTest`, `PasswordResetTest` | P0/P1 |
 | TC-CRS-01..09 | UC-CRS-* | apply/review/approve/build-form/context | ✅ `CourseApplicationReviewTest`, `CourseContextTest`; form-builder edge cases 🔲 | P1 |
-| TC-CUR-01..03 / TC-ATT-01..05 | UC-CUR/ATT-* | curriculum lifecycle, attendance record/edit/close, late policy | partial ✅ `AttendanceRosterTest`; late-policy + close/reopen 🔲 | P1 |
+| TC-CUR-01..03 / TC-ATT-01..05 | UC-CUR/ATT-* | curriculum lifecycle, attendance record/edit/close, late policy | partial ✅ `AttendanceRosterTest`, `Attendance/CourseAdminClosedAttendanceTest`; late-policy + close/reopen 🔲 | P1 |
 | TC-ASG-01..06 | UC-ASG-* | submit (PDF/deadline), grade, manage | partial ✅ `AssignmentCourseContextTest`; submit/grade 🔲 | P1 |
 | TC-PRJ-01..10 | UC-PRJ-* | create/publish, pack-fill assign, teammate/complete emails, change request + one chance, tenant isolation | ✅ `UseCases/Projects/ProjectAssignmentFlowTest`, `Unit/ProjectAssignmentServiceTest`, `Tenancy/ProjectIsolationTest` | P1 |
 | TC-PRJ-11..15 | UC-PRJ-11..15 | criteria + max/pass, team grade + student override, one-shot announce, feedback gate, isolation of grade tables | ✅ `UseCases/Projects/ProjectGradingTest`, `Unit/ProjectGradingServiceTest`, `Tenancy/ProjectIsolationTest` | P1 |
