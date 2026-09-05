@@ -1,0 +1,1015 @@
+From 2d1adf73841d8e23814a2777926713d1b6bf7504 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 5 Sep 2026 04:04:35 +0000
+Subject: [PATCH] feat(authz): enforce resource scope so the 'own' permission
+ level means something
+
+AuthorizeService accepted a $resource argument and never read it, and no call
+site passed one. Every level containing 'O' was collapsed to a plain allow:
+
+    if ($level === 'F' || $level === 'R' || str_contains($level, 'O'))
+
+so 'own' was documentation, not enforcement. TeachAccessService and
+OfferingAccessService scoped by hand, but the /admin/* routes wrapping the same
+services were guarded only by role-level permission middleware. Any Instructor
+could lock, submit or reopen grades, add components, author assessments, import
+attendance or moderate discussions for ANY offering in the school.
+
+What 'own' means depends on the role, which a level alone cannot express: for a
+student it is 'on my own behalf', for an instructor it is 'an offering I staff'.
+config/permission_scopes.php makes that explicit - 14 offering-scoped keys, and
+the roles (INSTRUCTOR, TA) whose grants those keys confine. Self-scoped keys
+such as profile.edit_own, finance.pay and assignments.submit are deliberately
+absent and keep working without a resource.
+
+- ResourceScopeResolver maps a resource to its offering(s) and checks
+  offering_staff. Resolution is explicit per model, so a new offering-owned
+  model must opt in rather than silently inherit access.
+- AuthorizeService resolves the granting role: an unscoped grant from any role
+  wins outright, so an Academic Admin who also teaches is not confined. A
+  scoped grant on a scoped key requires a resource and fails closed without one.
+- RequirePermission now hands the authorizer the route-bound model, which fixes
+  every /admin/* route at once with no changes to routes/web.php.
+- 20 service call sites thread their resource through.
+
+Existing fixtures created instructors holding the role but staffed on nothing,
+which is why they passed before. They now staff explicitly via a shared
+TestCase::staffOffering() helper - that is the corrected setup, not a workaround.
+
+ResourceScopeTest is the invariant suite: 11 cross-offering operations denied,
+the same operations allowed on a staffed offering, admins unaffected, TA denied
+the lock even on their own offering, fail-closed without a resource, and
+self-scoped 'own' permissions still working.
+
+Verified: 131 -> 139 passing, 608 assertions; the scope suite fails 4/8 against
+the pre-change code with 'Expected [gradebook.addComponent] to be denied across
+offerings, but it was allowed'; pint clean; PostgreSQL 16 migrate:fresh --seed
+green.
+---
+ app/Http/Middleware/RequirePermission.php     |  32 ++-
+ app/Services/Assessment/AssessmentService.php |   6 +-
+ app/Services/Assessment/AssignmentService.php |   4 +-
+ app/Services/Assessment/AttemptService.php    |   4 +-
+ .../Assessment/QuestionBankService.php        |   4 +-
+ .../Discussions/DiscussionService.php         |   6 +-
+ app/Services/Gradebook/GradebookService.php   |   8 +-
+ app/Services/Live/AttendanceService.php       |   4 +-
+ app/Services/Live/LiveSessionService.php      |   4 +-
+ app/Services/Offerings/OfferingService.php    |   4 +-
+ app/Support/AuthorizeService.php              |  54 +++-
+ app/Support/Scope/ResourceScopeResolver.php   | 110 ++++++++
+ config/permission_scopes.php                  |  50 ++++
+ .../Assessment/AssessmentEngineTest.php       |   3 +
+ .../AssignmentResubmissionIntegrityTest.php   |   7 +-
+ tests/Feature/Auth/ResourceScopeTest.php      | 250 ++++++++++++++++++
+ tests/Feature/Live/LiveCommsTest.php          |   2 +
+ tests/Feature/Portal/PortalD6PolishTest.php   |   1 +
+ tests/TestCase.php                            |  22 ++
+ 19 files changed, 538 insertions(+), 37 deletions(-)
+ create mode 100644 app/Support/Scope/ResourceScopeResolver.php
+ create mode 100644 config/permission_scopes.php
+ create mode 100644 tests/Feature/Auth/ResourceScopeTest.php
+
+diff --git a/app/Http/Middleware/RequirePermission.php b/app/Http/Middleware/RequirePermission.php
+index 43d85b6..e0579f9 100644
+--- a/app/Http/Middleware/RequirePermission.php
++++ b/app/Http/Middleware/RequirePermission.php
+@@ -3,18 +3,46 @@
+ namespace App\Http\Middleware;
+ 
+ use App\Support\AuthorizeService;
++use App\Support\Scope\ResourceScopeResolver;
+ use Closure;
+ use Illuminate\Http\Request;
+ use Symfony\Component\HttpFoundation\Response;
+ 
+ class RequirePermission
+ {
+-    public function __construct(private readonly AuthorizeService $authorize) {}
++    public function __construct(
++        private readonly AuthorizeService $authorize,
++        private readonly ResourceScopeResolver $scope,
++    ) {}
+ 
+     public function handle(Request $request, Closure $next, string $permission): Response
+     {
+-        $this->authorize->authorize($request->user(), $permission);
++        $this->authorize->authorize(
++            $request->user(),
++            $permission,
++            $this->resourceFor($request, $permission),
++        );
+ 
+         return $next($request);
+     }
++
++    /**
++     * For an offering-scoped permission, hand the authorizer the bound model the route is
++     * acting on. Without this the guard sees no resource and fails closed, which would
++     * lock scoped roles out of routes they legitimately own.
++     */
++    private function resourceFor(Request $request, string $permission): mixed
++    {
++        if (! in_array($permission, (array) config('permission_scopes.offering_scoped', []), true)) {
++            return null;
++        }
++
++        foreach ($request->route()?->parameters() ?? [] as $parameter) {
++            if (is_object($parameter) && $this->scope->offeringIdsFor($parameter) !== []) {
++                return $parameter;
++            }
++        }
++
++        return null;
++    }
+ }
+diff --git a/app/Services/Assessment/AssessmentService.php b/app/Services/Assessment/AssessmentService.php
+index dc974a3..11ffd34 100644
+--- a/app/Services/Assessment/AssessmentService.php
++++ b/app/Services/Assessment/AssessmentService.php
+@@ -27,7 +27,7 @@ public function __construct(
+      */
+     public function create(User $actor, CourseOffering $offering, array $data): Assessment
+     {
+-        $this->authorize->authorize($actor, 'assessments.manage');
++        $this->authorize->authorize($actor, 'assessments.manage', $offering);
+ 
+         return $this->audit->withAudit($actor, 'assessments.create', function () use ($offering, $data) {
+             return Assessment::query()->create([
+@@ -61,7 +61,7 @@ public function create(User $actor, CourseOffering $offering, array $data): Asse
+ 
+     public function attachQuestion(User $actor, Assessment $assessment, Question $question, ?float $pointsOverride = null, ?int $order = null): AssessmentQuestion
+     {
+-        $this->authorize->authorize($actor, 'assessments.manage');
++        $this->authorize->authorize($actor, 'assessments.manage', $assessment);
+ 
+         return AssessmentQuestion::query()->updateOrCreate(
+             ['assessment_id' => $assessment->id, 'question_id' => $question->id],
+@@ -74,7 +74,7 @@ public function attachQuestion(User $actor, Assessment $assessment, Question $qu
+ 
+     public function release(User $actor, Assessment $assessment): Assessment
+     {
+-        $this->authorize->authorize($actor, 'assessments.manage');
++        $this->authorize->authorize($actor, 'assessments.manage', $assessment);
+ 
+         $assessment->update(['released' => true]);
+         $this->audit->write($actor, 'assessments.release', 'Assessment', $assessment->id);
+diff --git a/app/Services/Assessment/AssignmentService.php b/app/Services/Assessment/AssignmentService.php
+index 650d7f7..2ad7218 100644
+--- a/app/Services/Assessment/AssignmentService.php
++++ b/app/Services/Assessment/AssignmentService.php
+@@ -30,7 +30,7 @@ public function __construct(
+      */
+     public function create(User $actor, ContentItem $item, array $data): Assignment
+     {
+-        $this->authorize->authorize($actor, 'assignments.manage');
++        $this->authorize->authorize($actor, 'assignments.manage', $item);
+ 
+         return $this->audit->withAudit($actor, 'assignments.create', function () use ($item, $data) {
+             return Assignment::query()->create([
+@@ -147,7 +147,7 @@ private function archive(AssignmentSubmission $submission): AssignmentSubmission
+ 
+     public function grade(User $grader, AssignmentSubmission $submission, float $rawScore, ?string $feedback = null): AssignmentSubmission
+     {
+-        $this->authorize->authorize($grader, 'assignments.grade');
++        $this->authorize->authorize($grader, 'assignments.grade', $submission);
+ 
+         $assignment = $submission->assignment;
+         $final = $this->applyLatePenalty($assignment, $submission, $rawScore);
+diff --git a/app/Services/Assessment/AttemptService.php b/app/Services/Assessment/AttemptService.php
+index ce6a488..6aab102 100644
+--- a/app/Services/Assessment/AttemptService.php
++++ b/app/Services/Assessment/AttemptService.php
+@@ -13,9 +13,9 @@
+ use App\Models\Enrollment;
+ use App\Models\Question;
+ use App\Models\User;
++use App\Services\Offerings\LearningProgressService;
+ use App\Support\AuditLogWriter;
+ use App\Support\AuthorizeService;
+-use App\Services\Offerings\LearningProgressService;
+ use Illuminate\Support\Facades\DB;
+ use Illuminate\Validation\ValidationException;
+ 
+@@ -265,7 +265,7 @@ public function submit(User $actor, AssessmentAttempt $attempt, bool $auto = fal
+ 
+     public function overrideScore(User $grader, AttemptAnswer $answer, float $finalScore, ?string $feedback = null): AttemptAnswer
+     {
+-        $this->authorize->authorize($grader, 'assessments.grade');
++        $this->authorize->authorize($grader, 'assessments.grade', $answer);
+ 
+         $answer->update([
+             'final_score' => $finalScore,
+diff --git a/app/Services/Assessment/QuestionBankService.php b/app/Services/Assessment/QuestionBankService.php
+index dd4a6a6..d61d04a 100644
+--- a/app/Services/Assessment/QuestionBankService.php
++++ b/app/Services/Assessment/QuestionBankService.php
+@@ -22,7 +22,7 @@ public function __construct(
+ 
+     public function createBank(User $actor, Course $course, string $name): QuestionBank
+     {
+-        $this->authorize->authorize($actor, 'questions.manage');
++        $this->authorize->authorize($actor, 'questions.manage', $course);
+ 
+         return $this->audit->withAudit($actor, 'questions.bank_create', function () use ($course, $name) {
+             return QuestionBank::query()->create([
+@@ -37,7 +37,7 @@ public function createBank(User $actor, Course $course, string $name): QuestionB
+      */
+     public function addQuestion(User $actor, QuestionBank $bank, array $data): Question
+     {
+-        $this->authorize->authorize($actor, 'questions.manage');
++        $this->authorize->authorize($actor, 'questions.manage', $bank);
+ 
+         return DB::transaction(function () use ($actor, $bank, $data) {
+             $question = Question::query()->create([
+diff --git a/app/Services/Discussions/DiscussionService.php b/app/Services/Discussions/DiscussionService.php
+index 6de4184..a2e4cea 100644
+--- a/app/Services/Discussions/DiscussionService.php
++++ b/app/Services/Discussions/DiscussionService.php
+@@ -37,7 +37,7 @@ public function ensureBoard(CourseOffering $offering): DiscussionBoard
+ 
+     public function configureBoard(User $actor, CourseOffering $offering, bool $allowStudentThreads): DiscussionBoard
+     {
+-        $this->authorize->authorize($actor, 'discussions.configure');
++        $this->authorize->authorize($actor, 'discussions.configure', $offering);
+ 
+         $board = $this->ensureBoard($offering);
+         $board->update(['allow_student_threads' => $allowStudentThreads]);
+@@ -145,7 +145,7 @@ public function post(User $actor, DiscussionThread $thread, string $body, ?strin
+ 
+     public function moderate(User $actor, DiscussionThread $thread, array $flags): DiscussionThread
+     {
+-        $this->authorize->authorize($actor, 'discussions.moderate');
++        $this->authorize->authorize($actor, 'discussions.moderate', $thread);
+ 
+         $thread->update(array_intersect_key($flags, array_flip(['locked', 'pinned'])));
+         $this->audit->write($actor, 'discussions.moderate', 'DiscussionThread', $thread->id, null, $flags);
+@@ -203,7 +203,7 @@ public function autoScoreStudent(DiscussionThread $thread, User $student): Discu
+ 
+     public function overrideGrade(User $actor, DiscussionThread $thread, User $student, float $score, ?string $feedback = null): DiscussionGrade
+     {
+-        $this->authorize->authorize($actor, 'discussions.grade');
++        $this->authorize->authorize($actor, 'discussions.grade', $thread);
+ 
+         $grade = DiscussionGrade::query()->updateOrCreate(
+             ['thread_id' => $thread->id, 'student_id' => $student->id],
+diff --git a/app/Services/Gradebook/GradebookService.php b/app/Services/Gradebook/GradebookService.php
+index 4d31f3b..af86842 100644
+--- a/app/Services/Gradebook/GradebookService.php
++++ b/app/Services/Gradebook/GradebookService.php
+@@ -42,7 +42,7 @@ public function __construct(
+ 
+     public function seedFromTemplate(User $actor, CourseOffering $offering, ?AssessmentTemplate $template = null): void
+     {
+-        $this->authorize->authorize($actor, 'gradebook.configure');
++        $this->authorize->authorize($actor, 'gradebook.configure', $offering);
+ 
+         $template ??= AssessmentTemplate::query()->where('is_default', true)->first()
+             ?? AssessmentTemplate::query()->first();
+@@ -72,7 +72,7 @@ public function seedFromTemplate(User $actor, CourseOffering $offering, ?Assessm
+      */
+     public function addComponent(User $actor, CourseOffering $offering, array $data): GradebookComponent
+     {
+-        $this->authorize->authorize($actor, 'gradebook.configure');
++        $this->authorize->authorize($actor, 'gradebook.configure', $offering);
+ 
+         return $this->audit->withAudit($actor, 'gradebook.component_create', function () use ($offering, $data) {
+             return GradebookComponent::query()->create([
+@@ -120,7 +120,7 @@ public function computeEnrollment(Enrollment $enrollment): array
+ 
+     public function submitGrades(User $actor, CourseOffering $offering): void
+     {
+-        $this->authorize->authorize($actor, 'gradebook.lock');
++        $this->authorize->authorize($actor, 'gradebook.lock', $offering);
+ 
+         $enrollments = Enrollment::query()
+             ->where('offering_id', $offering->id)
+@@ -152,7 +152,7 @@ public function submitGrades(User $actor, CourseOffering $offering): void
+ 
+     public function lockGrades(User $actor, CourseOffering $offering): void
+     {
+-        $this->authorize->authorize($actor, 'gradebook.lock');
++        $this->authorize->authorize($actor, 'gradebook.lock', $offering);
+ 
+         DB::transaction(function () use ($actor, $offering) {
+             $enrollments = Enrollment::query()
+diff --git a/app/Services/Live/AttendanceService.php b/app/Services/Live/AttendanceService.php
+index a4216c5..886c940 100644
+--- a/app/Services/Live/AttendanceService.php
++++ b/app/Services/Live/AttendanceService.php
+@@ -26,7 +26,7 @@ public function __construct(
+      */
+     public function importFromZoom(User $actor, LiveSession $session, array $participants): int
+     {
+-        $this->authorize->authorize($actor, 'attendance.manage');
++        $this->authorize->authorize($actor, 'attendance.manage', $session);
+ 
+         $threshold = $this->thresholdPercent($session->offering);
+         $requiredMinutes = max(1, (int) ceil($session->duration_minutes * ($threshold / 100)));
+@@ -66,7 +66,7 @@ public function importFromZoom(User $actor, LiveSession $session, array $partici
+ 
+     public function override(User $actor, LiveSession $session, User $student, AttendanceStatus $status, ?int $minutes = null): AttendanceRecord
+     {
+-        $this->authorize->authorize($actor, 'attendance.manage');
++        $this->authorize->authorize($actor, 'attendance.manage', $session);
+ 
+         $record = AttendanceRecord::query()->updateOrCreate(
+             [
+diff --git a/app/Services/Live/LiveSessionService.php b/app/Services/Live/LiveSessionService.php
+index 957bdff..367ce5f 100644
+--- a/app/Services/Live/LiveSessionService.php
++++ b/app/Services/Live/LiveSessionService.php
+@@ -30,7 +30,7 @@ public function __construct(
+      */
+     public function schedule(User $actor, CourseOffering $offering, array $data): LiveSession
+     {
+-        $this->authorize->authorize($actor, 'live.schedule');
++        $this->authorize->authorize($actor, 'live.schedule', $offering);
+ 
+         $start = Carbon::parse($data['scheduled_start']);
+         $duration = (int) $data['duration_minutes'];
+@@ -63,7 +63,7 @@ public function schedule(User $actor, CourseOffering $offering, array $data): Li
+      */
+     public function scheduleRecurrence(User $actor, CourseOffering $offering, array $data): array
+     {
+-        $this->authorize->authorize($actor, 'live.schedule');
++        $this->authorize->authorize($actor, 'live.schedule', $offering);
+ 
+         $recurrence = SessionRecurrence::query()->create([
+             'offering_id' => $offering->id,
+diff --git a/app/Services/Offerings/OfferingService.php b/app/Services/Offerings/OfferingService.php
+index 7a476b7..9ce6a23 100644
+--- a/app/Services/Offerings/OfferingService.php
++++ b/app/Services/Offerings/OfferingService.php
+@@ -109,7 +109,7 @@ public function setPricing(User $actor, CourseOffering $offering, ?int $usd, ?in
+ 
+     public function addWeek(User $actor, CourseOffering $offering, array $data): Week
+     {
+-        $this->authorize->authorize($actor, 'offerings.content');
++        $this->authorize->authorize($actor, 'offerings.content', $offering);
+ 
+         return $this->audit->withAudit($actor, 'offerings.add_week', fn () => Week::query()->create([
+             'offering_id' => $offering->id,
+@@ -122,7 +122,7 @@ public function addWeek(User $actor, CourseOffering $offering, array $data): Wee
+ 
+     public function addContentItem(User $actor, Week $week, array $data): ContentItem
+     {
+-        $this->authorize->authorize($actor, 'offerings.content');
++        $this->authorize->authorize($actor, 'offerings.content', $week);
+ 
+         return $this->audit->withAudit($actor, 'offerings.add_content', fn () => ContentItem::query()->create([
+             'week_id' => $week->id,
+diff --git a/app/Support/AuthorizeService.php b/app/Support/AuthorizeService.php
+index 145b8e3..a9432c0 100644
+--- a/app/Support/AuthorizeService.php
++++ b/app/Support/AuthorizeService.php
+@@ -6,6 +6,7 @@
+ use App\Exceptions\AuthorizationException;
+ use App\Models\RolePermission;
+ use App\Models\User;
++use App\Support\Scope\ResourceScopeResolver;
+ use Illuminate\Support\Arr;
+ use Illuminate\Support\Facades\Schema;
+ 
+@@ -16,6 +17,10 @@ class AuthorizeService
+ 
+     private static bool $dbChecked = false;
+ 
++    public function __construct(
++        private readonly ResourceScopeResolver $scope = new ResourceScopeResolver,
++    ) {}
++
+     public function authorize(?User $user, string $action, mixed $resource = null): void
+     {
+         if ($user === null) {
+@@ -26,31 +31,60 @@ public function authorize(?User $user, string $action, mixed $resource = null):
+             return;
+         }
+ 
+-        $allowed = false;
++        $scopedGrant = false;
++        $granted = false;
+ 
+         foreach ($user->roleTypes() as $role) {
+             $level = $this->levelFor($role, $action);
+ 
+-            if ($level === null || $level === '') {
++            if ($level === null || $level === '' || ! $this->levelGrants($level)) {
+                 continue;
+             }
+ 
+-            if ($level === 'F' || $level === 'R' || str_contains($level, 'O')) {
+-                $allowed = true;
+-                break;
+-            }
++            $granted = true;
+ 
+-            if (in_array($level, ['submit', 'lock', 'reopen', 'issue'], true)) {
+-                $allowed = true;
+-                break;
++            // An unscoped grant from any one role wins outright: an Academic Admin who
++            // also teaches is not confined to the offerings they teach.
++            if (! $this->isScopedRole($role)) {
++                return;
+             }
++
++            $scopedGrant = true;
++        }
++
++        if (! $granted) {
++            throw new AuthorizationException(__('auth.forbidden'));
++        }
++
++        if (! $scopedGrant || ! $this->isOfferingScoped($action)) {
++            return;
+         }
+ 
+-        if (! $allowed) {
++        // Fail closed. A scoped action reached without a resource is a missing argument
++        // at the call site, not a permission the actor happens to hold everywhere.
++        if ($resource === null || ! $this->scope->scopedTo($user, $resource)) {
+             throw new AuthorizationException(__('auth.forbidden'));
+         }
+     }
+ 
++    private function levelGrants(string $level): bool
++    {
++        return $level === 'F'
++            || $level === 'R'
++            || str_contains($level, 'O')
++            || in_array($level, ['submit', 'lock', 'reopen', 'issue'], true);
++    }
++
++    private function isScopedRole(RoleType $role): bool
++    {
++        return in_array($role->value, (array) config('permission_scopes.scoped_roles', []), true);
++    }
++
++    private function isOfferingScoped(string $action): bool
++    {
++        return in_array($action, (array) config('permission_scopes.offering_scoped', []), true);
++    }
++
+     public function canAssignRole(User $actor, RoleType $roleToAssign): bool
+     {
+         if ($actor->isSuperAdmin()) {
+diff --git a/app/Support/Scope/ResourceScopeResolver.php b/app/Support/Scope/ResourceScopeResolver.php
+new file mode 100644
+index 0000000..136a3f8
+--- /dev/null
++++ b/app/Support/Scope/ResourceScopeResolver.php
+@@ -0,0 +1,110 @@
++<?php
++
++namespace App\Support\Scope;
++
++use App\Models\Assessment;
++use App\Models\AssessmentAttempt;
++use App\Models\Assignment;
++use App\Models\AssignmentSubmission;
++use App\Models\AttemptAnswer;
++use App\Models\ContentItem;
++use App\Models\Course;
++use App\Models\CourseOffering;
++use App\Models\DiscussionBoard;
++use App\Models\DiscussionPost;
++use App\Models\DiscussionThread;
++use App\Models\Enrollment;
++use App\Models\GradebookComponent;
++use App\Models\LiveSession;
++use App\Models\OfferingStaff;
++use App\Models\QuestionBank;
++use App\Models\User;
++use App\Models\Week;
++
++/**
++ * Answers "is this actor staffed on the offering behind this resource?".
++ *
++ * Resolution is deliberately explicit rather than reflective: a model that is not
++ * listed here resolves to null, and `AuthorizeService` treats an unresolvable
++ * resource as out of scope. Adding a new offering-owned model therefore requires
++ * opting it in, instead of silently inheriting access.
++ */
++class ResourceScopeResolver
++{
++    public function scopedTo(User $user, mixed $resource): bool
++    {
++        $offeringIds = $this->offeringIdsFor($resource);
++
++        if ($offeringIds === []) {
++            return false;
++        }
++
++        return OfferingStaff::query()
++            ->where('user_id', $user->id)
++            ->whereIn('offering_id', $offeringIds)
++            ->exists();
++    }
++
++    /** Offerings this actor is staffed on. */
++    public function staffedOfferingIds(User $user): array
++    {
++        return OfferingStaff::query()
++            ->where('user_id', $user->id)
++            ->pluck('offering_id')
++            ->all();
++    }
++
++    /**
++     * A resource may map to more than one offering — a question bank belongs to a
++     * course, and a course may be offered several times.
++     *
++     * @return array<int, string>
++     */
++    public function offeringIdsFor(mixed $resource): array
++    {
++        if ($resource instanceof CourseOffering) {
++            return [$resource->id];
++        }
++
++        if (is_string($resource) && $resource !== '') {
++            return CourseOffering::query()->whereKey($resource)->exists() ? [$resource] : [];
++        }
++
++        $single = match (true) {
++            $resource instanceof Week => $resource->offering_id,
++            $resource instanceof Enrollment => $resource->offering_id,
++            $resource instanceof LiveSession => $resource->offering_id,
++            $resource instanceof GradebookComponent => $resource->offering_id,
++            $resource instanceof DiscussionBoard => $resource->offering_id,
++            $resource instanceof Assessment => $resource->offering_id,
++            $resource instanceof ContentItem => $resource->week?->offering_id,
++            $resource instanceof Assignment => $resource->contentItem?->week?->offering_id,
++            $resource instanceof AssignmentSubmission => $resource->assignment?->contentItem?->week?->offering_id,
++            $resource instanceof AssessmentAttempt => $resource->assessment?->offering_id,
++            $resource instanceof AttemptAnswer => $resource->attempt?->assessment?->offering_id,
++            $resource instanceof DiscussionThread => $resource->board?->offering_id,
++            $resource instanceof DiscussionPost => $resource->thread?->board?->offering_id,
++            default => null,
++        };
++
++        if ($single !== null) {
++            return [$single];
++        }
++
++        // Question banks are course-level, so staffing any offering of that course counts.
++        $courseId = match (true) {
++            $resource instanceof QuestionBank => $resource->course_id,
++            $resource instanceof Course => $resource->id,
++            default => null,
++        };
++
++        if ($courseId !== null) {
++            return CourseOffering::query()
++                ->where('course_id', $courseId)
++                ->pluck('id')
++                ->all();
++        }
++
++        return [];
++    }
++}
+diff --git a/config/permission_scopes.php b/config/permission_scopes.php
+new file mode 100644
+index 0000000..7f43bc5
+--- /dev/null
++++ b/config/permission_scopes.php
+@@ -0,0 +1,50 @@
++<?php
++
++/**
++ * Which permission grants are limited to a resource, and for whom.
++ *
++ * `config/permissions.php` records an `O` ("own") level against several roles, but a
++ * level alone cannot say what "own" means: for a student it means "acting on my own
++ * behalf", while for an instructor it means "an offering I am staffed on". This file
++ * makes that distinction explicit so `AuthorizeService` can enforce it.
++ */
++return [
++
++    /*
++     * Permission keys where a grant held by a scoped role applies only to offerings the
++     * actor is staffed on. Calling one of these without a resource fails closed.
++     *
++     * Keys deliberately absent are self-scoped: `assessments.take`, `assignments.submit`,
++     * `discussions.post`, `discussions.thread`, `live.join`, `finance.pay`, `finance.donate`,
++     * `admissions.apply`, `enrollment.register`, `courses.flag_interest`, `profile.edit_own`
++     * and `transcript.view` all describe acting on your own behalf, and their membership
++     * checks live in the services that own the data.
++     */
++    'offering_scoped' => [
++        'offerings.view',
++        'offerings.content',
++        'questions.manage',
++        'assessments.manage',
++        'assessments.grade',
++        'assignments.manage',
++        'assignments.grade',
++        'gradebook.configure',
++        'gradebook.lock',
++        'live.schedule',
++        'attendance.manage',
++        'discussions.configure',
++        'discussions.moderate',
++        'discussions.grade',
++    ],
++
++    /*
++     * Roles whose grants on the keys above are confined to their own offerings. Every
++     * other role (the admin tier) holds those grants school-wide, which is what the `F`
++     * and `R` levels in the matrix already intend.
++     */
++    'scoped_roles' => [
++        'INSTRUCTOR',
++        'TA',
++    ],
++
++];
+diff --git a/tests/Feature/Assessment/AssessmentEngineTest.php b/tests/Feature/Assessment/AssessmentEngineTest.php
+index f60c5c9..3d2462c 100644
+--- a/tests/Feature/Assessment/AssessmentEngineTest.php
++++ b/tests/Feature/Assessment/AssessmentEngineTest.php
+@@ -120,6 +120,7 @@ public function timed_exam_autosave_resume_auto_submit_and_objective_grade(): vo
+         $ins = User::factory()->withRole(RoleType::Instructor)->create();
+         $student = User::factory()->withRole(RoleType::Student)->create();
+         $bundle = $this->offeringBundle($student);
++        $this->staffOffering($ins, $bundle['offering']);
+ 
+         $bank = app(QuestionBankService::class)->createBank($ins, $bundle['course'], 'Bank');
+         $q1 = app(QuestionBankService::class)->addQuestion($ins, $bank, [
+@@ -195,6 +196,7 @@ public function essay_stays_manual_without_ai_key_and_override_works(): void
+         $ins = User::factory()->withRole(RoleType::Instructor)->create();
+         $student = User::factory()->withRole(RoleType::Student)->create();
+         $bundle = $this->offeringBundle($student);
++        $this->staffOffering($ins, $bundle['offering']);
+ 
+         $bank = app(QuestionBankService::class)->createBank($ins, $bundle['course'], 'Essays');
+         $essay = app(QuestionBankService::class)->addQuestion($ins, $bank, [
+@@ -235,6 +237,7 @@ public function late_penalty_and_gradebook_lock_posts_cross_program_records(): v
+         $aca = User::factory()->withRole(RoleType::AcademicAdmin)->create();
+         $student = User::factory()->withRole(RoleType::Student)->create();
+         $bundle = $this->offeringBundle($student);
++        $this->staffOffering($ins, $bundle['offering']);
+ 
+         $component = app(GradebookService::class)->addComponent($ins, $bundle['offering'], [
+             'name' => 'Exams',
+diff --git a/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php b/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php
+index bb10c33..f77cec6 100644
+--- a/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php
++++ b/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php
+@@ -29,7 +29,7 @@ class AssignmentResubmissionIntegrityTest extends TestCase
+ {
+     use RefreshDatabase;
+ 
+-    /** @return array{student: User, assignment: Assignment} */
++    /** @return array{student: User, assignment: Assignment, offering: CourseOffering} */
+     private function bundle(bool $allowResubmission = true): array
+     {
+         $this->seed(\Database\Seeders\SettingsSeeder::class);
+@@ -79,7 +79,7 @@ private function bundle(bool $allowResubmission = true): array
+             'allow_resubmission' => $allowResubmission,
+         ]);
+ 
+-        return ['student' => $student, 'assignment' => $assignment];
++        return ['student' => $student, 'assignment' => $assignment, 'offering' => $offering];
+     }
+ 
+     #[Test]
+@@ -113,8 +113,9 @@ public function resubmission_archives_the_previous_attempt_instead_of_overwritin
+     #[Test]
+     public function resubmission_clears_the_stale_grade_and_preserves_it_on_the_archived_attempt(): void
+     {
+-        ['student' => $student, 'assignment' => $assignment] = $this->bundle();
++        ['student' => $student, 'assignment' => $assignment, 'offering' => $offering] = $this->bundle();
+         $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++        $this->staffOffering($instructor, $offering);
+         $service = app(AssignmentService::class);
+ 
+         $submission = $service->submit($student, $assignment, textBody: 'first draft');
+diff --git a/tests/Feature/Auth/ResourceScopeTest.php b/tests/Feature/Auth/ResourceScopeTest.php
+new file mode 100644
+index 0000000..a29e095
+--- /dev/null
++++ b/tests/Feature/Auth/ResourceScopeTest.php
+@@ -0,0 +1,250 @@
++<?php
++
++namespace Tests\Feature\Auth;
++
++use App\Enums\ComponentKind;
++use App\Enums\ContentItemType;
++use App\Enums\EnrollmentStatus;
++use App\Enums\OfferingMode;
++use App\Enums\OfferingStaffRole;
++use App\Enums\RoleType;
++use App\Exceptions\AuthorizationException;
++use App\Models\ContentItem;
++use App\Models\Course;
++use App\Models\CourseOffering;
++use App\Models\Enrollment;
++use App\Models\GradebookComponent;
++use App\Models\LiveSession;
++use App\Models\User;
++use App\Models\Week;
++use App\Services\Assessment\AssessmentService;
++use App\Services\Assessment\AssignmentService;
++use App\Services\Discussions\DiscussionService;
++use App\Services\Gradebook\GradebookService;
++use App\Services\Live\AttendanceService;
++use App\Services\Live\LiveSessionService;
++use App\Services\Offerings\OfferingService;
++use App\Support\AuthorizeService;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++/**
++ * The scope invariant: holding Instructor or TA is authority over the offerings you are
++ * staffed on, and nothing else. Cross-offering access must fail everywhere.
++ *
++ * This is the suite that has to stay green — a new offering-owned route added without a
++ * scope check should surface here.
++ */
++class ResourceScopeTest extends TestCase
++{
++    use RefreshDatabase;
++
++    private function offering(string $code): CourseOffering
++    {
++        $course = Course::query()->create([
++            'code' => $code,
++            'title' => "Course $code",
++            'credit_hours' => 3,
++            'is_standalone' => true,
++            'active' => true,
++        ]);
++
++        return CourseOffering::query()->create([
++            'course_id' => $course->id,
++            'mode' => OfferingMode::SelfPaced,
++            'status' => 'OPEN',
++        ]);
++    }
++
++    private function assertDenied(callable $operation, string $label): void
++    {
++        try {
++            $operation();
++            $this->fail("Expected [$label] to be denied across offerings, but it was allowed.");
++        } catch (AuthorizationException) {
++            $this->assertTrue(true);
++        }
++    }
++
++    #[Test]
++    public function an_instructor_cannot_act_on_an_offering_they_do_not_staff(): void
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++        $mine = $this->offering('MINE');
++        $theirs = $this->offering('THEIRS');
++        $this->staffOffering($instructor, $mine);
++
++        $week = Week::query()->create([
++            'offering_id' => $theirs->id, 'number' => 1, 'title' => 'W1', 'order' => 1,
++        ]);
++        $item = ContentItem::query()->create([
++            'week_id' => $week->id, 'type' => ContentItemType::Assignment, 'title' => 'A', 'order' => 1,
++        ]);
++        $session = LiveSession::query()->create([
++            'offering_id' => $theirs->id,
++            'title' => 'Lecture',
++            'scheduled_start' => now()->addDay(),
++            'duration_minutes' => 60,
++        ]);
++
++        $operations = [
++            'gradebook.addComponent' => fn () => app(GradebookService::class)
++                ->addComponent($instructor, $theirs, ['name' => 'X', 'weight_percent' => 10, 'kind' => ComponentKind::Exam->value]),
++            'gradebook.seedFromTemplate' => fn () => app(GradebookService::class)
++                ->seedFromTemplate($instructor, $theirs),
++            'gradebook.submitGrades' => fn () => app(GradebookService::class)
++                ->submitGrades($instructor, $theirs),
++            'gradebook.lockGrades' => fn () => app(GradebookService::class)
++                ->lockGrades($instructor, $theirs),
++            'assessments.create' => fn () => app(AssessmentService::class)
++                ->create($instructor, $theirs, ['title' => 'Quiz', 'mode' => 'QUIZ']),
++            'assignments.create' => fn () => app(AssignmentService::class)
++                ->create($instructor, $item, ['instructions' => 'Do it']),
++            'offerings.addWeek' => fn () => app(OfferingService::class)
++                ->addWeek($instructor, $theirs, ['number' => 2, 'title' => 'W2']),
++            'offerings.addContentItem' => fn () => app(OfferingService::class)
++                ->addContentItem($instructor, $week, ['type' => ContentItemType::Text->value, 'title' => 'T']),
++            'live.schedule' => fn () => app(LiveSessionService::class)
++                ->schedule($instructor, $theirs, ['title' => 'L', 'scheduled_start' => now()->addDays(2), 'duration_minutes' => 60]),
++            'attendance.import' => fn () => app(AttendanceService::class)
++                ->importFromZoom($instructor, $session, []),
++            'discussions.configure' => fn () => app(DiscussionService::class)
++                ->configureBoard($instructor, $theirs, true),
++        ];
++
++        foreach ($operations as $label => $operation) {
++            $this->assertDenied($operation, $label);
++        }
++    }
++
++    #[Test]
++    public function the_same_instructor_can_act_on_the_offering_they_do_staff(): void
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++        $mine = $this->offering('MINE');
++        $this->staffOffering($instructor, $mine);
++
++        $component = app(GradebookService::class)->addComponent($instructor, $mine, [
++            'name' => 'Exams', 'weight_percent' => 50, 'kind' => ComponentKind::Exam->value,
++        ]);
++
++        $this->assertInstanceOf(GradebookComponent::class, $component);
++        $this->assertSame($mine->id, $component->offering_id);
++    }
++
++    #[Test]
++    public function an_academic_admin_is_not_confined_to_staffed_offerings(): void
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $admin = User::factory()->withRole(RoleType::AcademicAdmin)->create();
++        $offering = $this->offering('ANY');
++
++        $component = app(GradebookService::class)->addComponent($admin, $offering, [
++            'name' => 'Exams', 'weight_percent' => 50, 'kind' => ComponentKind::Exam->value,
++        ]);
++
++        $this->assertSame($offering->id, $component->offering_id);
++    }
++
++    #[Test]
++    public function a_scoped_action_with_no_resource_fails_closed(): void
++    {
++        $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++        $offering = $this->offering('MINE');
++        $this->staffOffering($instructor, $offering);
++
++        // Even though this instructor staffs an offering, omitting the resource must not
++        // be read as "any offering".
++        $this->expectException(AuthorizationException::class);
++        app(AuthorizeService::class)->authorize($instructor, 'gradebook.configure');
++    }
++
++    #[Test]
++    public function self_scoped_own_permissions_still_work_without_a_resource(): void
++    {
++        $student = User::factory()->withRole(RoleType::Student)->create();
++        $authorize = app(AuthorizeService::class);
++
++        // These are `O` in the matrix but mean "on my own behalf", not "an offering I staff".
++        foreach (['profile.edit_own', 'finance.pay', 'assignments.submit', 'assessments.take', 'enrollment.register'] as $key) {
++            $authorize->authorize($student, $key);
++        }
++
++        $this->assertTrue(true);
++    }
++
++    #[Test]
++    public function a_ta_is_scoped_the_same_way_and_still_cannot_lock_grades(): void
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $ta = User::factory()->withRole(RoleType::Ta)->create();
++        $mine = $this->offering('TA1');
++        $theirs = $this->offering('TA2');
++        $this->staffOffering($ta, $mine, OfferingStaffRole::Ta);
++
++        // Scoped out of another offering entirely.
++        $this->assertDenied(
++            fn () => app(GradebookService::class)->addComponent($ta, $theirs, [
++                'name' => 'X', 'weight_percent' => 10, 'kind' => ComponentKind::Exam->value,
++            ]),
++            'ta.addComponent cross-offering'
++        );
++
++        // And denied the lock even on their own offering: the matrix grants `lock` to
++        // Instructor only.
++        $this->assertDenied(
++            fn () => app(GradebookService::class)->lockGrades($ta, $mine),
++            'ta.lockGrades own offering'
++        );
++    }
++
++    #[Test]
++    public function superadmin_bypasses_scope_entirely(): void
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $super = User::factory()->withRole(RoleType::SuperAdmin)->create();
++        $offering = $this->offering('SUP');
++
++        $component = app(GradebookService::class)->addComponent($super, $offering, [
++            'name' => 'Exams', 'weight_percent' => 50, 'kind' => ComponentKind::Exam->value,
++        ]);
++
++        $this->assertSame($offering->id, $component->offering_id);
++    }
++
++    #[Test]
++    public function admin_routes_are_scoped_not_merely_role_gated(): void
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++        $student = User::factory()->withRole(RoleType::Student)->create();
++        $mine = $this->offering('RT1');
++        $theirs = $this->offering('RT2');
++        $this->staffOffering($instructor, $mine);
++
++        Enrollment::query()->create([
++            'student_id' => $student->id,
++            'offering_id' => $theirs->id,
++            'status' => EnrollmentStatus::Enrolled,
++            'enrolled_at' => now(),
++        ]);
++
++        // The route middleware alone used to be a role check; it must now scope.
++        $this->actingAs($instructor)
++            ->post(route('admin.gradebook.lock', $theirs))
++            ->assertForbidden();
++
++        $this->actingAs($instructor)
++            ->get(route('admin.gradebook.show', $theirs))
++            ->assertForbidden();
++    }
++}
+diff --git a/tests/Feature/Live/LiveCommsTest.php b/tests/Feature/Live/LiveCommsTest.php
+index 47d9b1c..afe65e0 100644
+--- a/tests/Feature/Live/LiveCommsTest.php
++++ b/tests/Feature/Live/LiveCommsTest.php
+@@ -101,6 +101,7 @@ public function attendance_import_threshold_override_and_gradebook_feed(): void
+         $ins = User::factory()->withRole(RoleType::Instructor)->create();
+         $student = User::factory()->withRole(RoleType::Student)->create(['email' => 'stu@example.com']);
+         $offering = $this->offeringWithStudent($student);
++        $this->staffOffering($ins, $offering);
+ 
+         $session = app(LiveSessionService::class)->schedule(
+             User::factory()->withRole(RoleType::AdministrativeAdmin)->create(),
+@@ -140,6 +141,7 @@ public function reminders_discussions_auto_score_and_notifications(): void
+         $student = User::factory()->withRole(RoleType::Student)->create();
+         $peer = User::factory()->withRole(RoleType::Student)->create(['email' => 'peer@spims.test']);
+         $offering = $this->offeringWithStudent($student);
++        $this->staffOffering($ins, $offering);
+         Enrollment::query()->create([
+             'student_id' => $peer->id,
+             'offering_id' => $offering->id,
+diff --git a/tests/Feature/Portal/PortalD6PolishTest.php b/tests/Feature/Portal/PortalD6PolishTest.php
+index bc0e8af..994d723 100644
+--- a/tests/Feature/Portal/PortalD6PolishTest.php
++++ b/tests/Feature/Portal/PortalD6PolishTest.php
+@@ -75,6 +75,7 @@ public function exam_runner_shows_progress_rail_and_localized_nav(): void
+             'mode' => OfferingMode::SelfPaced,
+             'status' => 'OPEN',
+         ]);
++        $this->staffOffering($ins, $offering);
+         Enrollment::query()->create([
+             'student_id' => $student->id,
+             'offering_id' => $offering->id,
+diff --git a/tests/TestCase.php b/tests/TestCase.php
+index 2932d4a..ee3986a 100644
+--- a/tests/TestCase.php
++++ b/tests/TestCase.php
+@@ -2,9 +2,31 @@
+ 
+ namespace Tests;
+ 
++use App\Enums\OfferingStaffRole;
++use App\Models\CourseOffering;
++use App\Models\OfferingStaff;
++use App\Models\User;
+ use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+ 
+ abstract class TestCase extends BaseTestCase
+ {
+     use CreatesApplication;
++
++    /**
++     * Staff a user on an offering.
++     *
++     * Holding the Instructor or TA role is not by itself authority over an offering —
++     * `AuthorizeService` confines those roles to offerings they appear in `offering_staff`
++     * for. Fixtures that act on an offering must therefore say so explicitly.
++     */
++    protected function staffOffering(
++        User $user,
++        CourseOffering $offering,
++        OfferingStaffRole $role = OfferingStaffRole::Instructor,
++    ): OfferingStaff {
++        return OfferingStaff::query()->firstOrCreate(
++            ['offering_id' => $offering->id, 'user_id' => $user->id],
++            ['role' => $role],
++        );
++    }
+ }
+-- 
+2.43.0
+

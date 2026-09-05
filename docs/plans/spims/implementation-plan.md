@@ -47,10 +47,30 @@ the domain phase for each wave it exposes. S9 is last because it introduces new 
 
 ---
 
-## S0 — Resource-scoped authorization (G-02)
+## S0 — Resource-scoped authorization (G-02) ✅ **Done**
+
+**Delivered:** [`patches/0003`](patches/0003-feat-authz-enforce-resource-scope.patch). Verified on
+spims-edu `main` @ `d764d1e`: 131 → 139 passing, 608 assertions; `ResourceScopeTest` fails 4 of 8
+against the pre-change code; pint clean; PostgreSQL 16 gate green.
 
 **Why first.** Every later phase adds routes and an API. Adding them over an authorization layer
 that ignores resource scope multiplies an existing vulnerability rather than containing it.
+
+### Two corrections found while building it
+
+**The plan's fail-closed rule was too blunt.** It said any `O` grant reached without a resource
+should throw. That would have broken `profile.edit_own`, `finance.pay`, `assignments.submit`,
+`assessments.take`, `enrollment.register` and `discussions.post` — all `O`, none offering-scoped,
+because for a student "own" means *on my own behalf*. A level alone cannot carry that distinction.
+The shipped design adds `config/permission_scopes.php`, naming the 14 offering-scoped keys and the
+roles (`INSTRUCTOR`, `TA`) whose grants they confine; everything else keeps working unchanged.
+
+**The membership read holes were already fixed.** The plan carried forward spims-edu's own note that
+assignment detail and discussion threads were readable by any authenticated user. Both are now
+guarded by `OfferingAccessService::assertCanAccessAssignment()` and `assertCanAccessDiscussion()`,
+added in their D3 phase after that note was written. No change was needed. `DiscussionService::
+ensureBoard()` is still called on a `GET`, which remains worth moving to an audited mutation path,
+but it is not an access-control hole.
 
 ### Behaviour change
 
