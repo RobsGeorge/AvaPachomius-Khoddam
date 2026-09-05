@@ -64,7 +64,7 @@ enrollment with waitlists and holds, transcripts, GPA, degree audit, credentials
 verification, and a complete dual-currency finance domain. None of that exists in Khedma.
 
 Khedma is the better *learning and engagement platform*. Against it, SPIMS is missing eleven
-subsystems outright and has thin versions of five more. The three findings that dominate the
+subsystems outright and has thin versions of eight more. The three findings that dominate the
 report are:
 
 1. **There is no mobile API in SPIMS at all.** `routes/api.php` contains only the default Sanctum
@@ -87,15 +87,17 @@ report are:
    routes that wrap the same services do not. This must be fixed before a mobile instructor API is
    exposed, because an API multiplies the reachable surface.
 
-Missing outright: team projects, live quiz, feedback surveys, events and reservations, per-course
-graduation criteria, communications logging, staff-editable email templates, notification
-preferences and reminders, birthdays, instructor notes, module-level student assessments, and
-realtime broadcasting.
+Missing outright: the mobile API, team projects, live quiz, feedback surveys, events and
+reservations, per-course graduation criteria, communications logging, staff-editable email
+templates, module-level student assessments and instructor notes, student-facing attendance
+history and reporting, and realtime broadcasting.
 
-Thin: announcements (create-only, no publish workflow or fan-out), assignments (no dashboard,
-reminders, or resubmission), roster (read-only, no export), curriculum (weeks and items, but no
-reusable module catalog or lecture materials), and exam integrity (focus-loss counting, but no
-proctor event log or termination).
+Thin: attendance itself (see finding 2), announcements (create-only, no publish workflow or
+fan-out), assignments (no dashboard, reminders, or resubmission), roster (read-only, no export, no
+birthdays), notifications (one `notify_email` boolean, no per-event or per-channel preferences and
+no reminders), certificates (issued manually, no per-course templates), curriculum (weeks and items,
+but no reusable module catalog or lecture materials), and exam integrity (focus-loss counting, but
+no proctor event log or termination).
 
 Several of these sit in SPIMS's own [`PARKING-LOT.md`](https://github.com/RobsGeorge/spims-edu/blob/main/PARKING-LOT.md)
 as explicitly deferred — a JSON API, WebSockets, mobile apps, WhatsApp, an excused attendance
