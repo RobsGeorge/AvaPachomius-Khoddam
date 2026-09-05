@@ -1,0 +1,558 @@
+From 343820deff0cd7296e48487126aaa7c87824a1f6 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 5 Sep 2026 03:44:18 +0000
+Subject: [PATCH 2/2] fix(assignments): stop resubmissions destroying the
+ previous attempt
+
+AssignmentService::submit() used updateOrCreate keyed on (assignment, student),
+so a second submission overwrote the first in place. Two consequences:
+
+- The earlier text, file, timestamp and late flag were lost with no history
+  and nothing in the audit trail recording what was replaced.
+- Grade fields were NOT reset, so an instructor's score stayed attached to
+  content they had never seen. A student could resubmit after grading and
+  keep the mark.
+
+The unique (assignment_id, student_id) index is left intact; the current row
+stays canonical and prior states are archived additively into a new
+assignment_submission_versions table. Resubmitting now bumps attempt_no,
+snapshots the previous attempt with its grade, and clears the stale grade so
+the work is re-marked. Assignments gain allow_resubmission (default true,
+preserving today's behaviour) and refuse a second submission when it is off.
+
+Audit records resubmissions as assignments.resubmit, distinct from the
+first submission.
+
+Adds AssignmentResubmissionIntegrityTest; all four cases fail on the previous
+behaviour.
+---
+ app/Models/Assignment.php                     |   2 +
+ app/Models/AssignmentSubmission.php           |   9 +
+ app/Models/AssignmentSubmissionVersion.php    |  49 +++++
+ app/Services/Assessment/AssignmentService.php |  78 +++++++-
+ ...1_add_assignment_submission_versioning.php |  55 ++++++
+ lang/ar/assessment.php                        |   1 +
+ lang/en/assessment.php                        |   1 +
+ lang/fr/assessment.php                        |   1 +
+ .../AssignmentResubmissionIntegrityTest.php   | 180 ++++++++++++++++++
+ 9 files changed, 367 insertions(+), 9 deletions(-)
+ create mode 100644 app/Models/AssignmentSubmissionVersion.php
+ create mode 100644 database/migrations/2026_09_05_000001_add_assignment_submission_versioning.php
+ create mode 100644 tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php
+
+diff --git a/app/Models/Assignment.php b/app/Models/Assignment.php
+index 28f4486..2fe29d6 100644
+--- a/app/Models/Assignment.php
++++ b/app/Models/Assignment.php
+@@ -25,6 +25,7 @@ class Assignment extends Model
+         'released',
+         'due_date',
+         'late_penalty_override',
++        'allow_resubmission',
+     ];
+ 
+     protected $casts = [
+@@ -35,6 +36,7 @@ class Assignment extends Model
+         'released' => 'boolean',
+         'due_date' => 'datetime',
+         'late_penalty_override' => 'float',
++        'allow_resubmission' => 'boolean',
+     ];
+ 
+     public function contentItem(): BelongsTo
+diff --git a/app/Models/AssignmentSubmission.php b/app/Models/AssignmentSubmission.php
+index 74e983a..d4f9fc7 100644
+--- a/app/Models/AssignmentSubmission.php
++++ b/app/Models/AssignmentSubmission.php
+@@ -5,6 +5,7 @@
+ use App\Models\Concerns\HasUlids;
+ use Illuminate\Database\Eloquent\Model;
+ use Illuminate\Database\Eloquent\Relations\BelongsTo;
++use Illuminate\Database\Eloquent\Relations\HasMany;
+ 
+ class AssignmentSubmission extends Model
+ {
+@@ -24,6 +25,7 @@ class AssignmentSubmission extends Model
+         'feedback',
+         'graded_by_id',
+         'graded_at',
++        'attempt_no',
+     ];
+ 
+     protected $casts = [
+@@ -32,6 +34,7 @@ class AssignmentSubmission extends Model
+         'raw_score' => 'float',
+         'final_score' => 'float',
+         'graded_at' => 'datetime',
++        'attempt_no' => 'integer',
+     ];
+ 
+     public function assignment(): BelongsTo
+@@ -43,4 +46,10 @@ public function student(): BelongsTo
+     {
+         return $this->belongsTo(User::class, 'student_id');
+     }
++
++    public function versions(): HasMany
++    {
++        return $this->hasMany(AssignmentSubmissionVersion::class, 'submission_id')
++            ->orderBy('attempt_no');
++    }
+ }
+diff --git a/app/Models/AssignmentSubmissionVersion.php b/app/Models/AssignmentSubmissionVersion.php
+new file mode 100644
+index 0000000..bc5d770
+--- /dev/null
++++ b/app/Models/AssignmentSubmissionVersion.php
+@@ -0,0 +1,49 @@
++<?php
++
++namespace App\Models;
++
++use App\Models\Concerns\HasUlids;
++use Illuminate\Database\Eloquent\Model;
++use Illuminate\Database\Eloquent\Relations\BelongsTo;
++
++class AssignmentSubmissionVersion extends Model
++{
++    use HasUlids;
++
++    public $timestamps = false;
++
++    protected $fillable = [
++        'submission_id',
++        'attempt_no',
++        'text_body',
++        'file_url',
++        'submitted_at',
++        'is_late',
++        'raw_score',
++        'final_score',
++        'feedback',
++        'graded_by_id',
++        'graded_at',
++        'archived_at',
++    ];
++
++    protected $casts = [
++        'attempt_no' => 'integer',
++        'is_late' => 'boolean',
++        'raw_score' => 'float',
++        'final_score' => 'float',
++        'submitted_at' => 'datetime',
++        'graded_at' => 'datetime',
++        'archived_at' => 'datetime',
++    ];
++
++    public function submission(): BelongsTo
++    {
++        return $this->belongsTo(AssignmentSubmission::class, 'submission_id');
++    }
++
++    public function gradedBy(): BelongsTo
++    {
++        return $this->belongsTo(User::class, 'graded_by_id');
++    }
++}
+diff --git a/app/Services/Assessment/AssignmentService.php b/app/Services/Assessment/AssignmentService.php
+index 43c2071..650d7f7 100644
+--- a/app/Services/Assessment/AssignmentService.php
++++ b/app/Services/Assessment/AssignmentService.php
+@@ -2,17 +2,19 @@
+ 
+ namespace App\Services\Assessment;
+ 
++use App\Enums\EnrollmentStatus;
++use App\Enums\SubmissionType;
+ use App\Models\Assignment;
+ use App\Models\AssignmentSubmission;
++use App\Models\AssignmentSubmissionVersion;
+ use App\Models\ContentItem;
+ use App\Models\Enrollment;
+ use App\Models\Setting;
+ use App\Models\User;
+-use App\Enums\EnrollmentStatus;
+-use App\Enums\SubmissionType;
++use App\Services\Offerings\LearningProgressService;
+ use App\Support\AuditLogWriter;
+ use App\Support\AuthorizeService;
+-use App\Services\Offerings\LearningProgressService;
++use Illuminate\Support\Facades\DB;
+ use Illuminate\Validation\ValidationException;
+ 
+ class AssignmentService
+@@ -66,17 +68,56 @@ public function submit(User $student, Assignment $assignment, ?string $textBody
+         $submittedAt = now();
+         $isLate = $assignment->due_date && $submittedAt->gt($assignment->due_date);
+ 
+-        $submission = AssignmentSubmission::query()->updateOrCreate(
+-            ['assignment_id' => $assignment->id, 'student_id' => $student->id],
+-            [
++        $existing = AssignmentSubmission::query()
++            ->where('assignment_id', $assignment->id)
++            ->where('student_id', $student->id)
++            ->first();
++
++        if ($existing !== null && ! $assignment->allow_resubmission) {
++            throw ValidationException::withMessages([
++                'assignment' => [__('assessment.resubmission_not_allowed')],
++            ]);
++        }
++
++        $submission = DB::transaction(function () use ($assignment, $student, $existing, $textBody, $fileUrl, $submittedAt, $isLate) {
++            if ($existing === null) {
++                return AssignmentSubmission::query()->create([
++                    'assignment_id' => $assignment->id,
++                    'student_id' => $student->id,
++                    'text_body' => $textBody,
++                    'file_url' => $fileUrl,
++                    'submitted_at' => $submittedAt,
++                    'is_late' => (bool) $isLate,
++                    'attempt_no' => 1,
++                ]);
++            }
++
++            $this->archive($existing);
++
++            // A resubmission replaces the graded artifact, so the prior grade no longer
++            // describes what is stored. It is preserved on the archived version.
++            $existing->update([
+                 'text_body' => $textBody,
+                 'file_url' => $fileUrl,
+                 'submitted_at' => $submittedAt,
+                 'is_late' => (bool) $isLate,
+-            ]
+-        );
++                'attempt_no' => $existing->attempt_no + 1,
++                'raw_score' => null,
++                'final_score' => null,
++                'feedback' => null,
++                'graded_by_id' => null,
++                'graded_at' => null,
++            ]);
++
++            return $existing->fresh();
++        });
+ 
+-        $this->audit->write($student, 'assignments.submit', 'AssignmentSubmission', $submission->id);
++        $this->audit->write(
++            $student,
++            $submission->attempt_no > 1 ? 'assignments.resubmit' : 'assignments.submit',
++            'AssignmentSubmission',
++            $submission->id,
++        );
+ 
+         if ($item) {
+             $this->progress->recordLinkedItemComplete($student, $item);
+@@ -85,6 +126,25 @@ public function submit(User $student, Assignment $assignment, ?string $textBody
+         return $submission;
+     }
+ 
++    /** Snapshot the current state of a submission before it is replaced. */
++    private function archive(AssignmentSubmission $submission): AssignmentSubmissionVersion
++    {
++        return AssignmentSubmissionVersion::query()->create([
++            'submission_id' => $submission->id,
++            'attempt_no' => $submission->attempt_no,
++            'text_body' => $submission->text_body,
++            'file_url' => $submission->file_url,
++            'submitted_at' => $submission->submitted_at,
++            'is_late' => $submission->is_late,
++            'raw_score' => $submission->raw_score,
++            'final_score' => $submission->final_score,
++            'feedback' => $submission->feedback,
++            'graded_by_id' => $submission->graded_by_id,
++            'graded_at' => $submission->graded_at,
++            'archived_at' => now(),
++        ]);
++    }
++
+     public function grade(User $grader, AssignmentSubmission $submission, float $rawScore, ?string $feedback = null): AssignmentSubmission
+     {
+         $this->authorize->authorize($grader, 'assignments.grade');
+diff --git a/database/migrations/2026_09_05_000001_add_assignment_submission_versioning.php b/database/migrations/2026_09_05_000001_add_assignment_submission_versioning.php
+new file mode 100644
+index 0000000..94fea27
+--- /dev/null
++++ b/database/migrations/2026_09_05_000001_add_assignment_submission_versioning.php
+@@ -0,0 +1,55 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++/**
++ * Additive only. `assignment_submissions` keeps its unique (assignment_id, student_id)
++ * row as the current submission; prior states are archived here instead of being
++ * overwritten in place.
++ */
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('assignments', function (Blueprint $table) {
++            $table->boolean('allow_resubmission')->default(true);
++        });
++
++        Schema::table('assignment_submissions', function (Blueprint $table) {
++            $table->unsignedInteger('attempt_no')->default(1);
++        });
++
++        Schema::create('assignment_submission_versions', function (Blueprint $table) {
++            $table->ulid('id')->primary();
++            $table->foreignUlid('submission_id')->constrained('assignment_submissions')->cascadeOnDelete();
++            $table->unsignedInteger('attempt_no');
++            $table->text('text_body')->nullable();
++            $table->string('file_url')->nullable();
++            $table->timestamp('submitted_at');
++            $table->boolean('is_late')->default(false);
++            $table->float('raw_score')->nullable();
++            $table->float('final_score')->nullable();
++            $table->text('feedback')->nullable();
++            $table->foreignUlid('graded_by_id')->nullable()->constrained('users')->nullOnDelete();
++            $table->timestamp('graded_at')->nullable();
++            $table->timestamp('archived_at')->useCurrent();
++
++            $table->unique(['submission_id', 'attempt_no']);
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::dropIfExists('assignment_submission_versions');
++
++        Schema::table('assignment_submissions', function (Blueprint $table) {
++            $table->dropColumn('attempt_no');
++        });
++
++        Schema::table('assignments', function (Blueprint $table) {
++            $table->dropColumn('allow_resubmission');
++        });
++    }
++};
+diff --git a/lang/ar/assessment.php b/lang/ar/assessment.php
+index 3d53d12..c0937ea 100644
+--- a/lang/ar/assessment.php
++++ b/lang/ar/assessment.php
+@@ -17,6 +17,7 @@
+   'assignment_submitted' => 'تم تسليم الواجب.',
+   'bank_too_small' => 'بنك الأسئلة لا يحتوي على أسئلة كافية.',
+   'not_enrolled' => 'يجب أن تكون مسجلاً في هذا المقرر.',
++  'resubmission_not_allowed' => 'لقد سلّمت هذا الواجب بالفعل، وإعادة التسليم مغلقة.',
+   'window_closed' => 'التقييم غير مفتوح.',
+   'no_attempts' => 'لا توجد محاولات متبقية.',
+   'not_in_progress' => 'المحاولة ليست قيد التنفيذ.',
+diff --git a/lang/en/assessment.php b/lang/en/assessment.php
+index e783876..7dabfb0 100644
+--- a/lang/en/assessment.php
++++ b/lang/en/assessment.php
+@@ -17,6 +17,7 @@
+   'assignment_submitted' => 'Assignment submitted.',
+   'bank_too_small' => 'Question bank does not have enough questions to draw.',
+   'not_enrolled' => 'You must be enrolled in this offering.',
++  'resubmission_not_allowed' => 'You have already submitted this assignment and resubmission is closed.',
+   'window_closed' => 'This assessment is not open.',
+   'no_attempts' => 'No attempts remaining.',
+   'not_in_progress' => 'Attempt is not in progress.',
+diff --git a/lang/fr/assessment.php b/lang/fr/assessment.php
+index aab6b38..60cbee2 100644
+--- a/lang/fr/assessment.php
++++ b/lang/fr/assessment.php
+@@ -17,6 +17,7 @@
+   'assignment_submitted' => 'Devoir soumis.',
+   'bank_too_small' => 'La banque n’a pas assez de questions.',
+   'not_enrolled' => 'Vous devez être inscrit à cette offre.',
++  'resubmission_not_allowed' => 'Vous avez déjà rendu ce devoir et la remise est close.',
+   'window_closed' => 'Cette évaluation n’est pas ouverte.',
+   'no_attempts' => 'Plus de tentatives.',
+   'not_in_progress' => 'La tentative n’est pas en cours.',
+diff --git a/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php b/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php
+new file mode 100644
+index 0000000..bb10c33
+--- /dev/null
++++ b/tests/Feature/Assessment/AssignmentResubmissionIntegrityTest.php
+@@ -0,0 +1,180 @@
++<?php
++
++namespace Tests\Feature\Assessment;
++
++use App\Enums\ContentItemType;
++use App\Enums\EnrollmentStatus;
++use App\Enums\OfferingMode;
++use App\Enums\RoleType;
++use App\Models\Assignment;
++use App\Models\AssignmentSubmission;
++use App\Models\AssignmentSubmissionVersion;
++use App\Models\ContentItem;
++use App\Models\Course;
++use App\Models\CourseOffering;
++use App\Models\Enrollment;
++use App\Models\User;
++use App\Models\Week;
++use App\Services\Assessment\AssignmentService;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Illuminate\Validation\ValidationException;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++/**
++ * Guards the submission history invariant: a resubmission must never destroy the
++ * previous attempt, and must never leave a stale grade attached to new content.
++ */
++class AssignmentResubmissionIntegrityTest extends TestCase
++{
++    use RefreshDatabase;
++
++    /** @return array{student: User, assignment: Assignment} */
++    private function bundle(bool $allowResubmission = true): array
++    {
++        $this->seed(\Database\Seeders\SettingsSeeder::class);
++
++        $student = User::factory()->withRole(RoleType::Student)->create();
++
++        $course = Course::query()->create([
++            'code' => 'ASG1',
++            'title' => 'Assignment Course',
++            'credit_hours' => 3,
++            'is_standalone' => true,
++            'active' => true,
++        ]);
++
++        $offering = CourseOffering::query()->create([
++            'course_id' => $course->id,
++            'mode' => OfferingMode::SelfPaced,
++            'status' => 'OPEN',
++        ]);
++
++        Enrollment::query()->create([
++            'student_id' => $student->id,
++            'offering_id' => $offering->id,
++            'status' => EnrollmentStatus::Enrolled,
++            'enrolled_at' => now(),
++        ]);
++
++        $week = Week::query()->create([
++            'offering_id' => $offering->id,
++            'number' => 1,
++            'title' => 'Week 1',
++            'order' => 1,
++        ]);
++
++        $item = ContentItem::query()->create([
++            'week_id' => $week->id,
++            'type' => ContentItemType::Assignment,
++            'title' => 'Essay',
++            'order' => 1,
++        ]);
++
++        $assignment = Assignment::query()->create([
++            'content_item_id' => $item->id,
++            'instructions' => 'Write an essay.',
++            'allowed_file_types' => ['pdf'],
++            'max_points' => 100,
++            'allow_resubmission' => $allowResubmission,
++        ]);
++
++        return ['student' => $student, 'assignment' => $assignment];
++    }
++
++    #[Test]
++    public function resubmission_archives_the_previous_attempt_instead_of_overwriting_it(): void
++    {
++        ['student' => $student, 'assignment' => $assignment] = $this->bundle();
++        $service = app(AssignmentService::class);
++
++        $service->submit($student, $assignment, textBody: 'first draft', fileUrl: 'uploads/first.pdf');
++        $service->submit($student, $assignment, textBody: 'second draft', fileUrl: 'uploads/second.pdf');
++
++        $submission = AssignmentSubmission::query()
++            ->where('assignment_id', $assignment->id)
++            ->where('student_id', $student->id)
++            ->sole();
++
++        $this->assertSame('second draft', $submission->text_body);
++        $this->assertSame('uploads/second.pdf', $submission->file_url);
++        $this->assertSame(2, $submission->attempt_no);
++
++        $versions = AssignmentSubmissionVersion::query()
++            ->where('submission_id', $submission->id)
++            ->get();
++
++        $this->assertCount(1, $versions, 'The first attempt must be retained.');
++        $this->assertSame('first draft', $versions->first()->text_body);
++        $this->assertSame('uploads/first.pdf', $versions->first()->file_url);
++        $this->assertSame(1, $versions->first()->attempt_no);
++    }
++
++    #[Test]
++    public function resubmission_clears_the_stale_grade_and_preserves_it_on_the_archived_attempt(): void
++    {
++        ['student' => $student, 'assignment' => $assignment] = $this->bundle();
++        $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++        $service = app(AssignmentService::class);
++
++        $submission = $service->submit($student, $assignment, textBody: 'first draft');
++        $service->grade($instructor, $submission, 88.0, 'Good work.');
++
++        $service->submit($student, $assignment, textBody: 'second draft');
++
++        $submission = $submission->fresh();
++
++        // The grade described the first draft; it must not survive onto the second.
++        $this->assertNull($submission->raw_score);
++        $this->assertNull($submission->final_score);
++        $this->assertNull($submission->feedback);
++        $this->assertNull($submission->graded_at);
++        $this->assertNull($submission->graded_by_id);
++
++        $archived = AssignmentSubmissionVersion::query()
++            ->where('submission_id', $submission->id)
++            ->where('attempt_no', 1)
++            ->sole();
++
++        $this->assertSame(88.0, $archived->raw_score);
++        $this->assertSame('Good work.', $archived->feedback);
++        $this->assertSame($instructor->id, $archived->graded_by_id);
++        $this->assertNotNull($archived->graded_at);
++    }
++
++    #[Test]
++    public function resubmission_is_refused_when_the_assignment_disallows_it(): void
++    {
++        ['student' => $student, 'assignment' => $assignment] = $this->bundle(allowResubmission: false);
++        $service = app(AssignmentService::class);
++
++        $service->submit($student, $assignment, textBody: 'only draft');
++
++        $this->expectException(ValidationException::class);
++
++        try {
++            $service->submit($student, $assignment, textBody: 'sneaky replacement');
++        } finally {
++            $submission = AssignmentSubmission::query()
++                ->where('assignment_id', $assignment->id)
++                ->where('student_id', $student->id)
++                ->sole();
++
++            $this->assertSame('only draft', $submission->text_body);
++            $this->assertSame(1, $submission->attempt_no);
++            $this->assertSame(0, AssignmentSubmissionVersion::query()->count());
++        }
++    }
++
++    #[Test]
++    public function first_submission_creates_a_single_attempt_with_no_history(): void
++    {
++        ['student' => $student, 'assignment' => $assignment] = $this->bundle();
++
++        $submission = app(AssignmentService::class)->submit($student, $assignment, textBody: 'only draft');
++
++        $this->assertSame(1, $submission->attempt_no);
++        $this->assertSame(0, AssignmentSubmissionVersion::query()->count());
++        $this->assertSame(1, AssignmentSubmission::query()->count());
++    }
++}
+-- 
+2.43.0
+
