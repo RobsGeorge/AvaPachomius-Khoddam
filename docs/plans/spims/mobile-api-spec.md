@@ -8,6 +8,22 @@ not care; abilities on the token decide what is reachable).
 This is the wire contract. It exists so the mobile client can be written against a fixed shape
 before the endpoints are all built, and so no endpoint invents its own conventions.
 
+### A note on the reference implementation
+
+The Khedma `/api/v1` surface is the proof that this shape works in production, and its **feature
+sequencing** (waves A–E) is worth copying directly. Its **conventions are not.** Four places where
+this spec deliberately diverges, so nobody "matches Khedma" and inherits the weaker choice:
+
+| Concern | Khedma today | This spec |
+|---|---|---|
+| Serialization | Inline private `serialize()` methods per controller; no `App\Http\Resources` at all | API Resource classes, so a shape is defined once |
+| Pagination | Only on `/notifications`, with `per_page` hard-coded to 25 and other lists capped at arbitrary limits (attendance 200, sessions 100) | Every collection paginated, `per_page` client-controlled to a maximum of 100 |
+| Localization | No `Accept-Language` handling — `SetLocale` is not on the API middleware stack, so responses come back in the app default | `Accept-Language`, then stored preference, then `ar` |
+| Token lifetime | `sanctum.expiration` is `null`; tokens never expire and there is no refresh | Expiring tokens; re-authenticate through the OTP flow |
+
+Khedma also has no OpenAPI document. SPIMS should, because its mobile client is a separate codebase
+and the contract needs to be machine-checkable from both sides.
+
 ---
 
 ## 1. Conventions

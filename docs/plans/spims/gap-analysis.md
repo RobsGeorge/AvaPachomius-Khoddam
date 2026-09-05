@@ -50,7 +50,7 @@ features can be delivered to a mobile client at all.
 | 6 | Exams | Builder, schedule, attempt runner, proctor event log, offline delivery, results announcement | Question banks, random draw, multi-attempt, AI grading, focus-loss counter | **Parity** (differing strengths) |
 | 7 | Gradebook | Categories, items, score grid, CSV export, grace marks, course closing | Weighted components, submit/lock/reopen, GPA, academic records | **Parity** |
 | 8 | Graduation criteria | Per-course criteria engine, cohort view, CSV export | — (program degree audit exists, per-course does not) | **Absent** |
-| 9 | Certificates | Per-course editable templates, PDF, UUID download | `credentials` + public `/verify/{token}` | **Thin** |
+| 9 | Certificates | Per-course editable templates, PDF, UUID download | `credentials` + public `/verify/{token}`, but HTML artifacts and manual issuance | **Thin** |
 | 10 | Announcements | Revisions, deliveries, targeting, publish, email resend, WhatsApp, banner, directory | `announcements` table, create-only from Teach hub | **Thin** |
 | 11 | Communications report | `communication_logs`, report, CSV export, open tracking | — | **Absent** |
 | 12 | Email templates | Per-course editable + preview, role-assignment, graduation | — | **Absent** |
@@ -60,7 +60,7 @@ features can be delivered to a mobile client at all.
 | 16 | Events | 6 tables, capacity, eligibility, reservations, QR check-in | — | **Absent** |
 | 17 | Module student assessment + instructor notes | Per-module per-student assessment, private notes | — | **Absent** |
 | 18 | Course applications | Multi-step form builder, apply, status, review | Single-form builder, apply, review, round-robin | **Parity** |
-| 19 | Notifications | Preferences, reminders, WhatsApp deliveries, multi-channel | `notifications` table, in-app + mail | **Thin** |
+| 19 | Notifications | Preferences, reminders, WhatsApp deliveries, multi-channel | `notifications` table, in-app + mail; the one `notify_email` toggle is never read | **Thin + defect** |
 | 20 | **Mobile API** | 57 `/api/v1` endpoints, Sanctum, documented waves | **None** | **Absent** |
 | 21 | **Resource-scoped authz** | `CoursePermissionResolver::canInCourse()` | `$resource` accepted and ignored | **Defect** |
 | 22 | Realtime | Laravel Reverb, `routes/channels.php` in use | Broadcasting config present, unused | **Absent** |
@@ -264,6 +264,12 @@ Khedma's notifications hub (`2026_07_15_000001`) creates `user_notifications`,
 Per-event, per-channel preferences and user-scheduled reminders are the parts SPIMS lacks; WhatsApp
 is explicitly v2 in SPIMS's parking lot and should stay there.
 
+**The one preference SPIMS does have is not honoured.** `NotificationService` never reads
+`users.notify_email` before sending: when called with the default `alsoEmail = true` it always
+writes an `EMAIL` channel row and invokes `TransactionalMailer`. The settings UI presents a toggle
+that changes nothing. That is a defect rather than a gap, and it is worth fixing in S2 alongside the
+real preference model rather than leaving a control that lies to the user.
+
 ### 4.11 Graduation criteria and course closing — absent
 
 SPIMS grades at two levels: an offering's gradebook produces `final_percent`, `final_letter`, and
@@ -279,6 +285,15 @@ announce, close — is a distinct staff ceremony from locking a gradebook, and i
 certificates. SPIMS's `credentials` are issued manually by an administrator through
 `CredentialAdminController`; there is no criteria evaluation, no cohort view, no grace-mark step,
 and no per-course certificate template editor.
+
+Two further details matter for the plan. SPIMS's issued artifact is **HTML, not PDF** —
+`CredentialService` writes `credentials/{id}.html` to `file_url`, mirroring the same shortcut
+`ReceiptPdfService` takes for receipts. Khedma renders real PDFs through DomPDF. And Khedma's
+graduation rule is stricter than a grade threshold: a course must define **both**
+`passing_percentage` and `min_attendance_percentage` before `hasGraduationCriteria()` is true, and
+failing the attendance threshold forces an F regardless of the grade earned. Any criteria engine
+built for SPIMS should support that conjunction, because it is the rule that makes attendance
+consequential rather than decorative.
 
 ### 4.12 Curriculum, sessions, roster, and the smaller thin areas
 
@@ -300,16 +315,34 @@ covers the read case. Missing are CSV export, the birthdays feed (`students.birt
 entirely — a sweep for "birthday" returns zero files), the roster-scoped announcement action, and
 per-student instructor notes (`student_notes.*` permissions, `StudentInstructorNoteController`).
 
+Birthdays are not merely an unbuilt query: SPIMS's `users` table has **no date-of-birth column at
+all**, so the feature needs a schema addition and a backfill path before any endpoint can exist.
+
 **Assignments.** SPIMS supports create-from-content-item, submit, and grade. Khedma adds a staff
 dashboard, per-assignment status, `mark-received` for physical hand-ins, `remind-unsubmitted`,
 offline delivery (`2026_07_24_000001_add_offline_delivery_to_assignments.php`), and a student
 resubmission route.
 
+There is a sharper problem inside SPIMS's submit path than a missing feature.
+`AssignmentService::submit()` uses `updateOrCreate` keyed on assignment and student, so a second
+submission **silently overwrites the first** — the earlier file URL, text body, timestamp, and late
+flag are gone, with no history row and no audit of what was replaced. This is not a resubmission
+workflow; it is unversioned destructive overwrite that happens to look like one. A student who
+re-uploads after an instructor has already graded destroys the graded artifact. S5 replaces it with
+an explicit, windowed, history-preserving resubmission rather than adding a route beside it.
+
 **Exams.** This is closer to parity than expected, and in several respects **SPIMS is ahead**. Its
 `assessments` table supports question banks with random draw (`draw_from_bank_id`,
-`questions_to_draw`), multiple attempts with a `scoring_rule`, option shuffling, per-attempt
-`exam_snapshot` and `question_ids` for reproducibility, `results_visibility`, and AI-suggested
-scores with rationale on `attempt_answers`. Khedma has none of that. What Khedma has that SPIMS does
+`questions_to_draw`), multiple attempts with a `scoring_rule` (`HIGHEST`/`LATEST`/`AVERAGE`), option
+shuffling, per-attempt `exam_snapshot` and `question_ids` for reproducibility,
+`results_visibility`, and AI-suggested scores with rationale on `attempt_answers`. Khedma has none
+of that. The question-type gap runs the same direction and is wider than it first appears: SPIMS's
+`QuestionType` enum has **ten** members (`MCQ_SINGLE`, `MCQ_MULTI`, `TRUE_FALSE`, `SHORT_ANSWER`,
+`ESSAY`, `MATCHING`, `FILL_BLANK`, `NUMERIC`, `ORDERING`, `FILE_UPLOAD`), all auto-graded by
+`ObjectiveGrader` except essay and file upload; Khedma supports **three** (`mcq`, `true_false`,
+`essay`).
+
+What Khedma has that SPIMS does
 not is integrity *enforcement*: `exam_proctor_events` logs typed events with escalating
 `warning_number`, and `exam_attempts` carries `proctor_warnings`, `terminated_for_cheating`, and
 `terminated_at`, with staff routes to announce results, clear a cheater flag, recompute total
@@ -332,13 +365,20 @@ the headline gap count suggests.
   withdraw with distinct refund treatment, and schedule-conflict warnings.
 - **Transcript and GPA.** `academic_records`, `program_requirement_fulfillments`, cached program
   GPA, degree audit, and a transcript view.
-- **Credentials.** Issued credentials with a public `GET /verify/{token}` QR verification page.
+- **Credentials.** Issued credentials with a public `GET /verify/{token}` QR verification page and
+  serials of the form `SPIMS-CRED-{YEAR}-{NNNNN}`. Khedma has **no** unauthenticated verification
+  route — its certificate download is auth-gated and the UUID is only embedded in the PDF body, so
+  this is a genuine SPIMS advantage that must not be regressed. (The artifact itself is still HTML
+  rather than PDF; see §4.11.)
 - **Finance.** Invoices and lines, a four-bucket wallet (EGP/USD money and points), PayPal, Paymob
   and Cashier routing, split payments, refunds, donations, and receipts — all in integer minor
   units behind a `Currency` enum.
 - **Discussions.** Boards, threads with participation thresholds (`participation_min_words`,
   `participation_min_posts`, `participation_min_replies`), auto-scored graded participation,
   moderation, and a gradebook component.
+- **Assessment breadth.** Ten question types against Khedma's three, with `ObjectiveGrader`
+  auto-scoring numeric tolerance, matching with partial credit, ordering, and fill-in-the-blank
+  accepted-answer sets. Khedma auto-grades only MCQ and true/false.
 - **Trilingual.** ar/en/fr with an AI translation service and a human verification step.
 
 ---
@@ -360,12 +400,13 @@ Identifiers are used by [`implementation-plan.md`](implementation-plan.md).
 | G-09 | Announcements: publish workflow, targeting, delivery, student inbox | Thin | S2 |
 | G-10 | Communications log, report, export, open tracking | Absent | S2 |
 | G-11 | Staff-editable email templates + preview | Absent | S2 |
-| G-12 | Notification preferences and reminders | Thin | S2 |
+| G-12 | Notification preferences and reminders; `notify_email` toggle not honoured | Thin + defect | S2 |
 | G-13 | Per-course graduation criteria + closing workflow | Absent | S4 |
-| G-14 | Per-course certificate templates | Thin | S4 |
+| G-14 | Per-course certificate templates; credentials render HTML, not PDF | Thin | S4 |
 | G-15 | Roster export, birthdays, roster announcement | Thin | S3 |
 | G-16 | Instructor notes + module-level student assessment | Absent | S4 |
-| G-17 | Assignment dashboard, reminders, mark-received, offline, resubmission | Thin | S5 |
+| G-17 | Assignment dashboard, reminders, mark-received, offline; resubmission silently overwrites | Thin + defect | S5 |
+| G-21 | No date-of-birth column on `users` (blocks birthdays) | Absent | S3 |
 | G-18 | Exam proctor event log, termination, offline grading, results announcement | Thin | S5 |
 | G-19 | No realtime transport | Absent | S9 |
 | G-20 | Reusable module catalog and lecture materials | Thin | Backlog |

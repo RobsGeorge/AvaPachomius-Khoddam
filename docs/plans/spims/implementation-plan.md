@@ -183,6 +183,12 @@ Extend `announcements` additively: `status` (`DRAFT`/`PUBLISHED`), `published_at
   lang file), render with a variable allowlist, and `preview` without sending.
 - `CommunicationLogWriter` — called by the dispatcher; never by feature code directly.
 - Wire `TransactionalMailer` to log through it, so existing sends appear in the report immediately.
+- **Fix the `notify_email` defect first.** `NotificationService` currently ignores
+  `users.notify_email` and always sends when `alsoEmail = true`, so the existing settings toggle is
+  inert. Route every send through `ChannelDispatcher`, which consults `notification_preferences`
+  and treats the legacy boolean as the default for the `mail` channel until users have per-event
+  rows. Ship this as its own commit with its own test, ahead of the new preference UI — it is a
+  live bug, and burying it inside a feature makes it un-reviewable.
 
 ### Permissions (`config/permissions.php`)
 
@@ -219,6 +225,10 @@ instructor `POST /offerings/{id}/announcements`, `PUT /announcements/{id}`,
   variables, preview sends nothing.
 - `NotificationPreferenceTest` — a disabled channel suppresses that channel and only that channel;
   reminders fire once at `remind_at`.
+- `NotifyEmailRespectedTest` — a user with `notify_email = false` receives the in-app notification
+  and **no** mail, and no `EMAIL` channel row is written. Assert this against
+  `NotificationService`'s existing default-`alsoEmail` call path, since that is the one that is
+  currently wrong.
 - `tests/Feature/Api/CommunicationsApiTest` — the endpoints above, including a student being unable
   to publish.
 
@@ -243,6 +253,10 @@ a student who disabled email still gets the in-app copy.
 | `attendance_entries` | `class_session_id`, `student_id`, `status` (`PRESENT`/`ABSENT`/`LATE`/`EXCUSED`), `excuse_reason`, `minutes_attended`, `source` (`MANUAL`/`ZOOM_IMPORT`/`SELF_CHECK_IN`), `recorded_by_id`, `recorded_at`, `lock_version` |
 | `attendance_check_in_codes` | `class_session_id`, `code`, `expires_at`, `max_uses`, `uses` |
 | `session_notification_targets` | who was notified about a session, so reminders are not re-sent |
+
+`users` also needs an additive `date_of_birth` column: SPIMS stores no birth date at all, so the
+birthdays feed below cannot be built as a query over existing data. Add the column nullable, expose
+it on the profile form, and treat the feed as sparse until it is populated.
 
 Add `class_session_id` to `attendance_records` and treat the old table as the Zoom import staging
 area, or migrate its rows into `attendance_entries` with `source = ZOOM_IMPORT`. Either is additive;
@@ -327,6 +341,11 @@ component reflects all three; the registrar exports a term report.
 | `student_notes` | `offering_id`, `student_id`, `author_id`, `body`, `visibility` (`STAFF_ONLY`) |
 | `module_student_assessments` | per week (or content group) per student: `rating`, `comment`, `assessed_by_id` |
 
+`completion_criteria` must support the **conjunction** rule from the reference implementation: when
+both a minimum grade and a minimum attendance criterion are defined, failing attendance forces a
+non-completion outcome regardless of the grade earned. A criteria engine that only sums weighted
+signals will quietly let a student with 90% marks and 40% attendance complete the course.
+
 ### Services
 
 - `CompletionService::evaluate(offering)` runs criteria against grades, `AttendanceService`, item
@@ -339,6 +358,11 @@ component reflects all three; the registrar exports a term report.
   `ObjectStorageService`, and keep the existing public `/verify/{token}` route as the verification
   surface. This is where SPIMS's credential verification is genuinely better than Khedma's and
   should not be replaced.
+- **Render real PDFs.** `CredentialService` currently writes `credentials/{id}.html`. Introduce
+  DomPDF (as the reference implementation uses) behind the same `file_url`, keeping the HTML path as
+  the fallback when the renderer is unavailable so rule 7 still holds. A credential a registrar
+  cannot hand to a student as a PDF is not finished, and the same shortcut in `ReceiptPdfService`
+  should be fixed in the same pass.
 
 ### Permissions
 
@@ -392,7 +416,7 @@ Small, high-value, and mostly additive columns on existing tables.
 - `assignments`: add `delivery_mode` (`ONLINE`/`OFFLINE`), `allow_resubmission`,
   `resubmission_deadline`, `late_penalty_percent`.
 - `assignment_submissions`: add `received_at`, `received_by_id` (physical hand-in),
-  `resubmission_of_id`, `attempt_no`.
+  `resubmission_of_id`, `attempt_no`, `superseded_at`.
 - New `proctor_events`: `attempt_id`, `student_id`, `event_type`, `warning_number`, `details`,
   `created_at`.
 - `assessment_attempts`: add `proctor_warnings`, `terminated_for_cheating`, `terminated_at`,
@@ -404,6 +428,12 @@ Small, high-value, and mostly additive columns on existing tables.
 - `AssignmentService` gains `markReceived`, `remindUnsubmitted` (through S2's dispatcher),
   `resubmit`, and a staff dashboard query (per-offering submission counts, ungraded counts,
   overdue counts).
+- **Stop the silent overwrite.** `submit()` currently uses `updateOrCreate`, so a second submission
+  destroys the first — including one that has already been graded. Change it to insert a new row
+  with an incremented `attempt_no`, mark the previous row `superseded_at`, and reject the write
+  outright when the prior submission is graded and `allow_resubmission` is false. Existing rows need
+  no backfill beyond `attempt_no = 1`. Land this before the resubmission UI, because it is a
+  data-loss fix, not a feature.
 - `ProctorService` — records typed events, escalates `warning_number`, and terminates an attempt at
   a configurable threshold. Terminating writes an audit entry and does **not** delete the attempt.
   Wire the existing `focus-loss` endpoint into it so the counter finally does something.
@@ -421,6 +451,9 @@ Small, high-value, and mostly additive columns on existing tables.
 - `AssignmentDashboardTest`, `AssignmentReminderTest` (only unsubmitted students, once per window),
   `AssignmentResubmissionTest` (allowed only inside the window, keeps history, late penalty applied),
   `AssignmentOfflineTest` (mark received without a file; offline assignments excluded from reminders).
+- `AssignmentNoSilentOverwriteTest` — a second submission never mutates the first row; a graded
+  submission cannot be overwritten when `allow_resubmission` is false; the full attempt history is
+  retrievable. Write this test against the current behaviour first and watch it fail.
 - `ProctorEscalationTest` — N focus-loss events raise warnings; the threshold terminates; a
   terminated attempt cannot be resumed or submitted; an admin can clear the flag and the attempt
   becomes gradeable.
@@ -508,12 +541,24 @@ The largest new subsystem. Port the model, not the Khedma table names, and align
 leave once with immediate reassignment, staff move and merge, seating), `ProjectDeliverableService`
 (submit, replace, delete a file, staff review), `ProjectGradingService` (criteria, team score,
 per-student override, scale, announce, push into the gradebook component),
-`PeerEvaluationService` (open, submit, close, roll up into a per-student factor).
+`PeerEvaluationService` (open, submit, close, aggregate for staff review).
 
 The rules worth copying exactly, because they are the ones Khedma iterated on: joining is only
 possible inside the window; a student may leave exactly once and is immediately eligible to rejoin
 elsewhere; team grades propagate to members unless a per-student override exists; peer evaluation is
 closed before grades are announced.
+
+**Peer evaluation is informational and must never write a grade.** This is a deliberate design
+decision in the reference implementation, not an omission: `ProjectPeerEvaluationService` actively
+guards against mutating `project_member_grades`, and surfaces ratings to staff as anonymous
+aggregates grouped by rater team. Peer scores inform an instructor's per-student override; they do
+not compute one. Build it the same way and assert the invariant in a test, because the obvious
+implementation — deriving a multiplier from peer scores — lets students grade each other and is
+very hard to walk back once results have been announced.
+
+Two related rules from the same subsystem: grading operates in one of two modes (`rubric` or
+`deliverables`) and in deliverable mode the deliverable points must sum to the assessment maximum;
+and announcing results is what pushes scores into the gradebook, via a `project`-type component.
 
 ### Permissions
 
@@ -539,7 +584,10 @@ grading, announce, CSV export.
 - `ProjectGradingTest` — criteria weights sum correctly; a per-student override beats the team
   score; the gradebook component receives the result; announce is idempotent.
 - `PeerEvaluationTest` — a student cannot rate themselves, cannot rate outside their team, cannot
-  submit twice, and cannot submit after close; roll-up maths is asserted on fixed inputs.
+  submit twice, and cannot submit after close; aggregates are anonymous to staff.
+- `PeerEvaluationDoesNotGradeTest` — submitting peer ratings leaves `project_member_grades`
+  byte-for-byte unchanged, and announcing results ignores peer scores entirely. This is an
+  invariant, not a feature test.
 - `ProjectChangeRequestTest` — raise, approve, reject; approval applies the change atomically.
 - `ProjectScopeTest` — cross-offering and cross-team access denied on every route (S0).
 - `tests/Feature/Api/ProjectsApiTest` — the student surface end to end.
