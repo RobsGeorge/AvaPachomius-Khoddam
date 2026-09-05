@@ -183,12 +183,12 @@ Extend `announcements` additively: `status` (`DRAFT`/`PUBLISHED`), `published_at
   lang file), render with a variable allowlist, and `preview` without sending.
 - `CommunicationLogWriter` — called by the dispatcher; never by feature code directly.
 - Wire `TransactionalMailer` to log through it, so existing sends appear in the report immediately.
-- **Fix the `notify_email` defect first.** `NotificationService` currently ignores
-  `users.notify_email` and always sends when `alsoEmail = true`, so the existing settings toggle is
-  inert. Route every send through `ChannelDispatcher`, which consults `notification_preferences`
-  and treats the legacy boolean as the default for the `mail` channel until users have per-event
-  rows. Ship this as its own commit with its own test, ahead of the new preference UI — it is a
-  live bug, and burying it inside a feature makes it un-reviewable.
+- **Fix the `notify_email` defect first. ✅ Done —
+  [`patches/0001`](patches/0001-fix-notifications-honour-the-notify_email-preference.patch).**
+  `NotificationService` ignored `users.notify_email` and always sent when `alsoEmail = true`, so the
+  settings toggle was inert. The patch gates the mail channel on the preference, defaulting to
+  opted-in. When `ChannelDispatcher` lands, route sends through it and treat the legacy boolean as
+  the default for the `mail` channel until users have per-event rows.
 
 ### Permissions (`config/permissions.php`)
 
@@ -428,12 +428,14 @@ Small, high-value, and mostly additive columns on existing tables.
 - `AssignmentService` gains `markReceived`, `remindUnsubmitted` (through S2's dispatcher),
   `resubmit`, and a staff dashboard query (per-offering submission counts, ungraded counts,
   overdue counts).
-- **Stop the silent overwrite.** `submit()` currently uses `updateOrCreate`, so a second submission
-  destroys the first — including one that has already been graded. Change it to insert a new row
-  with an incremented `attempt_no`, mark the previous row `superseded_at`, and reject the write
-  outright when the prior submission is graded and `allow_resubmission` is false. Existing rows need
-  no backfill beyond `attempt_no = 1`. Land this before the resubmission UI, because it is a
-  data-loss fix, not a feature.
+- **Stop the silent overwrite. ✅ Done —
+  [`patches/0002`](patches/0002-fix-assignments-stop-resubmissions-destroying-the-pr.patch).**
+  `submit()` used `updateOrCreate`, so a second submission destroyed the first and left the prior
+  grade attached to content the instructor never saw. The patch keeps the unique
+  `(assignment_id, student_id)` row canonical and archives prior states additively into
+  `assignment_submission_versions`, bumping `attempt_no`, clearing the stale grade, and refusing the
+  write when `allow_resubmission` is false. The remaining S5 work on top of it is the
+  `resubmission_deadline` window and the staff-facing UI.
 - `ProctorService` — records typed events, escalates `warning_number`, and terminates an attempt at
   a configurable threshold. Terminating writes an audit entry and does **not** delete the attempt.
   Wire the existing `focus-loss` endpoint into it so the counter finally does something.

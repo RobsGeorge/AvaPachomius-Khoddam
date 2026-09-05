@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # Verifies the factual claims made in docs/plans/spims/gap-analysis.md
 # against both codebases. Prints PASS/FAIL per claim.
+#
+# Point SPIMS at a PRISTINE clone of spims-edu. Applying the fixes in
+# ../patches/ intentionally invalidates three claims (the notify_email and
+# assignment-overwrite defects, and the absence of submission versioning),
+# so a patched checkout will report failures that are not stale claims.
+#
+#   git clone https://github.com/RobsGeorge/spims-edu.git /tmp/spims-edu
+#   SPIMS=/tmp/spims-edu bash docs/plans/spims/verify-gap-claims.sh
 set -uo pipefail
 
-AVA=/workspace
-SPIMS=/tmp/spims-edu
+AVA="${AVA:-/workspace}"
+SPIMS="${SPIMS:-/tmp/spims-edu}"
 pass=0; fail=0
 
 check() { # check <description> <expected> <actual>

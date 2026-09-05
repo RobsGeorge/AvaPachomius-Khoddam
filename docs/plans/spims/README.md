@@ -21,6 +21,17 @@ in **spims-edu** to reach full SIS + LMS coverage with a mobile API for student 
 | [`implementation-plan.md`](implementation-plan.md) | Phased build plan (S0–S9) for spims-edu: schema, services, permissions, UI, APIs, and per-phase tests |
 | [`mobile-api-spec.md`](mobile-api-spec.md) | The `/api/v1` contract for the SPIMS mobile app — student and instructor surfaces, conventions, and error shapes |
 | [`verify-gap-claims.sh`](verify-gap-claims.sh) | Re-runnable proof of every factual claim in the gap report (78 checks) |
+| [`patches/`](patches/) | **Two defect fixes, implemented and verified** — ready to `git am` into spims-edu |
+
+## Work already done
+
+The two standalone defects (G-12 and G-17) are **fixed, tested, and verified** — see
+[`patches/`](patches/). They apply cleanly to spims-edu `main` and take its suite from 124 to 131
+passing, with the new tests confirmed to fail against the code as it ships today. They are delivered
+as patches because this agent cannot push to spims-edu
+(`Permission to RobsGeorge/spims-edu.git denied to cursor[bot]`).
+
+Neither depends on phase S0, so they can land immediately and independently of the rest of the plan.
 
 ## Reproducing the evidence
 
