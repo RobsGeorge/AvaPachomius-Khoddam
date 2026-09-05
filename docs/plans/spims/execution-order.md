@@ -4,8 +4,8 @@ The order to build the plan in, and how each step is proved. Companion to
 [`implementation-plan.md`](implementation-plan.md), which holds the detail; this file is the
 sequence and the exit criteria.
 
-**Status:** S0 is complete and verified — see [`patches/`](patches/). Everything from S1 onward is
-outstanding.
+**Status:** S0 and S1 are complete and verified — see [`patches/`](patches/). Everything from S2
+onward is outstanding.
 
 ---
 
@@ -36,7 +36,7 @@ different agents without colliding: they touch disjoint tables and services.
 | # | Phase | Why here | Done when |
 |---|---|---|---|
 | 0 | **S0 — resource scope** ✅ | Every later phase adds routes; adding them over unenforced `O` multiplies a live vulnerability | `ResourceScopeTest` green; cross-offering denied on every route |
-| 1 | **S1 — API foundation** | Fixes the envelope, errors, pagination, auth and locale once, before 60+ endpoints bake in a shape | Token auth works; `/me` returns Arabic; OpenAPI coverage test green |
+| 1 | **S1 — API foundation** ✅ | Fixes the envelope, errors, and locale once, before 60+ endpoints bake in a shape | Token auth works; `/me` returns Arabic; OpenAPI coverage test green |
 | 2 | **S2 — communications spine** | Announcements, reminders, graduation notices and project deadlines all need one delivery path and one log. Per-feature notification code is how delivery reporting becomes impossible | Instructor publishes to an offering; every enrolled student receives it in their locale; the registrar exports a CSV proving it |
 | 3 | **S3 — attendance + roster** | The largest SIS gap, and S4's criteria engine reads from it | An in-person session with no Zoom meeting is marked, excused, and reported; the gradebook attendance component is unchanged from outside |
 | 4 | **S5 — assessment completion** | Small, additive, unblocks the S6 Wave C write path | Proctor events escalate and terminate; offline assignments; reminders fire once |

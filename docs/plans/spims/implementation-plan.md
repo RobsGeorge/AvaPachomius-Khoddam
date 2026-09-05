@@ -123,10 +123,64 @@ existing green test is deleted to make this pass.
 
 ---
 
-## S1 — API foundation (G-01, part 1)
+## S1 — API foundation (G-01, part 1) ✅ **Done**
+
+**Delivered:** [`patches/0004`](patches/0004-feat-api-S1-foundation.patch). Verified on spims-edu
+`main` @ `d764d1e`: 139 → 176 passing, 712 assertions; independently reviewed by a second agent with
+no prior context, which found two real gaps (both fixed) and confirmed three of the commit's
+technical claims against framework source. See [`patches/README.md`](patches/README.md) for detail.
 
 **Deliverable:** an empty but complete `/api/v1` — auth, conventions, and one reference endpoint —
 so that later phases add routes without relitigating shape.
+
+### The auth mechanism this plan assumed was wrong
+
+The original wording below (kept for the historical record) said login "mirrors the web OTP
+lifecycle." That's how Khedma works; it is not how spims-edu works. `AuthService::login()` has
+always been email + password — OTP exists only for email verification and password reset. Building
+against the wrong contract was caught before writing code, by reading `LoginController` and
+`AuthService` directly rather than trusting the plan's own prose. Shipped instead:
+
+```
+POST /api/v1/login  { email, password, device_name? } -> { data: { token, token_type, user } }
+POST /api/v1/logout                                    -> 204, revokes only this token
+GET  /api/v1/me                                        -> the caller's profile + roles
+GET  /api/v1/branding                                  -> public, safe pre-login
+```
+
+### Two more corrections, found by an independent review
+
+A second agent reviewed the diff cold — no memory of building it — specifically hunting for bugs in
+the exception-handling and locale logic, since that was the trickiest part. It found two real,
+reproducible gaps, both fixed in the same commit:
+
+1. **`Handler::codeForStatus()` had no 401/403 mapping.** Harmless for this app's own
+   `AuthorizationException` (hardcoded to `FORBIDDEN`, never reaches that method), but Laravel's own
+   `Illuminate\Auth\Access\AuthorizationException` — what Policies, `Gate::authorize()`, and the
+   `can:` middleware throw — has no `render()` of its own, gets converted to
+   `AccessDeniedHttpException`, and *does* reach it. Reproduced: with the mapping reverted, the same
+   exception yields `code: "ERROR"` instead of `code: "FORBIDDEN"` for an identical 403. Two
+   exception types, one HTTP status, two different codes — the exact thing "one error shape" exists
+   to prevent, the moment either type is actually thrown. This matters directly for S8: if instructor
+   endpoints ever authorize via a Policy instead of `AuthorizeService`, this is the bug that would
+   have shipped silently.
+
+2. **`OpenApiCoverageTest` filtered on route *name*, not URI.** A route registered under `/api/v1/*`
+   with a name that didn't happen to start with `api.v1.` — a typo, or one added outside the
+   `Route::prefix('v1')->name('api.v1.')` group — passed the coverage test while being live,
+   reachable, and completely undocumented. Reproduced exactly as described; fixed to filter on
+   `$route->uri()` instead.
+
+The review also surfaced one issue deliberately left unfixed:
+**`AuthorizeService::authorize(null, ...)` throws this app's own `AuthorizationException` (whose
+`render()` is hardcoded to 403) for what is semantically a 401** — the thrown message is the
+unauthenticated string, wrapped in a `FORBIDDEN` envelope. This is pre-existing behavior in code S0
+shipped untouched, and the existing test (`AuthorizeServiceTest::guest_raises_unauthorized`) asserts
+only the exception *type*, never its rendered status, so the mismatch was never caught before. Not
+reachable via any S1 route today. Fixing it means changing what `AuthorizeService` throws for a null
+actor — its own blast radius, belonging in its own dedicated patch, not folded into an
+API-foundation commit as a side effect of review. **Flagged here for whoever picks up S0's residual
+surface or starts wiring Policies in a later phase.**
 
 ### Build
 

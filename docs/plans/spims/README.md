@@ -27,16 +27,18 @@ in **spims-edu** to reach full SIS + LMS coverage with a mobile API for student 
 
 ## Work already done
 
-Three changes are **implemented, tested, and verified** against spims-edu `main` — see
+Four changes are **implemented, tested, and verified** against spims-edu `main` — see
 [`patches/`](patches/):
 
-- the two standalone defects (G-12, G-17), and
-- **phase S0**, resource-scoped authorization (G-02), the prerequisite for every remaining phase.
+- the two standalone defects (G-12, G-17),
+- **phase S0**, resource-scoped authorization (G-02), the prerequisite for every remaining phase, and
+- **phase S1**, the `/api/v1` foundation (login, logout, me, branding) — independently reviewed by a
+  second agent, which found and fixed two real gaps before this patch was finalized.
 
-Together they take the suite from 124 to **139 passing**, and each new test is confirmed to fail
-against the code as it ships today. They are delivered as patches because this agent cannot push to
-spims-edu (`Permission to RobsGeorge/spims-edu.git denied to cursor[bot]` — see
-[`access-and-setup.md`](access-and-setup.md)).
+Together they take the suite from 124 to **176 passing**, and each new test is confirmed to fail
+against the code as it ships today (or with a specific fix reverted). They are delivered as patches
+because this agent cannot push to spims-edu (`Permission to RobsGeorge/spims-edu.git denied to
+cursor[bot]` — see [`access-and-setup.md`](access-and-setup.md)).
 
 The build order for what remains is in [`execution-order.md`](execution-order.md).
 
