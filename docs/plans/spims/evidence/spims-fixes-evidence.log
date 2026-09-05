@@ -1,48 +1,53 @@
 
-=== 1. Baseline: upstream main, before the patches ===
-(reverted only the two service files; new tables, models and tests kept)
+=== 0. Clean clone of spims-edu main + the three patches applied via git am ===
+  88b41e4 feat(authz): enforce resource scope so the 'own' permission level means something
+  91fbe5b fix(assignments): stop resubmissions destroying the previous attempt
+  9430b33 fix(notifications): honour the notify_email preference
 
-=== 2. The new tests FAIL against the original service code ===
+=== 1. Revert ONLY the changed source files to upstream; keep new tests and schema ===
+reverted 4 files
+
+=== 2. New tests FAIL against the code as it ships today ===
 ⨯ resubmission archives the previous attempt instead of overwriting i… 0.12s  
 ⨯ resubmission clears the stale grade and preserves it on the archive… 0.04s  
 ⨯ resubmission is refused when the assignment disallows it             0.04s  
 ⨯ first submission creates a single attempt with no history            0.03s  
 ⨯ opting out of email suppresses the mail channel but not the in app…  0.03s  
-✓ opting in to email still sends both channels                         0.03s  
-✓ callers that explicitly disable email are unaffected by the prefere… 0.03s  
+⨯ an instructor cannot act on an offering they do not staff            0.03s  
+⨯ a scoped action with no resource fails closed                        0.03s  
+⨯ a ta is scoped the same way and still cannot lock grades             0.03s  
+⨯ admin routes are scoped not merely role gated                        0.04s  
 Failed asserting that 1 is identical to 2.
 Failed asserting that 88.0 is null.
 Failed asserting that two strings are identical.
 Failed asserting that null is identical to 1.
 Failed asserting that true is false.
-Tests:    5 failed, 2 passed (13 assertions)
+Expected [gradebook.addComponent] to be denied across offerings, but it was allowed.
+➜  64▕             $this->fail("Expected [$label] to be denied across offerings, but it was allowed.");
+Failed asserting that exception of type "App\Exceptions\AuthorizationException" is thrown.
+Expected [ta.addComponent cross-offering] to be denied across offerings, but it was allowed.
+➜  64▕             $this->fail("Expected [$label] to be denied across offerings, but it was allowed.");
+Failed asserting that 302 is identical to 403.
+Tests:    9 failed, 6 passed (22 assertions)
 
 === 3. Restore the fixes ===
 restored
 
-=== 4. The same tests now PASS ===
-✓ resubmission archives the previous attempt instead of overwriting i… 0.12s  
-✓ resubmission clears the stale grade and preserves it on the archive… 0.04s  
-✓ resubmission is refused when the assignment disallows it             0.04s  
-✓ first submission creates a single attempt with no history            0.03s  
-✓ opting out of email suppresses the mail channel but not the in app…  0.03s  
-✓ opting in to email still sends both channels                         0.03s  
-✓ callers that explicitly disable email are unaffected by the prefere… 0.03s  
-Tests:    7 passed (30 assertions)
+=== 4. The same tests PASS ===
+Tests:    15 passed (51 assertions)
 
 === 5. Full suite — no regressions ===
-Tests:    131 passed (587 assertions)
-Duration: 5.29s
+Tests:    139 passed (608 assertions)
+Duration: 5.52s
 
-=== 6. Style: only the files this change touches ===
+=== 6. Style on changed files only ===
   ──────────────────────────────────────────────────────────────────── Laravel  
-    PASS   ........................................................... 8 files  
+    PASS   ........................................................... 9 files  
 
-(lang/*/assessment.php excluded: array() syntax and 2-space indent are pre-existing at HEAD)
 
-=== 7. PostgreSQL 16 — the second CI job ===
-29 migration/seed steps completed on PostgreSQL 16
+=== 7. PostgreSQL 16 — CI's second job ===
+29 steps completed
 2026_09_05_000001_add_assignment_submission_versioning ............ 6ms DONE
-2026_09_05_000001_add_assignment_submission_versioning ........... 19ms DONE
+2026_09_05_000001_add_assignment_submission_versioning ........... 17ms DONE
 
 === done ===
