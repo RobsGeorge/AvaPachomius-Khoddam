@@ -22,6 +22,7 @@ in **spims-edu** to reach full SIS + LMS coverage with a mobile API for student 
 | [`mobile-api-spec.md`](mobile-api-spec.md) | The `/api/v1` contract for the SPIMS mobile app — student and instructor surfaces, conventions, and error shapes |
 | [`verify-gap-claims.sh`](verify-gap-claims.sh) | Re-runnable proof of every factual claim in the gap report (78 checks) |
 | [`patches/`](patches/) | **Two defect fixes, implemented and verified** — ready to `git am` into spims-edu |
+| [`access-and-setup.md`](access-and-setup.md) | What access an agent needs to work directly in spims-edu and a mobile repo |
 
 ## Work already done
 
