@@ -4,6 +4,12 @@ Pushes to `main` run the **CI** workflow first (unit, integration, and load test
 
 Pull requests run **CI** only; they do not deploy.
 
+## Two separate VPS boxes (staging moved off the production box)
+
+- **Production** (`main` → avapakhomios.com): unchanged. `/var/www/avapakhomios`, secrets `SSH_HOST`/`SSH_USER`/`SSH_PRIVATE_KEY`/`SSH_PORT`.
+- **Staging** (`staging` → deaconia.com): moved to a **separate, dedicated VPS** (shared with an unrelated project, SPIMS — namespaced under its own `deaconia` Linux user and `/var/www/deaconia-staging`). Secrets `STAGING_SSH_HOST`/`STAGING_SSH_USER`/`STAGING_SSH_PRIVATE_KEY`/`STAGING_SSH_PORT`. DB is `deaconia_staging` (fresh, not copied from the old box).
+- The old `/var/www/khedma-staging` path (on the production box) is now orphaned — no workflow deploys there anymore. It can be removed once the new staging box is confirmed stable.
+
 ## Deploy blocked: `unable to unlink old 'storage/...': Permission denied`
 
 GitHub Actions SSH has no password prompt. The deploy user **must** reclaim
