@@ -10,6 +10,7 @@ set -euo pipefail
 ALLOWED_ROOTS=(
   /var/www/avapakhomios
   /var/www/khedma-staging
+  /var/www/deaconia-staging
 )
 
 usage() {

@@ -22,15 +22,15 @@ jobs:
       - name: Deploy to VPS (staging)
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.STAGING_SSH_PORT }}
           timeout: 120s
           command_timeout: 30m
           script: |
             set -e
-            cd /var/www/khedma-staging
+            cd /var/www/deaconia-staging
             # Keep group-write on mkdir 02775 (default umask 0022 → 2755 breaks www-data).
             umask 0002
             PHP_BIN=php8.2
@@ -45,12 +45,12 @@ jobs:
 
             # Guard: never let a staging deploy touch the production directory or DB.
             step "safety check"
-            if [ "$(pwd)" != "/var/www/khedma-staging" ]; then
+            if [ "$(pwd)" != "/var/www/deaconia-staging" ]; then
               echo "ERROR: not in staging directory. Aborting."
               exit 1
             fi
-            if ! grep -q "^DB_DATABASE=avapakhomios_staging" .env; then
-              echo "ERROR: staging .env is not pointing at avapakhomios_staging. Aborting."
+            if ! grep -q "^DB_DATABASE=deaconia_staging" .env; then
+              echo "ERROR: staging .env is not pointing at deaconia_staging. Aborting."
               exit 1
             fi
             if ! grep -q "^APP_ENV=staging" .env; then
@@ -121,7 +121,8 @@ jobs:
             fix_runtime_permissions
 
             step "reload php-fpm"
-            # Reloading the FPM service reloads BOTH pools (prod + staging) gracefully.
+            # This VPS's php8.2-fpm is shared with other sites on the box (not this
+            # app's production) — reload is graceful and does not drop connections.
             if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then
               echo "php8.2-fpm reloaded"
             else
