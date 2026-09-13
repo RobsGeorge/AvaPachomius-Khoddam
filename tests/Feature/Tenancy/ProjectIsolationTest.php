@@ -18,12 +18,13 @@ use App\Models\ProjectTeamCriterionScore;
 use App\Models\ProjectTeamGrade;
 use App\Models\ProjectTeamGradeCriterion;
 use App\Models\StudentGrade;
-use App\Tenancy\TenantContext;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
+use App\Services\ProjectExampleSeedService;
 use App\Services\ProjectGradebookSyncService;
 use App\Services\ProjectGradingService;
 use App\Services\ProjectSubmissionService;
+use App\Tenancy\TenantContext;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\EventModuleTestCase;
@@ -325,5 +326,31 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(ProjectTeamGradeCriterion::find($teamRow->project_team_grade_criterion_id));
         $this->assertNotNull(ProjectTeamCriterionScore::find($teamScoreId));
+    }
+
+    public function test_example_project_seed_is_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-ex-isol-b', 'name' => 'Example B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_EX_A', 'church_id' => $churchA->church_id, 'status' => 'active']);
+        $this->createUser(['email' => 'prj-ex-isol-a@example.com', 'is_superadmin' => true]);
+
+        $result = app(ProjectExampleSeedService::class)->seed((int) $courseA->course_id);
+        $this->assertNotNull($result);
+        $this->assertTrue($result['created']);
+        $assessmentA = $result['assessment'];
+        $this->assertSame((int) $churchA->church_id, (int) $assessmentA->church_id);
+        $this->assertSame(3, $assessmentA->projects->count());
+        $this->assertSame((int) $churchA->church_id, (int) $assessmentA->projects->first()->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectAssessment::find($assessmentA->project_assessment_id));
+        $this->assertSame(0, ProjectAssessment::query()->where('title', ProjectExampleSeedService::ASSESSMENT_TITLE)->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectAssessment::find($assessmentA->project_assessment_id));
+        $this->assertSame(3, Project::query()->where('project_assessment_id', $assessmentA->project_assessment_id)->count());
     }
 }
