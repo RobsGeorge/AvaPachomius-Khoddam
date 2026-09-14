@@ -23,7 +23,7 @@
             <form id="reset-password-form" method="POST" action="{{ route('password.update') }}" novalidate>
                 @csrf
 
-                <input type="hidden" name="token" value="{{ $token }}">
+                <input type="hidden" name="token" value="{{ old('token', $resetToken) }}">
 
                 <div class="mb-4">
                     <label for="email" class="form-label">{{ __('auth.email') }}</label>

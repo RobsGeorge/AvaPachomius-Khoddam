@@ -127,7 +127,7 @@ final class AccountRecoveryService
         $tier = AccountRecoveryChallenge::TIER_SELF_SERVE;
         $purpose = AccountRecoveryChallenge::PURPOSE_PASSWORD_RESET;
         $email = strtolower(trim($email));
-        $user = User::query()->where('email', $email)->first();
+        $user = User::query()->whereRaw('lower(email) = ?', [$email])->first();
 
         // Opaque response for unknown emails (no user to rate-limit/notify).
         if (! $user) {
@@ -250,16 +250,20 @@ final class AccountRecoveryService
             'email' => $subject->email,
         ]);
 
-        $status = Password::sendResetLink(['email' => $subject->email]);
-
-        if ($status !== Password::RESET_LINK_SENT) {
+        try {
+            // Staff resend must mint a fresh token even if the student just
+            // requested a link (broker throttle would otherwise skip send).
+            $token = Password::broker()->createToken($subject);
+            $subject->sendPasswordResetNotification($token);
+        } catch (\Throwable $e) {
+            report($e);
             $challenge->outcome = AccountRecoveryChallenge::OUTCOME_REJECTED;
             $challenge->save();
 
-            return ['ok' => false, 'reason' => 'send_failed', 'status' => $status, 'challenge' => $challenge];
+            return ['ok' => false, 'reason' => 'send_failed', 'challenge' => $challenge];
         }
 
-        return ['ok' => true, 'status' => $status, 'challenge' => $challenge];
+        return ['ok' => true, 'status' => Password::RESET_LINK_SENT, 'challenge' => $challenge];
     }
 
     /**
