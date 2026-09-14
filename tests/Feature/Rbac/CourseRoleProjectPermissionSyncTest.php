@@ -252,7 +252,9 @@ class CourseRoleProjectPermissionSyncTest extends EventModuleTestCase
         TenantContext::set($church);
         $course = $this->createCourse(['title' => 'Unused Priest Role Course', 'status' => 'active']);
 
-        $priest = $this->courseRoleWithPermissions($course, 'priest', []);
+        $priest = $this->courseRoleWithPermissions($course, 'priest', [
+            'announcement.view', 'roster.view', 'confession.view',
+        ]);
         $this->assertFalse($priest->fresh()->permissions()->where('permissions.key', 'project.view')->exists());
 
         app(ProjectAccessRepairService::class)->repair();

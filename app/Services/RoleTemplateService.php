@@ -628,7 +628,7 @@ class RoleTemplateService
     private function learnerFallbackProjectKeys(Role $clone, ?Church $church): Collection
     {
         $existing = $clone->permissions()->pluck('permissions.key');
-        if ($this->looksLikeCourseStaff($clone, $existing)) {
+        if ($this->looksLikeCourseStaff($clone, $existing) || $this->looksLikeNonCourseLearner($clone)) {
             return collect();
         }
 
@@ -638,10 +638,6 @@ class RoleTemplateService
             'curriculum.view',
             'course.access', 'course.view',
             'attendance.view_own',
-            'grade.view',
-            'feedback.view',
-            'live_quiz.play',
-            'announcement.view',
         ];
 
         $slug = $clone->effectiveSlug();
@@ -671,6 +667,15 @@ class RoleTemplateService
         $slug = $clone->effectiveSlug();
 
         return collect(['admin', 'instructor'])->contains(
+            fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-')
+        );
+    }
+
+    private function looksLikeNonCourseLearner(Role $clone): bool
+    {
+        $slug = $clone->effectiveSlug();
+
+        return collect(['priest', 'secretary', 'church-admin', 'service-admin', 'service-member'])->contains(
             fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-')
         );
     }
