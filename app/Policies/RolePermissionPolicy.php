@@ -2,8 +2,9 @@
 
 namespace App\Policies;
 
-use App\Models\Course;
 use App\Models\ChurchService;
+use App\Models\Course;
+use App\Models\CourseAdminGroupVisibility;
 use App\Models\Permission;
 use App\Models\PermissionGroup;
 use App\Models\Role;
@@ -123,9 +124,28 @@ class RolePermissionPolicy
             ->get();
     }
 
+    /**
+     * Posted permission ids plus any grants whose groups are hidden from the
+     * course-role form, so saving the matrix cannot strip project.* (or any
+     * other hidden group) by omission.
+     *
+     * @param  list<int|string>  $postedIds
+     * @return list<int>
+     */
+    public function permissionIdsToPersist(Role $role, array $postedIds): array
+    {
+        $posted = collect($postedIds)->map(fn ($id) => (int) $id)->filter()->values();
+        $visibleGroupIds = $this->visibleGroupsForCourseAdmin()->pluck('permission_group_id');
+        $hiddenExisting = $role->permissions()
+            ->whereHas('group', fn ($q) => $q->whereNotIn('permission_groups.permission_group_id', $visibleGroupIds))
+            ->pluck('permissions.permission_id');
+
+        return $posted->merge($hiddenExisting)->unique()->map(fn ($id) => (int) $id)->values()->all();
+    }
+
     private function isGroupVisibleToCourseAdmins(int $groupId): bool
     {
-        $visibility = \App\Models\CourseAdminGroupVisibility::where('permission_group_id', $groupId)->first();
+        $visibility = CourseAdminGroupVisibility::where('permission_group_id', $groupId)->first();
 
         return $visibility ? $visibility->visible_to_course_admins : true;
     }

@@ -7,9 +7,10 @@ use App\Models\CourseAdminGroupVisibility;
 use App\Models\Permission;
 use App\Models\PermissionGroup;
 use App\Models\Role;
-use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Policies\RolePermissionPolicy;
 use App\Services\CoursePermissionResolver;
+use App\Services\RolesHubService;
 use App\Services\RoleTemplateService;
 use App\Support\NavigationHub;
 use Illuminate\Support\Facades\Cache;
@@ -83,7 +84,7 @@ class DynamicRoleManagementTest extends EventModuleTestCase
                 'role_name' => 'Custom',
                 'permissions' => $permIds,
             ])
-            ->assertRedirect(app(\App\Services\RolesHubService::class)->hubUrl($course, 'course'));
+            ->assertRedirect(app(RolesHubService::class)->hubUrl($course, 'course'));
 
         $this->assertEquals(2, $role->fresh()->permissions()->count());
     }
@@ -116,9 +117,41 @@ class DynamicRoleManagementTest extends EventModuleTestCase
             ['visible_to_course_admins' => false]
         );
 
-        $visible = app(\App\Policies\RolePermissionPolicy::class)->visibleGroupsForCourseAdmin();
+        $visible = app(RolePermissionPolicy::class)->visibleGroupsForCourseAdmin();
 
         $this->assertFalse($visible->contains('group_key', 'exams'));
+    }
+
+    public function test_saving_course_role_keeps_hidden_group_grants(): void
+    {
+        $course = $this->createCourse();
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', [
+            'project.view', 'project.join', 'exam.view',
+        ]);
+        $adminRole = $this->courseRoleWithPermissions($course, 'instructor', [
+            'role.manage', 'exam.view', 'project.view',
+        ]);
+        $admin = $this->createUser(['email' => 'hidden-prj-admin@example.com']);
+        $this->assignCourseRole($admin, $course, $adminRole);
+
+        $group = PermissionGroup::where('group_key', 'projects')->first();
+        $this->assertNotNull($group);
+        CourseAdminGroupVisibility::updateOrCreate(
+            ['permission_group_id' => $group->permission_group_id],
+            ['visible_to_course_admins' => false]
+        );
+
+        $examViewId = Permission::where('key', 'exam.view')->value('permission_id');
+        $this->actingAs($admin)
+            ->put(route('courses.roles.update', [$course, $studentRole]), [
+                'role_name' => 'student',
+                'permissions' => [$examViewId],
+            ])
+            ->assertRedirect();
+
+        $this->assertTrue($studentRole->fresh()->permissions()->where('permissions.key', 'project.view')->exists());
+        $this->assertTrue($studentRole->fresh()->permissions()->where('permissions.key', 'project.join')->exists());
+        $this->assertTrue($studentRole->fresh()->permissions()->where('permissions.key', 'exam.view')->exists());
     }
 
     public function test_system_permission_not_available_via_course_role(): void
