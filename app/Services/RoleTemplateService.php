@@ -8,6 +8,7 @@ use App\Models\Course;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class RoleTemplateService
@@ -501,6 +502,9 @@ class RoleTemplateService
      * - matches clones by cloned_from_role_id when the slug is custom
      * - mirrors assignment.* onto project.* so learner/staff roles that already
      *   see assignments also see projects (custom course roles, copied courses)
+     * - grants project.view / project.join to remaining learner roles: servant
+     *   course clones, exam/curriculum-only roles, and any non-staff course
+     *   role that already has students enrolled
      */
     public function mergeTemplatePermissionsIntoCourseClones(): int
     {
@@ -535,7 +539,11 @@ class RoleTemplateService
             $keys = $templateKeys->filter(function (string $key) use ($church) {
                 return $church === null || $this->resolver->permissionAllowedByCapabilities($key, $church);
             });
-            $keys = $keys->merge($this->mirroredProjectKeys($clone, $church))->unique()->values();
+            $keys = $keys
+                ->merge($this->mirroredProjectKeys($clone, $church))
+                ->merge($this->learnerFallbackProjectKeys($clone, $church))
+                ->unique()
+                ->values();
 
             $existing = $clone->permissions()->pluck('permissions.key');
             $missing = $keys->diff($existing);
@@ -604,13 +612,85 @@ class RoleTemplateService
             if (! $existing->contains($have)) {
                 continue;
             }
-            if ($church !== null && ! $this->resolver->permissionAllowedByCapabilities($need, $church)) {
-                continue;
-            }
-            $out->push($need);
+            $out = $out->merge($this->projectKeysAllowedByChurch([$need], $church));
         }
 
-        return $out;
+        return $out->unique()->values();
+    }
+
+    /**
+     * Catch learner roles the template/assignment mirrors miss: servant clones,
+     * exam-only or curriculum-only roles, and custom slugs that already have
+     * students enrolled.
+     *
+     * @return Collection<int, string>
+     */
+    private function learnerFallbackProjectKeys(Role $clone, ?Church $church): Collection
+    {
+        $existing = $clone->permissions()->pluck('permissions.key');
+        if ($this->looksLikeCourseStaff($clone, $existing) || $this->looksLikeNonCourseLearner($clone)) {
+            return collect();
+        }
+
+        $learnerSignals = [
+            'assignment.view', 'assignment.submit',
+            'exam.view', 'exam.take',
+            'curriculum.view',
+            'course.access', 'course.view',
+            'attendance.view_own',
+        ];
+
+        $slug = $clone->effectiveSlug();
+        $isNamedLearner = collect(['student', 'servant'])->contains(
+            fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-')
+        );
+
+        $hasEnrollments = Schema::hasTable('user_course_role')
+            && $clone->userCourseRoles()->exists();
+
+        if (! $isNamedLearner && $existing->intersect($learnerSignals)->isEmpty() && ! $hasEnrollments) {
+            return collect();
+        }
+
+        return $this->projectKeysAllowedByChurch(['project.view', 'project.join'], $church);
+    }
+
+    /**
+     * @param  Collection<int, string>  $existing
+     */
+    private function looksLikeCourseStaff(Role $clone, Collection $existing): bool
+    {
+        if ($existing->intersect(CoursePermissionResolver::STAFF_PERMISSION_KEYS)->isNotEmpty()) {
+            return true;
+        }
+
+        $slug = $clone->effectiveSlug();
+
+        return collect(['admin', 'instructor'])->contains(
+            fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-')
+        );
+    }
+
+    private function looksLikeNonCourseLearner(Role $clone): bool
+    {
+        $slug = $clone->effectiveSlug();
+
+        return collect(['priest', 'secretary', 'church-admin', 'service-admin', 'service-member'])->contains(
+            fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-')
+        );
+    }
+
+    /**
+     * @param  list<string>  $keys
+     * @return Collection<int, string>
+     */
+    private function projectKeysAllowedByChurch(array $keys, ?Church $church): Collection
+    {
+        return collect($keys)
+            ->filter(function (string $key) use ($church) {
+                return $church === null || $this->resolver->permissionAllowedByCapabilities($key, $church);
+            })
+            ->values();
     }
 
     private function permissionKeysForChurchCapabilities(Church $church): Collection
