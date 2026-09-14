@@ -35,4 +35,21 @@ class ProjectBriefFieldsTest extends TestCase
         $this->assertNull($row[Project::BRIEF_AUDIENCE]);
         $this->assertSame(255, mb_strlen((string) $row[Project::BRIEF_PURPOSE]));
     }
+
+    public function test_leftover_returns_original_when_brief_fields_are_empty(): void
+    {
+        $project = new Project;
+        $project->requirements = 'Visit the ward twice and write a report';
+
+        $this->assertSame('Visit the ward twice and write a report', $project->leftoverLegacyRequirements());
+    }
+
+    public function test_leftover_is_null_when_composed_matches_requirements(): void
+    {
+        $project = new Project;
+        $project->brief_purpose = 'Visit a family';
+        $project->requirements = 'Visit a family';
+
+        $this->assertNull($project->leftoverLegacyRequirements());
+    }
 }
