@@ -3,15 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
-use App\Models\PermissionGroup;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Policies\RolePermissionPolicy;
 use App\Services\CoursePermissionResolver;
 use App\Services\CourseRoleAssignmentService;
-use App\Services\RoleTemplateService;
 use App\Services\RolesHubService;
+use App\Services\RoleTemplateService;
 use App\Services\StudentRosterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -97,7 +96,7 @@ class CourseRoleController extends Controller
             'description' => $data['description'] ?? null,
         ]);
 
-        $role->permissions()->sync($data['permissions'] ?? []);
+        $role->permissions()->sync($this->policy->permissionIdsToPersist($role, $data['permissions'] ?? []));
         $this->resolver->bumpCoursePermissionsVersion($course);
 
         return redirect($this->hub->hubUrl($course, 'course'))

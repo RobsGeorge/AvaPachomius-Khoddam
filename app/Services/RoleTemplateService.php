@@ -47,6 +47,8 @@ class RoleTemplateService
             'roles_cloned_from_course_id' => $sourceCourseId,
         ]);
 
+        $this->mergeTemplatePermissionsIntoCourseClones();
+
         $this->resolver->bumpCoursePermissionsVersion($course);
 
         return $created;
@@ -494,6 +496,11 @@ class RoleTemplateService
     /**
      * Expand-only: attach missing admin/instructor/student template keys onto
      * already-cloned course roles (e.g. project.* added after the course existed).
+     *
+     * Also:
+     * - matches clones by cloned_from_role_id when the slug is custom
+     * - mirrors assignment.* onto project.* so learner/staff roles that already
+     *   see assignments also see projects (custom course roles, copied courses)
      */
     public function mergeTemplatePermissionsIntoCourseClones(): int
     {
@@ -504,8 +511,10 @@ class RoleTemplateService
             ->whereNull('service_id')
             ->where('is_template', true)
             ->whereIn('slug', ['admin', 'instructor', 'student'])
-            ->get()
-            ->keyBy(fn (Role $role) => $role->effectiveSlug());
+            ->get();
+
+        $templatesBySlug = $templates->keyBy(fn (Role $role) => $role->effectiveSlug());
+        $templatesById = $templates->keyBy(fn (Role $role) => (int) $role->role_id);
 
         $merged = 0;
         $bumpedCourses = [];
@@ -516,18 +525,17 @@ class RoleTemplateService
             ->get();
 
         foreach ($clones as $clone) {
-            $slug = $clone->effectiveSlug();
-            $templateSlug = collect(['admin', 'instructor', 'student'])
-                ->first(fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-'));
-            if (! $templateSlug || ! isset($templates[$templateSlug])) {
-                continue;
+            $templateSlug = $this->courseTemplateSlugFor($clone, $templatesBySlug, $templatesById);
+            $templateKeys = collect();
+            if ($templateSlug && isset($templatesBySlug[$templateSlug])) {
+                $templateKeys = $templatesBySlug[$templateSlug]->permissions()->pluck('permissions.key');
             }
 
             $church = $clone->church_id ? Church::query()->find($clone->church_id) : null;
-            $templateKeys = $templates[$templateSlug]->permissions()->pluck('permissions.key');
             $keys = $templateKeys->filter(function (string $key) use ($church) {
                 return $church === null || $this->resolver->permissionAllowedByCapabilities($key, $church);
             });
+            $keys = $keys->merge($this->mirroredProjectKeys($clone, $church))->unique()->values();
 
             $existing = $clone->permissions()->pluck('permissions.key');
             $missing = $keys->diff($existing);
@@ -550,6 +558,59 @@ class RoleTemplateService
         }
 
         return $merged;
+    }
+
+    /**
+     * @param  Collection<string, Role>  $templatesBySlug
+     * @param  Collection<int, Role>  $templatesById
+     */
+    private function courseTemplateSlugFor(Role $clone, Collection $templatesBySlug, Collection $templatesById): ?string
+    {
+        $slug = $clone->effectiveSlug();
+        $matched = collect(['admin', 'instructor', 'student'])
+            ->first(fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-'));
+        if ($matched && $templatesBySlug->has($matched)) {
+            return $matched;
+        }
+
+        $fromId = (int) ($clone->cloned_from_role_id ?? 0);
+        if ($fromId > 0 && $templatesById->has($fromId)) {
+            $parentSlug = $templatesById->get($fromId)->effectiveSlug();
+            if ($templatesBySlug->has($parentSlug)) {
+                return $parentSlug;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Roles that already grant assignments should grant the matching project keys.
+     *
+     * @return Collection<int, string>
+     */
+    private function mirroredProjectKeys(Role $clone, ?Church $church): Collection
+    {
+        $existing = $clone->permissions()->pluck('permissions.key');
+        $map = [
+            'assignment.view' => 'project.view',
+            'assignment.submit' => 'project.join',
+            'assignment.manage' => 'project.manage',
+            'assignment.grade' => 'project.grade',
+        ];
+
+        $out = collect();
+        foreach ($map as $have => $need) {
+            if (! $existing->contains($have)) {
+                continue;
+            }
+            if ($church !== null && ! $this->resolver->permissionAllowedByCapabilities($need, $church)) {
+                continue;
+            }
+            $out->push($need);
+        }
+
+        return $out;
     }
 
     private function permissionKeysForChurchCapabilities(Church $church): Collection
