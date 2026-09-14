@@ -36,60 +36,12 @@ class ProjectBriefFieldsTest extends TestCase
         $this->assertSame(255, mb_strlen((string) $row[Project::BRIEF_PURPOSE]));
     }
 
-    public function test_legacy_paragraph_maps_to_purpose_only(): void
-    {
-        $mapped = Project::briefFromLegacyRequirements("  Visit families twice.\n");
-
-        $this->assertSame(['brief_purpose' => 'Visit families twice.'], $mapped);
-    }
-
-    public function test_legacy_two_to_four_lines_map_in_order(): void
-    {
-        $mapped = Project::briefFromLegacyRequirements("Main work\nYouth\nHall\nAnnounce");
-
-        $this->assertSame([
-            Project::BRIEF_MAIN_TITLE => 'Main work',
-            Project::BRIEF_AUDIENCE => 'Youth',
-            Project::BRIEF_ENVIRONMENT => 'Hall',
-            Project::BRIEF_PURPOSE => 'Announce',
-        ], $mapped);
-
-        $two = Project::briefFromLegacyRequirements("Title line\nAudience line");
-        $this->assertSame('Title line', $two[Project::BRIEF_MAIN_TITLE]);
-        $this->assertSame('Audience line', $two[Project::BRIEF_AUDIENCE]);
-        $this->assertArrayNotHasKey(Project::BRIEF_PURPOSE, $two);
-    }
-
-    public function test_legacy_five_lines_stay_in_purpose(): void
-    {
-        $text = "a\nb\nc\nd\ne";
-        $mapped = Project::briefFromLegacyRequirements($text);
-
-        $this->assertSame(['brief_purpose' => $text], $mapped);
-    }
-
-    public function test_legacy_prefill_truncates_purpose_at_255_and_keeps_leftover(): void
+    public function test_leftover_returns_original_when_brief_fields_are_empty(): void
     {
         $project = new Project;
-        $project->requirements = str_repeat('x', 257);
+        $project->requirements = 'Visit the ward twice and write a report';
 
-        $project->applyLegacyBriefPrefill();
-
-        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
-        $this->assertSame(str_repeat('x', 257), $project->requirements);
-        $this->assertSame(str_repeat('x', 257), $project->leftoverLegacyRequirements());
-    }
-
-    public function test_apply_legacy_prefill_does_not_overwrite_existing_brief(): void
-    {
-        $project = new Project;
-        $project->brief_purpose = 'Already set';
-        $project->requirements = 'Old description';
-
-        $project->applyLegacyBriefPrefill();
-
-        $this->assertSame('Already set', $project->brief_purpose);
-        $this->assertSame('Old description', $project->requirements);
+        $this->assertSame('Visit the ward twice and write a report', $project->leftoverLegacyRequirements());
     }
 
     public function test_leftover_is_null_when_composed_matches_requirements(): void

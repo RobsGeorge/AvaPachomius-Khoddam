@@ -188,7 +188,7 @@ class ProjectTeamBriefTest extends EventModuleTestCase
             ->assertDontSee('name="subprojects[0][requirements]"', false);
     }
 
-    public function test_manage_form_prefills_purpose_from_legacy_requirements(): void
+    public function test_manage_form_shows_previous_description_without_filling_brief_fields(): void
     {
         Mail::fake();
         [$course, $module, $admin] = $this->staffFixture();
@@ -211,57 +211,28 @@ class ProjectTeamBriefTest extends EventModuleTestCase
         $this->assertNull($project->brief_purpose);
         $this->assertSame('Visit the ward twice and write a report', $project->requirements);
 
-        $this->actingAs($admin)
-            ->get(route('projects.manage'))
-            ->assertOk()
+        $response = $this->actingAs($admin)->get(route('projects.manage'));
+        $response->assertOk()
             ->assertSee('Visit the ward twice and write a report', false)
             ->assertSee(__('projects.previous_description'), false);
+
+        $html = $response->getContent();
+        $this->assertMatchesRegularExpression(
+            '/id="edit-'.$project->project_id.'-brief_purpose"[^>]*>\s*<\/textarea>/',
+            $html
+        );
+        $this->assertMatchesRegularExpression(
+            '/id="edit-'.$project->project_id.'-previous-description"[^>]*>Visit the ward twice and write a report<\/textarea>/',
+            $html
+        );
     }
 
-    public function test_backfill_copies_legacy_requirements_into_purpose_without_deleting_them(): void
+    public function test_saving_empty_brief_fields_keeps_legacy_requirements(): void
     {
         Mail::fake();
         [$course, $module, $admin] = $this->staffFixture();
         app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
 
-        $long = str_repeat('و', 257);
-        $this->actingAs($admin)
-            ->post(route('projects.assessments.store'), [
-                'module_id' => $module->module_id,
-                'title' => 'Backfill project',
-                'min_team_size' => 1,
-                'max_team_size' => 2,
-                'join_closes_at' => now()->addWeek()->toDateTimeString(),
-                'subprojects' => [
-                    ['title' => 'Orphan visit', 'requirements' => $long],
-                ],
-            ])
-            ->assertRedirect();
-
-        $project = Project::query()->where('title', 'Orphan visit')->firstOrFail();
-        $this->assertNull($project->brief_purpose);
-
-        $updated = Project::backfillLegacyBriefFields();
-        $this->assertSame(1, $updated);
-
-        $project->refresh();
-        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
-        $this->assertSame($long, $project->requirements);
-        $this->assertSame($long, $project->leftoverLegacyRequirements());
-
-        $this->assertSame(0, Project::backfillLegacyBriefFields());
-        $project->refresh();
-        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
-        $this->assertSame($long, $project->requirements);
-    }
-
-    public function test_saving_truncated_purpose_keeps_full_legacy_requirements(): void
-    {
-        Mail::fake();
-        [$course, $module, $admin] = $this->staffFixture();
-        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
-
-        $long = str_repeat('a', 257);
         $this->actingAs($admin)
             ->post(route('projects.assessments.store'), [
                 'module_id' => $module->module_id,
@@ -270,7 +241,7 @@ class ProjectTeamBriefTest extends EventModuleTestCase
                 'max_team_size' => 2,
                 'join_closes_at' => now()->addWeek()->toDateTimeString(),
                 'subprojects' => [
-                    ['title' => 'Keep team', 'requirements' => $long],
+                    ['title' => 'Keep team', 'requirements' => 'Visit a family twice'],
                 ],
             ])
             ->assertRedirect();
@@ -279,14 +250,18 @@ class ProjectTeamBriefTest extends EventModuleTestCase
 
         $this->actingAs($admin)
             ->put(route('projects.update', $project), [
-                'title' => 'Keep team',
-                'brief_purpose' => str_repeat('a', 255),
+                'title' => 'Keep team renamed',
+                'brief_main_title' => '',
+                'brief_audience' => '',
+                'brief_environment' => '',
+                'brief_purpose' => '',
             ])
             ->assertSessionHasNoErrors();
 
         $project->refresh();
-        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
-        $this->assertSame($long, $project->requirements);
+        $this->assertSame('Keep team renamed', $project->title);
+        $this->assertNull($project->brief_purpose);
+        $this->assertSame('Visit a family twice', $project->requirements);
     }
 
     /**

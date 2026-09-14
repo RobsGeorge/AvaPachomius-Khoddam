@@ -378,7 +378,8 @@ class ProjectAdminService
         } elseif ($sharedRequirements !== null && trim((string) $sharedRequirements) !== '') {
             $requirements = trim((string) $sharedRequirements);
         } elseif ($postedBrief) {
-            $requirements = null;
+            // Empty brief boxes on edit must not wipe the stored description.
+            $requirements = $existing?->requirements;
         } else {
             $requirements = $existing?->requirements;
         }
