@@ -793,6 +793,11 @@ class NavigationHub
             return true;
         }
 
+        $current = current_course();
+        if ($current instanceof Course && $resolver->canAnyInCourse($user, $permissions, $current)) {
+            return true;
+        }
+
         foreach ($permissions as $perm) {
             if ($user->canInSystem($perm)) {
                 return true;
@@ -810,11 +815,8 @@ class NavigationHub
                 && $resolver->canAnyInCourse($user, $permissions, $course);
         }
 
-        foreach ($user->userCourseRoles()->activeStaff()->pluck('course_id') as $courseId) {
-            $course = Course::find($courseId);
-            if ($course && $resolver->canAnyInCourse($user, $permissions, $course)) {
-                return true;
-            }
+        if ($resolver->canAnyInAnyCourse($user, $permissions)) {
+            return true;
         }
 
         if ($user->isInstructorOrAdmin()) {

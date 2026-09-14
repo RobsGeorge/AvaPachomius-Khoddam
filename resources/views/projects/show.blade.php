@@ -40,6 +40,18 @@
         </div>
     </div>
 
+    @if(($isMember ?? false) && ! ($canManage ?? false))
+        <div class="mb-3">
+            @include('projects.partials.change-team', [
+                'assessment' => $assessment,
+                'membership' => $membership,
+                'changeUsed' => $changeUsed,
+                'joinWindowOpen' => $joinWindowOpen,
+                'showForm' => true,
+            ])
+        </div>
+    @endif
+
     @if(($isMember ?? false) || $canManage)
         @if($project->team_announcement)
             <div class="alert alert-info">
@@ -276,23 +288,7 @@
             @if($membership && ! $canManage)
                 <div class="app-card card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h5 fw-bold">{{ __('projects.leave_team') }}</h2>
-                        @if($changeUsed)
-                            <p class="text-muted mb-0">{{ __('projects.change_chance_used') }}</p>
-                        @elseif(! $joinWindowOpen)
-                            <p class="text-muted mb-0">{{ __('projects.join_window_closed') }}</p>
-                        @else
-                            <p class="small text-muted">{{ __('projects.leave_team_help') }}</p>
-                            @error('project')
-                                <div class="alert alert-danger py-2 small">{{ $message }}</div>
-                            @enderror
-                            <form method="POST"
-                                  action="{{ route('projects.leave', $assessment) }}"
-                                  onsubmit="return confirm(@json(__('projects.leave_confirm')));">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-danger">{{ __('projects.leave_submit') }}</button>
-                            </form>
-                        @endif
+                        @include('projects.partials.student-alerts')
                     </div>
                 </div>
             @endif

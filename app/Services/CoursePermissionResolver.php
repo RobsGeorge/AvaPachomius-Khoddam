@@ -290,6 +290,27 @@ class CoursePermissionResolver
         $church->refresh();
     }
 
+    /**
+     * True when the user holds any of the keys on the current course, or on any
+     * assigned / hierarchical course when the navbar course is unset or does
+     * not grant the keys.
+     *
+     * @param  list<string>  $permissions
+     */
+    public function canAnyAssignedCourse(User $user, array $permissions): bool
+    {
+        if (RolePreviewService::superadminBypassesPermissions($user)) {
+            return true;
+        }
+
+        $current = current_course();
+        if ($current instanceof Course && $this->canAnyInCourse($user, $permissions, $current)) {
+            return true;
+        }
+
+        return $this->canAnyInAnyCourse($user, $permissions);
+    }
+
     public function canAnyInCourse(User $user, array $permissions, Course $course): bool
     {
         if (RolePreviewService::superadminBypassesPermissions($user)) {

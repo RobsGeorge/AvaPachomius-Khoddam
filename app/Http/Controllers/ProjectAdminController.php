@@ -7,9 +7,11 @@ use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
+use App\Models\ProjectDeliverableSubmission;
 use App\Models\ProjectMembership;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CourseContextService;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
@@ -64,7 +66,7 @@ class ProjectAdminController extends Controller
         $courseLocked = $course !== null;
         $courses = $courseLocked
             ? collect([$course])
-            : app(\App\Services\CourseContextService::class)
+            : app(CourseContextService::class)
                 ->selectableCourses($user)
                 ->pluck('course')
                 ->filter()
@@ -115,11 +117,12 @@ class ProjectAdminController extends Controller
     public function store(Request $request)
     {
         $this->assertCanManage();
-        $validated = $this->validateAssessment($request);
         // Navbar course context always wins when set (field is locked in the UI).
+        // Merge before validation so course_id is not required in the POST body.
         if ($current = current_course()) {
-            $validated['course_id'] = $current->course_id;
+            $request->merge(['course_id' => $current->course_id]);
         }
+        $validated = $this->validateAssessment($request);
         $courseId = (int) ($validated['course_id'] ?? 0);
         abort_unless($courseId > 0, 422);
         $this->assertModuleBelongsToCourse((int) $validated['module_id'], $courseId);
@@ -669,7 +672,7 @@ class ProjectAdminController extends Controller
     public function reviewSubmission(
         Request $request,
         Project $project,
-        \App\Models\ProjectDeliverableSubmission $submission,
+        ProjectDeliverableSubmission $submission,
     ) {
         $project->load('assessment');
         $assessment = $project->assessment;
@@ -827,12 +830,9 @@ class ProjectAdminController extends Controller
     private function assertCanManage(): void
     {
         $user = Auth::user();
-        if ($user?->is_superadmin) {
-            return;
-        }
+        abort_unless($user, 403);
 
-        $course = current_course();
-        if ($course && $this->permissions->canInCourse($user, 'project.manage', $course)) {
+        if ($this->permissions->canAnyAssignedCourse($user, ['project.manage', 'project.grade'])) {
             return;
         }
 
