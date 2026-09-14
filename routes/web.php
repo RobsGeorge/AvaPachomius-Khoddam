@@ -96,6 +96,7 @@ use App\Http\Controllers\SuperAdminScheduledTaskController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ModuleStudentAssessmentController;
 use App\Http\Controllers\StudentInstructorNoteController;
+use App\Http\Controllers\AdminPasswordResetController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
@@ -849,6 +850,11 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/students/roster/export',                       [StudentRosterController::class, 'exportCsv'])->name('students.roster.export');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
 
+    Route::middleware('permission:roster.password_reset')->group(function () {
+        Route::get('/students/password-reset', [AdminPasswordResetController::class, 'index'])->name('students.password-reset.index');
+        Route::post('/students/password-reset', [AdminPasswordResetController::class, 'store'])->name('students.password-reset.store');
+    });
+
     Route::middleware('capability:curriculum')->group(function () {
         Route::get('/courses/{course}/modules/{module}/assessments', [ModuleStudentAssessmentController::class, 'index'])
             ->name('module-assessments.index')->whereNumber(['course', 'module']);
@@ -979,6 +985,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
     Route::get('/recovery', [SuperAdminAccountRecoveryController::class, 'index'])->name('recovery.index');
     Route::post('/recovery', [SuperAdminAccountRecoveryController::class, 'store'])->name('recovery.store');
+
+    Route::get('/password-reset', [AdminPasswordResetController::class, 'index'])->name('password-reset.index');
+    Route::post('/password-reset', [AdminPasswordResetController::class, 'store'])->name('password-reset.store');
 
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/sessions/flush-users',    [SuperAdminController::class, 'flushSelectedUsers'])->name('sessions.flush-users');

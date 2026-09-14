@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\ServiceApplication;
@@ -11,6 +12,8 @@ use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
 use App\Services\ServiceContextService;
 use App\Services\StudentRosterService;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Schema;
 
 class NavigationHub
 {
@@ -71,6 +74,13 @@ class NavigationHub
 
         if (self::canAnyCourse($user, $resolver, ['roster.view'])) {
             $links[] = self::categorized(self::link('students.roster', 'students.roster_title', 'bi-person-lines-fill', ['students.roster', 'students.roster.announce'], 'roster.view'), 'people');
+        }
+
+        if (self::canAnyCourse($user, $resolver, ['roster.password_reset'])) {
+            $links[] = self::categorized(self::link('students.password-reset.index', 'students.password_reset_title', 'bi-key', [
+                'students.password-reset.*',
+                'superadmin.password-reset.*',
+            ], 'roster.password_reset'), 'people');
         }
 
         if (self::canAnyCourse($user, $resolver, ['announcement.manage'])) {
@@ -240,9 +250,9 @@ class NavigationHub
             }
         }
 
-        $church = \App\Tenancy\TenantContext::current()
-            ?? (\Illuminate\Support\Facades\Schema::hasTable('church')
-                ? \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first()
+        $church = TenantContext::current()
+            ?? (Schema::hasTable('church')
+                ? Church::query()->where('slug', config('tenancy.main_slug'))->first()
                 : null);
         $resolver = app(CoursePermissionResolver::class);
         $churchLinks = [];
@@ -427,6 +437,7 @@ class NavigationHub
             ], true),
             self::hubLink('superadmin.event-admins', 'events.event_admins_title', 'events.event_admins_hint', 'bi-calendar-event', ['superadmin.event-admins', 'superadmin.event-admins.*'], true),
             self::hubLink('superadmin.security', 'pages.superadmin_security_title', 'pages.superadmin_security_desc', 'bi-shield-lock', ['superadmin.security', 'superadmin.sessions.*', 'superadmin.impersonate', 'superadmin.role-preview'], true),
+            self::hubLink('superadmin.password-reset.index', 'pages.superadmin_password_reset_title', 'pages.superadmin_password_reset_desc', 'bi-envelope-lock', ['superadmin.password-reset.*'], true),
             self::hubLink('superadmin.audit.index', 'nav.audit_reports', 'pages.superadmin_audit_desc', 'bi-journal-text', ['superadmin.audit.*'], true),
             self::hubLink('superadmin.feedback-reveal.index', 'pages.feedback_reveal_queue_title', 'pages.feedback_reveal_queue_desc', 'bi-incognito', ['superadmin.feedback-reveal.*'], true),
             self::hubLink('superadmin.logs.index', 'nav.application_logs', 'pages.superadmin_application_logs_desc', 'bi-file-earmark-text', ['superadmin.logs.*'], true),
@@ -694,7 +705,7 @@ class NavigationHub
      */
     protected static function filterByCapability(array $links): array
     {
-        $church = \App\Tenancy\TenantContext::current();
+        $church = TenantContext::current();
         if ($church === null) {
             return $links;
         }

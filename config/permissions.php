@@ -356,6 +356,13 @@ return [
                 'type' => 'endpoint',
                 'routes' => ['students.roster.announce'],
             ],
+            'roster.password_reset' => [
+                'label_en' => 'Send student password reset email',
+                'label_ar' => 'إرسال بريد إعادة تعيين كلمة مرور الطالب',
+                'type' => 'both',
+                'routes' => ['students.password-reset.*'],
+                'nav' => ['academic.password_reset'],
+            ],
         ],
     ],
 
@@ -1261,6 +1268,14 @@ return [
                 'label_ar' => 'استعادة الحساب من الدعم (تزكية فقط)',
                 'type' => 'both',
                 'routes' => ['superadmin.recovery.*'],
+                'system_only' => true,
+            ],
+            'platform.users.password_reset' => [
+                'label_en' => 'Send password reset email (console)',
+                'label_ar' => 'إرسال بريد إعادة تعيين كلمة المرور (لوحة المنصة)',
+                'type' => 'both',
+                'routes' => ['superadmin.password-reset.*'],
+                'nav' => ['superadmin.password_reset'],
                 'system_only' => true,
             ],
             'feedback.identity.reveal' => [

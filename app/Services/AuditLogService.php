@@ -53,6 +53,8 @@ class AuditLogService
         'password.update',
         'password.set',
         'password.set.store',
+        'students.password-reset.index',
+        'superadmin.password-reset.index',
         'account.index',
         'account.password.update',
         'otp.verify',

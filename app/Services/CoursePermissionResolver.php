@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Course;
 use App\Models\Church;
 use App\Models\ChurchService;
+use App\Models\Course;
 use App\Models\EventAdmin;
 use App\Models\Permission;
 use App\Models\Role;
@@ -685,7 +685,7 @@ class CoursePermissionResolver
                 }
 
                 return Str::endsWith($key, '.view')
-                    || in_array($key, ['graduation.view', 'certificate.download', 'grade.view', 'course.access'], true);
+                    || in_array($key, ['graduation.view', 'certificate.download', 'grade.view', 'course.access', 'roster.password_reset'], true);
             })->values();
         }
 

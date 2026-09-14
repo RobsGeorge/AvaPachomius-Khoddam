@@ -6,7 +6,6 @@ use App\Models\Church;
 use App\Models\Course;
 use App\Models\Permission;
 use App\Models\Role;
-use App\Models\User;
 use App\Models\UserChurchRole;
 use App\Models\UserCourseRole;
 use App\Models\UserServiceRole;
@@ -14,6 +13,8 @@ use App\Services\CoursePermissionResolver;
 use App\Services\RoleTemplateService;
 use App\Tenancy\TenantContext;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Tests\Support\EventModuleTestCase;
 
 /**
@@ -48,6 +49,8 @@ class PermissionsParityTest extends EventModuleTestCase
         // Admin: role.manage + staff writes
         $this->assertTrue($resolver->canInCourse($admin, 'role.manage', $course));
         $this->assertTrue($resolver->canInCourse($admin, 'assignment.manage', $course));
+        $this->assertTrue($resolver->canInCourse($admin, 'roster.password_reset', $course));
+        $this->assertFalse($resolver->canInCourse($instructor, 'roster.password_reset', $course));
         $this->assertTrue($admin->isAdmin((string) $course->course_id));
         $this->assertTrue($admin->isInstructorOrAdmin((string) $course->course_id));
         $this->assertFalse($admin->isStudent((string) $course->course_id));
@@ -261,13 +264,13 @@ class PermissionsParityTest extends EventModuleTestCase
             'public.church.profile',
             'church-registration',
         ];
-        $unmapped = collect(\Illuminate\Support\Facades\Route::getRoutes())
+        $unmapped = collect(Route::getRoutes())
             ->map(fn ($route) => $route->getName())
             ->filter()
             ->unique()
             ->filter(function (string $name) use ($publicPrefixes) {
                 foreach ($publicPrefixes as $prefix) {
-                    if (\Illuminate\Support\Str::startsWith($name, $prefix)) {
+                    if (Str::startsWith($name, $prefix)) {
                         return false;
                     }
                 }
@@ -276,7 +279,7 @@ class PermissionsParityTest extends EventModuleTestCase
             })
             ->filter(function (string $name) use ($mappedPatterns) {
                 foreach ($mappedPatterns as $pattern) {
-                    if (\Illuminate\Support\Str::is($pattern, $name)) {
+                    if (Str::is($pattern, $name)) {
                         return false;
                     }
                 }
