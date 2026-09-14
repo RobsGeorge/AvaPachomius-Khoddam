@@ -74,21 +74,23 @@ class ProjectMembershipHistoryTest extends EventModuleTestCase
         [$course, $admin, $students, $assessment, $projectA, $projectB] = $this->twoTeamFixture();
 
         $assignments = app(ProjectAssignmentService::class);
-        $assignments->assignStudent($assessment, $students[0], notify: false);
+        $seated = $assignments->assignStudent($assessment, $students[0], notify: false);
         $membership = $assessment->activeMembershipFor((int) $students[0]->user_id);
+        $from = $seated;
+        $to = (int) $from->project_id === (int) $projectA->project_id ? $projectB : $projectA;
 
-        $assignments->moveMember($membership, $projectB, $admin);
+        $assignments->moveMember($membership, $to, $admin);
 
         $this->assertTrue(
             ProjectMembershipEvent::query()
-                ->where('project_id', $projectA->project_id)
+                ->where('project_id', $from->project_id)
                 ->where('event', ProjectMembershipEvent::EVENT_MOVED_OUT)
                 ->where('user_id', $students[0]->user_id)
                 ->exists()
         );
         $this->assertTrue(
             ProjectMembershipEvent::query()
-                ->where('project_id', $projectB->project_id)
+                ->where('project_id', $to->project_id)
                 ->where('event', ProjectMembershipEvent::EVENT_MOVED_IN)
                 ->where('user_id', $students[0]->user_id)
                 ->exists()

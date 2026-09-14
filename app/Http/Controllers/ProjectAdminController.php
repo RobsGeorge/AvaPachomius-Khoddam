@@ -19,6 +19,7 @@ use App\Services\ProjectGradebookSyncService;
 use App\Services\ProjectGradingService;
 use App\Services\ProjectPeerEvaluationService;
 use App\Services\ProjectSubmissionService;
+use App\Services\ProjectTeamWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,7 @@ class ProjectAdminController extends Controller
         $assessments = $query->get();
         foreach ($assessments as $assessment) {
             $this->assignments->markBelowMinimumAfterJoinClose($assessment);
+            app(ProjectTeamWorkflowService::class)->notifyJoinClosedIfNeeded($assessment);
         }
         $assessments = $query->get();
         $modules = $this->modulesForCourse($course);
@@ -146,6 +148,7 @@ class ProjectAdminController extends Controller
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'nullable|integer|min:0|max:100',
             'join_closes_at' => 'required|date',
+            'submission_due_at' => 'nullable|date',
             'seed_pool_size' => 'nullable|integer|min:1|max:200',
             'sync_to_gradebook' => 'nullable|boolean',
         ]);
@@ -310,6 +313,58 @@ class ProjectAdminController extends Controller
         $this->assignments->moveMember($membership, $target, Auth::user());
 
         return back()->with('success', __('projects.member_moved'));
+    }
+
+    public function removeMember(ProjectMembership $membership)
+    {
+        $membership->load('assessment');
+        $assessment = $membership->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanManageCourse((int) $assessment->course_id);
+
+        $this->assignments->removeMember($membership, Auth::user());
+
+        return back()->with('success', __('projects.member_removed'));
+    }
+
+    public function settleRoster(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        app(ProjectTeamWorkflowService::class)->settleRoster($projectAssessment, Auth::user());
+
+        return back()->with('success', __('projects.roster_settled'));
+    }
+
+    public function report(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        $projectAssessment->load([
+            'course',
+            'module',
+            'projects.deliverables',
+            'projects.deliverableSubmissions.submitter',
+            'projects.deliverableSubmissions.deliverable',
+            'projects.activeMemberships.user',
+            'projects.verifications.user',
+            'projects.finalSubmitter',
+        ]);
+
+        $workflow = app(ProjectTeamWorkflowService::class);
+        $rows = [];
+        foreach ($projectAssessment->projects as $project) {
+            $rows[] = [
+                'project' => $project,
+                'checklist' => $this->submissions->checklist($project),
+                'verifications' => $workflow->verifications($project),
+                'unverified' => $workflow->unverifiedMembers($project),
+                'progress' => $this->submissions->progress($project),
+            ];
+        }
+
+        return view('projects.report', [
+            'assessment' => $projectAssessment,
+            'rows' => $rows,
+        ]);
     }
 
     public function mergeProjects(Request $request, Project $project)
@@ -739,6 +794,7 @@ class ProjectAdminController extends Controller
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'nullable|integer|min:0|max:100',
             'join_closes_at' => 'required|date',
+            'submission_due_at' => 'nullable|date',
             'seed_pool_size' => 'nullable|integer|min:1|max:200',
             'sync_to_gradebook' => 'nullable|boolean',
             'criteria' => 'nullable|array',
@@ -784,6 +840,7 @@ class ProjectAdminController extends Controller
             'max_points' => $validated['max_points'] ?? 100,
             'passing_percent' => (int) ($validated['passing_percent'] ?? 50),
             'join_closes_at' => $validated['join_closes_at'] ?? null,
+            'submission_due_at' => $validated['submission_due_at'] ?? null,
             'seed_pool_size' => isset($validated['seed_pool_size'])
                 ? (int) $validated['seed_pool_size']
                 : null,
@@ -794,6 +851,7 @@ class ProjectAdminController extends Controller
             'requirements' => $validated['requirements'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
+            'seed_canonical_slots' => true,
         ];
 
         if (array_key_exists('subprojects', $validated)) {

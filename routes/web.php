@@ -703,9 +703,15 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::post('/projects/{project}/cancel', [ProjectAdminController::class, 'cancelProject'])->name('projects.cancel');
     Route::post('/projects/{project}/merge', [ProjectAdminController::class, 'mergeProjects'])->name('projects.merge');
     Route::post('/projects/memberships/{membership}/move', [ProjectAdminController::class, 'moveMember'])->name('projects.members.move');
+    Route::post('/projects/memberships/{membership}/remove', [ProjectAdminController::class, 'removeMember'])->name('projects.members.remove');
+    Route::get('/projects/assessments/{projectAssessment}/report', [ProjectAdminController::class, 'report'])->name('projects.assessments.report');
+    Route::post('/projects/assessments/{projectAssessment}/settle', [ProjectAdminController::class, 'settleRoster'])->name('projects.assessments.settle');
     Route::post('/projects/{project}/workspace', [ProjectAdminController::class, 'updateWorkspace'])->name('projects.workspace.update');
     Route::get('/projects/assessments/{projectAssessment}/export', [ProjectAdminController::class, 'exportCsv'])->name('projects.export');
     Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submitDeliverable'])->name('projects.deliverables.submit');
+    Route::post('/projects/{project}/verify', [ProjectController::class, 'verify'])->name('projects.verify');
+    Route::delete('/projects/{project}/verify', [ProjectController::class, 'unverify'])->name('projects.unverify');
+    Route::post('/projects/{project}/final-submit', [ProjectController::class, 'finalSubmit'])->name('projects.final-submit');
     Route::post('/projects/{project}/submissions/{submission}/review', [ProjectAdminController::class, 'reviewSubmission'])->name('projects.submissions.review');
     Route::post('/projects/{project}/peer-ratings', [ProjectController::class, 'submitPeerRatings'])->name('projects.peer-ratings.store');
     Route::get('/projects/{project}/peer-review', [ProjectController::class, 'peerReview'])->name('projects.peer-review');

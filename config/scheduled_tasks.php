@@ -1,5 +1,8 @@
 <?php
 
+use App\Services\PendingRegistrationService;
+use App\Services\SchedulerHealthService;
+
 return [
     'blocked_commands' => [
         'migrate',
@@ -31,7 +34,7 @@ return [
             'label' => 'scheduled_tasks.tasks.scheduler_heartbeat',
             'description' => 'scheduled_tasks.scheduler_heartbeat_desc',
             'type' => 'callback',
-            'callback' => [\App\Services\SchedulerHealthService::class, 'recordHeartbeat'],
+            'callback' => [SchedulerHealthService::class, 'recordHeartbeat'],
             'schedule' => ['frequency' => 'every_minute'],
             'always_enabled' => true,
             'record_runs' => false,
@@ -52,7 +55,7 @@ return [
             'label' => 'scheduled_tasks.tasks.pending_registrations_purge',
             'description' => 'scheduled_tasks.pending_registrations_purge_desc',
             'type' => 'callback',
-            'callback' => [\App\Services\PendingRegistrationService::class, 'purgeStale'],
+            'callback' => [PendingRegistrationService::class, 'purgeStale'],
             'schedule' => ['frequency' => 'daily'],
         ],
         'birthdays.notify_monthly' => [
@@ -122,6 +125,13 @@ return [
             'type' => 'command',
             'command' => 'notifications:fire-reminders',
             'schedule' => ['frequency' => 'every_five_minutes'],
+        ],
+        'projects.notify_join_closed' => [
+            'label' => 'scheduled_tasks.tasks.projects_notify_join_closed',
+            'description' => 'scheduled_tasks.projects_notify_join_closed_desc',
+            'type' => 'command',
+            'command' => 'projects:notify-join-closed',
+            'schedule' => ['frequency' => 'hourly'],
         ],
         'photos.send_reupload_reminders' => [
             'label' => 'scheduled_tasks.tasks.photos_send_reupload_reminders',

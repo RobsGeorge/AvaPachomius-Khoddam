@@ -41,6 +41,8 @@ class Project extends Model
         'workspace_provider',
         'team_workspace_url',
         'team_announcement',
+        'final_submitted_at',
+        'final_submitted_by_user_id',
     ];
 
     protected $casts = [
@@ -48,6 +50,7 @@ class Project extends Model
         'is_locked' => 'boolean',
         'below_minimum' => 'boolean',
         'cancelled_at' => 'datetime',
+        'final_submitted_at' => 'datetime',
     ];
 
     public function getRouteKeyName(): string
@@ -171,6 +174,31 @@ class Project extends Model
         return $this->hasMany(ProjectMembershipEvent::class, 'project_id', 'project_id')
             ->orderByDesc('occurred_at')
             ->orderByDesc('project_membership_event_id');
+    }
+
+    public function verifications(): HasMany
+    {
+        return $this->hasMany(ProjectMemberVerification::class, 'project_id', 'project_id');
+    }
+
+    public function finalSubmitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'final_submitted_by_user_id', 'user_id');
+    }
+
+    public function isFinalSubmitted(): bool
+    {
+        return $this->final_submitted_at !== null;
+    }
+
+    public function isLateFinal(): bool
+    {
+        $due = $this->assessment?->submission_due_at;
+        if ($due === null || $this->final_submitted_at === null) {
+            return false;
+        }
+
+        return $this->final_submitted_at->gt($due);
     }
 
     /**

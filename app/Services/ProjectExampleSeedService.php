@@ -6,7 +6,6 @@ use App\Models\Church;
 use App\Models\Course;
 use App\Models\Module;
 use App\Models\ProjectAssessment;
-use App\Models\ProjectDeliverable;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Tenancy\TenantContext;
@@ -64,6 +63,7 @@ class ProjectExampleSeedService
             'max_points' => 100,
             'passing_percent' => 50,
             'join_closes_at' => $now->copy()->addWeeks(4)->toDateTimeString(),
+            'submission_due_at' => $now->copy()->addWeeks(8)->toDateTimeString(),
             'seed_pool_size' => 3,
             'requirements' => $this->sharedRequirements(),
             'subprojects' => $this->subprojects(),
@@ -229,53 +229,19 @@ class ProjectExampleSeedService
      */
     private function phases(Carbon $now): array
     {
-        return [
-            [
-                'title' => 'التخطيط',
-                'description' => 'تحديد المكان، التنسيق، وتوزيع الأدوار داخل الفريق.',
-                'deadline' => $now->copy()->addWeeks(2)->toDateTimeString(),
-            ],
-            [
-                'title' => 'التنفيذ',
-                'description' => 'تنفيذ الزيارات أو يوم النشاط حسب متطلبات الفريق.',
-                'deadline' => $now->copy()->addWeeks(4)->toDateTimeString(),
-            ],
-            [
-                'title' => 'التقرير والمراجعة',
-                'description' => 'كتابة التقرير النهائي ومراجعة التسليمات المشتركة.',
-                'deadline' => $now->copy()->addWeeks(6)->toDateTimeString(),
-            ],
-        ];
+        return ProjectTeamWorkflowService::canonicalPhasePayload(
+            $now->copy()->addWeeks(8)->toDateTimeString()
+        );
     }
 
     /**
-     * @return list<array{title: string, description: string, due_at: string, submission_type: string, is_required: bool}>
+     * @return list<array{title: string, description: string, instructions: string, submission_type: string, is_required: bool, allow_late: bool, slot_key: string, due_at: ?string}>
      */
     private function deliverables(Carbon $now): array
     {
-        return [
-            [
-                'title' => 'خطة العمل',
-                'description' => 'خطة الفريق قبل التنفيذ: المكان، المواعيد، والأدوار.',
-                'due_at' => $now->copy()->addWeeks(2)->toDateTimeString(),
-                'submission_type' => ProjectDeliverable::TYPE_PDF,
-                'is_required' => true,
-            ],
-            [
-                'title' => 'التقرير النهائي',
-                'description' => 'تقرير موثّق بما نُفّذ وفق متطلبات عنوان الفريق.',
-                'due_at' => $now->copy()->addWeeks(6)->toDateTimeString(),
-                'submission_type' => ProjectDeliverable::TYPE_DOCUMENT,
-                'is_required' => true,
-            ],
-            [
-                'title' => 'رابط مساحة عمل الفريق',
-                'description' => 'رابط اختياري لمجلد مشترك أو مجموعة تواصل.',
-                'due_at' => $now->copy()->addWeeks(3)->toDateTimeString(),
-                'submission_type' => ProjectDeliverable::TYPE_LINK,
-                'is_required' => false,
-            ],
-        ];
+        return ProjectTeamWorkflowService::canonicalDeliverablePayload(
+            $now->copy()->addWeeks(8)->toDateTimeString()
+        );
     }
 
     /**

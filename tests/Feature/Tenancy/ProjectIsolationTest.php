@@ -13,6 +13,7 @@ use App\Models\ProjectDeliverableSubmission;
 use App\Models\ProjectGradeCriterion;
 use App\Models\ProjectMemberGrade;
 use App\Models\ProjectMembership;
+use App\Models\ProjectMemberVerification;
 use App\Models\ProjectSubmissionFile;
 use App\Models\ProjectTeamCriterionScore;
 use App\Models\ProjectTeamGrade;
@@ -352,5 +353,44 @@ class ProjectIsolationTest extends EventModuleTestCase
         TenantContext::set($churchA);
         $this->assertNotNull(ProjectAssessment::find($assessmentA->project_assessment_id));
         $this->assertSame(3, Project::query()->where('project_assessment_id', $assessmentA->project_assessment_id)->count());
+    }
+
+    public function test_member_verifications_are_scoped_by_church(): void
+    {
+        $churchA = Church::main();
+        $churchB = $this->createChurch(['slug' => 'prj-ver-isol-b', 'name' => 'Verify B', 'status' => 'active']);
+
+        TenantContext::set($churchA);
+        $courseA = $this->createCourse(['title' => 'PRJ_VA', 'church_id' => $churchA->church_id]);
+        $moduleA = Module::create(['title' => 'Mod VA', 'description' => 'A']);
+        $courseA->modules()->attach($moduleA->module_id);
+        $adminA = $this->createUser(['email' => 'prj-ver-isol-a@example.com']);
+        $studentA = $this->createUser(['email' => 'prj-ver-student-a@example.com']);
+        $assessmentA = app(ProjectAdminService::class)->createAssessment([
+            'course_id' => $courseA->course_id,
+            'module_id' => $moduleA->module_id,
+            'title' => 'ISO_VER_A',
+            'min_team_size' => 1,
+            'max_team_size' => 2,
+            'project_count' => 1,
+            'join_closes_at' => now()->addWeek()->toDateTimeString(),
+        ], $adminA);
+
+        $projectA = $assessmentA->projects()->firstOrFail();
+        app(ProjectAssignmentService::class)->assignStudent($assessmentA, $studentA, notify: false);
+        $verification = ProjectMemberVerification::create([
+            'project_assessment_id' => $assessmentA->project_assessment_id,
+            'project_id' => $projectA->project_id,
+            'user_id' => $studentA->user_id,
+            'verified_at' => now(),
+        ]);
+        $this->assertSame((int) $churchA->church_id, (int) $verification->church_id);
+
+        TenantContext::set($churchB);
+        $this->assertNull(ProjectMemberVerification::find($verification->project_member_verification_id));
+        $this->assertSame(0, ProjectMemberVerification::query()->count());
+
+        TenantContext::set($churchA);
+        $this->assertNotNull(ProjectMemberVerification::find($verification->project_member_verification_id));
     }
 }
