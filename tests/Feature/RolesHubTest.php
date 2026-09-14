@@ -37,6 +37,8 @@ class RolesHubTest extends EventModuleTestCase
             ->get(route('roles.hub', ['course' => $course->course_id, 'section' => 'course']))
             ->assertOk()
             ->assertSee(__('rbac.section_course'))
+            ->assertSee(__('rbac.projects_on_course_roles_hint'))
+            ->assertSee(__('rbac.project_access'))
             ->assertDontSee('id="section-templates"', false)
             ->assertDontSee('id="section-system"', false);
     }

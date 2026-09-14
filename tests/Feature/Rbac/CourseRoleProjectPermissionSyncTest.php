@@ -3,8 +3,11 @@
 namespace Tests\Feature\Rbac;
 
 use App\Models\Church;
+use App\Models\CourseAdminGroupVisibility;
 use App\Models\Permission;
+use App\Models\PermissionGroup;
 use App\Models\Role;
+use App\Policies\RolePermissionPolicy;
 use App\Services\ProjectAccessRepairService;
 use App\Services\RoleTemplateService;
 use App\Support\NavigationHub;
@@ -261,5 +264,40 @@ class CourseRoleProjectPermissionSyncTest extends EventModuleTestCase
 
         $this->assertFalse($priest->fresh()->permissions()->where('permissions.key', 'project.view')->exists());
         $this->assertFalse($priest->fresh()->permissions()->where('permissions.key', 'project.join')->exists());
+    }
+
+    public function test_repair_unhides_projects_group_on_course_role_form(): void
+    {
+        Artisan::call('permissions:sync');
+        $group = PermissionGroup::where('group_key', 'projects')->first();
+        $this->assertNotNull($group);
+        CourseAdminGroupVisibility::updateOrCreate(
+            ['permission_group_id' => $group->permission_group_id],
+            ['visible_to_course_admins' => false]
+        );
+        $this->assertFalse(
+            app(RolePermissionPolicy::class)->visibleGroupsForCourseAdmin()->contains('group_key', 'projects')
+        );
+
+        app(ProjectAccessRepairService::class)->repair();
+
+        $this->assertTrue(
+            app(RolePermissionPolicy::class)->visibleGroupsForCourseAdmin()->contains('group_key', 'projects')
+        );
+    }
+
+    public function test_course_role_edit_shows_project_keys(): void
+    {
+        Artisan::call('permissions:sync');
+        $course = $this->createCourse(['title' => 'Hub Projects Course']);
+        $role = $this->courseRoleWithPermissions($course, 'student', ['course.access']);
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'hub-prj-edit@example.com']);
+
+        $this->actingAs($admin)
+            ->get(route('courses.roles.edit', [$course, $role]))
+            ->assertOk()
+            ->assertSee(__('rbac.projects_permissions_hint'))
+            ->assertSee('project.view')
+            ->assertSee('project.join');
     }
 }
