@@ -125,8 +125,17 @@
                            name="link_url"
                            class="form-control form-control-sm @error('link_url') is-invalid @enderror"
                            value="{{ old('link_url', $submission->link_url ?? '') }}"
-                           placeholder="https://">
+                           placeholder="https://"
+                           required>
+                    <div class="form-text small">{{ __('projects.submission_link_public_note') }}</div>
                     @error('link_url')<div class="invalid-feedback d-block small">{{ $message }}</div>@enderror
+                    <label class="form-label small mt-2" for="{{ $formId }}-body">{{ __('projects.description') }}</label>
+                    <textarea id="{{ $formId }}-body"
+                              name="body"
+                              rows="2"
+                              class="form-control form-control-sm"
+                              placeholder="{{ __('projects.submission_link_description_note') }}">{{ old('body', $submission->body ?? '') }}</textarea>
+                    <div class="form-text small">{{ __('projects.submission_link_description_note') }}</div>
                 @elseif($deliverable->expectsText())
                     <label class="form-label small" for="{{ $formId }}-body">{{ __('projects.submission_text') }}</label>
                     <textarea id="{{ $formId }}-body"

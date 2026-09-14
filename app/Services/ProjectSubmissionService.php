@@ -50,7 +50,11 @@ class ProjectSubmissionService
 
         $this->assertPayloadMatchesType($deliverable, $existing, $body, $link, $files);
 
-        return DB::transaction(function () use ($project, $deliverable, $user, $body, $link, $files, $existing, $data) {
+        if ($deliverable->expectsLink() && $link) {
+            app(PublicHttpUrlService::class)->assertPublicHttpUrl($link);
+        }
+
+        $submission = DB::transaction(function () use ($project, $deliverable, $user, $body, $link, $files, $existing, $data) {
             $submission = ProjectDeliverableSubmission::updateOrCreate(
                 [
                     'project_id' => $project->project_id,
@@ -59,7 +63,7 @@ class ProjectSubmissionService
                 [
                     'project_assessment_id' => $project->project_assessment_id,
                     'submitted_by_user_id' => $user->user_id,
-                    'body' => $deliverable->expectsText() || $deliverable->expectsFiles() ? $body : null,
+                    'body' => $body,
                     'link_url' => $deliverable->expectsLink() ? $link : null,
                     'submitted_at' => now(),
                     'is_late' => $deliverable->isOverdue(),
@@ -98,6 +102,10 @@ class ProjectSubmissionService
 
             return $submission->fresh(['files', 'submitter']);
         });
+
+        app(ProjectTeamWorkflowService::class)->resetAfterContentChange($project->fresh());
+
+        return $submission;
     }
 
     public function deleteFile(ProjectSubmissionFile $file, User $actor): void

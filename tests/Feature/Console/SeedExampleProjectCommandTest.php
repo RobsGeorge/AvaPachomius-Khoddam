@@ -4,6 +4,7 @@ namespace Tests\Feature\Console;
 
 use App\Models\Module;
 use App\Models\ProjectAssessment;
+use App\Models\ProjectDeliverable;
 use App\Services\ProjectExampleSeedService;
 use Tests\Support\EventModuleTestCase;
 
@@ -41,6 +42,11 @@ class SeedExampleProjectCommandTest extends EventModuleTestCase
 
         $this->assertSame(3, $teams[0]->phases()->count());
         $this->assertSame(3, $teams[0]->deliverables()->count());
+        $this->assertSame(
+            ProjectDeliverable::canonicalSlotKeys(),
+            $teams[0]->deliverables()->orderBy('sort_order')->pluck('slot_key')->all()
+        );
+        $this->assertNotNull($assessment->submission_due_at);
         $this->assertNotSame($teams[0]->requirements, $teams[1]->requirements);
         $this->assertNotSame($teams[1]->requirements, $teams[2]->requirements);
     }

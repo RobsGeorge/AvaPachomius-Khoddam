@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Project;
+use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
+use App\Models\ProjectDeliverableSubmission;
 use App\Models\User;
 
 class ProjectNotificationService
@@ -24,6 +26,7 @@ class ProjectNotificationService
                 'project' => $project->title,
                 'teammates' => $this->rosterLines($project, exceptUserId: (int) $user->user_id),
             ]);
+        $body .= "\n\n".$this->joinDeadlineLine($project);
 
         $this->notifications->createOrUpdate(
             $user,
@@ -83,6 +86,7 @@ class ProjectNotificationService
             'project' => $project->title,
             'members' => $this->rosterLines($project),
         ]);
+        $body .= "\n\n".$this->joinDeadlineLine($project);
 
         foreach ($project->activeMembers() as $member) {
             $this->notifications->createOrUpdate(
@@ -233,7 +237,7 @@ class ProjectNotificationService
         );
     }
 
-    public function notifySubmissionFeedback(\App\Models\ProjectDeliverableSubmission $submission): void
+    public function notifySubmissionFeedback(ProjectDeliverableSubmission $submission): void
     {
         $project = $submission->project;
         $deliverable = $submission->deliverable;
@@ -257,7 +261,7 @@ class ProjectNotificationService
                 $title,
                 $body,
                 $url,
-                \App\Models\ProjectDeliverableSubmission::class,
+                ProjectDeliverableSubmission::class,
                 (int) $submission->project_deliverable_submission_id,
                 metadata: [
                     'course_id' => $project->assessment?->course_id,
@@ -267,6 +271,107 @@ class ProjectNotificationService
                 dedupeKey: 'project_submission_feedback:'.$submission->project_deliverable_submission_id.':'.$member->user_id,
             );
         }
+    }
+
+    public function notifyRemoved(User $user, Project $project): void
+    {
+        $url = route('projects.index');
+        $this->notifications->createOrUpdate(
+            $user,
+            'project_member_removed',
+            __('projects.notify_removed_title'),
+            __('projects.notify_removed_body', ['project' => $project->title]),
+            $url,
+            Project::class,
+            (int) $project->project_id,
+            metadata: [
+                'course_id' => $project->assessment?->course_id,
+                'project_id' => $project->project_id,
+            ],
+            dedupeKey: 'project_member_removed:'.$project->project_id.':'.$user->user_id.':'.now()->timestamp,
+        );
+    }
+
+    public function notifyJoinWindowClosed(ProjectAssessment $assessment): int
+    {
+        $course = $assessment->course;
+        if (! $course) {
+            return 0;
+        }
+
+        $url = route('projects.manage');
+        $title = __('projects.notify_join_closed_title', ['assessment' => $assessment->title]);
+        $body = __('projects.notify_join_closed_body', ['assessment' => $assessment->title]);
+        $sent = 0;
+
+        foreach ($this->roster->courseStaff((string) $course->course_id) as $staff) {
+            if (! $this->permissions->canInCourse($staff, 'project.manage', $course)
+                && ! $this->permissions->canInCourse($staff, 'project.grade', $course)) {
+                continue;
+            }
+
+            $notice = $this->notifications->createOrUpdate(
+                $staff,
+                'project_join_window_closed',
+                $title,
+                $body,
+                $url,
+                ProjectAssessment::class,
+                (int) $assessment->project_assessment_id,
+                metadata: [
+                    'course_id' => $course->course_id,
+                    'project_assessment_id' => $assessment->project_assessment_id,
+                ],
+                dedupeKey: 'project_join_window_closed:'.$assessment->project_assessment_id.':'.$staff->user_id,
+            );
+            $sent += $notice ? 1 : 0;
+        }
+
+        return $sent;
+    }
+
+    public function notifyRosterApproved(ProjectAssessment $assessment): void
+    {
+        $assessment->loadMissing(['projects.activeMemberships.user', 'course']);
+
+        foreach ($assessment->projects as $project) {
+            $url = route('projects.show', $project);
+            $title = __('projects.notify_roster_approved_title', ['project' => $project->title]);
+            $body = __('projects.notify_roster_approved_body', [
+                'project' => $project->title,
+                'members' => $this->rosterLines($project),
+                'url' => $url,
+            ]);
+
+            foreach ($project->activeMembers() as $member) {
+                $this->notifications->createOrUpdate(
+                    $member,
+                    'project_roster_approved',
+                    $title,
+                    $body,
+                    $url,
+                    Project::class,
+                    (int) $project->project_id,
+                    metadata: [
+                        'course_id' => $assessment->course_id,
+                        'project_id' => $project->project_id,
+                    ],
+                    dedupeKey: 'project_roster_approved:'.$assessment->project_assessment_id.':'.$project->project_id.':'.$member->user_id,
+                );
+            }
+        }
+    }
+
+    private function joinDeadlineLine(Project $project): string
+    {
+        $when = $project->assessment?->join_closes_at;
+        if (! $when) {
+            return '';
+        }
+
+        return __('projects.notify_join_deadline_line', [
+            'when' => $when->timezone(config('app.timezone'))->format('Y-m-d H:i'),
+        ]);
     }
 
     private function rosterLines(Project $project, ?int $exceptUserId = null): string

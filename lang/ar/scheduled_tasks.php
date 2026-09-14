@@ -132,6 +132,7 @@ return [
         'notifications_scan_grades_risk' => 'تنبيهات الدرجات المنخفضة',
         'notifications_fire_reminders' => 'إرسال التذكيرات المخصصة',
         'photos_send_reupload_reminders' => 'تذكيرات إعادة رفع الصورة الشخصية',
+        'projects_notify_join_closed' => 'تنبيه المسؤولين عند إغلاق الانضمام للمشروع',
         'audit_prune' => 'تنظيف سجلات التدقيق ومحاولات الدخول',
         'observability_prune' => 'تنظيف أحداث المراقبة والعينات',
     ],
@@ -148,4 +149,5 @@ return [
     'notifications_scan_grades_risk_desc' => 'فحص أسبوعي للطلاب دون حد النجاح.',
     'notifications_fire_reminders_desc' => 'يرسل التذكيرات المخصصة المستحقة كل خمس دقائق.',
     'photos_send_reupload_reminders_desc' => 'يذكّر الطلاب المرفوضة صورهم بإعادة الرفع بعد المدة المضبوطة.',
+    'projects_notify_join_closed_desc' => 'يرسل بريداً لمسؤولي المقرر بعد إغلاق نافذة الانضمام لمراجعة الفرق واعتمادها.',
 ];

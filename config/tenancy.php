@@ -81,6 +81,7 @@ return [
         'project_team_grades',
         'project_team_grade_scores',
         'project_member_grades',
+        'project_member_verifications',
         'assessment',
         'course_assessment',
         'user_assessment',

@@ -25,6 +25,7 @@ class ProjectAdminService
      *     max_points?:float|int,
      *     passing_percent?:int,
      *     join_closes_at?:?string,
+     *     submission_due_at?:?string,
      *     seed_pool_size?:?int,
      *     sync_to_gradebook?:bool,
      *     criteria?:list<array{title:string, max_points:float|int}>,
@@ -40,8 +41,18 @@ class ProjectAdminService
     {
         $this->assertTeamSizes((int) $data['min_team_size'], (int) $data['max_team_size']);
         $joinClosesAt = $this->normalizeJoinClosesAt($data['join_closes_at'] ?? null);
+        $submissionDueAt = $this->normalizeSubmissionDueAt($data['submission_due_at'] ?? null, $joinClosesAt);
 
-        return DB::transaction(function () use ($data, $creator, $joinClosesAt) {
+        $data['deliverables'] = $this->titledRows($data['deliverables'] ?? []);
+        $data['phases'] = $this->titledRows($data['phases'] ?? []);
+        if (($data['seed_canonical_slots'] ?? false) && $data['deliverables'] === []) {
+            $data['deliverables'] = ProjectTeamWorkflowService::canonicalDeliverablePayload($submissionDueAt);
+        }
+        if (($data['seed_canonical_slots'] ?? false) && $data['phases'] === []) {
+            $data['phases'] = ProjectTeamWorkflowService::canonicalPhasePayload($submissionDueAt);
+        }
+
+        return DB::transaction(function () use ($data, $creator, $joinClosesAt, $submissionDueAt) {
             $assessment = ProjectAssessment::create([
                 'course_id' => $data['course_id'],
                 'module_id' => $data['module_id'],
@@ -52,6 +63,7 @@ class ProjectAdminService
                 'max_points' => $data['max_points'] ?? 100,
                 'passing_percent' => $data['passing_percent'] ?? 50,
                 'join_closes_at' => $joinClosesAt,
+                'submission_due_at' => $submissionDueAt,
                 'seed_pool_size' => $data['seed_pool_size'] ?? null,
                 'sync_to_gradebook' => (bool) ($data['sync_to_gradebook'] ?? false),
                 'is_published' => false,
@@ -125,6 +137,20 @@ class ProjectAdminService
 
         if (array_key_exists('join_closes_at', $data)) {
             $data['join_closes_at'] = $this->normalizeJoinClosesAt($data['join_closes_at']);
+        }
+
+        if (array_key_exists('submission_due_at', $data)) {
+            if ($data['submission_due_at'] === null || $data['submission_due_at'] === '') {
+                unset($data['submission_due_at']);
+            } else {
+                $data['submission_due_at'] = $this->normalizeSubmissionDueAt(
+                    $data['submission_due_at'],
+                    isset($data['join_closes_at'])
+                        ? (string) $data['join_closes_at']
+                        : optional($assessment->join_closes_at)?->toDateTimeString(),
+                    allowPast: true,
+                );
+            }
         }
 
         $assessment->update($data);
@@ -415,6 +441,7 @@ class ProjectAdminService
                 'max_points' => isset($deliverable['max_points']) && $deliverable['max_points'] !== ''
                     ? round((float) $deliverable['max_points'], 2)
                     : null,
+                'slot_key' => $this->normalizedSlotKey($deliverable['slot_key'] ?? null),
             ]);
         }
     }
@@ -463,6 +490,63 @@ class ProjectAdminService
         }
 
         return $when->toDateTimeString();
+    }
+
+    private function normalizeSubmissionDueAt(mixed $value, ?string $joinClosesAt, bool $allowPast = false): ?string
+    {
+        if ($value === null || $value === '') {
+            if ($joinClosesAt === null) {
+                return null;
+            }
+
+            return Carbon::parse($joinClosesAt)->addWeeks(4)->toDateTimeString();
+        }
+
+        try {
+            $when = Carbon::parse((string) $value);
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                'submission_due_at' => [__('projects.submission_due_required')],
+            ]);
+        }
+
+        if (! $allowPast && $when->isPast()) {
+            throw ValidationException::withMessages([
+                'submission_due_at' => [__('projects.submission_due_future')],
+            ]);
+        }
+
+        return $when->toDateTimeString();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function titledRows(array $rows): array
+    {
+        $kept = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (trim((string) ($row['title'] ?? '')) === '') {
+                continue;
+            }
+            $kept[] = $row;
+        }
+
+        return $kept;
+    }
+
+    private function normalizedSlotKey(mixed $value): ?string
+    {
+        $key = is_string($value) ? trim($value) : '';
+        if ($key === '' || ! in_array($key, ProjectDeliverable::canonicalSlotKeys(), true)) {
+            return null;
+        }
+
+        return $key;
     }
 
     private function assertTeamSizes(int $min, int $max): void

@@ -9,5 +9,8 @@
         <li>{{ __('projects.student_alert_moved') }}</li>
         <li>{{ __('projects.student_alert_deadline') }}</li>
         <li>{{ __('projects.student_alert_feedback') }}</li>
+        <li>{{ __('projects.student_alert_removed') }}</li>
+        <li>{{ __('projects.student_alert_roster') }}</li>
+        <li>{{ __('projects.student_alert_late') }}</li>
     </ul>
 </div>

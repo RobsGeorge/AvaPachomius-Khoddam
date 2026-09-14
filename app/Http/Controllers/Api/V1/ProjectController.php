@@ -176,7 +176,7 @@ class ProjectController extends Controller
 
         $rules = [
             'body' => 'nullable|string|max:20000',
-            'link_url' => 'nullable|string|max:2048',
+            'link_url' => $deliverable->expectsLink() ? 'required|string|max:2048' : 'nullable|string|max:2048',
             'replace_files' => 'nullable|boolean',
         ];
 

@@ -132,6 +132,7 @@ return [
         'notifications_scan_grades_risk' => 'Below-passing grade alerts',
         'notifications_fire_reminders' => 'Fire custom reminders',
         'photos_send_reupload_reminders' => 'Profile photo re-upload reminders',
+        'projects_notify_join_closed' => 'Notify admins when project joining closes',
         'audit_prune' => 'Prune audit activity and login trials',
         'observability_prune' => 'Prune observability events and samples',
     ],
@@ -148,4 +149,5 @@ return [
     'notifications_scan_grades_risk_desc' => 'Weekly scan for students below passing grade thresholds.',
     'notifications_fire_reminders_desc' => 'Dispatches due custom user reminders every five minutes.',
     'photos_send_reupload_reminders_desc' => 'Reminds rejected students to re-upload a profile photo after the configured delay.',
+    'projects_notify_join_closed_desc' => 'Emails course admins after the project join window closes so they can review and approve teams.',
 ];

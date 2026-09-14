@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectSubmissionService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -104,6 +105,7 @@ class ProjectSubmissionServiceTest extends EventModuleTestCase
 
     public function test_link_deliverable_requires_a_valid_url(): void
     {
+        Http::fake(['*' => Http::response('ok', 200)]);
         [$project, $deliverable, $student] = $this->fixture(['submission_type' => ProjectDeliverable::TYPE_LINK]);
         $service = app(ProjectSubmissionService::class);
 
