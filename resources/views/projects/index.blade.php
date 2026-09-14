@@ -16,11 +16,12 @@
     <div class="alert alert-light border mb-4">
         <div class="fw-semibold mb-1">{{ __('projects.onboarding_student_title') }}</div>
         <p class="mb-2 small">{{ __('projects.onboarding_student_intro') }}</p>
-        <ol class="small mb-0 ps-3">
+        <ol class="small mb-3 ps-3">
             <li>{{ __('projects.onboarding_student_step_1') }}</li>
             <li>{{ __('projects.onboarding_student_step_2') }}</li>
             <li>{{ __('projects.onboarding_student_step_3') }}</li>
         </ol>
+        @include('projects.partials.student-alerts')
     </div>
 
     @if($assessments->isEmpty())
@@ -55,9 +56,19 @@
                         @if($membership && $assignedProject)
                             <p class="mb-3">{{ __('projects.assigned_to', ['title' => $assignedProject->title]) }}</p>
                             @include('projects.partials.grade-status', ['visibility' => $gradeVisibility[$assessment->project_assessment_id] ?? null])
-                            <a href="{{ route('projects.show', $assignedProject) }}" class="btn btn-outline-primary">
-                                {{ __('projects.open_project') }}
-                            </a>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <a href="{{ route('projects.show', $assignedProject) }}" class="btn btn-outline-primary">
+                                    {{ __('projects.open_project') }}
+                                </a>
+                            </div>
+                            <div class="mb-0">
+                                @include('projects.partials.change-team', [
+                                    'assessment' => $assessment,
+                                    'membership' => $membership,
+                                    'assignedProject' => $assignedProject,
+                                    'showForm' => false,
+                                ])
+                            </div>
                         @elseif($assessment->is_published && $assessment->isJoinWindowOpen())
                             <form method="POST" action="{{ route('projects.join', $assessment) }}" class="d-inline">
                                 @csrf

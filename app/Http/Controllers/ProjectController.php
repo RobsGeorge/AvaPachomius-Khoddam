@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectDeliverable;
@@ -319,12 +320,9 @@ class ProjectController extends Controller
     private function assertCanView(): void
     {
         $user = Auth::user();
-        if ($user?->is_superadmin) {
-            return;
-        }
+        abort_unless($user, 403);
 
-        $course = current_course();
-        if ($course && $this->permissions->canInCourse($user, 'project.view', $course)) {
+        if ($this->permissions->canAnyAssignedCourse($user, ['project.view', 'project.join', 'project.manage', 'project.grade'])) {
             return;
         }
 
@@ -358,13 +356,11 @@ class ProjectController extends Controller
     private function userCanManage(): bool
     {
         $user = Auth::user();
-        if ($user?->is_superadmin) {
-            return true;
+        if (! $user) {
+            return false;
         }
 
-        $course = current_course();
-
-        return $course && $this->permissions->canInCourse($user, 'project.manage', $course);
+        return $this->permissions->canAnyAssignedCourse($user, ['project.manage', 'project.grade']);
     }
 
     private function userCanManageCourse(int $courseId): bool
@@ -374,7 +370,7 @@ class ProjectController extends Controller
             return true;
         }
 
-        $course = \App\Models\Course::find($courseId);
+        $course = Course::find($courseId);
 
         return $course && $this->permissions->canInCourse($user, 'project.manage', $course);
     }

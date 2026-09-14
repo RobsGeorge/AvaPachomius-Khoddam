@@ -1,0 +1,98 @@
+<?php
+
+namespace Tests\Feature\Rbac;
+
+use App\Models\Church;
+use App\Models\Permission;
+use App\Services\ProjectAccessRepairService;
+use App\Services\RoleTemplateService;
+use App\Support\NavigationHub;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Artisan;
+use Tests\Support\EventModuleTestCase;
+
+class CourseRoleProjectPermissionSyncTest extends EventModuleTestCase
+{
+    protected function tearDown(): void
+    {
+        TenantContext::clear();
+        parent::tearDown();
+    }
+
+    public function test_repair_merges_project_keys_onto_stale_course_clones(): void
+    {
+        Artisan::call('permissions:sync');
+        $templates = app(RoleTemplateService::class);
+        $templates->ensureSystemTemplates();
+
+        $church = Church::main();
+        TenantContext::set($church);
+        $course = $this->createCourse(['title' => 'Stale Project Roles', 'status' => 'active']);
+        $cloned = $templates->cloneTemplatesIntoCourse($course);
+        $studentRole = $cloned['student'] ?? null;
+        $instructorRole = $cloned['instructor'] ?? null;
+        $this->assertNotNull($studentRole);
+        $this->assertNotNull($instructorRole);
+
+        $projectIds = Permission::whereIn('key', [
+            'project.view', 'project.join', 'project.manage', 'project.grade',
+        ])->pluck('permission_id');
+        $this->assertNotEmpty($projectIds);
+        $studentRole->permissions()->detach($projectIds);
+        $instructorRole->permissions()->detach($projectIds);
+
+        $this->assertFalse($studentRole->fresh()->permissions()->where('permissions.key', 'project.view')->exists());
+        $this->assertFalse($instructorRole->fresh()->permissions()->where('permissions.key', 'project.manage')->exists());
+
+        $merged = app(ProjectAccessRepairService::class)->repair();
+        $this->assertGreaterThan(0, $merged);
+
+        $this->assertTrue($studentRole->fresh()->permissions()->where('permissions.key', 'project.view')->exists());
+        $this->assertTrue($studentRole->fresh()->permissions()->where('permissions.key', 'project.join')->exists());
+        $this->assertTrue($instructorRole->fresh()->permissions()->where('permissions.key', 'project.manage')->exists());
+    }
+
+    public function test_stale_student_and_admin_regain_project_nav_and_pages(): void
+    {
+        Artisan::call('permissions:sync');
+        $templates = app(RoleTemplateService::class);
+        $templates->ensureSystemTemplates();
+
+        $church = Church::main();
+        TenantContext::set($church);
+        $course = $this->createCourse(['title' => 'Hidden Projects Course', 'status' => 'active']);
+        $cloned = $templates->cloneTemplatesIntoCourse($course);
+
+        $projectIds = Permission::whereIn('key', [
+            'project.view', 'project.join', 'project.manage', 'project.grade',
+        ])->pluck('permission_id');
+        $cloned['student']->permissions()->detach($projectIds);
+        $cloned['instructor']->permissions()->detach($projectIds);
+
+        $student = $this->createUser(['email' => 'stale-prj-student@example.com']);
+        $admin = $this->createUser(['email' => 'stale-prj-admin@example.com']);
+        $this->assignCourseRole($student, $course, $cloned['student']);
+        $this->assignCourseRole($admin, $course, $cloned['instructor']);
+
+        $studentUrls = collect(NavigationHub::academicLinks($student))->pluck('url');
+        $this->assertFalse($studentUrls->contains(route('projects.index')));
+
+        $this->actingAs($student)->get(route('projects.index'))->assertForbidden();
+        // Staff may still see Manage in nav via the legacy instructor fallback,
+        // but the page 403s until project.manage is merged onto the clone.
+        $this->actingAs($admin)->get(route('projects.manage'))->assertForbidden();
+
+        app(ProjectAccessRepairService::class)->repair();
+        $student->unsetRelation('userCourseRoles');
+        $admin->unsetRelation('userCourseRoles');
+
+        $studentUrls = collect(NavigationHub::academicLinks($student->fresh()))->pluck('url');
+        $this->assertTrue($studentUrls->contains(route('projects.index')));
+
+        $adminUrls = collect(NavigationHub::academicLinks($admin->fresh()))->pluck('url');
+        $this->assertTrue($adminUrls->contains(route('projects.manage')));
+
+        $this->actingAs($student->fresh())->get(route('projects.index'))->assertOk();
+        $this->actingAs($admin->fresh())->get(route('projects.manage'))->assertOk();
+    }
+}

@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\Course;
 use App\Models\Church;
+use App\Models\ChurchService;
+use App\Models\Course;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Support\Collection;
@@ -100,7 +101,7 @@ class RoleTemplateService
     }
 
     /** @return array<string, Role> */
-    public function cloneTemplatesIntoService(\App\Models\ChurchService $service, ?int $sourceServiceId = null): array
+    public function cloneTemplatesIntoService(ChurchService $service, ?int $sourceServiceId = null): array
     {
         $sourceRoles = $sourceServiceId
             ? Role::forService($sourceServiceId)->get()
@@ -320,6 +321,7 @@ class RoleTemplateService
 
             if ($existing) {
                 $created[$existing->effectiveSlug()] = $existing;
+
                 continue;
             }
 
@@ -484,6 +486,67 @@ class RoleTemplateService
             $ids = Permission::whereIn('key', $combined)->pluck('permission_id');
             $clone->permissions()->sync($ids);
             $merged++;
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Expand-only: attach missing admin/instructor/student template keys onto
+     * already-cloned course roles (e.g. project.* added after the course existed).
+     */
+    public function mergeTemplatePermissionsIntoCourseClones(): int
+    {
+        $this->ensureSystemTemplates();
+
+        $templates = Role::withoutTenancy()
+            ->whereNull('course_id')
+            ->whereNull('service_id')
+            ->where('is_template', true)
+            ->whereIn('slug', ['admin', 'instructor', 'student'])
+            ->get()
+            ->keyBy(fn (Role $role) => $role->effectiveSlug());
+
+        $merged = 0;
+        $bumpedCourses = [];
+
+        $clones = Role::withoutTenancy()
+            ->whereNotNull('course_id')
+            ->where('is_template', false)
+            ->get();
+
+        foreach ($clones as $clone) {
+            $slug = $clone->effectiveSlug();
+            $templateSlug = collect(['admin', 'instructor', 'student'])
+                ->first(fn (string $name) => $slug === $name || str_starts_with($slug, $name.'-'));
+            if (! $templateSlug || ! isset($templates[$templateSlug])) {
+                continue;
+            }
+
+            $church = $clone->church_id ? Church::query()->find($clone->church_id) : null;
+            $templateKeys = $templates[$templateSlug]->permissions()->pluck('permissions.key');
+            $keys = $templateKeys->filter(function (string $key) use ($church) {
+                return $church === null || $this->resolver->permissionAllowedByCapabilities($key, $church);
+            });
+
+            $existing = $clone->permissions()->pluck('permissions.key');
+            $missing = $keys->diff($existing);
+            if ($missing->isEmpty()) {
+                continue;
+            }
+
+            $combined = $existing->merge($keys)->unique()->values();
+            $ids = Permission::whereIn('key', $combined)->pluck('permission_id');
+            $clone->permissions()->sync($ids);
+            $merged++;
+            $bumpedCourses[(int) $clone->course_id] = true;
+        }
+
+        foreach (array_keys($bumpedCourses) as $courseId) {
+            $course = Course::withoutTenancy()->find($courseId);
+            if ($course) {
+                $this->resolver->bumpCoursePermissionsVersion($course);
+            }
         }
 
         return $merged;
