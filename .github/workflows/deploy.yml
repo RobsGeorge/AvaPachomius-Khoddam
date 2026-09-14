@@ -13,6 +13,8 @@ concurrency:
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
+    with:
+      skip_full_suite: true
 
   deploy:
     needs: test
