@@ -33,6 +33,8 @@ class ProjectExampleSeedService
      */
     public function seed(?int $courseId = null, ?User $actor = null, bool $publish = true): ?array
     {
+        app(ProjectAccessRepairService::class)->repair();
+
         $course = $this->resolveCourse($courseId);
         if ($course === null) {
             return null;

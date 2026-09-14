@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\Course;
 use App\Models\ServiceApplication;
@@ -11,6 +12,8 @@ use App\Services\RolePreviewService;
 use App\Services\RolesHubService;
 use App\Services\ServiceContextService;
 use App\Services\StudentRosterService;
+use App\Tenancy\TenantContext;
+use Illuminate\Support\Facades\Schema;
 
 class NavigationHub
 {
@@ -240,9 +243,9 @@ class NavigationHub
             }
         }
 
-        $church = \App\Tenancy\TenantContext::current()
-            ?? (\Illuminate\Support\Facades\Schema::hasTable('church')
-                ? \App\Models\Church::query()->where('slug', config('tenancy.main_slug'))->first()
+        $church = TenantContext::current()
+            ?? (Schema::hasTable('church')
+                ? Church::query()->where('slug', config('tenancy.main_slug'))->first()
                 : null);
         $resolver = app(CoursePermissionResolver::class);
         $churchLinks = [];
@@ -694,7 +697,7 @@ class NavigationHub
      */
     protected static function filterByCapability(array $links): array
     {
-        $church = \App\Tenancy\TenantContext::current();
+        $church = TenantContext::current();
         if ($church === null) {
             return $links;
         }
@@ -782,6 +785,11 @@ class NavigationHub
             return true;
         }
 
+        $current = current_course();
+        if ($current instanceof Course && $resolver->canAnyInCourse($user, $permissions, $current)) {
+            return true;
+        }
+
         foreach ($permissions as $perm) {
             if ($user->canInSystem($perm)) {
                 return true;
@@ -799,11 +807,8 @@ class NavigationHub
                 && $resolver->canAnyInCourse($user, $permissions, $course);
         }
 
-        foreach ($user->userCourseRoles()->activeStaff()->pluck('course_id') as $courseId) {
-            $course = Course::find($courseId);
-            if ($course && $resolver->canAnyInCourse($user, $permissions, $course)) {
-                return true;
-            }
+        if ($resolver->canAnyInAnyCourse($user, $permissions)) {
+            return true;
         }
 
         if ($user->isInstructorOrAdmin()) {
