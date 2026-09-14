@@ -322,9 +322,12 @@
                                         <div class="form-text">{{ __('projects.subproject_title_help') }}</div>
                                     </div>
                                     @include('projects.partials.team-brief-fields', [
-                                        'values' => $project->briefAttributes(),
+                                        'values' => $project->briefAttributesForEdit(),
                                         'compact' => true,
                                         'idPrefix' => 'edit-'.$project->project_id,
+                                    ])
+                                    @include('projects.partials.team-brief-legacy', [
+                                        'text' => $project->leftoverLegacyRequirements(),
                                     ])
                                     <button class="btn btn-sm btn-outline-secondary mt-2">{{ __('projects.save_team_details') }}</button>
                                 </form>

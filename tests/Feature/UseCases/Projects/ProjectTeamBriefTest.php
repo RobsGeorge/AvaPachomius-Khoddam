@@ -188,6 +188,107 @@ class ProjectTeamBriefTest extends EventModuleTestCase
             ->assertDontSee('name="subprojects[0][requirements]"', false);
     }
 
+    public function test_manage_form_prefills_purpose_from_legacy_requirements(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin] = $this->staffFixture();
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Legacy description project',
+                'min_team_size' => 1,
+                'max_team_size' => 2,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
+                'subprojects' => [
+                    ['title' => 'Hospital team', 'requirements' => 'Visit the ward twice and write a report'],
+                ],
+            ])
+            ->assertRedirect();
+
+        $project = Project::query()->where('title', 'Hospital team')->firstOrFail();
+        $this->assertNull($project->brief_purpose);
+        $this->assertSame('Visit the ward twice and write a report', $project->requirements);
+
+        $this->actingAs($admin)
+            ->get(route('projects.manage'))
+            ->assertOk()
+            ->assertSee('Visit the ward twice and write a report', false)
+            ->assertSee(__('projects.previous_description'), false);
+    }
+
+    public function test_backfill_copies_legacy_requirements_into_purpose_without_deleting_them(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin] = $this->staffFixture();
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+
+        $long = str_repeat('و', 257);
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Backfill project',
+                'min_team_size' => 1,
+                'max_team_size' => 2,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
+                'subprojects' => [
+                    ['title' => 'Orphan visit', 'requirements' => $long],
+                ],
+            ])
+            ->assertRedirect();
+
+        $project = Project::query()->where('title', 'Orphan visit')->firstOrFail();
+        $this->assertNull($project->brief_purpose);
+
+        $updated = Project::backfillLegacyBriefFields();
+        $this->assertSame(1, $updated);
+
+        $project->refresh();
+        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
+        $this->assertSame($long, $project->requirements);
+        $this->assertSame($long, $project->leftoverLegacyRequirements());
+
+        $this->assertSame(0, Project::backfillLegacyBriefFields());
+        $project->refresh();
+        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
+        $this->assertSame($long, $project->requirements);
+    }
+
+    public function test_saving_truncated_purpose_keeps_full_legacy_requirements(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin] = $this->staffFixture();
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+
+        $long = str_repeat('a', 257);
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Keep leftover',
+                'min_team_size' => 1,
+                'max_team_size' => 2,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
+                'subprojects' => [
+                    ['title' => 'Keep team', 'requirements' => $long],
+                ],
+            ])
+            ->assertRedirect();
+
+        $project = Project::query()->where('title', 'Keep team')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->put(route('projects.update', $project), [
+                'title' => 'Keep team',
+                'brief_purpose' => str_repeat('a', 255),
+            ])
+            ->assertSessionHasNoErrors();
+
+        $project->refresh();
+        $this->assertSame(255, mb_strlen((string) $project->brief_purpose));
+        $this->assertSame($long, $project->requirements);
+    }
+
     /**
      * @return array{0: Course, 1: Module, 2: User}
      */

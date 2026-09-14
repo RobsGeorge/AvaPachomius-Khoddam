@@ -533,5 +533,7 @@ return [
     'brief_environment_placeholder' => 'أين يتم العمل',
     'brief_purpose' => 'الهدف',
     'brief_purpose_placeholder' => 'لماذا يقوم هذا الفريق بهذا العمل',
+    'previous_description' => 'الوصف السابق للفريق',
+    'previous_description_hint' => 'نُسخ النص إلى الحقول أعلاه قدر الإمكان. وزّعه على الحقول الأربعة إن لزم ثم احفظ. النص الأطول من 255 حرفاً يبقى هنا حتى لا يضيع شيء.',
     'notify_brief_heading' => 'فريقك: :project',
 ];

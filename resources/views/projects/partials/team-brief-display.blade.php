@@ -21,4 +21,8 @@
 </dl>
 @if($fallbackRequirements && ! $project->hasStructuredBrief() && $project->requirements)
     <p class="small mt-2 mb-0" style="white-space: pre-wrap;">{{ $project->requirements }}</p>
+@elseif($project->hasStructuredBrief() && $project->leftoverLegacyRequirements())
+    @include('projects.partials.team-brief-legacy', [
+        'text' => $project->leftoverLegacyRequirements(),
+    ])
 @endif
