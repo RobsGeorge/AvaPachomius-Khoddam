@@ -18,6 +18,7 @@
             @if(! $course)
                 <p class="text-muted-theme small mb-0">{{ __('rbac.select_course_hint') }}</p>
             @else
+                <p class="small text-muted-theme mb-2">{{ __('rbac.projects_on_course_roles_hint') }}</p>
                 <div class="row g-2">
                     @if($canManageCourse)
                         <div class="col-lg-4">
@@ -67,6 +68,7 @@
                                             <tr>
                                                 <th>{{ __('rbac.role_name') }}</th>
                                                 <th>{{ __('rbac.users_count', ['count' => '']) }}</th>
+                                                <th>{{ __('rbac.project_access') }}</th>
                                                 <th></th>
                                             </tr>
                                         </thead>
@@ -80,6 +82,13 @@
                                                         @endif
                                                     </td>
                                                     <td>{{ $role->user_course_roles_count }}</td>
+                                                    <td>
+                                                        @if($role->permissions->contains('key', 'project.view') || $role->permissions->contains('key', 'project.join'))
+                                                            <span class="badge bg-success-subtle text-success">{{ __('rbac.project_access_yes') }}</span>
+                                                        @else
+                                                            <span class="badge bg-secondary-subtle text-secondary">{{ __('rbac.project_access_no') }}</span>
+                                                        @endif
+                                                    </td>
                                                     <td class="text-end text-nowrap">
                                                         <a href="{{ route('courses.roles.edit', [$course, $role]) }}" class="btn btn-sm btn-outline-primary">{{ __('rbac.permissions') }}</a>
                                                         @if($role->user_course_roles_count === 0)
@@ -92,7 +101,7 @@
                                                     </td>
                                                 </tr>
                                             @empty
-                                                <tr><td colspan="3" class="text-center text-muted-theme py-2">{{ __('rbac.no_roles') }}</td></tr>
+                                                <tr><td colspan="4" class="text-center text-muted-theme py-2">{{ __('rbac.no_roles') }}</td></tr>
                                             @endforelse
                                         </tbody>
                                     </table>

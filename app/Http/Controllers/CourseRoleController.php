@@ -67,7 +67,9 @@ class CourseRoleController extends Controller
         $this->authorizeManage($course);
         abort_unless($role->course_id === $course->course_id, 404);
 
-        $groups = $this->policy->visibleGroupsForCourseAdmin();
+        $groups = $this->policy->visibleGroupsForCourseAdmin()
+            ->sortBy(fn ($group) => $group->group_key === 'projects' ? 0 : ((int) $group->sort_order + 1))
+            ->values();
         $assignedIds = $role->permissions()->pluck('permissions.permission_id')->all();
 
         return view('course-roles.edit', compact('course', 'role', 'groups', 'assignedIds'));
