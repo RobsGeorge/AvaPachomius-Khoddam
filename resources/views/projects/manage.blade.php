@@ -150,17 +150,18 @@
                     <div id="subprojects-wrap">
                         @php $oldSubs = old('subprojects', [['title' => ''], ['title' => '']]); @endphp
                         @foreach($oldSubs as $index => $row)
-                            <div class="row g-2 mb-2">
-                                <div class="col-md-5">
+                            <div class="border rounded p-3 mb-3 team-subproject-row">
+                                <div class="mb-2">
                                     <label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label>
-                                    <input type="text" name="subprojects[{{ $index }}][title]" class="form-control" value="{{ $row['title'] ?? '' }}" placeholder="{{ __('projects.subproject_title_placeholder') }}">
+                                    <input type="text" name="subprojects[{{ $index }}][title]" class="form-control" maxlength="255" value="{{ $row['title'] ?? '' }}" placeholder="{{ __('projects.subproject_title_placeholder') }}">
                                     <div class="form-text">{{ __('projects.subproject_title_help') }}</div>
                                 </div>
-                                <div class="col-md-7">
-                                    <label class="form-label small mb-1">{{ __('projects.subproject_requirements') }}</label>
-                                    <input type="text" name="subprojects[{{ $index }}][requirements]" class="form-control" value="{{ $row['requirements'] ?? '' }}" placeholder="{{ __('projects.subproject_requirements_placeholder') }}">
-                                    <div class="form-text">{{ __('projects.subproject_requirements_help') }}</div>
-                                </div>
+                                @include('projects.partials.team-brief-fields', [
+                                    'namePrefix' => 'subprojects['.$index.']',
+                                    'idPrefix' => 'create-sub-'.$index,
+                                    'values' => $row,
+                                    'compact' => true,
+                                ])
                             </div>
                         @endforeach
                     </div>
@@ -312,23 +313,20 @@
                                         'max' => $assessment->max_team_size,
                                     ]) }}
                                 </div>
-                                @if($project->requirements)
-                                    <div class="small mt-1" style="white-space: pre-wrap;">{{ \Illuminate\Support\Str::limit($project->requirements, 160) }}</div>
-                                @endif
                                 <form method="POST" action="{{ route('projects.update', $project) }}" class="mt-2">
                                     @csrf
                                     @method('PUT')
                                     <div class="mb-2">
                                         <label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label>
-                                        <input type="text" name="title" class="form-control form-control-sm" value="{{ $project->title }}" required>
+                                        <input type="text" name="title" class="form-control form-control-sm" maxlength="255" value="{{ $project->title }}" required>
                                         <div class="form-text">{{ __('projects.subproject_title_help') }}</div>
                                     </div>
-                                    <div class="mb-2">
-                                        <label class="form-label small mb-1">{{ __('projects.team_description_label') }}</label>
-                                        <textarea name="requirements" class="form-control form-control-sm" rows="2">{{ $project->requirements }}</textarea>
-                                        <div class="form-text">{{ __('projects.team_description_help') }}</div>
-                                    </div>
-                                    <button class="btn btn-sm btn-outline-secondary">{{ __('projects.save_team_details') }}</button>
+                                    @include('projects.partials.team-brief-fields', [
+                                        'values' => $project->briefAttributes(),
+                                        'compact' => true,
+                                        'idPrefix' => 'edit-'.$project->project_id,
+                                    ])
+                                    <button class="btn btn-sm btn-outline-secondary mt-2">{{ __('projects.save_team_details') }}</button>
                                 </form>
                             </div>
                             <div class="d-flex flex-column align-items-end gap-1">
@@ -473,19 +471,15 @@
 
                 <form method="POST" action="{{ route('projects.store', $assessment) }}" class="mt-3">
                     @csrf
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
-                            <label class="form-label">{{ __('projects.subproject_title') }}</label>
-                            <input type="text" name="title" class="form-control" required placeholder="{{ __('projects.subproject_title_placeholder') }}">
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label">{{ __('projects.team_description_label') }}</label>
-                            <input type="text" name="requirements" class="form-control" placeholder="{{ __('projects.subproject_requirements_placeholder') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-outline-primary">{{ __('projects.add_subproject') }}</button>
-                        </div>
+                    <div class="mb-2">
+                        <label class="form-label">{{ __('projects.subproject_title') }}</label>
+                        <input type="text" name="title" class="form-control" required maxlength="255" placeholder="{{ __('projects.subproject_title_placeholder') }}">
                     </div>
+                    @include('projects.partials.team-brief-fields', [
+                        'compact' => true,
+                        'idPrefix' => 'add-'.$assessment->project_assessment_id,
+                    ])
+                    <button class="btn btn-outline-primary mt-2">{{ __('projects.add_subproject') }}</button>
                     <div class="form-text">{{ __('projects.add_subproject_help') }}</div>
                 </form>
             </div>
@@ -563,10 +557,23 @@ document.querySelectorAll('[data-repeat-subprojects]').forEach(function (btn) {
         var wrap = document.getElementById('subprojects-wrap');
         var index = wrap.children.length;
         var row = document.createElement('div');
-        row.className = 'row g-2 mb-2';
+        row.className = 'border rounded p-3 mb-3 team-subproject-row';
         row.innerHTML =
-            '<div class="col-md-5"><label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label><input type="text" name="subprojects[' + index + '][title]" class="form-control" placeholder="{{ __('projects.subproject_title_placeholder') }}"></div>' +
-            '<div class="col-md-7"><label class="form-label small mb-1">{{ __('projects.subproject_requirements') }}</label><input type="text" name="subprojects[' + index + '][requirements]" class="form-control" placeholder="{{ __('projects.subproject_requirements_placeholder') }}"></div>';
+            '<div class="mb-2"><label class="form-label small mb-1">{{ __('projects.subproject_title') }}</label>' +
+            '<input type="text" name="subprojects[' + index + '][title]" class="form-control" maxlength="255" placeholder="{{ __('projects.subproject_title_placeholder') }}">' +
+            '<div class="form-text">{{ __('projects.subproject_title_help') }}</div></div>' +
+            '<div class="fw-semibold small mb-1">{{ __('projects.team_brief_heading') }}</div>' +
+            '<p class="small text-muted mb-2">{{ __('projects.team_brief_help') }} {{ __('projects.brief_max_help') }}</p>' +
+            '<div class="row g-2">' +
+            '<div class="col-md-6"><label class="form-label small mb-1">{{ __('projects.brief_main_title') }}</label>' +
+            '<textarea name="subprojects[' + index + '][brief_main_title]" class="form-control form-control-sm" rows="2" maxlength="255" placeholder="{{ __('projects.brief_main_title_placeholder') }}"></textarea></div>' +
+            '<div class="col-md-6"><label class="form-label small mb-1">{{ __('projects.brief_audience') }}</label>' +
+            '<textarea name="subprojects[' + index + '][brief_audience]" class="form-control form-control-sm" rows="2" maxlength="255" placeholder="{{ __('projects.brief_audience_placeholder') }}"></textarea></div>' +
+            '<div class="col-md-6"><label class="form-label small mb-1">{{ __('projects.brief_environment') }}</label>' +
+            '<textarea name="subprojects[' + index + '][brief_environment]" class="form-control form-control-sm" rows="2" maxlength="255" placeholder="{{ __('projects.brief_environment_placeholder') }}"></textarea></div>' +
+            '<div class="col-md-6"><label class="form-label small mb-1">{{ __('projects.brief_purpose') }}</label>' +
+            '<textarea name="subprojects[' + index + '][brief_purpose]" class="form-control form-control-sm" rows="2" maxlength="255" placeholder="{{ __('projects.brief_purpose_placeholder') }}"></textarea></div>' +
+            '</div>';
         wrap.appendChild(row);
     });
 });

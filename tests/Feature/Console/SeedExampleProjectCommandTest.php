@@ -33,6 +33,9 @@ class SeedExampleProjectCommandTest extends EventModuleTestCase
 
         $teams = $assessment->projects()->orderBy('sort_order')->get();
         $this->assertSame(['زيارة المرضى', 'خدمة المسنين', 'خدمة الأيتام'], $teams->pluck('title')->all());
+        $this->assertSame('زيارة المرضى في المستشفى ودار الرعاية', $teams[0]->brief_main_title);
+        $this->assertSame('رعاية المسنين في الدار والبيوت', $teams[1]->brief_main_title);
+        $this->assertSame('يوم نشاط مع الأيتام وأطفال الرعية', $teams[2]->brief_main_title);
 
         $requirements = $teams->pluck('requirements')->all();
         $this->assertCount(3, array_unique($requirements));
