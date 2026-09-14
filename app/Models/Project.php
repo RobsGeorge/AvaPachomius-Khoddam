@@ -25,6 +25,26 @@ class Project extends Model
 
     public const WORKSPACE_TELEGRAM = 'telegram';
 
+    public const BRIEF_MAIN_TITLE = 'brief_main_title';
+
+    public const BRIEF_AUDIENCE = 'brief_audience';
+
+    public const BRIEF_ENVIRONMENT = 'brief_environment';
+
+    public const BRIEF_PURPOSE = 'brief_purpose';
+
+    public const BRIEF_MAX_LENGTH = 255;
+
+    /**
+     * @var list<string>
+     */
+    public const BRIEF_KEYS = [
+        self::BRIEF_MAIN_TITLE,
+        self::BRIEF_AUDIENCE,
+        self::BRIEF_ENVIRONMENT,
+        self::BRIEF_PURPOSE,
+    ];
+
     protected $table = 'projects';
 
     protected $primaryKey = 'project_id';
@@ -32,6 +52,10 @@ class Project extends Model
     protected $fillable = [
         'project_assessment_id',
         'title',
+        'brief_main_title',
+        'brief_audience',
+        'brief_environment',
+        'brief_purpose',
         'requirements',
         'status',
         'sort_order',
@@ -199,6 +223,75 @@ class Project extends Model
         }
 
         return $this->final_submitted_at->gt($due);
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    public function briefAttributes(): array
+    {
+        $out = [];
+        foreach (self::BRIEF_KEYS as $key) {
+            $value = trim((string) $this->{$key});
+            $out[$key] = $value === '' ? null : $value;
+        }
+
+        return $out;
+    }
+
+    public function hasStructuredBrief(): bool
+    {
+        foreach ($this->briefAttributes() as $value) {
+            if ($value !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Plain-text blob of the four brief fields (locale-independent values only).
+     */
+    public function composedRequirements(): ?string
+    {
+        return self::composeRequirements($this->briefAttributes());
+    }
+
+    /**
+     * @param  array<string, ?string>  $brief
+     */
+    public static function composeRequirements(array $brief): ?string
+    {
+        $lines = [];
+        foreach (self::BRIEF_KEYS as $key) {
+            $value = trim((string) ($brief[$key] ?? ''));
+            if ($value !== '') {
+                $lines[] = $value;
+            }
+        }
+
+        return $lines === [] ? null : implode("\n", $lines);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, ?string>
+     */
+    public static function briefFromRow(array $row): array
+    {
+        $out = [];
+        foreach (self::BRIEF_KEYS as $key) {
+            if (! array_key_exists($key, $row)) {
+                $out[$key] = null;
+
+                continue;
+            }
+            $value = trim((string) $row[$key]);
+            $out[$key] = $value === '' ? null : mb_substr($value, 0, self::BRIEF_MAX_LENGTH);
+        }
+
+        return $out;
     }
 
     /**

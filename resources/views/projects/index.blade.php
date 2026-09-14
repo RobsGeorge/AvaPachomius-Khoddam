@@ -54,7 +54,13 @@
                         @include('projects.partials.join-countdown', ['assessment' => $assessment])
 
                         @if($membership && $assignedProject)
-                            <p class="mb-3">{{ __('projects.assigned_to', ['title' => $assignedProject->title]) }}</p>
+                            <p class="mb-2">{{ __('projects.assigned_to', ['title' => $assignedProject->title]) }}</p>
+                            <div class="mb-3">
+                                @include('projects.partials.team-brief-display', [
+                                    'project' => $assignedProject,
+                                    'showHeading' => false,
+                                ])
+                            </div>
                             @include('projects.partials.grade-status', ['visibility' => $gradeVisibility[$assessment->project_assessment_id] ?? null])
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 <a href="{{ route('projects.show', $assignedProject) }}" class="btn btn-outline-primary">

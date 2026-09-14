@@ -27,6 +27,7 @@ class ProjectNotificationService
                 'teammates' => $this->rosterLines($project, exceptUserId: (int) $user->user_id),
             ]);
         $body .= "\n\n".$this->joinDeadlineLine($project);
+        $body .= $this->briefBlock($project);
 
         $this->notifications->createOrUpdate(
             $user,
@@ -154,7 +155,7 @@ class ProjectNotificationService
             __('projects.notify_moved_body', [
                 'project' => $project->title,
                 'members' => $this->rosterLines($project, exceptUserId: (int) $user->user_id),
-            ]),
+            ]).$this->briefBlock($project),
             $url,
             Project::class,
             (int) $project->project_id,
@@ -341,7 +342,7 @@ class ProjectNotificationService
                 'project' => $project->title,
                 'members' => $this->rosterLines($project),
                 'url' => $url,
-            ]);
+            ]).$this->briefBlock($project);
 
             foreach ($project->activeMembers() as $member) {
                 $this->notifications->createOrUpdate(
@@ -372,6 +373,17 @@ class ProjectNotificationService
         return __('projects.notify_join_deadline_line', [
             'when' => $when->timezone(config('app.timezone'))->format('Y-m-d H:i'),
         ]);
+    }
+
+    private function briefBlock(Project $project): string
+    {
+        $lines = [__('projects.notify_brief_heading', ['project' => $project->title])];
+        foreach (Project::BRIEF_KEYS as $key) {
+            $value = trim((string) $project->{$key});
+            $lines[] = __('projects.'.$key).': '.($value !== '' ? $value : '—');
+        }
+
+        return "\n\n".implode("\n", $lines);
     }
 
     private function rosterLines(Project $project, ?int $exceptUserId = null): string

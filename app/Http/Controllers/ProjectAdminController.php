@@ -185,7 +185,7 @@ class ProjectAdminController extends Controller
     public function storeProject(Request $request, ProjectAssessment $projectAssessment)
     {
         $this->assertCanManageCourse((int) $projectAssessment->course_id);
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'title' => 'required|string|max:255',
             'requirements' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -202,11 +202,15 @@ class ProjectAdminController extends Controller
             'deliverables.*.is_required' => 'nullable|boolean',
             'deliverables.*.allow_late' => 'nullable|boolean',
             'deliverables.*.max_points' => 'nullable|numeric|min:0|max:9999.99',
-        ]);
+        ], $this->teamBriefRules()));
 
         $this->admin->createProject($projectAssessment, [
             'title' => $validated['title'],
             'requirements' => $validated['requirements'] ?? null,
+            'brief_main_title' => $validated['brief_main_title'] ?? null,
+            'brief_audience' => $validated['brief_audience'] ?? null,
+            'brief_environment' => $validated['brief_environment'] ?? null,
+            'brief_purpose' => $validated['brief_purpose'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
         ]);
@@ -218,7 +222,7 @@ class ProjectAdminController extends Controller
     {
         $project->load('assessment');
         $this->assertCanManageCourse((int) $project->assessment->course_id);
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'title' => 'required|string|max:255',
             'requirements' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -234,7 +238,7 @@ class ProjectAdminController extends Controller
             'deliverables.*.file_mode' => 'nullable|string|in:single,multi',
             'deliverables.*.is_required' => 'nullable|boolean',
             'deliverables.*.allow_late' => 'nullable|boolean',
-        ]);
+        ], $this->teamBriefRules()));
 
         $this->admin->updateProject($project, $validated);
 
@@ -804,6 +808,10 @@ class ProjectAdminController extends Controller
             'subprojects' => 'nullable|array',
             'subprojects.*.title' => 'nullable|string|max:255',
             'subprojects.*.requirements' => 'nullable|string',
+            'subprojects.*.brief_main_title' => 'nullable|string|max:255',
+            'subprojects.*.brief_audience' => 'nullable|string|max:255',
+            'subprojects.*.brief_environment' => 'nullable|string|max:255',
+            'subprojects.*.brief_purpose' => 'nullable|string|max:255',
             'requirements' => 'nullable|string',
             'project_titles' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -859,6 +867,19 @@ class ProjectAdminController extends Controller
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function teamBriefRules(): array
+    {
+        return [
+            'brief_main_title' => 'nullable|string|max:255',
+            'brief_audience' => 'nullable|string|max:255',
+            'brief_environment' => 'nullable|string|max:255',
+            'brief_purpose' => 'nullable|string|max:255',
+        ];
     }
 
     private function modulesForCourse(?Course $course)

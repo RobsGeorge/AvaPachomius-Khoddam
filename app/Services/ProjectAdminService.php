@@ -31,7 +31,7 @@ class ProjectAdminService
      *     criteria?:list<array{title:string, max_points:float|int}>,
      *     project_count?:int,
      *     project_titles?:list<string>,
-     *     subprojects?:list<array{title:string, requirements?:?string}>,
+     *     subprojects?:list<array{title:string, requirements?:?string, brief_main_title?:?string, brief_audience?:?string, brief_environment?:?string, brief_purpose?:?string}>,
      *     requirements?:?string,
      *     phases?:list<array{title:string, description?:?string, deadline?:?string}>,
      *     deliverables?:list<array{title:string, description?:?string, due_at?:?string}>,
@@ -77,13 +77,11 @@ class ProjectAdminService
             $subprojects = $this->resolveSubprojects($data);
 
             foreach ($subprojects as $index => $subproject) {
-                $this->createProject($assessment, [
-                    'title' => $subproject['title'],
-                    'requirements' => $subproject['requirements'] ?? ($data['requirements'] ?? null),
+                $this->createProject($assessment, array_merge($subproject, [
                     'sort_order' => $index,
                     'phases' => $data['phases'] ?? [],
                     'deliverables' => $data['deliverables'] ?? [],
-                ]);
+                ]));
             }
 
             $count = count($subprojects);
@@ -103,6 +101,10 @@ class ProjectAdminService
      * @param  array{
      *     title:string,
      *     requirements?:?string,
+     *     brief_main_title?:?string,
+     *     brief_audience?:?string,
+     *     brief_environment?:?string,
+     *     brief_purpose?:?string,
      *     sort_order?:int,
      *     phases?:list<array{title:string, description?:?string, deadline?:?string}>,
      *     deliverables?:list<array{title:string, description?:?string, due_at?:?string}>,
@@ -112,13 +114,12 @@ class ProjectAdminService
     {
         $this->assertUniqueTitle($assessment, (string) $data['title']);
 
-        $project = Project::create([
+        $project = Project::create(array_merge([
             'project_assessment_id' => $assessment->project_assessment_id,
             'title' => $data['title'],
-            'requirements' => $data['requirements'] ?? null,
             'status' => Project::STATUS_OPEN,
             'sort_order' => $data['sort_order'] ?? ((int) $assessment->projects()->max('sort_order') + 1),
-        ]);
+        ], $this->briefPersistAttributes($data)));
 
         $this->syncPhases($project, $data['phases'] ?? []);
         $this->syncDeliverables($project, $data['deliverables'] ?? []);
@@ -194,7 +195,7 @@ class ProjectAdminService
     }
 
     /**
-     * @param  array{title?:string, requirements?:?string, phases?:list<array>, deliverables?:list<array>}  $data
+     * @param  array{title?:string, requirements?:?string, brief_main_title?:?string, brief_audience?:?string, brief_environment?:?string, brief_purpose?:?string, phases?:list<array>, deliverables?:list<array>}  $data
      */
     public function updateProject(Project $project, array $data): Project
     {
@@ -202,13 +203,18 @@ class ProjectAdminService
             $this->assertUniqueTitle($project->assessment ?? $project->assessment()->firstOrFail(), (string) $data['title'], (int) $project->project_id);
         }
 
-        $project->update(array_filter(
+        $payload = array_filter(
             [
                 'title' => $data['title'] ?? null,
-                'requirements' => $data['requirements'] ?? null,
             ],
             fn ($value) => $value !== null
-        ));
+        );
+
+        if ($this->rowHasBriefKeys($data) || array_key_exists('requirements', $data)) {
+            $payload = array_merge($payload, $this->briefPersistAttributes($data, $project));
+        }
+
+        $project->update($payload);
 
         if (array_key_exists('phases', $data)) {
             $project->phases()->delete();
@@ -287,7 +293,7 @@ class ProjectAdminService
      * Each team is one unique subproject. Explicit `subprojects` win; otherwise
      * `project_titles` or numbered titles from the assessment name.
      *
-     * @return list<array{title:string, requirements:?string}>
+     * @return list<array{title:string, requirements:?string, brief_main_title:?string, brief_audience:?string, brief_environment:?string, brief_purpose:?string}>
      */
     private function resolveSubprojects(array $data): array
     {
@@ -301,13 +307,10 @@ class ProjectAdminService
             if ($title === '') {
                 continue;
             }
-            $override = $row['requirements'] ?? null;
-            $rows[] = [
-                'title' => $title,
-                'requirements' => ($override !== null && trim((string) $override) !== '')
-                    ? $override
-                    : $sharedRequirements,
-            ];
+            $rows[] = array_merge(
+                ['title' => $title],
+                $this->briefPersistAttributes($row, sharedRequirements: $sharedRequirements)
+            );
         }
 
         if ($submittedSubprojects && $rows === []) {
@@ -328,16 +331,69 @@ class ProjectAdminService
                 }
             }
             foreach ($titles as $title) {
-                $rows[] = [
-                    'title' => $title,
-                    'requirements' => $sharedRequirements,
-                ];
+                $rows[] = array_merge(
+                    ['title' => $title],
+                    $this->briefPersistAttributes([], sharedRequirements: $sharedRequirements)
+                );
             }
         }
 
         $this->assertUniqueTitleList(array_column($rows, 'title'));
 
         return $rows;
+    }
+
+    /**
+     * Persist the four team-brief fields. When any brief field is set, compose
+     * `requirements` from them so legacy views still have a blob. Otherwise keep
+     * the posted/shared requirements text (existing assessments).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{brief_main_title:?string, brief_audience:?string, brief_environment:?string, brief_purpose:?string, requirements:?string}
+     */
+    private function briefPersistAttributes(array $data, ?Project $existing = null, mixed $sharedRequirements = null): array
+    {
+        $postedBrief = $this->rowHasBriefKeys($data);
+        $brief = $postedBrief
+            ? Project::briefFromRow($data)
+            : ($existing?->briefAttributes() ?? Project::briefFromRow([]));
+
+        $hasBriefValues = collect($brief)->contains(fn ($value) => $value !== null);
+
+        if ($hasBriefValues) {
+            $requirements = Project::composeRequirements($brief);
+        } elseif (array_key_exists('requirements', $data)) {
+            $trimmed = trim((string) ($data['requirements'] ?? ''));
+            $requirements = $trimmed === '' ? null : $trimmed;
+        } elseif ($sharedRequirements !== null && trim((string) $sharedRequirements) !== '') {
+            $requirements = trim((string) $sharedRequirements);
+        } elseif ($postedBrief) {
+            $requirements = null;
+        } else {
+            $requirements = $existing?->requirements;
+        }
+
+        return [
+            'brief_main_title' => $brief[Project::BRIEF_MAIN_TITLE] ?? null,
+            'brief_audience' => $brief[Project::BRIEF_AUDIENCE] ?? null,
+            'brief_environment' => $brief[Project::BRIEF_ENVIRONMENT] ?? null,
+            'brief_purpose' => $brief[Project::BRIEF_PURPOSE] ?? null,
+            'requirements' => $requirements,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function rowHasBriefKeys(array $data): bool
+    {
+        foreach (Project::BRIEF_KEYS as $key) {
+            if (array_key_exists($key, $data)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -86,6 +86,10 @@ class ProjectController extends Controller
             'data' => [
                 'project_id' => (int) $project->project_id,
                 'title' => $project->title,
+                'brief_main_title' => $project->brief_main_title,
+                'brief_audience' => $project->brief_audience,
+                'brief_environment' => $project->brief_environment,
+                'brief_purpose' => $project->brief_purpose,
                 'requirements' => $project->requirements,
                 'status' => $project->status,
                 'is_locked' => (bool) $project->is_locked,
