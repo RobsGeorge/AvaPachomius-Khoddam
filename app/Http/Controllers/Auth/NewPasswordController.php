@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Auth\PasswordResetToken;
 use App\Http\Controllers\Controller;
 use App\Services\AuditLogService;
 use App\Services\PendingRegistrationService;
@@ -17,16 +18,21 @@ class NewPasswordController extends Controller
     public function create(Request $request, string $token)
     {
         return view('auth.passwords.reset', [
-            'token' => $token,
+            'resetToken' => PasswordResetToken::normalize($token),
             'email' => $request->query('email', old('email')),
         ]);
     }
 
     public function store(Request $request)
     {
+        $request->merge([
+            'token' => PasswordResetToken::normalize((string) $request->input('token')),
+            'email' => strtolower(trim((string) $request->input('email'))),
+        ]);
+
         $request->validate([
-            'token'    => ['required'],
-            'email'    => ['required', 'email'],
+            'token' => ['required'],
+            'email' => ['required', 'email'],
             'password' => PasswordRules::field(),
         ], PasswordRules::messages());
 
@@ -36,7 +42,7 @@ class NewPasswordController extends Controller
                 $wasPending = PendingRegistrationService::isPending($user);
 
                 $user->forceFill([
-                    'password'       => Hash::make($request->password),
+                    'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
 
@@ -51,7 +57,7 @@ class NewPasswordController extends Controller
         );
 
         AuditLogService::setPasswordResult($request, [
-            'success'        => $status === Password::PASSWORD_RESET,
+            'success' => $status === Password::PASSWORD_RESET,
             'failure_reason' => $status === Password::PASSWORD_RESET ? null : (string) $status,
         ]);
 
@@ -75,7 +81,7 @@ class NewPasswordController extends Controller
         }
 
         return back()
-            ->withInput($request->only('email'))
+            ->withInput($request->only('email', 'token'))
             ->withErrors(['email' => __($status)]);
     }
 }

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\NavigationHub;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password;
 use Tests\Support\EventModuleTestCase;
 
 class AdminPasswordResetTest extends EventModuleTestCase
@@ -144,8 +145,57 @@ class AdminPasswordResetTest extends EventModuleTestCase
         $this->assertIsString($path);
         $token = basename($path);
 
+        $this->get($resetUrl)
+            ->assertOk()
+            ->assertSee($token, false);
+
+        $this->from($resetUrl)
+            ->post(route('password.update'), [
+                'token' => "\u{202E}".strtoupper($token),
+                'email' => strtoupper($student->email),
+                'password' => 'NewPass1!',
+                'password_confirmation' => 'NewPass1!',
+            ])->assertRedirect(route('login'));
+
+        $this->assertTrue(Hash::check('NewPass1!', $student->fresh()->password));
+    }
+
+    public function test_admin_resend_replaces_a_throttled_self_serve_token(): void
+    {
+        Mail::fake();
+
+        $course = $this->createCourse(['title' => 'Reset Resend Course']);
+        $admin = $this->makeCourseAdmin($course, 'reset-resend-admin@example.com');
+        $student = $this->makeStudent($course, [
+            'email' => 'reset-resend-student@example.com',
+            'password' => Hash::make('OldPass1!'),
+        ]);
+
+        $stale = Password::broker()->createToken($student);
+
+        $this->actingAs($admin)
+            ->post(route('students.password-reset.store'), ['user_id' => $student->user_id])
+            ->assertSessionHas('success');
+
+        $resetUrl = null;
+        Mail::assertSent(ResetPasswordMail::class, function (ResetPasswordMail $mail) use (&$resetUrl, $student) {
+            $resetUrl = $mail->resetUrl;
+
+            return $mail->hasTo($student->email);
+        });
+
+        $fresh = basename((string) parse_url((string) $resetUrl, PHP_URL_PATH));
+        $this->assertNotSame($stale, $fresh);
+
         $this->post(route('password.update'), [
-            'token' => $token,
+            'token' => $stale,
+            'email' => $student->email,
+            'password' => 'StalePass1!',
+            'password_confirmation' => 'StalePass1!',
+        ])->assertSessionHasErrors('email');
+
+        $this->post(route('password.update'), [
+            'token' => $fresh,
             'email' => $student->email,
             'password' => 'NewPass1!',
             'password_confirmation' => 'NewPass1!',

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Auth\PasswordResetToken;
 use App\Mail\ResetPasswordMail;
 use App\Services\CoursePermissionResolver;
 use App\Services\ImpersonationService;
@@ -586,12 +587,17 @@ class User extends Authenticatable
         return $this->is_verified;  // admin verified flag instead of default email_verified_at
     }
 
+    public function getEmailForPasswordReset()
+    {
+        return strtolower(trim((string) $this->email));
+    }
+
     public function sendPasswordResetNotification($token): void
     {
-        $resetUrl = url(route('password.reset', [
-            'token' => $token,
+        $resetUrl = route('password.reset', [
+            'token' => PasswordResetToken::normalize((string) $token),
             'email' => $this->getEmailForPasswordReset(),
-        ], false));
+        ]);
 
         Mail::to($this->email)->send(new ResetPasswordMail($this, $resetUrl));
     }
