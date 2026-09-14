@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Role;
 use App\Services\RolesHubService;
 use App\Support\NavigationHub;
 use Tests\Support\EventModuleTestCase;
