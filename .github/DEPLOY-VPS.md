@@ -212,6 +212,20 @@ Local development may use PHP 8.5+, but the VPS and CI target **8.2**.
 
 `The [public/storage] link already exists` is normal on repeat deploys; the workflow now skips `storage:link` when the symlink is present.
 
+## SSH connect timeout (`dial tcp …: i/o timeout`)
+
+The production site can stay up (nginx/HTTPS) while GitHub Actions cannot open
+SSH. That is a **connect** failure — the remote deploy script never starts, so
+the VPS stays on the last successful commit and is not left in maintenance.
+
+The production workflow retries the SSH step up to 4 times (45s apart, 180s
+connect timeout). If it still fails:
+
+1. Confirm the host answers SSH from a trusted machine (`nc -zv <host> <port>`).
+2. Confirm the VPS firewall still allows GitHub Actions IPs (they rotate).
+3. **Re-run** the failed "Deploy to Production" job, or use **Run workflow**
+   (`workflow_dispatch`) on `.github/workflows/deploy.yml`.
+
 ## Deploy timeouts
 
 If the workflow stops at `==> migrations`:
