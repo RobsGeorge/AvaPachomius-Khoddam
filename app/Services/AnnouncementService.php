@@ -263,15 +263,18 @@ class AnnouncementService
             ->count();
     }
 
-    /** @return Collection<int, AnnouncementDelivery> */
+    /**
+     * All published deliveries for the student inbox (open + finished).
+     * Homepage/banners/unread still use currentlyVisible().
+     *
+     * @return Collection<int, AnnouncementDelivery>
+     */
     public function studentInbox(User $user): Collection
     {
-        $now = now($this->timezone());
-
         return AnnouncementDelivery::query()
             ->with(['announcement.course', 'announcement.creator'])
             ->where('announcement_deliveries.user_id', $user->user_id)
-            ->whereHas('announcement', fn ($q) => $q->currentlyVisible($now))
+            ->whereHas('announcement', fn ($q) => $q->where('status', Announcement::STATUS_PUBLISHED))
             ->join('announcements', 'announcements.announcement_id', '=', 'announcement_deliveries.announcement_id')
             ->orderByDesc('announcements.published_at')
             ->select('announcement_deliveries.*')

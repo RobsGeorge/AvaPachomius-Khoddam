@@ -29,10 +29,14 @@ class AnnouncementManageController extends Controller
             ->when(! $user->isAdmin() && ! ($user->is_superadmin ?? false), function ($q) use ($courseIds) {
                 $q->whereIn('course_id', $courseIds);
             })
+            ->orderByDesc('published_at')
             ->orderByDesc('updated_at')
-            ->paginate(20);
+            ->get();
 
-        return view('announcements.manage.index', compact('items'));
+        $openItems = $items->filter(fn (Announcement $item) => ! $item->isFinished())->values();
+        $finishedItems = $items->filter(fn (Announcement $item) => $item->isFinished())->values();
+
+        return view('announcements.manage.index', compact('openItems', 'finishedItems'));
     }
 
     public function create(Request $request)

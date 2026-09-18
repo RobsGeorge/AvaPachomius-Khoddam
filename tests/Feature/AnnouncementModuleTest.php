@@ -195,7 +195,7 @@ class AnnouncementModuleTest extends EventModuleTestCase
             ->assertSee(__('announcements.manage_title'));
     }
 
-    public function test_expired_published_announcement_is_hidden_from_students(): void
+    public function test_expired_published_announcement_is_grouped_as_finished(): void
     {
         Mail::fake();
 
@@ -214,7 +214,7 @@ class AnnouncementModuleTest extends EventModuleTestCase
         $this->actingAs($instructor)
             ->post(route('announcements.manage.store'), [
                 'title' => 'Past deadline notice',
-                'body' => 'This should disappear after the end date.',
+                'body' => 'This should move to Finished after the end date.',
                 'target_mode' => Announcement::TARGET_COURSE,
                 'course_id' => $course->course_id,
                 'banner_starts_at' => now($timezone)->subDays(3)->format('Y-m-d\TH:i'),
@@ -239,24 +239,31 @@ class AnnouncementModuleTest extends EventModuleTestCase
 
         $announcement->refresh();
         $this->assertFalse($announcement->isCurrentlyVisible());
-        $this->assertCount(
-            0,
-            app(\App\Services\AnnouncementService::class)->studentInbox($student)
-        );
+        $this->assertTrue($announcement->isFinished());
 
-        $this->assertDatabaseHas('announcement_deliveries', [
-            'announcement_id' => $announcement->announcement_id,
-            'user_id' => $student->user_id,
-        ]);
+        $inbox = app(\App\Services\AnnouncementService::class)->studentInbox($student);
+        $this->assertCount(1, $inbox);
+        $this->assertTrue($inbox->first()->announcement->isFinished());
 
         $this->actingAs($student)
             ->get(route('announcements.index'))
             ->assertOk()
-            ->assertViewHas('deliveries', fn ($deliveries) => $deliveries->isEmpty());
+            ->assertSee(__('announcements.section_finished'))
+            ->assertSee('Past deadline notice')
+            ->assertViewHas('openDeliveries', fn ($deliveries) => $deliveries->isEmpty())
+            ->assertViewHas('finishedDeliveries', fn ($deliveries) => $deliveries->count() === 1);
 
         $this->actingAs($student)
             ->get(route('announcements.show', $announcement))
-            ->assertNotFound();
+            ->assertOk()
+            ->assertSee('This should move to Finished after the end date.');
+
+        $this->actingAs($instructor)
+            ->get(route('announcements.manage.index'))
+            ->assertOk()
+            ->assertSee(__('announcements.section_finished'))
+            ->assertSee('Past deadline notice')
+            ->assertViewHas('finishedItems', fn ($items) => $items->contains('announcement_id', $announcement->announcement_id));
     }
 
     public function test_instructor_can_unpublish_announcement(): void
@@ -306,7 +313,8 @@ class AnnouncementModuleTest extends EventModuleTestCase
         $this->actingAs($student)
             ->get(route('announcements.index'))
             ->assertOk()
-            ->assertViewHas('deliveries', fn ($deliveries) => $deliveries->isEmpty());
+            ->assertViewHas('openDeliveries', fn ($deliveries) => $deliveries->isEmpty())
+            ->assertViewHas('finishedDeliveries', fn ($deliveries) => $deliveries->isEmpty());
     }
 
     public function test_instructor_can_clone_announcement_with_new_dates(): void

@@ -34,7 +34,7 @@ class AnnouncementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($announcement->isCurrentlyVisible(), 404);
+        abort_unless($announcement->isPublished(), 404);
 
         $delivery = AnnouncementDelivery::query()
             ->where('announcement_id', $announcement->announcement_id)
@@ -83,6 +83,7 @@ class AnnouncementController extends Controller
             'read_at' => $delivery->read_at?->toIso8601String(),
             'opened_at' => $delivery->opened_at?->toIso8601String(),
             'is_unread' => $delivery->isUnread(),
+            'is_finished' => (bool) $announcement?->isFinished(),
         ];
     }
 }
