@@ -13,6 +13,13 @@
                     @csrf
                     <button type="submit" class="btn btn-outline-warning">{{ __('announcements.unpublish') }}</button>
                 </form>
+            @elseif($announcement->isDraft())
+                <form method="POST" action="{{ route('announcements.manage.destroy', $announcement) }}"
+                      data-confirm="{{ __('announcements.delete_confirm') }}">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger">{{ __('announcements.delete') }}</button>
+                </form>
             @endif
             <form method="POST" action="{{ route('announcements.manage.publish', $announcement) }}"
                   data-confirm="{{ __('announcements.publish').'?' }}">

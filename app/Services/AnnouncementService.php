@@ -10,6 +10,7 @@ use App\Models\ChurchService;
 use App\Models\CommunicationLog;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\AuditLogService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +131,47 @@ class AnnouncementService
         $this->recordRevision($announcement, $actor, AnnouncementRevision::ACTION_UNPUBLISHED);
 
         return $this->freshAnnouncement($announcement);
+    }
+
+    /**
+     * Permanently delete a draft announcement (and cascaded deliveries/targets).
+     * Published announcements must be unpublished first.
+     */
+    public function deleteDraft(Announcement $announcement, User $actor): void
+    {
+        if ($announcement->isPublished()) {
+            throw new \InvalidArgumentException('Only draft announcements can be deleted.');
+        }
+
+        $snapshot = [
+            'announcement_id' => $announcement->announcement_id,
+            'title' => $announcement->title,
+            'body' => $announcement->body,
+            'target_mode' => $announcement->target_mode,
+            'course_id' => $announcement->course_id,
+            'service_id' => $announcement->service_id,
+            'channels' => $announcement->channels,
+            'banner_starts_at' => $announcement->banner_starts_at?->toIso8601String(),
+            'banner_ends_at' => $announcement->banner_ends_at?->toIso8601String(),
+            'status' => $announcement->status,
+            'published_at' => $announcement->published_at?->toIso8601String(),
+        ];
+
+        AuditLogService::recordEvent('announcement.deleted', [
+            'announcement_id' => $announcement->announcement_id,
+            'actor_user_id' => $actor->user_id,
+            'snapshot' => $snapshot,
+        ]);
+
+        DB::transaction(function () use ($announcement) {
+            // Revisions have no cascade FK — clear them before the parent row.
+            AnnouncementRevision::query()
+                ->where('announcement_id', $announcement->announcement_id)
+                ->delete();
+
+            $announcement->targetUsers()->detach();
+            $announcement->delete();
+        });
     }
 
     /**

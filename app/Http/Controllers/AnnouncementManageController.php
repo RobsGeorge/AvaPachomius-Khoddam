@@ -140,6 +140,19 @@ class AnnouncementManageController extends Controller
             ->with('success', __('announcements.cloned'));
     }
 
+    public function destroy(Announcement $announcement)
+    {
+        $this->authorizeAnnouncement($announcement);
+
+        abort_unless($announcement->isDraft(), 404);
+
+        $this->announcements->deleteDraft($announcement, Auth::user());
+
+        return redirect()
+            ->route('announcements.manage.index')
+            ->with('success', __('announcements.deleted'));
+    }
+
     public function resendEmail(Announcement $announcement)
     {
         $this->authorizeAnnouncement($announcement);
