@@ -33,6 +33,7 @@ class StudentRosterController extends Controller
                 'nextMonthBirthdays' => collect(),
                 'thisMonthLabel' => $now->translatedFormat('F Y'),
                 'nextMonthLabel' => $now->copy()->addMonth()->translatedFormat('F Y'),
+                'canSendPasswordReset' => false,
             ]);
         }
 
@@ -56,6 +57,7 @@ class StudentRosterController extends Controller
             'nextMonthBirthdays' => $this->rosterService->studentsWithBirthdayInMonth($students, $nextMonth->month),
             'thisMonthLabel' => $now->translatedFormat('F Y'),
             'nextMonthLabel' => $nextMonth->translatedFormat('F Y'),
+            'canSendPasswordReset' => $user->canInCourse('roster.password_reset', $course),
         ]);
     }
 

@@ -20,7 +20,8 @@
                 {{ __('mail.reset_action_label') }}
             </p>
             <a href="{{ $resetUrl }}"
-               style="display:inline-block;padding:14px 32px;background:{{ $theme['gold_gradient'] }};color:#1a202c;text-decoration:none;border-radius:10px;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(212,175,55,0.35);">
+               dir="ltr"
+               style="direction:ltr;unicode-bidi:isolate;display:inline-block;padding:14px 32px;background:{{ $theme['gold_gradient'] }};color:#1a202c;text-decoration:none;border-radius:10px;font-weight:800;font-size:15px;box-shadow:0 4px 14px rgba(212,175,55,0.35);">
                 {{ __('password.reset_email_button') }}
             </a>
         </td>
@@ -43,6 +44,6 @@
 
 <p style="margin:0;font-size:12px;color:{{ $theme['text_light'] }};word-break:break-all;">
     {{ __('password.reset_email_link_fallback') }}<br>
-    <a href="{{ $resetUrl }}" style="color:{{ $theme['primary_dark'] }};">{{ $resetUrl }}</a>
+    <a href="{{ $resetUrl }}" dir="ltr" style="direction:ltr;unicode-bidi:isolate;color:{{ $theme['primary_dark'] }};">{{ $resetUrl }}</a>
 </p>
 @endsection

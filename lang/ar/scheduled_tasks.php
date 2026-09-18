@@ -132,7 +132,12 @@ return [
         'notifications_scan_grades_risk' => 'تنبيهات الدرجات المنخفضة',
         'notifications_fire_reminders' => 'إرسال التذكيرات المخصصة',
         'photos_send_reupload_reminders' => 'تذكيرات إعادة رفع الصورة الشخصية',
+        'projects_notify_join_closed' => 'تنبيه المسؤولين عند إغلاق الانضمام للمشروع',
+        'audit_prune' => 'تنظيف سجلات التدقيق ومحاولات الدخول',
+        'observability_prune' => 'تنظيف أحداث المراقبة والعينات',
     ],
+    'audit_prune_desc' => 'يحذف سجلات النشاط ومحاولات الدخول الأقدم من نافذة الاحتفاظ المضبوطة (افتراضياً 90 يوماً).',
+    'observability_prune_desc' => 'يحذف أحداث المراقبة وعينات البنية وملخصات الاستخدام وفق إعدادات الاحتفاظ.',
     'scheduler_heartbeat_desc' => 'نبضة داخلية كل دقيقة تثبت أن كرون النظام يستدعي schedule:run. تُستخدم لشريط الحالة أعلاه.',
     'attendance_mark_absent_desc' => 'إغلاق الحضور وتسجيل الغياب عند منتصف الليل عند تفعيل الإغلاق التلقائي.',
     'pending_registrations_purge_desc' => 'يزيل التسجيلات المعلّقة المنتهية من قائمة الانتظار.',
@@ -144,4 +149,5 @@ return [
     'notifications_scan_grades_risk_desc' => 'فحص أسبوعي للطلاب دون حد النجاح.',
     'notifications_fire_reminders_desc' => 'يرسل التذكيرات المخصصة المستحقة كل خمس دقائق.',
     'photos_send_reupload_reminders_desc' => 'يذكّر الطلاب المرفوضة صورهم بإعادة الرفع بعد المدة المضبوطة.',
+    'projects_notify_join_closed_desc' => 'يرسل بريداً لمسؤولي المقرر بعد إغلاق نافذة الانضمام لمراجعة الفرق واعتمادها.',
 ];

@@ -6,6 +6,7 @@ use App\Tenancy\BelongsToChurch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class ProjectAssessment extends Model
 {
@@ -27,6 +28,7 @@ class ProjectAssessment extends Model
         'grading_mode',
         'is_published',
         'join_closes_at',
+        'submission_due_at',
         'seed_pool_size',
         'results_announced_at',
         'results_announced_by_user_id',
@@ -34,6 +36,9 @@ class ProjectAssessment extends Model
         'gradebook_item_id',
         'gradebook_synced_at',
         'created_by_user_id',
+        'join_close_admin_notified_at',
+        'teams_settled_at',
+        'teams_settled_by_user_id',
         'peer_eval_enabled',
         'peer_eval_opens_at',
         'peer_eval_closes_at',
@@ -50,6 +55,7 @@ class ProjectAssessment extends Model
         'passing_percent' => 'integer',
         'is_published' => 'boolean',
         'join_closes_at' => 'datetime',
+        'submission_due_at' => 'datetime',
         'seed_pool_size' => 'integer',
         'results_announced_at' => 'datetime',
         'sync_to_gradebook' => 'boolean',
@@ -60,6 +66,8 @@ class ProjectAssessment extends Model
         'peer_eval_scale_max' => 'integer',
         'peer_eval_min_picks' => 'integer',
         'peer_eval_max_picks' => 'integer',
+        'join_close_admin_notified_at' => 'datetime',
+        'teams_settled_at' => 'datetime',
     ];
 
     public const GRADING_MODE_RUBRIC = 'rubric';
@@ -183,5 +191,57 @@ class ProjectAssessment extends Model
             ->where('user_id', $userId)
             ->where('status', ProjectChangeRequest::STATUS_PENDING)
             ->first();
+    }
+
+    public const GRACE_DAYS = 2;
+
+    public const LATE_SCORE_FACTOR = 0.5;
+
+    public function teamsSettledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'teams_settled_by_user_id', 'user_id');
+    }
+
+    public function areTeamsSettled(): bool
+    {
+        return $this->teams_settled_at !== null;
+    }
+
+    public function graceEndsAt(): ?Carbon
+    {
+        $due = $this->submission_due_at;
+        if ($due === null) {
+            return null;
+        }
+
+        return $due->copy()->addDays(self::GRACE_DAYS);
+    }
+
+    public function isSubmissionOverdue(): bool
+    {
+        return $this->submission_due_at !== null && $this->submission_due_at->isPast();
+    }
+
+    public function isInLateGrace(): bool
+    {
+        $grace = $this->graceEndsAt();
+
+        return $this->isSubmissionOverdue() && $grace !== null && $grace->isFuture();
+    }
+
+    public function isSubmissionHardClosed(): bool
+    {
+        $grace = $this->graceEndsAt();
+
+        return $grace !== null && $grace->isPast();
+    }
+
+    public function acceptsSubmissionsNow(): bool
+    {
+        if ($this->submission_due_at === null) {
+            return true;
+        }
+
+        return ! $this->isSubmissionHardClosed();
     }
 }

@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\CourseContextService;
 use App\Services\ProjectAdminService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\EventModuleTestCase;
@@ -209,6 +210,7 @@ class ProjectSubmissionTest extends EventModuleTestCase
 
     public function test_link_deliverable_accepts_a_url_and_shows_it(): void
     {
+        Http::fake(['*' => Http::response('ok', 200)]);
         [$course, $admin, $students, $project, $deliverable] = $this->seatedFixture([
             'submission_type' => ProjectDeliverable::TYPE_LINK,
         ]);

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Church;
+use App\Services\ProjectAccessRepairService;
 use App\Services\RoleTemplateService;
 use Illuminate\Console\Command;
 
@@ -16,12 +17,13 @@ class SyncRoleTemplatesCommand extends Command
 
     protected $description = 'Ensure role templates match RoleTemplateService and merge missing permission keys onto cloned roles';
 
-    public function handle(RoleTemplateService $templates): int
+    public function handle(RoleTemplateService $templates, ProjectAccessRepairService $projects): int
     {
         $this->info('Refreshing platform role templates…');
         $templates->ensureSystemTemplates();
         $templates->ensureServiceTemplates();
         $templates->ensureChurchTemplates();
+        $projects->enableProjectsCapability();
 
         $churchId = $this->option('church');
         $query = Church::query()->orderBy('church_id');
@@ -35,6 +37,7 @@ class SyncRoleTemplatesCommand extends Command
         }
 
         $merged += $templates->mergeTemplatePermissionsIntoServiceClones();
+        $merged += $templates->mergeTemplatePermissionsIntoCourseClones();
 
         $this->info("Merged missing template keys into {$merged} cloned role(s).");
 

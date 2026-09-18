@@ -15,7 +15,7 @@ return [
     'system_wide_mode' => 'Using system-wide service mode.',
     'switch_service' => 'Switch service',
     'invalid_selection' => 'You cannot select that service.',
-    'no_academic_hint' => 'Services do not include attendance, grades, exams, lectures, or graduation — those belong to courses only.',
+    'no_academic_hint' => 'Services do not include attendance, grades, exams, lectures, projects, or graduation — those belong to courses only.',
     'create_role' => 'Create service role',
     'clone_templates' => 'Clone default service role templates',
     'templates_cloned' => 'Service role templates cloned.',

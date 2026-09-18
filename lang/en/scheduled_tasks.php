@@ -132,7 +132,12 @@ return [
         'notifications_scan_grades_risk' => 'Below-passing grade alerts',
         'notifications_fire_reminders' => 'Fire custom reminders',
         'photos_send_reupload_reminders' => 'Profile photo re-upload reminders',
+        'projects_notify_join_closed' => 'Notify admins when project joining closes',
+        'audit_prune' => 'Prune audit activity and login trials',
+        'observability_prune' => 'Prune observability events and samples',
     ],
+    'audit_prune_desc' => 'Deletes activity_logs and login_trials older than the configured retention windows (default 90 days).',
+    'observability_prune_desc' => 'Deletes aged observability_events, infra_samples, and usage_rollups per config/observability.php retention.',
     'scheduler_heartbeat_desc' => 'Internal every-minute tick that proves OS cron is calling schedule:run. Used for the health banner above.',
     'attendance_mark_absent_desc' => 'Close attendance and mark absent students at midnight. Runs when auto-close is enabled.',
     'pending_registrations_purge_desc' => 'Removes expired pending registrations from the queue.',
@@ -144,4 +149,5 @@ return [
     'notifications_scan_grades_risk_desc' => 'Weekly scan for students below passing grade thresholds.',
     'notifications_fire_reminders_desc' => 'Dispatches due custom user reminders every five minutes.',
     'photos_send_reupload_reminders_desc' => 'Reminds rejected students to re-upload a profile photo after the configured delay.',
+    'projects_notify_join_closed_desc' => 'Emails course admins after the project join window closes so they can review and approve teams.',
 ];

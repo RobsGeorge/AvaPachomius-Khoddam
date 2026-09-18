@@ -11,6 +11,11 @@
         </div>
         @if($course)
             <div class="d-flex gap-2 flex-wrap">
+                @if($canSendPasswordReset ?? false)
+                    <a href="{{ route('students.password-reset.index', ['course' => $course->course_id]) }}" class="btn btn-outline-warning">
+                        <i class="bi bi-key"></i> {{ __('students.password_reset_title') }}
+                    </a>
+                @endif
                 <a href="{{ route('students.roster.export', ['course' => $course->course_id]) }}" class="btn btn-outline-theme">
                     <i class="bi bi-download"></i> {{ __('students.export_enrollments_csv') }}
                 </a>
@@ -64,6 +69,7 @@
                                 'student' => $student,
                                 'whatsappMessage' => __('students.whatsapp_birthday_message', ['name' => $student->displayName()]),
                                 'showNationalId' => false,
+                                'canSendPasswordReset' => $canSendPasswordReset ?? false,
                             ])
                         @empty
                             <p class="text-muted-theme mb-0">{{ __('students.no_birthdays_month') }}</p>
@@ -82,6 +88,7 @@
                             @include('students.partials.roster-student-card', [
                                 'student' => $student,
                                 'showNationalId' => false,
+                                'canSendPasswordReset' => $canSendPasswordReset ?? false,
                             ])
                         @empty
                             <p class="text-muted-theme mb-0">{{ __('students.no_birthdays_month') }}</p>
@@ -100,6 +107,7 @@
                     @include('students.partials.roster-student-card', [
                         'student' => $student,
                         'showAge' => true,
+                        'canSendPasswordReset' => $canSendPasswordReset ?? false,
                     ])
                 @empty
                     <p class="text-muted-theme text-center py-4 mb-0">{{ __('students.no_students') }}</p>

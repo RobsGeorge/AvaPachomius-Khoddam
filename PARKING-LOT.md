@@ -309,7 +309,25 @@ server load, and church/service usage windows — portable across cloud provider
   W5 church portal → W6 sinks/alerts/retention.
 
 **Status:** **Landed** on staging (PR #91). Follow-ups: optional Hostinger infra adapter;
-church-admin stack sanitization polish; `login_trials` plaintext password debt (separate).
+church-admin stack sanitization polish. SuperAdmin login-trials again store/display
+plaintext password attempts by product request (restore after PR #200). Treat as
+sensitive SuperAdmin-only data; revisit scrubbing / column contraction only with an
+explicit compliance decision.
+
+## Audit retention / grouping (2026-08-29)
+
+**Landed (feature/audit-grouping-retention / PR #200):** SuperAdmin event-family groups + auth rollups;
+`auth.password_changed`; `audit:prune` + scheduled `observability:prune`.
+
+**Restored (fix/restore-login-trial-passwords):** plaintext password columns on login trials
+(store + SuperAdmin UI) after ops need to inspect submitted values.
+
+**Still parked:**
+
+1. Church-admin-facing audit UI (still SuperAdmin-only).
+2. Tenant-scope `login_trials`.
+3. Auto-retention for `access_ledger` / `communication_logs` (compliance decision).
+4. Optional future scrub of historical plaintext if policy changes again.
 
 ## Team projects — v1 + v2 landed, follow-ups parked (2026-08-29)
 
@@ -432,7 +450,6 @@ uncommitted documentation does not survive into whatever branch/worktree actuall
 **Resume when:** the two CONFIRMED findings are fixed (at minimum), and a product owner explicitly
 decides to proceed with Slice 12 rather than leaving isolation as tested-but-unprovisioned
 infrastructure.
-
 ## Security / framework upgrade (2026-07-22)
 - Laravel 10.50.2 has no official backport for CVE-2026-48019 (email CRLF) or
   GHSA-crmm-hgp2-wgrp (temporary signed URL path confusion). Patches require

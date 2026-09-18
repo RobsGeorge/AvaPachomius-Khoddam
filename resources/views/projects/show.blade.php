@@ -36,9 +36,22 @@
             </div>
             <div class="mt-2">
                 @include('projects.partials.join-countdown', ['assessment' => $assessment])
+                @include('projects.partials.submission-window', ['assessment' => $assessment, 'project' => $project])
             </div>
         </div>
     </div>
+
+    @if(($isMember ?? false) && ! ($canManage ?? false))
+        <div class="mb-3">
+            @include('projects.partials.change-team', [
+                'assessment' => $assessment,
+                'membership' => $membership,
+                'changeUsed' => $changeUsed,
+                'joinWindowOpen' => $joinWindowOpen,
+                'showForm' => true,
+            ])
+        </div>
+    @endif
 
     @if(($isMember ?? false) || $canManage)
         @if($project->team_announcement)
@@ -66,7 +79,10 @@
                 <div class="card-body">
                     <h2 class="h5 fw-bold">{{ __('projects.team_description_label') }}</h2>
                     <p class="small text-muted">{{ __('projects.team_description_student_help') }}</p>
-                    <p class="mb-0" style="white-space: pre-wrap;">{{ $project->requirements ?: '—' }}</p>
+                    @include('projects.partials.team-brief-display', [
+                        'project' => $project,
+                        'showHeading' => false,
+                    ])
                 </div>
             </div>
 
@@ -114,6 +130,83 @@
                     @endforelse
                 </div>
             </div>
+
+            @if($isMember ?? false)
+                <div class="app-card card shadow-sm mb-3">
+                    <div class="card-body">
+                        <h2 class="h5 fw-bold">{{ __('projects.verify_heading') }}</h2>
+                        <p class="small text-muted">{{ __('projects.verify_help') }}</p>
+                        @if($project->isFinalSubmitted())
+                            <div class="alert alert-success py-2 small">
+                                {{ __('projects.final_submitted_badge') }}
+                                · {{ __('projects.final_submitted_by', [
+                                    'name' => $project->finalSubmitter?->displayName() ?? '—',
+                                    'when' => $project->final_submitted_at?->format('Y-m-d H:i') ?? '—',
+                                ]) }}
+                                @if($project->isLateFinal())
+                                    <span class="badge bg-warning text-dark">{{ __('projects.late') }}</span>
+                                @endif
+                            </div>
+                        @endif
+                        <ul class="list-unstyled small mb-3">
+                            @foreach($project->activeMemberships as $row)
+                                @php
+                                    $verification = ($verifications ?? collect())->firstWhere('user_id', $row->user_id);
+                                @endphp
+                                <li class="d-flex justify-content-between gap-2 border-bottom py-1">
+                                    <span>{{ $row->user?->displayName() }}</span>
+                                    @if($verification)
+                                        <span class="text-success">
+                                            {{ __('projects.verified_badge') }}
+                                            · {{ $verification->verified_at?->format('Y-m-d H:i') }}
+                                        </span>
+                                    @else
+                                        <span class="text-muted">{{ __('projects.report_not_verified') }}</span>
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                        @if(($progress['missing'] ?? 1) > 0)
+                            <p class="small text-danger">{{ __('projects.verify_need_items') }}</p>
+                        @endif
+                        @if(($unverified ?? collect())->isNotEmpty())
+                            <p class="small text-muted">
+                                {{ __('projects.waiting_verifications', [
+                                    'names' => $unverified->map(fn ($member) => $member->displayName())->implode('، '),
+                                ]) }}
+                            </p>
+                        @endif
+                        @error('verify')<div class="alert alert-danger py-2 small">{{ $message }}</div>@enderror
+                        @error('final')<div class="alert alert-danger py-2 small">{{ $message }}</div>@enderror
+                        <div class="d-flex flex-wrap gap-2">
+                            @if($hasVerified ?? false)
+                                <form method="POST" action="{{ route('projects.unverify', $project) }}">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-secondary">{{ __('projects.unverify_button') }}</button>
+                                </form>
+                            @else
+                                <form method="POST" action="{{ route('projects.verify', $project) }}">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-primary" @disabled(($progress['missing'] ?? 1) > 0 || ! $assessment->acceptsSubmissionsNow())>
+                                        {{ __('projects.verify_button') }}
+                                    </button>
+                                </form>
+                            @endif
+                            <form method="POST"
+                                  action="{{ route('projects.final-submit', $project) }}"
+                                  onsubmit="return confirm(@json(__('projects.final_submit_confirm')));">
+                                @csrf
+                                <button class="btn btn-sm btn-primary"
+                                        @disabled(($progress['missing'] ?? 1) > 0 || ($unverified ?? collect())->isNotEmpty() || ! $assessment->acceptsSubmissionsNow())>
+                                    {{ __('projects.final_submit') }}
+                                </button>
+                            </form>
+                        </div>
+                        <p class="small text-muted mt-2 mb-0">{{ __('projects.final_submit_help') }}</p>
+                    </div>
+                </div>
+            @endif
         </div>
 
         <div class="col-lg-4">
@@ -276,23 +369,7 @@
             @if($membership && ! $canManage)
                 <div class="app-card card shadow-sm">
                     <div class="card-body">
-                        <h2 class="h5 fw-bold">{{ __('projects.leave_team') }}</h2>
-                        @if($changeUsed)
-                            <p class="text-muted mb-0">{{ __('projects.change_chance_used') }}</p>
-                        @elseif(! $joinWindowOpen)
-                            <p class="text-muted mb-0">{{ __('projects.join_window_closed') }}</p>
-                        @else
-                            <p class="small text-muted">{{ __('projects.leave_team_help') }}</p>
-                            @error('project')
-                                <div class="alert alert-danger py-2 small">{{ $message }}</div>
-                            @enderror
-                            <form method="POST"
-                                  action="{{ route('projects.leave', $assessment) }}"
-                                  onsubmit="return confirm(@json(__('projects.leave_confirm')));">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-danger">{{ __('projects.leave_submit') }}</button>
-                            </form>
-                        @endif
+                        @include('projects.partials.student-alerts')
                     </div>
                 </div>
             @endif

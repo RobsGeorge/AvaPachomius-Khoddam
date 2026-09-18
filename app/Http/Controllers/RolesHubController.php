@@ -109,6 +109,7 @@ class RolesHubController extends Controller
             if ($canManageCourse) {
                 $roles = Role::where('course_id', $course->course_id)
                     ->withCount('userCourseRoles')
+                    ->with('permissions')
                     ->orderBy('role_name')
                     ->get();
             }

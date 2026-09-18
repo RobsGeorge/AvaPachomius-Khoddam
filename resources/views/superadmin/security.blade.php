@@ -6,6 +6,18 @@
 <div class="container py-4 animate-in" style="max-width:720px;">
     @include('superadmin.partials.header', ['title' => __('pages.superadmin_security_title')])
 
+    <div class="app-card card border-warning shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 text-warning mb-2">
+                <i class="bi bi-envelope-lock"></i> {{ __('pages.superadmin_password_reset_title') }}
+            </h2>
+            <p class="text-muted mb-3">{{ __('pages.superadmin_password_reset_desc') }}</p>
+            <a href="{{ route('superadmin.password-reset.index') }}" class="btn btn-outline-warning">
+                <i class="bi bi-key"></i> {{ __('pages.superadmin_password_reset_open') }}
+            </a>
+        </div>
+    </div>
+
     <div class="app-card card border-danger shadow-sm mb-4">
         <div class="card-body">
             <h2 class="h5 text-danger mb-2">
