@@ -98,6 +98,11 @@ class Announcement extends Model
         return $this->status === self::STATUS_PUBLISHED;
     }
 
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
     /**
      * Whether a published announcement is within its optional visibility window.
      * Null start/end means open-ended on that side.

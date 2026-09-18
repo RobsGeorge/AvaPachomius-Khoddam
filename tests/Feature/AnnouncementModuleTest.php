@@ -372,4 +372,77 @@ class AnnouncementModuleTest extends EventModuleTestCase
         $this->assertSame($newEnd, $clone->banner_ends_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'));
         $this->assertNull($clone->published_at);
     }
+
+    public function test_instructor_can_delete_draft_announcement(): void
+    {
+        $instructorRole = $this->createRole('instructor');
+        $instructor = $this->createUser(['email' => 'announce-delete-instructor@example.com']);
+        $course = $this->createCourse(['title' => 'Delete Draft Course']);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.store'), [
+                'title' => 'Disposable draft',
+                'body' => 'Delete me.',
+                'target_mode' => Announcement::TARGET_COURSE,
+                'course_id' => $course->course_id,
+                'channels' => [
+                    Announcement::CHANNEL_HOMEPAGE => true,
+                ],
+            ])
+            ->assertRedirect();
+
+        $announcement = Announcement::query()->first();
+        $this->assertNotNull($announcement);
+        $this->assertTrue($announcement->isDraft());
+
+        $this->actingAs($instructor)
+            ->delete(route('announcements.manage.destroy', $announcement))
+            ->assertRedirect(route('announcements.manage.index'));
+
+        $this->assertDatabaseMissing('announcements', [
+            'announcement_id' => $announcement->announcement_id,
+        ]);
+    }
+
+    public function test_instructor_cannot_delete_published_announcement(): void
+    {
+        Mail::fake();
+
+        $instructorRole = $this->createRole('instructor');
+        $studentRole = $this->createRole('student');
+        $instructor = $this->createUser(['email' => 'announce-nodelete-instructor@example.com']);
+        $student = $this->createUser(['email' => 'announce-nodelete-student@example.com']);
+        $course = $this->createCourse(['title' => 'No Delete Published Course']);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.store'), [
+                'title' => 'Live announcement',
+                'body' => 'Must unpublish before delete.',
+                'target_mode' => Announcement::TARGET_COURSE,
+                'course_id' => $course->course_id,
+                'channels' => [
+                    Announcement::CHANNEL_HOMEPAGE => true,
+                ],
+            ])
+            ->assertRedirect();
+
+        $announcement = Announcement::query()->first();
+        $this->assertNotNull($announcement);
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.publish', $announcement))
+            ->assertRedirect();
+
+        $this->actingAs($instructor)
+            ->delete(route('announcements.manage.destroy', $announcement))
+            ->assertNotFound();
+
+        $this->assertDatabaseHas('announcements', [
+            'announcement_id' => $announcement->announcement_id,
+            'status' => Announcement::STATUS_PUBLISHED,
+        ]);
+    }
 }

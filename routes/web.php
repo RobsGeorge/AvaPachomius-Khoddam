@@ -865,6 +865,7 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
         Route::post('/{announcement}/publish', [AnnouncementManageController::class, 'publish'])->name('publish');
         Route::post('/{announcement}/unpublish', [AnnouncementManageController::class, 'unpublish'])->name('unpublish');
         Route::post('/{announcement}/clone', [AnnouncementManageController::class, 'clone'])->name('clone');
+        Route::delete('/{announcement}', [AnnouncementManageController::class, 'destroy'])->name('destroy');
         Route::post('/{announcement}/resend-email', [AnnouncementManageController::class, 'resendEmail'])->name('resend-email');
         Route::get('/{announcement}/whatsapp', [AnnouncementManageController::class, 'whatsapp'])->name('whatsapp');
         Route::post('/{announcement}/whatsapp', [AnnouncementManageController::class, 'markWhatsappSent'])->name('whatsapp.mark');
