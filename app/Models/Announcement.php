@@ -114,11 +114,25 @@ class Announcement extends Model
             return false;
         }
 
-        if ($this->banner_ends_at && $this->banner_ends_at->lt($at)) {
+        if ($this->isFinished($at)) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Published announcements whose end date has passed (list "Finished" group).
+     */
+    public function isFinished(?Carbon $at = null): bool
+    {
+        if (! $this->isPublished() || ! $this->banner_ends_at) {
+            return false;
+        }
+
+        $at = $at ?? now(config('attendance.timezone', config('app.timezone')));
+
+        return $this->banner_ends_at->lt($at);
     }
 
     /** @param Builder<static> $query */
@@ -133,6 +147,16 @@ class Announcement extends Model
             ->where(function (Builder $inner) use ($at) {
                 $inner->whereNull('banner_ends_at')->orWhere('banner_ends_at', '>=', $at);
             });
+    }
+
+    /** @param Builder<static> $query */
+    public function scopeFinished(Builder $query, ?Carbon $at = null): Builder
+    {
+        $at = $at ?? now(config('attendance.timezone', config('app.timezone')));
+
+        return $query->where('status', self::STATUS_PUBLISHED)
+            ->whereNotNull('banner_ends_at')
+            ->where('banner_ends_at', '<', $at);
     }
 
     public function hasChannel(string $channel): bool

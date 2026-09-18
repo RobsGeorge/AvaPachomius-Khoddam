@@ -38,13 +38,21 @@ class AnnouncementController extends Controller
             })->values();
         }
 
-        return view('announcements.index', compact('deliveries'));
+        $openDeliveries = $deliveries
+            ->filter(fn ($delivery) => $delivery->announcement && ! $delivery->announcement->isFinished())
+            ->values();
+        $finishedDeliveries = $deliveries
+            ->filter(fn ($delivery) => $delivery->announcement?->isFinished())
+            ->values();
+
+        return view('announcements.index', compact('openDeliveries', 'finishedDeliveries'));
     }
 
     public function show(Announcement $announcement)
     {
         $user = Auth::user();
-        abort_unless($announcement->isCurrentlyVisible(), 404);
+        // Finished announcements remain readable from the inbox "Finished" group.
+        abort_unless($announcement->isPublished(), 404);
 
         $delivery = AnnouncementDelivery::query()
             ->where('announcement_id', $announcement->announcement_id)

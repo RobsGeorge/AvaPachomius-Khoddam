@@ -14,38 +14,22 @@
         </a>
     </div>
 
-@forelse($items as $item)
-        <article class="data-card mb-3">
-            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-                <div>
-                    <div class="data-card-title mb-1">{{ $item->title }}</div>
-                    <small class="text-muted-theme">
-                        {{ $item->isPublished() ? __('announcements.published_status') : __('announcements.draft') }}
-                        @if($item->course) · {{ $item->course->title }} @endif
-                    </small>
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('announcements.manage.edit', $item) }}" class="btn btn-sm btn-outline-primary">{{ __('announcements.edit') }}</a>
-                    @if($item->isPublished())
-                        <a href="{{ route('announcements.manage.directory', $item) }}" class="btn btn-sm btn-outline-secondary">{{ __('announcements.directory') }}</a>
-                        <form method="POST" action="{{ route('announcements.manage.unpublish', $item) }}"
-                              data-confirm="{{ __('announcements.unpublish').'?' }}">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-warning">{{ __('announcements.unpublish') }}</button>
-                        </form>
-                    @endif
-                    <form method="POST" action="{{ route('announcements.manage.clone', $item) }}">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">{{ __('announcements.clone') }}</button>
-                    </form>
-                </div>
-            </div>
-            <p class="mb-0 text-muted-theme">{{ \Illuminate\Support\Str::limit($item->body, 180) }}</p>
-        </article>
-    @empty
+    @if($openItems->isEmpty() && $finishedItems->isEmpty())
         <div class="app-tile text-center text-muted-theme py-5">{{ __('announcements.no_announcements') }}</div>
-    @endforelse
+    @else
+        <h2 class="h5 text-muted-theme mb-3">{{ __('announcements.section_open') }}</h2>
+        @forelse($openItems as $item)
+            @include('announcements.manage.partials.list-card', ['item' => $item])
+        @empty
+            <div class="app-tile text-center text-muted-theme py-4 mb-4">{{ __('announcements.no_open') }}</div>
+        @endforelse
 
-    {{ $items->links() }}
+        @if($finishedItems->isNotEmpty())
+            <h2 class="h5 text-muted-theme mb-3 mt-4">{{ __('announcements.section_finished') }}</h2>
+            @foreach($finishedItems as $item)
+                @include('announcements.manage.partials.list-card', ['item' => $item])
+            @endforeach
+        @endif
+    @endif
 </div>
 @endsection
