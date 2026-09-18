@@ -121,6 +121,44 @@ class AnnouncementService
         return $announcement->fresh(['deliveries.user', 'revisions.editor', 'publisher', 'creator']);
     }
 
+    public function unpublish(Announcement $announcement, User $actor): Announcement
+    {
+        $announcement->update([
+            'status' => Announcement::STATUS_DRAFT,
+        ]);
+
+        $this->recordRevision($announcement, $actor, AnnouncementRevision::ACTION_UNPUBLISHED);
+
+        return $this->freshAnnouncement($announcement);
+    }
+
+    /**
+     * Clone an announcement as a new draft. Copies content, channels, and audience;
+     * requires fresh schedule dates (or null) so expired windows are not reused.
+     *
+     * @param  array{banner_starts_at?: mixed, banner_ends_at?: mixed}  $schedule
+     */
+    public function cloneAnnouncement(Announcement $source, User $actor, array $schedule = []): Announcement
+    {
+        $source->loadMissing('targetUsers');
+
+        $clone = $this->createDraft($actor, [
+            'title' => $source->title,
+            'body' => $source->body,
+            'target_mode' => $source->target_mode,
+            'course_id' => $source->course_id,
+            'service_id' => $source->service_id,
+            'channels' => $source->channels ?? [],
+            'target_user_ids' => $source->targetUsers->pluck('user_id')->all(),
+            'banner_starts_at' => $schedule['banner_starts_at'] ?? null,
+            'banner_ends_at' => $schedule['banner_ends_at'] ?? null,
+        ]);
+
+        $this->recordRevision($clone, $actor, AnnouncementRevision::ACTION_CLONED);
+
+        return $clone;
+    }
+
     public function resendEmails(Announcement $announcement, User $actor): int
     {
         $recipients = $this->deliveriesWithUsers($announcement);
@@ -216,20 +254,24 @@ class AnnouncementService
 
     public function unreadCount(User $user): int
     {
+        $now = now($this->timezone());
+
         return AnnouncementDelivery::query()
             ->where('user_id', $user->user_id)
             ->whereNull('read_at')
-            ->whereHas('announcement', fn ($q) => $q->where('status', Announcement::STATUS_PUBLISHED))
+            ->whereHas('announcement', fn ($q) => $q->currentlyVisible($now))
             ->count();
     }
 
     /** @return Collection<int, AnnouncementDelivery> */
     public function studentInbox(User $user): Collection
     {
+        $now = now($this->timezone());
+
         return AnnouncementDelivery::query()
             ->with(['announcement.course', 'announcement.creator'])
             ->where('announcement_deliveries.user_id', $user->user_id)
-            ->whereHas('announcement', fn ($q) => $q->where('status', Announcement::STATUS_PUBLISHED))
+            ->whereHas('announcement', fn ($q) => $q->currentlyVisible($now))
             ->join('announcements', 'announcements.announcement_id', '=', 'announcement_deliveries.announcement_id')
             ->orderByDesc('announcements.published_at')
             ->select('announcement_deliveries.*')
@@ -242,7 +284,7 @@ class AnnouncementService
         $now = now($this->timezone());
 
         return Announcement::query()
-            ->where('status', Announcement::STATUS_PUBLISHED)
+            ->currentlyVisible($now)
             ->whereJsonContains('channels->'.Announcement::CHANNEL_HOMEPAGE, true)
             ->whereHas('deliveries', fn ($q) => $q->where('user_id', $user->user_id))
             ->orderByDesc('published_at')
@@ -259,16 +301,10 @@ class AnnouncementService
             ->with('announcement')
             ->where('user_id', $user->user_id)
             ->whereHas('announcement', function ($q) use ($now) {
-                $q->where('status', Announcement::STATUS_PUBLISHED)
+                $q->currentlyVisible($now)
                     ->where(function ($inner) {
                         $inner->whereJsonContains('channels->'.Announcement::CHANNEL_BANNER_DISMISSIBLE, true)
                             ->orWhereJsonContains('channels->'.Announcement::CHANNEL_BANNER_LOCKED, true);
-                    })
-                    ->where(function ($inner) use ($now) {
-                        $inner->whereNull('banner_starts_at')->orWhere('banner_starts_at', '<=', $now);
-                    })
-                    ->where(function ($inner) use ($now) {
-                        $inner->whereNull('banner_ends_at')->orWhere('banner_ends_at', '>=', $now);
                     });
             })
             ->get()

@@ -34,7 +34,7 @@ class AnnouncementController extends Controller
     {
         /** @var User $user */
         $user = $request->user();
-        abort_unless($announcement->isPublished(), 404);
+        abort_unless($announcement->isCurrentlyVisible(), 404);
 
         $delivery = AnnouncementDelivery::query()
             ->where('announcement_id', $announcement->announcement_id)
@@ -54,7 +54,7 @@ class AnnouncementController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        abort_unless($announcement->isPublished(), 404);
+        abort_unless($announcement->isCurrentlyVisible(), 404);
         abort_unless($announcement->hasChannel(Announcement::CHANNEL_BANNER_DISMISSIBLE), 403);
 
         AnnouncementDelivery::query()
