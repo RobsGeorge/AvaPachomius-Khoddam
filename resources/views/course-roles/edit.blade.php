@@ -36,8 +36,11 @@
         </details>
 
         @foreach($groups as $group)
-            <details class="roles-hub-panel mb-2">
+            <details class="roles-hub-panel mb-2" @if($group->group_key === 'projects') open @endif>
                 <summary class="roles-hub-summary">{{ $group->label() }} ({{ $group->permissions->where('is_system_only', false)->count() }})</summary>
+                @if($group->group_key === 'projects')
+                    <p class="small text-muted-theme mb-2 pt-2">{{ __('rbac.projects_permissions_hint') }}</p>
+                @endif
                 <div class="row pt-2">
                     @foreach($group->permissions->where('is_system_only', false) as $perm)
                         <div class="col-md-6 col-lg-4 mb-1">

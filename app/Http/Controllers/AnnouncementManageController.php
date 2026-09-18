@@ -29,10 +29,14 @@ class AnnouncementManageController extends Controller
             ->when(! $user->isAdmin() && ! ($user->is_superadmin ?? false), function ($q) use ($courseIds) {
                 $q->whereIn('course_id', $courseIds);
             })
+            ->orderByDesc('published_at')
             ->orderByDesc('updated_at')
-            ->paginate(20);
+            ->get();
 
-        return view('announcements.manage.index', compact('items'));
+        $openItems = $items->filter(fn (Announcement $item) => ! $item->isFinished())->values();
+        $finishedItems = $items->filter(fn (Announcement $item) => $item->isFinished())->values();
+
+        return view('announcements.manage.index', compact('openItems', 'finishedItems'));
     }
 
     public function create(Request $request)
@@ -105,6 +109,48 @@ class AnnouncementManageController extends Controller
         return redirect()
             ->route('announcements.manage.edit', $announcement)
             ->with('success', $message);
+    }
+
+    public function unpublish(Announcement $announcement)
+    {
+        $this->authorizeAnnouncement($announcement);
+
+        abort_unless($announcement->isPublished(), 404);
+
+        $this->announcements->unpublish($announcement, Auth::user());
+
+        return redirect()
+            ->route('announcements.manage.edit', $announcement)
+            ->with('success', __('announcements.unpublished'));
+    }
+
+    public function clone(Request $request, Announcement $announcement)
+    {
+        $this->authorizeAnnouncement($announcement);
+
+        $schedule = $request->validate([
+            'banner_starts_at' => 'nullable|date',
+            'banner_ends_at' => 'nullable|date|after_or_equal:banner_starts_at',
+        ]);
+
+        $clone = $this->announcements->cloneAnnouncement($announcement, Auth::user(), $schedule);
+
+        return redirect()
+            ->route('announcements.manage.edit', $clone)
+            ->with('success', __('announcements.cloned'));
+    }
+
+    public function destroy(Announcement $announcement)
+    {
+        $this->authorizeAnnouncement($announcement);
+
+        abort_unless($announcement->isDraft(), 404);
+
+        $this->announcements->deleteDraft($announcement, Auth::user());
+
+        return redirect()
+            ->route('announcements.manage.index')
+            ->with('success', __('announcements.deleted'));
     }
 
     public function resendEmail(Announcement $announcement)

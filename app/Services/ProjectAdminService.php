@@ -25,12 +25,13 @@ class ProjectAdminService
      *     max_points?:float|int,
      *     passing_percent?:int,
      *     join_closes_at?:?string,
+     *     submission_due_at?:?string,
      *     seed_pool_size?:?int,
      *     sync_to_gradebook?:bool,
      *     criteria?:list<array{title:string, max_points:float|int}>,
      *     project_count?:int,
      *     project_titles?:list<string>,
-     *     subprojects?:list<array{title:string, requirements?:?string}>,
+     *     subprojects?:list<array{title:string, requirements?:?string, brief_main_title?:?string, brief_audience?:?string, brief_environment?:?string, brief_purpose?:?string}>,
      *     requirements?:?string,
      *     phases?:list<array{title:string, description?:?string, deadline?:?string}>,
      *     deliverables?:list<array{title:string, description?:?string, due_at?:?string}>,
@@ -40,8 +41,18 @@ class ProjectAdminService
     {
         $this->assertTeamSizes((int) $data['min_team_size'], (int) $data['max_team_size']);
         $joinClosesAt = $this->normalizeJoinClosesAt($data['join_closes_at'] ?? null);
+        $submissionDueAt = $this->normalizeSubmissionDueAt($data['submission_due_at'] ?? null, $joinClosesAt);
 
-        return DB::transaction(function () use ($data, $creator, $joinClosesAt) {
+        $data['deliverables'] = $this->titledRows($data['deliverables'] ?? []);
+        $data['phases'] = $this->titledRows($data['phases'] ?? []);
+        if (($data['seed_canonical_slots'] ?? false) && $data['deliverables'] === []) {
+            $data['deliverables'] = ProjectTeamWorkflowService::canonicalDeliverablePayload($submissionDueAt);
+        }
+        if (($data['seed_canonical_slots'] ?? false) && $data['phases'] === []) {
+            $data['phases'] = ProjectTeamWorkflowService::canonicalPhasePayload($submissionDueAt);
+        }
+
+        return DB::transaction(function () use ($data, $creator, $joinClosesAt, $submissionDueAt) {
             $assessment = ProjectAssessment::create([
                 'course_id' => $data['course_id'],
                 'module_id' => $data['module_id'],
@@ -52,6 +63,7 @@ class ProjectAdminService
                 'max_points' => $data['max_points'] ?? 100,
                 'passing_percent' => $data['passing_percent'] ?? 50,
                 'join_closes_at' => $joinClosesAt,
+                'submission_due_at' => $submissionDueAt,
                 'seed_pool_size' => $data['seed_pool_size'] ?? null,
                 'sync_to_gradebook' => (bool) ($data['sync_to_gradebook'] ?? false),
                 'is_published' => false,
@@ -65,13 +77,11 @@ class ProjectAdminService
             $subprojects = $this->resolveSubprojects($data);
 
             foreach ($subprojects as $index => $subproject) {
-                $this->createProject($assessment, [
-                    'title' => $subproject['title'],
-                    'requirements' => $subproject['requirements'] ?? ($data['requirements'] ?? null),
+                $this->createProject($assessment, array_merge($subproject, [
                     'sort_order' => $index,
                     'phases' => $data['phases'] ?? [],
                     'deliverables' => $data['deliverables'] ?? [],
-                ]);
+                ]));
             }
 
             $count = count($subprojects);
@@ -91,6 +101,10 @@ class ProjectAdminService
      * @param  array{
      *     title:string,
      *     requirements?:?string,
+     *     brief_main_title?:?string,
+     *     brief_audience?:?string,
+     *     brief_environment?:?string,
+     *     brief_purpose?:?string,
      *     sort_order?:int,
      *     phases?:list<array{title:string, description?:?string, deadline?:?string}>,
      *     deliverables?:list<array{title:string, description?:?string, due_at?:?string}>,
@@ -100,13 +114,12 @@ class ProjectAdminService
     {
         $this->assertUniqueTitle($assessment, (string) $data['title']);
 
-        $project = Project::create([
+        $project = Project::create(array_merge([
             'project_assessment_id' => $assessment->project_assessment_id,
             'title' => $data['title'],
-            'requirements' => $data['requirements'] ?? null,
             'status' => Project::STATUS_OPEN,
             'sort_order' => $data['sort_order'] ?? ((int) $assessment->projects()->max('sort_order') + 1),
-        ]);
+        ], $this->briefPersistAttributes($data)));
 
         $this->syncPhases($project, $data['phases'] ?? []);
         $this->syncDeliverables($project, $data['deliverables'] ?? []);
@@ -125,6 +138,20 @@ class ProjectAdminService
 
         if (array_key_exists('join_closes_at', $data)) {
             $data['join_closes_at'] = $this->normalizeJoinClosesAt($data['join_closes_at']);
+        }
+
+        if (array_key_exists('submission_due_at', $data)) {
+            if ($data['submission_due_at'] === null || $data['submission_due_at'] === '') {
+                unset($data['submission_due_at']);
+            } else {
+                $data['submission_due_at'] = $this->normalizeSubmissionDueAt(
+                    $data['submission_due_at'],
+                    isset($data['join_closes_at'])
+                        ? (string) $data['join_closes_at']
+                        : optional($assessment->join_closes_at)?->toDateTimeString(),
+                    allowPast: true,
+                );
+            }
         }
 
         $assessment->update($data);
@@ -168,7 +195,7 @@ class ProjectAdminService
     }
 
     /**
-     * @param  array{title?:string, requirements?:?string, phases?:list<array>, deliverables?:list<array>}  $data
+     * @param  array{title?:string, requirements?:?string, brief_main_title?:?string, brief_audience?:?string, brief_environment?:?string, brief_purpose?:?string, phases?:list<array>, deliverables?:list<array>}  $data
      */
     public function updateProject(Project $project, array $data): Project
     {
@@ -176,13 +203,18 @@ class ProjectAdminService
             $this->assertUniqueTitle($project->assessment ?? $project->assessment()->firstOrFail(), (string) $data['title'], (int) $project->project_id);
         }
 
-        $project->update(array_filter(
+        $payload = array_filter(
             [
                 'title' => $data['title'] ?? null,
-                'requirements' => $data['requirements'] ?? null,
             ],
             fn ($value) => $value !== null
-        ));
+        );
+
+        if ($this->rowHasBriefKeys($data) || array_key_exists('requirements', $data)) {
+            $payload = array_merge($payload, $this->briefPersistAttributes($data, $project));
+        }
+
+        $project->update($payload);
 
         if (array_key_exists('phases', $data)) {
             $project->phases()->delete();
@@ -261,7 +293,7 @@ class ProjectAdminService
      * Each team is one unique subproject. Explicit `subprojects` win; otherwise
      * `project_titles` or numbered titles from the assessment name.
      *
-     * @return list<array{title:string, requirements:?string}>
+     * @return list<array{title:string, requirements:?string, brief_main_title:?string, brief_audience:?string, brief_environment:?string, brief_purpose:?string}>
      */
     private function resolveSubprojects(array $data): array
     {
@@ -275,13 +307,10 @@ class ProjectAdminService
             if ($title === '') {
                 continue;
             }
-            $override = $row['requirements'] ?? null;
-            $rows[] = [
-                'title' => $title,
-                'requirements' => ($override !== null && trim((string) $override) !== '')
-                    ? $override
-                    : $sharedRequirements,
-            ];
+            $rows[] = array_merge(
+                ['title' => $title],
+                $this->briefPersistAttributes($row, sharedRequirements: $sharedRequirements)
+            );
         }
 
         if ($submittedSubprojects && $rows === []) {
@@ -302,16 +331,80 @@ class ProjectAdminService
                 }
             }
             foreach ($titles as $title) {
-                $rows[] = [
-                    'title' => $title,
-                    'requirements' => $sharedRequirements,
-                ];
+                $rows[] = array_merge(
+                    ['title' => $title],
+                    $this->briefPersistAttributes([], sharedRequirements: $sharedRequirements)
+                );
             }
         }
 
         $this->assertUniqueTitleList(array_column($rows, 'title'));
 
         return $rows;
+    }
+
+    /**
+     * Persist the four team-brief fields. When any brief field is set, compose
+     * `requirements` from them so legacy views still have a blob. Otherwise keep
+     * the posted/shared requirements text (existing assessments).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{brief_main_title:?string, brief_audience:?string, brief_environment:?string, brief_purpose:?string, requirements:?string}
+     */
+    private function briefPersistAttributes(array $data, ?Project $existing = null, mixed $sharedRequirements = null): array
+    {
+        $postedBrief = $this->rowHasBriefKeys($data);
+        $brief = $postedBrief
+            ? Project::briefFromRow($data)
+            : ($existing?->briefAttributes() ?? Project::briefFromRow([]));
+
+        $hasBriefValues = collect($brief)->contains(fn ($value) => $value !== null);
+
+        if ($hasBriefValues) {
+            $requirements = Project::composeRequirements($brief);
+            $existingReq = trim((string) ($existing?->requirements ?? ''));
+            // Keep the original blob when the four fields are a truncated prefix
+            // of it (legacy descriptions longer than 255 characters).
+            if ($existingReq !== ''
+                && $requirements !== null
+                && $existingReq !== $requirements
+                && str_starts_with($existingReq, $requirements)
+            ) {
+                $requirements = $existingReq;
+            }
+        } elseif (array_key_exists('requirements', $data)) {
+            $trimmed = trim((string) ($data['requirements'] ?? ''));
+            $requirements = $trimmed === '' ? null : $trimmed;
+        } elseif ($sharedRequirements !== null && trim((string) $sharedRequirements) !== '') {
+            $requirements = trim((string) $sharedRequirements);
+        } elseif ($postedBrief) {
+            // Empty brief boxes on edit must not wipe the stored description.
+            $requirements = $existing?->requirements;
+        } else {
+            $requirements = $existing?->requirements;
+        }
+
+        return [
+            'brief_main_title' => $brief[Project::BRIEF_MAIN_TITLE] ?? null,
+            'brief_audience' => $brief[Project::BRIEF_AUDIENCE] ?? null,
+            'brief_environment' => $brief[Project::BRIEF_ENVIRONMENT] ?? null,
+            'brief_purpose' => $brief[Project::BRIEF_PURPOSE] ?? null,
+            'requirements' => $requirements,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function rowHasBriefKeys(array $data): bool
+    {
+        foreach (Project::BRIEF_KEYS as $key) {
+            if (array_key_exists($key, $data)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -415,6 +508,7 @@ class ProjectAdminService
                 'max_points' => isset($deliverable['max_points']) && $deliverable['max_points'] !== ''
                     ? round((float) $deliverable['max_points'], 2)
                     : null,
+                'slot_key' => $this->normalizedSlotKey($deliverable['slot_key'] ?? null),
             ]);
         }
     }
@@ -463,6 +557,63 @@ class ProjectAdminService
         }
 
         return $when->toDateTimeString();
+    }
+
+    private function normalizeSubmissionDueAt(mixed $value, ?string $joinClosesAt, bool $allowPast = false): ?string
+    {
+        if ($value === null || $value === '') {
+            if ($joinClosesAt === null) {
+                return null;
+            }
+
+            return Carbon::parse($joinClosesAt)->addWeeks(4)->toDateTimeString();
+        }
+
+        try {
+            $when = Carbon::parse((string) $value);
+        } catch (\Throwable) {
+            throw ValidationException::withMessages([
+                'submission_due_at' => [__('projects.submission_due_required')],
+            ]);
+        }
+
+        if (! $allowPast && $when->isPast()) {
+            throw ValidationException::withMessages([
+                'submission_due_at' => [__('projects.submission_due_future')],
+            ]);
+        }
+
+        return $when->toDateTimeString();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function titledRows(array $rows): array
+    {
+        $kept = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (trim((string) ($row['title'] ?? '')) === '') {
+                continue;
+            }
+            $kept[] = $row;
+        }
+
+        return $kept;
+    }
+
+    private function normalizedSlotKey(mixed $value): ?string
+    {
+        $key = is_string($value) ? trim($value) : '';
+        if ($key === '' || ! in_array($key, ProjectDeliverable::canonicalSlotKeys(), true)) {
+            return null;
+        }
+
+        return $key;
     }
 
     private function assertTeamSizes(int $min, int $max): void

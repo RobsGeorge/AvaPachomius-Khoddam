@@ -1,4 +1,4 @@
-@props(['student', 'whatsappMessage' => null, 'showAge' => false, 'showNationalId' => true])
+@props(['student', 'whatsappMessage' => null, 'showAge' => false, 'showNationalId' => true, 'canSendPasswordReset' => false])
 
 <article class="data-card {{ $showAge ? '' : 'mb-3' }}{{ $student->isBirthdayToday() ? ' data-card-birthday-today' : '' }}">
     <div class="d-flex align-items-center gap-3 mb-3">
@@ -44,5 +44,6 @@
     @include('students.partials.contact-actions', [
         'user' => $student,
         'whatsappMessage' => $whatsappMessage,
+        'canSendPasswordReset' => $canSendPasswordReset,
     ])
 </article>

@@ -38,12 +38,20 @@ class AnnouncementController extends Controller
             })->values();
         }
 
-        return view('announcements.index', compact('deliveries'));
+        $openDeliveries = $deliveries
+            ->filter(fn ($delivery) => $delivery->announcement && ! $delivery->announcement->isFinished())
+            ->values();
+        $finishedDeliveries = $deliveries
+            ->filter(fn ($delivery) => $delivery->announcement?->isFinished())
+            ->values();
+
+        return view('announcements.index', compact('openDeliveries', 'finishedDeliveries'));
     }
 
     public function show(Announcement $announcement)
     {
         $user = Auth::user();
+        // Finished announcements remain readable from the inbox "Finished" group.
         abort_unless($announcement->isPublished(), 404);
 
         $delivery = AnnouncementDelivery::query()
@@ -63,7 +71,7 @@ class AnnouncementController extends Controller
     {
         $user = Auth::user();
 
-        abort_unless($announcement->isPublished(), 404);
+        abort_unless($announcement->isCurrentlyVisible(), 404);
         abort_unless($announcement->hasChannel(Announcement::CHANNEL_BANNER_DISMISSIBLE), 403);
 
         AnnouncementDelivery::query()

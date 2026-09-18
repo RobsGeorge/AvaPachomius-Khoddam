@@ -271,8 +271,7 @@ class ProjectAssignmentService
         Project $target,
         User $actor,
         string $inboundEvent = ProjectMembershipEvent::EVENT_MOVED_IN,
-    ): ProjectMembership
-    {
+    ): ProjectMembership {
         return DB::transaction(function () use ($membership, $target, $actor, $inboundEvent) {
             $assessment = ProjectAssessment::query()
                 ->whereKey($membership->project_assessment_id)
@@ -360,6 +359,12 @@ class ProjectAssignmentService
             if ($justCompleted) {
                 $this->notifications->notifyTeamCompleted($target->fresh(['assessment', 'activeMemberships.user']));
             }
+
+            $workflow = app(ProjectTeamWorkflowService::class);
+            if ($fromProject) {
+                $workflow->resetForProject($fromProject->fresh());
+            }
+            $workflow->resetForProject($target->fresh());
 
             return $moved->fresh();
         });
@@ -615,6 +620,38 @@ class ProjectAssignmentService
         } elseif ($project) {
             $this->syncTeamStatus($project, $assessment ?? $project->assessment);
         }
+
+        if ($project) {
+            app(ProjectTeamWorkflowService::class)->resetForProject($project->fresh());
+        }
+    }
+
+    public function removeMember(ProjectMembership $membership, User $actor): void
+    {
+        if (! $membership->isActive()) {
+            throw ValidationException::withMessages([
+                'membership' => [__('projects.not_assigned')],
+            ]);
+        }
+
+        $assessment = ProjectAssessment::query()
+            ->whereKey($membership->project_assessment_id)
+            ->firstOrFail();
+        $project = Project::query()->whereKey($membership->project_id)->firstOrFail();
+        $student = User::query()->whereKey($membership->user_id)->firstOrFail();
+
+        $this->leaveTeam($membership, $assessment, chanceUsed: false);
+
+        AuditLogService::recordEvent('project.member_removed', [
+            'project_assessment_id' => $assessment->project_assessment_id,
+            'project_id' => $project->project_id,
+            'user_id' => $student->user_id,
+            'actor_user_id' => $actor->user_id,
+        ]);
+
+        $fresh = $project->fresh(['assessment', 'activeMemberships.user']);
+        $this->notifications->notifyMemberLeft($fresh, $student);
+        $this->notifications->notifyRemoved($student, $fresh);
     }
 
     /**

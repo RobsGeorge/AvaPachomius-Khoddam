@@ -15,6 +15,10 @@ class AnnouncementRevision extends Model
 
     public const ACTION_REPUBLISHED = 'republished';
 
+    public const ACTION_UNPUBLISHED = 'unpublished';
+
+    public const ACTION_CLONED = 'cloned';
+
     public const ACTION_EMAIL_RESENT = 'email_resent';
 
     public const ACTION_WHATSAPP_DISPATCHED = 'whatsapp_dispatched';

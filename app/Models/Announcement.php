@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class Announcement extends Model
 {
@@ -95,6 +96,72 @@ class Announcement extends Model
     public function isPublished(): bool
     {
         return $this->status === self::STATUS_PUBLISHED;
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === self::STATUS_DRAFT;
+    }
+
+    /**
+     * Whether a published announcement is within its optional visibility window.
+     * Null start/end means open-ended on that side.
+     */
+    public function isCurrentlyVisible(?Carbon $at = null): bool
+    {
+        if (! $this->isPublished()) {
+            return false;
+        }
+
+        $at = $at ?? now(config('attendance.timezone', config('app.timezone')));
+
+        if ($this->banner_starts_at && $this->banner_starts_at->gt($at)) {
+            return false;
+        }
+
+        if ($this->isFinished($at)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Published announcements whose end date has passed (list "Finished" group).
+     */
+    public function isFinished(?Carbon $at = null): bool
+    {
+        if (! $this->isPublished() || ! $this->banner_ends_at) {
+            return false;
+        }
+
+        $at = $at ?? now(config('attendance.timezone', config('app.timezone')));
+
+        return $this->banner_ends_at->lt($at);
+    }
+
+    /** @param Builder<static> $query */
+    public function scopeCurrentlyVisible(Builder $query, ?Carbon $at = null): Builder
+    {
+        $at = $at ?? now(config('attendance.timezone', config('app.timezone')));
+
+        return $query->where('status', self::STATUS_PUBLISHED)
+            ->where(function (Builder $inner) use ($at) {
+                $inner->whereNull('banner_starts_at')->orWhere('banner_starts_at', '<=', $at);
+            })
+            ->where(function (Builder $inner) use ($at) {
+                $inner->whereNull('banner_ends_at')->orWhere('banner_ends_at', '>=', $at);
+            });
+    }
+
+    /** @param Builder<static> $query */
+    public function scopeFinished(Builder $query, ?Carbon $at = null): Builder
+    {
+        $at = $at ?? now(config('attendance.timezone', config('app.timezone')));
+
+        return $query->where('status', self::STATUS_PUBLISHED)
+            ->whereNotNull('banner_ends_at')
+            ->where('banner_ends_at', '<', $at);
     }
 
     public function hasChannel(string $channel): bool

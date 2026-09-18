@@ -22,8 +22,11 @@
 
     <div class="app-card card shadow-sm mb-3">
         <div class="card-body">
-            <h2 class="h5 fw-bold">{{ __('projects.requirements') }}</h2>
-            <p class="mb-0" style="white-space: pre-wrap;">{{ $project->requirements ?: '—' }}</p>
+            <h2 class="h5 fw-bold">{{ __('projects.team_description_label') }}</h2>
+            @include('projects.partials.team-brief-display', [
+                'project' => $project,
+                'showHeading' => false,
+            ])
         </div>
     </div>
 

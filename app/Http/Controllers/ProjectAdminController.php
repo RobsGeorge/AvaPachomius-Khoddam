@@ -7,9 +7,11 @@ use App\Models\Module;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
+use App\Models\ProjectDeliverableSubmission;
 use App\Models\ProjectMembership;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\CourseContextService;
 use App\Services\CoursePermissionResolver;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
@@ -17,6 +19,7 @@ use App\Services\ProjectGradebookSyncService;
 use App\Services\ProjectGradingService;
 use App\Services\ProjectPeerEvaluationService;
 use App\Services\ProjectSubmissionService;
+use App\Services\ProjectTeamWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +59,7 @@ class ProjectAdminController extends Controller
         $assessments = $query->get();
         foreach ($assessments as $assessment) {
             $this->assignments->markBelowMinimumAfterJoinClose($assessment);
+            app(ProjectTeamWorkflowService::class)->notifyJoinClosedIfNeeded($assessment);
         }
         $assessments = $query->get();
         $modules = $this->modulesForCourse($course);
@@ -64,7 +68,7 @@ class ProjectAdminController extends Controller
         $courseLocked = $course !== null;
         $courses = $courseLocked
             ? collect([$course])
-            : app(\App\Services\CourseContextService::class)
+            : app(CourseContextService::class)
                 ->selectableCourses($user)
                 ->pluck('course')
                 ->filter()
@@ -115,11 +119,12 @@ class ProjectAdminController extends Controller
     public function store(Request $request)
     {
         $this->assertCanManage();
-        $validated = $this->validateAssessment($request);
         // Navbar course context always wins when set (field is locked in the UI).
+        // Merge before validation so course_id is not required in the POST body.
         if ($current = current_course()) {
-            $validated['course_id'] = $current->course_id;
+            $request->merge(['course_id' => $current->course_id]);
         }
+        $validated = $this->validateAssessment($request);
         $courseId = (int) ($validated['course_id'] ?? 0);
         abort_unless($courseId > 0, 422);
         $this->assertModuleBelongsToCourse((int) $validated['module_id'], $courseId);
@@ -143,6 +148,7 @@ class ProjectAdminController extends Controller
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'nullable|integer|min:0|max:100',
             'join_closes_at' => 'required|date',
+            'submission_due_at' => 'nullable|date',
             'seed_pool_size' => 'nullable|integer|min:1|max:200',
             'sync_to_gradebook' => 'nullable|boolean',
         ]);
@@ -179,7 +185,7 @@ class ProjectAdminController extends Controller
     public function storeProject(Request $request, ProjectAssessment $projectAssessment)
     {
         $this->assertCanManageCourse((int) $projectAssessment->course_id);
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'title' => 'required|string|max:255',
             'requirements' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -196,11 +202,15 @@ class ProjectAdminController extends Controller
             'deliverables.*.is_required' => 'nullable|boolean',
             'deliverables.*.allow_late' => 'nullable|boolean',
             'deliverables.*.max_points' => 'nullable|numeric|min:0|max:9999.99',
-        ]);
+        ], $this->teamBriefRules()));
 
         $this->admin->createProject($projectAssessment, [
             'title' => $validated['title'],
             'requirements' => $validated['requirements'] ?? null,
+            'brief_main_title' => $validated['brief_main_title'] ?? null,
+            'brief_audience' => $validated['brief_audience'] ?? null,
+            'brief_environment' => $validated['brief_environment'] ?? null,
+            'brief_purpose' => $validated['brief_purpose'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
         ]);
@@ -212,7 +222,7 @@ class ProjectAdminController extends Controller
     {
         $project->load('assessment');
         $this->assertCanManageCourse((int) $project->assessment->course_id);
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'title' => 'required|string|max:255',
             'requirements' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -228,7 +238,7 @@ class ProjectAdminController extends Controller
             'deliverables.*.file_mode' => 'nullable|string|in:single,multi',
             'deliverables.*.is_required' => 'nullable|boolean',
             'deliverables.*.allow_late' => 'nullable|boolean',
-        ]);
+        ], $this->teamBriefRules()));
 
         $this->admin->updateProject($project, $validated);
 
@@ -307,6 +317,58 @@ class ProjectAdminController extends Controller
         $this->assignments->moveMember($membership, $target, Auth::user());
 
         return back()->with('success', __('projects.member_moved'));
+    }
+
+    public function removeMember(ProjectMembership $membership)
+    {
+        $membership->load('assessment');
+        $assessment = $membership->assessment;
+        abort_unless($assessment, 404);
+        $this->assertCanManageCourse((int) $assessment->course_id);
+
+        $this->assignments->removeMember($membership, Auth::user());
+
+        return back()->with('success', __('projects.member_removed'));
+    }
+
+    public function settleRoster(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        app(ProjectTeamWorkflowService::class)->settleRoster($projectAssessment, Auth::user());
+
+        return back()->with('success', __('projects.roster_settled'));
+    }
+
+    public function report(ProjectAssessment $projectAssessment)
+    {
+        $this->assertCanManageCourse((int) $projectAssessment->course_id);
+        $projectAssessment->load([
+            'course',
+            'module',
+            'projects.deliverables',
+            'projects.deliverableSubmissions.submitter',
+            'projects.deliverableSubmissions.deliverable',
+            'projects.activeMemberships.user',
+            'projects.verifications.user',
+            'projects.finalSubmitter',
+        ]);
+
+        $workflow = app(ProjectTeamWorkflowService::class);
+        $rows = [];
+        foreach ($projectAssessment->projects as $project) {
+            $rows[] = [
+                'project' => $project,
+                'checklist' => $this->submissions->checklist($project),
+                'verifications' => $workflow->verifications($project),
+                'unverified' => $workflow->unverifiedMembers($project),
+                'progress' => $this->submissions->progress($project),
+            ];
+        }
+
+        return view('projects.report', [
+            'assessment' => $projectAssessment,
+            'rows' => $rows,
+        ]);
     }
 
     public function mergeProjects(Request $request, Project $project)
@@ -669,7 +731,7 @@ class ProjectAdminController extends Controller
     public function reviewSubmission(
         Request $request,
         Project $project,
-        \App\Models\ProjectDeliverableSubmission $submission,
+        ProjectDeliverableSubmission $submission,
     ) {
         $project->load('assessment');
         $assessment = $project->assessment;
@@ -736,6 +798,7 @@ class ProjectAdminController extends Controller
             'max_points' => 'nullable|numeric|min:0.01|max:9999.99',
             'passing_percent' => 'nullable|integer|min:0|max:100',
             'join_closes_at' => 'required|date',
+            'submission_due_at' => 'nullable|date',
             'seed_pool_size' => 'nullable|integer|min:1|max:200',
             'sync_to_gradebook' => 'nullable|boolean',
             'criteria' => 'nullable|array',
@@ -745,6 +808,10 @@ class ProjectAdminController extends Controller
             'subprojects' => 'nullable|array',
             'subprojects.*.title' => 'nullable|string|max:255',
             'subprojects.*.requirements' => 'nullable|string',
+            'subprojects.*.brief_main_title' => 'nullable|string|max:255',
+            'subprojects.*.brief_audience' => 'nullable|string|max:255',
+            'subprojects.*.brief_environment' => 'nullable|string|max:255',
+            'subprojects.*.brief_purpose' => 'nullable|string|max:255',
             'requirements' => 'nullable|string',
             'project_titles' => 'nullable|string',
             'phases' => 'nullable|array',
@@ -781,6 +848,7 @@ class ProjectAdminController extends Controller
             'max_points' => $validated['max_points'] ?? 100,
             'passing_percent' => (int) ($validated['passing_percent'] ?? 50),
             'join_closes_at' => $validated['join_closes_at'] ?? null,
+            'submission_due_at' => $validated['submission_due_at'] ?? null,
             'seed_pool_size' => isset($validated['seed_pool_size'])
                 ? (int) $validated['seed_pool_size']
                 : null,
@@ -791,6 +859,7 @@ class ProjectAdminController extends Controller
             'requirements' => $validated['requirements'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
+            'seed_canonical_slots' => true,
         ];
 
         if (array_key_exists('subprojects', $validated)) {
@@ -798,6 +867,19 @@ class ProjectAdminController extends Controller
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function teamBriefRules(): array
+    {
+        return [
+            'brief_main_title' => 'nullable|string|max:255',
+            'brief_audience' => 'nullable|string|max:255',
+            'brief_environment' => 'nullable|string|max:255',
+            'brief_purpose' => 'nullable|string|max:255',
+        ];
     }
 
     private function modulesForCourse(?Course $course)
@@ -827,12 +909,9 @@ class ProjectAdminController extends Controller
     private function assertCanManage(): void
     {
         $user = Auth::user();
-        if ($user?->is_superadmin) {
-            return;
-        }
+        abort_unless($user, 403);
 
-        $course = current_course();
-        if ($course && $this->permissions->canInCourse($user, 'project.manage', $course)) {
+        if ($this->permissions->canAnyAssignedCourse($user, ['project.manage', 'project.grade'])) {
             return;
         }
 

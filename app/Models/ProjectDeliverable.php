@@ -27,6 +27,12 @@ class ProjectDeliverable extends Model
 
     public const FILE_MODE_MULTI = 'multi';
 
+    public const SLOT_ANNOUNCEMENT = 'announcement';
+
+    public const SLOT_MAIN_CONTENT = 'main_content';
+
+    public const SLOT_FEEDBACK = 'feedback';
+
     /** Mirrors the assignment upload ceiling (10 MB, public disk). */
     public const MAX_UPLOAD_KB = 10240;
 
@@ -48,6 +54,7 @@ class ProjectDeliverable extends Model
         'is_required',
         'allow_late',
         'max_points',
+        'slot_key',
     ];
 
     protected $casts = [
@@ -140,23 +147,47 @@ class ProjectDeliverable extends Model
         return $this->allowsMultipleFiles() ? self::MAX_FILES : 1;
     }
 
-    public function isOverdue(): bool
-    {
-        return $this->due_at !== null && $this->due_at->isPast();
-    }
-
-    /**
-     * Late submissions are accepted unless the instructor turned `allow_late` off.
-     */
-    public function acceptsSubmissionNow(): bool
-    {
-        return ! $this->isOverdue() || (bool) ($this->allow_late ?? true);
-    }
-
     public function submissionForTeam(int $projectId): ?ProjectDeliverableSubmission
     {
         return $this->submissions()
             ->where('project_id', $projectId)
             ->first();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function canonicalSlotKeys(): array
+    {
+        return [
+            self::SLOT_ANNOUNCEMENT,
+            self::SLOT_MAIN_CONTENT,
+            self::SLOT_FEEDBACK,
+        ];
+    }
+
+    public function isCanonicalSlot(): bool
+    {
+        return in_array((string) $this->slot_key, self::canonicalSlotKeys(), true);
+    }
+
+    public function acceptsSubmissionNow(): bool
+    {
+        $assessment = $this->project?->assessment ?? $this->project()->first()?->assessment;
+        if ($assessment instanceof ProjectAssessment && $this->isCanonicalSlot()) {
+            return $assessment->acceptsSubmissionsNow();
+        }
+
+        return ! $this->isOverdue() || (bool) ($this->allow_late ?? true);
+    }
+
+    public function isOverdue(): bool
+    {
+        $assessment = $this->project?->assessment ?? $this->project()->first()?->assessment;
+        if ($assessment instanceof ProjectAssessment && $this->isCanonicalSlot()) {
+            return $assessment->isSubmissionOverdue();
+        }
+
+        return $this->due_at !== null && $this->due_at->isPast();
     }
 }

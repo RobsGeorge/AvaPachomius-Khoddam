@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Project;
 use App\Models\ProjectAssessment;
-use App\Models\ProjectDeliverable;
 use App\Models\ProjectDeliverableGrade;
 use App\Models\ProjectGradeCriterion;
 use App\Models\ProjectMemberGrade;
@@ -682,6 +681,13 @@ class ProjectGradingService
         }
 
         $percent = $this->percentFor($total, $assessment);
+        if ($project->isLateFinal()) {
+            $capped = round($max * ProjectAssessment::LATE_SCORE_FACTOR, 2);
+            if ($total > $capped) {
+                $total = $capped;
+                $percent = $this->percentFor($total, $assessment);
+            }
+        }
 
         return DB::transaction(function () use ($assessment, $project, $grader, $notes, $scoreRows, $total, $percent) {
             $grade = ProjectTeamGrade::updateOrCreate(

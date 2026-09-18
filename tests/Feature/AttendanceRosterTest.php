@@ -142,6 +142,7 @@ class AttendanceRosterTest extends EventModuleTestCase
             ->assertSee(__('pages.attendance_status_closed'), false)
             ->assertSee($closedAt->format('Y-m-d H:i'), false)
             ->assertSee($admin->displayName(), false)
+            ->assertSee(__('pages.attendance_closed_corrections_allowed'), false)
             ->assertDontSee(__('pages.close_attendance'), false);
     }
 

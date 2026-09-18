@@ -158,7 +158,9 @@ return [
     |
     */
 
-    'providers' => ServiceProvider::defaultProviders()->merge([
+    'providers' => ServiceProvider::defaultProviders()->replace([
+        Illuminate\Auth\Passwords\PasswordResetServiceProvider::class => App\Providers\PasswordResetServiceProvider::class,
+    ])->merge([
         /*
          * Package Service Providers...
          */

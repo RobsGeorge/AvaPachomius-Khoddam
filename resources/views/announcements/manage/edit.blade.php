@@ -7,6 +7,20 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <h1 class="page-title mb-0">{{ __('announcements.edit') }}</h1>
         <div class="d-flex flex-wrap gap-2">
+            @if($announcement->isPublished())
+                <form method="POST" action="{{ route('announcements.manage.unpublish', $announcement) }}"
+                      data-confirm="{{ __('announcements.unpublish').'?' }}">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-warning">{{ __('announcements.unpublish') }}</button>
+                </form>
+            @elseif($announcement->isDraft())
+                <form method="POST" action="{{ route('announcements.manage.destroy', $announcement) }}"
+                      data-confirm="{{ __('announcements.delete_confirm') }}">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger">{{ __('announcements.delete') }}</button>
+                </form>
+            @endif
             <form method="POST" action="{{ route('announcements.manage.publish', $announcement) }}"
                   data-confirm="{{ __('announcements.publish').'?' }}">
                 @csrf
@@ -31,7 +45,7 @@
         </div>
     </div>
 
-@include('announcements.manage.partials.form', [
+    @include('announcements.manage.partials.form', [
         'announcement' => $announcement,
         'action' => route('announcements.manage.update', $announcement),
         'method' => 'PUT',
@@ -39,6 +53,29 @@
         'students' => $students,
         'selectedCourse' => $announcement->course_id,
     ])
+
+    <div class="app-card card shadow-sm mt-4">
+        <div class="card-header fw-semibold">{{ __('announcements.clone') }}</div>
+        <div class="card-body">
+            <p class="text-muted-theme mb-3">{{ __('announcements.clone_help') }}</p>
+            <form method="POST" action="{{ route('announcements.manage.clone', $announcement) }}" class="row g-3 align-items-end">
+                @csrf
+                <div class="col-md-4">
+                    <label class="form-label" for="clone_banner_starts_at">{{ __('announcements.banner_starts') }}</label>
+                    <input type="datetime-local" name="banner_starts_at" id="clone_banner_starts_at" class="form-control"
+                           value="{{ old('banner_starts_at') }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="clone_banner_ends_at">{{ __('announcements.banner_ends') }}</label>
+                    <input type="datetime-local" name="banner_ends_at" id="clone_banner_ends_at" class="form-control"
+                           value="{{ old('banner_ends_at') }}">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-outline-primary w-100">{{ __('announcements.clone') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     @if($announcement->revisions->isNotEmpty())
         <div class="app-card card shadow-sm mt-4">

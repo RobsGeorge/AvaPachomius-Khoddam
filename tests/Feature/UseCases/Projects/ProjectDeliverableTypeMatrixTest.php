@@ -13,6 +13,7 @@ use App\Services\CourseContextService;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\Support\EventModuleTestCase;
@@ -136,6 +137,7 @@ class ProjectDeliverableTypeMatrixTest extends EventModuleTestCase
 
     public function test_a_link_deliverable_replaces_the_stored_url(): void
     {
+        Http::fake(['*' => Http::response('ok', 200)]);
         [$project, $students] = $this->fixture();
         $deliverable = $this->deliverable($project, ProjectDeliverable::TYPE_LINK);
 
