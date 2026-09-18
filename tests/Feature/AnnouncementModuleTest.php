@@ -194,4 +194,174 @@ class AnnouncementModuleTest extends EventModuleTestCase
             ->assertOk()
             ->assertSee(__('announcements.manage_title'));
     }
+
+    public function test_expired_published_announcement_is_hidden_from_students(): void
+    {
+        Mail::fake();
+
+        $studentRole = $this->createRole('student');
+        $instructorRole = $this->createRole('instructor');
+
+        $instructor = $this->createUser(['email' => 'announce-expired-instructor@example.com']);
+        $student = $this->createUser(['email' => 'announce-expired-student@example.com']);
+        $course = $this->createCourse(['title' => 'Expired Announce Course']);
+
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $timezone = config('attendance.timezone', config('app.timezone'));
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.store'), [
+                'title' => 'Past deadline notice',
+                'body' => 'This should disappear after the end date.',
+                'target_mode' => Announcement::TARGET_COURSE,
+                'course_id' => $course->course_id,
+                'banner_starts_at' => now($timezone)->subDays(3)->format('Y-m-d\TH:i'),
+                'banner_ends_at' => now($timezone)->subDay()->format('Y-m-d\TH:i'),
+                'channels' => [
+                    Announcement::CHANNEL_HOMEPAGE => true,
+                ],
+            ])
+            ->assertRedirect();
+
+        $announcement = Announcement::query()->first();
+        $this->assertNotNull($announcement);
+
+        $announcement->forceFill([
+            'banner_starts_at' => now($timezone)->subDays(3),
+            'banner_ends_at' => now($timezone)->subDay(),
+        ])->save();
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.publish', $announcement))
+            ->assertRedirect();
+
+        $announcement->refresh();
+        $this->assertFalse($announcement->isCurrentlyVisible());
+        $this->assertCount(
+            0,
+            app(\App\Services\AnnouncementService::class)->studentInbox($student)
+        );
+
+        $this->assertDatabaseHas('announcement_deliveries', [
+            'announcement_id' => $announcement->announcement_id,
+            'user_id' => $student->user_id,
+        ]);
+
+        $this->actingAs($student)
+            ->get(route('announcements.index'))
+            ->assertOk()
+            ->assertViewHas('deliveries', fn ($deliveries) => $deliveries->isEmpty());
+
+        $this->actingAs($student)
+            ->get(route('announcements.show', $announcement))
+            ->assertNotFound();
+    }
+
+    public function test_instructor_can_unpublish_announcement(): void
+    {
+        Mail::fake();
+
+        $studentRole = $this->createRole('student');
+        $instructorRole = $this->createRole('instructor');
+
+        $instructor = $this->createUser(['email' => 'announce-unpublish-instructor@example.com']);
+        $student = $this->createUser(['email' => 'announce-unpublish-student@example.com']);
+        $course = $this->createCourse(['title' => 'Unpublish Course']);
+
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+        $this->assignCourseRole($student, $course, $studentRole);
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.store'), [
+                'title' => 'Will be unpublished',
+                'body' => 'Students should lose access after unpublish.',
+                'target_mode' => Announcement::TARGET_COURSE,
+                'course_id' => $course->course_id,
+                'channels' => [
+                    Announcement::CHANNEL_HOMEPAGE => true,
+                ],
+            ])
+            ->assertRedirect();
+
+        $announcement = Announcement::query()->first();
+        $this->assertNotNull($announcement);
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.publish', $announcement))
+            ->assertRedirect();
+
+        $this->actingAs($student)
+            ->get(route('announcements.index'))
+            ->assertOk()
+            ->assertSee('Will be unpublished');
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.unpublish', $announcement))
+            ->assertRedirect(route('announcements.manage.edit', $announcement));
+
+        $this->assertSame(Announcement::STATUS_DRAFT, $announcement->fresh()->status);
+
+        $this->actingAs($student)
+            ->get(route('announcements.index'))
+            ->assertOk()
+            ->assertViewHas('deliveries', fn ($deliveries) => $deliveries->isEmpty());
+    }
+
+    public function test_instructor_can_clone_announcement_with_new_dates(): void
+    {
+        $instructorRole = $this->createRole('instructor');
+        $instructor = $this->createUser(['email' => 'announce-clone-instructor@example.com']);
+        $course = $this->createCourse(['title' => 'Clone Course']);
+        $this->assignCourseRole($instructor, $course, $instructorRole);
+
+        $timezone = config('attendance.timezone', config('app.timezone'));
+
+        $this->actingAs($instructor)
+            ->post(route('announcements.manage.store'), [
+                'title' => 'Original announcement',
+                'body' => 'Clone me completely.',
+                'target_mode' => Announcement::TARGET_COURSE,
+                'course_id' => $course->course_id,
+                'banner_starts_at' => now($timezone)->subDays(10)->format('Y-m-d\TH:i'),
+                'banner_ends_at' => now($timezone)->subDays(5)->format('Y-m-d\TH:i'),
+                'channels' => [
+                    Announcement::CHANNEL_HOMEPAGE => true,
+                    Announcement::CHANNEL_EMAIL => true,
+                ],
+            ])
+            ->assertRedirect();
+
+        $source = Announcement::query()->first();
+        $this->assertNotNull($source);
+
+        $newStart = now($timezone)->addDay()->seconds(0)->format('Y-m-d H:i:s');
+        $newEnd = now($timezone)->addDays(7)->seconds(0)->format('Y-m-d H:i:s');
+
+        $response = $this->actingAs($instructor)
+            ->post(route('announcements.manage.clone', $source), [
+                'banner_starts_at' => $newStart,
+                'banner_ends_at' => $newEnd,
+            ]);
+
+        $clone = Announcement::query()
+            ->where('announcement_id', '!=', $source->announcement_id)
+            ->first();
+
+        $this->assertNotNull($clone);
+        $response->assertRedirect(route('announcements.manage.edit', $clone));
+
+        $this->assertSame(Announcement::STATUS_DRAFT, $clone->status);
+        $this->assertSame('Original announcement', $clone->title);
+        $this->assertSame('Clone me completely.', $clone->body);
+        $this->assertSame($source->course_id, $clone->course_id);
+        $this->assertTrue($clone->hasChannel(Announcement::CHANNEL_HOMEPAGE));
+        $this->assertTrue($clone->hasChannel(Announcement::CHANNEL_EMAIL));
+        $this->assertNotNull($clone->banner_starts_at);
+        $this->assertNotNull($clone->banner_ends_at);
+        $this->assertSame($newStart, $clone->banner_starts_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'));
+        $this->assertSame($newEnd, $clone->banner_ends_at->timezone(config('app.timezone'))->format('Y-m-d H:i:s'));
+        $this->assertNull($clone->published_at);
+    }
 }

@@ -107,6 +107,35 @@ class AnnouncementManageController extends Controller
             ->with('success', $message);
     }
 
+    public function unpublish(Announcement $announcement)
+    {
+        $this->authorizeAnnouncement($announcement);
+
+        abort_unless($announcement->isPublished(), 404);
+
+        $this->announcements->unpublish($announcement, Auth::user());
+
+        return redirect()
+            ->route('announcements.manage.edit', $announcement)
+            ->with('success', __('announcements.unpublished'));
+    }
+
+    public function clone(Request $request, Announcement $announcement)
+    {
+        $this->authorizeAnnouncement($announcement);
+
+        $schedule = $request->validate([
+            'banner_starts_at' => 'nullable|date',
+            'banner_ends_at' => 'nullable|date|after_or_equal:banner_starts_at',
+        ]);
+
+        $clone = $this->announcements->cloneAnnouncement($announcement, Auth::user(), $schedule);
+
+        return redirect()
+            ->route('announcements.manage.edit', $clone)
+            ->with('success', __('announcements.cloned'));
+    }
+
     public function resendEmail(Announcement $announcement)
     {
         $this->authorizeAnnouncement($announcement);

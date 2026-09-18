@@ -44,7 +44,7 @@ class AnnouncementController extends Controller
     public function show(Announcement $announcement)
     {
         $user = Auth::user();
-        abort_unless($announcement->isPublished(), 404);
+        abort_unless($announcement->isCurrentlyVisible(), 404);
 
         $delivery = AnnouncementDelivery::query()
             ->where('announcement_id', $announcement->announcement_id)
@@ -63,7 +63,7 @@ class AnnouncementController extends Controller
     {
         $user = Auth::user();
 
-        abort_unless($announcement->isPublished(), 404);
+        abort_unless($announcement->isCurrentlyVisible(), 404);
         abort_unless($announcement->hasChannel(Announcement::CHANNEL_BANNER_DISMISSIBLE), 403);
 
         AnnouncementDelivery::query()
