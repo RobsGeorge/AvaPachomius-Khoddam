@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Support\ChurchPlace;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Suggest globally unique kebab slugs from short_name (+ place disambiguators).
@@ -73,6 +74,19 @@ class ChurchSlugSuggester
         return $out;
     }
 
+    public function firstAvailable(array $input): string
+    {
+        $suggestions = $this->suggest($input, 8);
+        $slug = $suggestions[0] ?? '';
+        if ($slug === '') {
+            throw ValidationException::withMessages([
+                'slug' => __('tenancy.slug_taken'),
+            ]);
+        }
+
+        return $slug;
+    }
+
     public function isAvailable(string $slug): bool
     {
         $slug = strtolower(trim($slug));
@@ -80,6 +94,9 @@ class ChurchSlugSuggester
             return false;
         }
         if (strlen($slug) > ChurchPlace::SLUG_MAX) {
+            return false;
+        }
+        if ($this->isReserved($slug)) {
             return false;
         }
         if (Church::where('slug', $slug)->exists()) {
@@ -90,6 +107,26 @@ class ChurchSlugSuggester
         }
 
         return true;
+    }
+
+    public function isReserved(string $slug): bool
+    {
+        return in_array(strtolower(trim($slug)), $this->reservedSlugs(), true);
+    }
+
+    /** @return list<string> */
+    public function reservedSlugs(): array
+    {
+        $reserved = array_map(
+            static fn ($value) => strtolower(trim((string) $value)),
+            (array) config('church_signup.reserved_slugs', [])
+        );
+        $main = strtolower(trim((string) config('tenancy.main_slug', '')));
+        if ($main !== '') {
+            $reserved[] = $main;
+        }
+
+        return array_values(array_unique(array_filter($reserved)));
     }
 
     public function toSlug(string $source): string

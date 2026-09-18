@@ -71,4 +71,22 @@ class ChurchSlugSuggesterTest extends TestCase
 
         $this->assertFalse(app(ChurchSlugSuggester::class)->isAvailable('taken-slug'));
     }
+
+    public function test_reserved_slugs_are_unavailable_including_tenant_zero(): void
+    {
+        $suggester = app(ChurchSlugSuggester::class);
+
+        $this->assertFalse($suggester->isAvailable('www'));
+        $this->assertFalse($suggester->isAvailable('admin'));
+        $this->assertFalse($suggester->isAvailable((string) config('tenancy.main_slug')));
+        $this->assertTrue($suggester->isReserved('deaconia'));
+
+        $suggestions = $suggester->suggest([
+            'short_name' => 'Admin',
+            'name' => 'Admin',
+        ]);
+
+        $this->assertNotContains('admin', $suggestions);
+        $this->assertNotEmpty($suggestions);
+    }
 }

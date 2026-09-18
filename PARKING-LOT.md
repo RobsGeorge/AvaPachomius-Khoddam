@@ -442,3 +442,20 @@ infrastructure.
 - **Do not** start a Laravel 10→12 major upgrade mid-tenancy migration. Schedule a
   dedicated upgrade PR after T7 cutover stability (or when Laravel 10 is EOL and
   blocking).
+
+## F-22 church self-serve onboarding (2026-09-18)
+
+Design: `docs/church-self-serve-onboarding.md`. **S1** (instant trial after email
+verify, flag `SELF_SERVE_CHURCH_SIGNUP`) is the first code wave — keep the flag
+**off** until staging wildcard DNS / `SESSION_DOMAIN` / TrustHosts accept a new
+slug.
+
+Still parked (do not sneak into S1):
+- S2 Guided Setup wizard (+7 service trial)
+- S3 pack catalog + `/pricing`
+- S4 bank/InstaPay claims + Optimistic Unsuspend
+- S5 Fawry/Paymob
+- S6 diocese workspace
+- S7 sample-data Convert to Real / Official Parish badge
+- Redis `Cache::lock` for D25 (S1 uses a DB transaction; array cache in tests
+  cannot take atomic locks)

@@ -6,6 +6,8 @@ use App\Http\Requests\StoreChurchApplicationRequest;
 use App\Models\ChurchApplication;
 use App\Services\ChurchApplicationMailService;
 use App\Services\ChurchApplicationService;
+use App\Services\ChurchFounderProvisioner;
+use Illuminate\Validation\ValidationException;
 
 class ChurchRegistrationController extends Controller
 {
@@ -18,6 +20,7 @@ class ChurchRegistrationController extends Controller
     {
         return view('church-registration.create', [
             'countries' => config('countries'),
+            'selfServe' => ChurchFounderProvisioner::enabled(),
         ]);
     }
 
@@ -30,7 +33,7 @@ class ChurchRegistrationController extends Controller
         }
 
         $validated = $request->validated();
-        unset($validated['website']);
+        unset($validated['website'], $validated['terms_accepted']);
 
         $application = ChurchApplication::create([
             ...$validated,
@@ -38,6 +41,7 @@ class ChurchRegistrationController extends Controller
             'public_token' => ChurchApplication::mintPublicToken(),
             'submitted_at' => now(),
             'email_verified_at' => null,
+            'terms_accepted_at' => ChurchFounderProvisioner::enabled() ? now() : null,
         ]);
 
         $this->mail->sendVerification($application);
@@ -47,7 +51,9 @@ class ChurchRegistrationController extends Controller
 
     public function thanks()
     {
-        return view('church-registration.thanks');
+        return view('church-registration.thanks', [
+            'selfServe' => ChurchFounderProvisioner::enabled(),
+        ]);
     }
 
     public function verify(string $token)
@@ -56,21 +62,34 @@ class ChurchRegistrationController extends Controller
             ->where('public_token', $token)
             ->firstOrFail();
 
-        $this->applications->verifyEmail($application);
+        try {
+            $this->applications->verifyEmail($application);
+        } catch (ValidationException $e) {
+            return redirect()
+                ->route('church-registration.status', ['token' => $token])
+                ->withErrors($e->errors());
+        }
+
+        $application->refresh();
+        $flash = ChurchFounderProvisioner::enabled() && $application->isProvisioned()
+            ? __('church_applications.email_verified_provisioned')
+            : __('church_applications.email_verified');
 
         return redirect()
             ->route('church-registration.status', ['token' => $token])
-            ->with('success', __('church_applications.email_verified'));
+            ->with('success', $flash);
     }
 
     public function status(string $token)
     {
         $application = ChurchApplication::query()
             ->where('public_token', $token)
+            ->with('church')
             ->firstOrFail();
 
         return view('church-registration.status', [
             'application' => $application,
+            'selfServe' => ChurchFounderProvisioner::enabled(),
         ]);
     }
 }

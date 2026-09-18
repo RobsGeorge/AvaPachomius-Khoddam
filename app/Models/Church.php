@@ -16,6 +16,10 @@ use Illuminate\Support\Collection;
  */
 class Church extends Model
 {
+    public const ACCOUNT_KIND_PARISH = 'parish';
+
+    public const ACCOUNT_KIND_ONE_SERVICE = 'one_service';
+
     protected $table = 'church';
 
     protected $primaryKey = 'church_id';
@@ -35,6 +39,7 @@ class Church extends Model
         'place_governorate',
         'place_country_code',
         'place_key',
+        'account_kind',
     ];
 
     protected $casts = ['settings' => 'array', 'permissions_version' => 'integer'];

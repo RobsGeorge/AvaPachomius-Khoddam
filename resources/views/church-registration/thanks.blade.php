@@ -8,7 +8,7 @@
         <div class="card-body text-center py-5">
             <h1 class="page-title h3 mb-2">{{ __('church_applications.thanks_title') }}</h1>
             <p class="text-muted-theme mb-0">{{ __('church_applications.thanks_body') }}</p>
-            <p class="text-muted-theme mt-3 mb-0">{{ __('church_applications.thanks_verify_hint') }}</p>
+            <p class="text-muted-theme mt-3 mb-0">{{ __($selfServe ? 'church_applications.thanks_verify_hint_self_serve' : 'church_applications.thanks_verify_hint') }}</p>
         </div>
     </div>
 </div>
