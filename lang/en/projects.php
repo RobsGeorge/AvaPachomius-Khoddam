@@ -533,5 +533,7 @@ return [
     'brief_environment_placeholder' => 'Where it happens',
     'brief_purpose' => 'Purpose',
     'brief_purpose_placeholder' => 'Why this team is doing this work',
+    'previous_description' => 'Previous team description',
+    'previous_description_hint' => 'This is the description stored for this team. Copy it into the four fields above, then save. Each field holds at most 255 characters.',
     'notify_brief_heading' => 'Your team: :project',
 ];

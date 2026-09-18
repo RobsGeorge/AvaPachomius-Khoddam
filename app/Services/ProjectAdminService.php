@@ -362,13 +362,24 @@ class ProjectAdminService
 
         if ($hasBriefValues) {
             $requirements = Project::composeRequirements($brief);
+            $existingReq = trim((string) ($existing?->requirements ?? ''));
+            // Keep the original blob when the four fields are a truncated prefix
+            // of it (legacy descriptions longer than 255 characters).
+            if ($existingReq !== ''
+                && $requirements !== null
+                && $existingReq !== $requirements
+                && str_starts_with($existingReq, $requirements)
+            ) {
+                $requirements = $existingReq;
+            }
         } elseif (array_key_exists('requirements', $data)) {
             $trimmed = trim((string) ($data['requirements'] ?? ''));
             $requirements = $trimmed === '' ? null : $trimmed;
         } elseif ($sharedRequirements !== null && trim((string) $sharedRequirements) !== '') {
             $requirements = trim((string) $sharedRequirements);
         } elseif ($postedBrief) {
-            $requirements = null;
+            // Empty brief boxes on edit must not wipe the stored description.
+            $requirements = $existing?->requirements;
         } else {
             $requirements = $existing?->requirements;
         }

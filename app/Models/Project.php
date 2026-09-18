@@ -295,6 +295,29 @@ class Project extends Model
     }
 
     /**
+     * Original per-team description still stored in requirements, shown on the
+     * admin edit form so it can be copied into the four brief fields by hand.
+     */
+    public function leftoverLegacyRequirements(): ?string
+    {
+        $original = trim((string) $this->requirements);
+        if ($original === '') {
+            return null;
+        }
+
+        if (! $this->hasStructuredBrief()) {
+            return $original;
+        }
+
+        $composed = $this->composedRequirements();
+        if ($composed !== null && $original === $composed) {
+            return null;
+        }
+
+        return $original;
+    }
+
+    /**
      * @return list<string>
      */
     public static function workspaceProviders(): array

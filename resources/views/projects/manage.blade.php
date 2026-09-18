@@ -326,6 +326,10 @@
                                         'compact' => true,
                                         'idPrefix' => 'edit-'.$project->project_id,
                                     ])
+                                    @include('projects.partials.team-brief-legacy', [
+                                        'text' => $project->leftoverLegacyRequirements(),
+                                        'idPrefix' => 'edit-'.$project->project_id,
+                                    ])
                                     <button class="btn btn-sm btn-outline-secondary mt-2">{{ __('projects.save_team_details') }}</button>
                                 </form>
                             </div>
