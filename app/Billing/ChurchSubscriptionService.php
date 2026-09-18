@@ -13,6 +13,7 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\AuditLogService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class ChurchSubscriptionService
@@ -80,6 +81,49 @@ class ChurchSubscriptionService
             ]);
 
             return $subscription->fresh(['plan', 'planPrice']);
+        });
+    }
+
+    /**
+     * S1 trial clock without a catalog SKU. plan_id stays null so entitlement
+     * sync does not overwrite the provisioned capability subset.
+     */
+    public function startUnmanagedTrial(Church $church, \DateTimeInterface $periodEnd, ?User $actor = null): ?ChurchSubscription
+    {
+        if (! Schema::hasTable('church_subscription')) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($church, $periodEnd, $actor) {
+            $billingAccount = null;
+            try {
+                $billingAccount = $this->ensureBillingAccount($church->fresh());
+            } catch (ValidationException) {
+                $billingAccount = null;
+            }
+
+            $subscription = ChurchSubscription::updateOrCreate(
+                ['church_id' => $church->church_id],
+                [
+                    'plan_id' => null,
+                    'plan_price_id' => null,
+                    'billing_account_id' => $billingAccount?->billing_account_id,
+                    'status' => 'trialing',
+                    'current_period_start' => now(),
+                    'current_period_end' => $periodEnd,
+                    'comped_by_user_id' => null,
+                    'comp_reason' => null,
+                ]
+            );
+
+            AuditLogService::recordEvent('billing.trial_started', [
+                'church_id' => $church->church_id,
+                'status' => 'trialing',
+                'period_end' => $subscription->current_period_end?->toIso8601String(),
+                'actor_user_id' => $actor?->user_id,
+            ]);
+
+            return $subscription->fresh();
         });
     }
 

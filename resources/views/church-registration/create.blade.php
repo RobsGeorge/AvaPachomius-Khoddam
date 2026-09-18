@@ -6,7 +6,7 @@
 <div class="container py-5 animate-in" style="max-width:720px;">
     <div class="text-center mb-4">
         <h1 class="page-title h3 mb-1">{{ __('church_applications.public_title') }}</h1>
-        <p class="text-muted-theme">{{ __('church_applications.public_intro') }}</p>
+        <p class="text-muted-theme">{{ __($selfServe ? 'church_applications.public_intro_self_serve' : 'church_applications.public_intro') }}</p>
     </div>
 
     @if($errors->any())
@@ -119,6 +119,40 @@
                 <div class="form-text">{{ __('church_applications.message_hint') }}</div>
                 @error('message')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
+
+            @if($selfServe)
+                <fieldset>
+                    <legend class="form-label fs-6 mb-2">
+                        {{ __('church_applications.account_kind') }} <span class="text-danger">*</span>
+                    </legend>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="account_kind" id="account_kind_parish"
+                               value="parish" @checked(old('account_kind', 'parish') === 'parish') required>
+                        <label class="form-check-label" for="account_kind_parish">
+                            {{ __('church_applications.account_kind_parish') }}
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="account_kind" id="account_kind_one_service"
+                               value="one_service" @checked(old('account_kind') === 'one_service')>
+                        <label class="form-check-label" for="account_kind_one_service">
+                            {{ __('church_applications.account_kind_one_service') }}
+                        </label>
+                    </div>
+                    <div class="form-text">{{ __('church_applications.account_kind_hint') }}</div>
+                    @error('account_kind')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                </fieldset>
+
+                <div class="form-check">
+                    <input class="form-check-input @error('terms_accepted') is-invalid @enderror"
+                           type="checkbox" name="terms_accepted" id="terms_accepted" value="1"
+                           @checked(old('terms_accepted')) required>
+                    <label class="form-check-label" for="terms_accepted">
+                        {{ __('church_applications.terms_accepted') }} <span class="text-danger">*</span>
+                    </label>
+                    @error('terms_accepted')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+            @endif
 
             <div>
                 <button type="submit" class="btn btn-primary">{{ __('church_applications.submit') }}</button>

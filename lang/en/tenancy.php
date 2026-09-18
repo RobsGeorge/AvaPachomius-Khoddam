@@ -74,6 +74,7 @@ return [
     'no_roles' => 'No church-scoped roles yet.',
     'invalid_slug' => 'Slug must be lowercase alphanumeric with optional hyphens.',
     'slug_taken' => 'That slug is already in use.',
+    'slug_reserved' => 'That slug is reserved by the platform. Choose another.',
     'cannot_suspend_main' => 'The main church cannot be suspended.',
     'multi_tenant_off_hint' => 'MULTI_TENANT is off. Provisioning still works; host resolution and the nav switcher stay dormant until cutover.',
     'switch_church' => 'Switch church',

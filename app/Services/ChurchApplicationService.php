@@ -8,8 +8,16 @@ use Illuminate\Validation\ValidationException;
 
 class ChurchApplicationService
 {
+    public function __construct(
+        private ChurchFounderProvisioner $founderProvisioner,
+    ) {}
+
     public function verifyEmail(ChurchApplication $application): void
     {
+        if ($application->church_id && $application->isEmailVerified()) {
+            return;
+        }
+
         if ($application->isEmailVerified() && $application->isPending()) {
             return;
         }
@@ -21,7 +29,6 @@ class ChurchApplicationService
         }
 
         $application->update([
-            'status' => ChurchApplication::STATUS_PENDING,
             'email_verified_at' => $application->email_verified_at ?? now(),
         ]);
 
@@ -29,6 +36,16 @@ class ChurchApplicationService
             'church_application_id' => $application->church_application_id,
             'requested_name' => $application->requested_name,
             'contact_email' => $application->contact_email,
+        ]);
+
+        if (ChurchFounderProvisioner::enabled()) {
+            $this->founderProvisioner->provision($application->fresh());
+
+            return;
+        }
+
+        $application->update([
+            'status' => ChurchApplication::STATUS_PENDING,
         ]);
     }
 

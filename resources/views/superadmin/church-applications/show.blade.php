@@ -48,6 +48,10 @@
                 {{ $application->place_governorate ?: '—' }}</p>
             <p><strong>{{ __('church_applications.place_district') }}:</strong>
                 {{ $application->place_district ?: '—' }}</p>
+            @if(filled($application->account_kind))
+                <p><strong>{{ __('church_applications.account_kind') }}:</strong>
+                    {{ __('church_applications.account_kind_'.$application->account_kind) }}</p>
+            @endif
             <p><strong>{{ __('church_applications.contact_name') }}:</strong>
                 {{ $application->contact_name }}</p>
             <p><strong>{{ __('church_applications.contact_email') }}:</strong>
@@ -99,19 +103,28 @@
     @endif
 
     @if($application->status === \App\Models\ChurchApplication::STATUS_APPROVED)
-        <div class="alert alert-info">
-            <p class="mb-2">{{ __('church_applications.create_church_hint') }}</p>
-            <a class="btn btn-primary"
-               href="{{ route('superadmin.churches.create', array_filter([
-                   'name' => $application->requested_name,
-                   'short_name' => $application->requested_short_name,
-                   'place_district' => $application->place_district,
-                   'place_governorate' => $application->place_governorate,
-                   'place_country_code' => $application->place_country_code,
-               ])) }}">
-                {{ __('church_applications.create_church') }}
-            </a>
-        </div>
+        @if($application->isProvisioned())
+            <div class="alert alert-info">
+                <p class="mb-2">{{ __('church_applications.already_provisioned_hint') }}</p>
+                <a class="btn btn-primary" href="{{ route('superadmin.churches.show', $application->church_id) }}">
+                    {{ __('church_applications.open_provisioned_church') }}
+                </a>
+            </div>
+        @else
+            <div class="alert alert-info">
+                <p class="mb-2">{{ __('church_applications.create_church_hint') }}</p>
+                <a class="btn btn-primary"
+                   href="{{ route('superadmin.churches.create', array_filter([
+                       'name' => $application->requested_name,
+                       'short_name' => $application->requested_short_name,
+                       'place_district' => $application->place_district,
+                       'place_governorate' => $application->place_governorate,
+                       'place_country_code' => $application->place_country_code,
+                   ])) }}">
+                    {{ __('church_applications.create_church') }}
+                </a>
+            </div>
+        @endif
     @endif
 </div>
 @endsection

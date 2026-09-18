@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Mail\ChurchApplicationProvisionedMail;
 use App\Mail\ChurchApplicationSubmittedMail;
+use App\Models\Church;
 use App\Models\ChurchApplication;
+use App\Models\User;
+use App\Support\ChurchHost;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -22,6 +26,35 @@ class ChurchApplicationMailService
                 'church_application_id' => $application->church_application_id,
                 'error' => $e->getMessage(),
             ]);
+        }
+    }
+
+    public function notifySuperadminsOfProvision(ChurchApplication $application, Church $church): void
+    {
+        $recipients = User::query()
+            ->where('is_superadmin', true)
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        $adminUrl = ChurchHost::consoleUrl('/superadmin/church-applications/'.$application->church_application_id);
+
+        foreach ($recipients as $email) {
+            try {
+                Mail::to($email)->send(new ChurchApplicationProvisionedMail($application, $church, $adminUrl));
+            } catch (\Throwable $e) {
+                Log::warning('Church application provisioned admin email failed', [
+                    'church_application_id' => $application->church_application_id,
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
     }
 }

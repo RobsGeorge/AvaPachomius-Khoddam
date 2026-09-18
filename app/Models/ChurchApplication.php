@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 /**
- * Not tenant-scoped: a registration application has no church_id yet — the church
- * is provisioned later by a superadmin after approval.
+ * Not tenant-scoped: a registration application may have no church_id yet.
+ * Self-serve (F-22 S1) stamps church_id on verify when the flag is on.
  */
 class ChurchApplication extends Model
 {
@@ -41,17 +41,31 @@ class ChurchApplication extends Model
         'admin_note',
         'public_token',
         'email_verified_at',
+        'account_kind',
+        'church_id',
+        'terms_accepted_at',
     ];
 
     protected $casts = [
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'email_verified_at' => 'datetime',
+        'terms_accepted_at' => 'datetime',
     ];
 
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by_user_id', 'user_id');
+    }
+
+    public function church(): BelongsTo
+    {
+        return $this->belongsTo(Church::class, 'church_id', 'church_id');
+    }
+
+    public function isProvisioned(): bool
+    {
+        return $this->church_id !== null;
     }
 
     public function isUnverified(): bool

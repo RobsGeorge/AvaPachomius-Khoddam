@@ -31,6 +31,7 @@ today), **P1** (high value), **P2** (polish). Cross-references `PARKING-LOT.md`.
 | F-12 | **Exam experience hardening**: autosave, connection-loss recovery, accommodations (extra time) | Student | Timed exams with no autosave risk lost work; also the biggest test-coverage gap. |
 | F-20 | **Public Church Presence / Homepage CMS** (curated sections, theme, BYO domain) | Church Admin, public visitors | ✅ **T10c** — `church_site*` draft/publish editor, publish-gate `/`, tenant isolation tests. Sign-off: `docs/staging-acceptance-checklist.md` Part C. **T10d** multi-page still parked. |
 | F-21 | **Priest appointment calendar** (Calendly-like confessions + pastoral appointments) | Priest, Secretary, church members | Design `docs/priest-appointment-calendar.md`. **PAC1–PAC4 landed** (schema, confession + pastoral UX, portal/email notifications + reminders; WA gated on CV1). PAC5 ICS / PAC6 OAuth still parked — `PARKING-LOT.md`. |
+| F-22 | **Self-serve church onboarding** (trial → subdomain → pay) | Church founder, superadmin | Design `docs/church-self-serve-onboarding.md`. **S1** (flag-gated instant provision) in `feat/church-self-serve-s1`. S2–S7 (wizard, catalog, claims, Fawry/Paymob, diocese) parked. |
 
 ## P2 — polish / operational
 

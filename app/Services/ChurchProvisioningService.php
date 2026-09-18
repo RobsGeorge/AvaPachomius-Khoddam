@@ -42,6 +42,7 @@ class ChurchProvisioningService
      *     place_region?: string|null,
      *     place_governorate?: string|null,
      *     place_country_code?: string|null,
+     *     account_kind?: string|null,
      * }  $input
      * @param  list<int>  $adminUserIds
      */
@@ -51,6 +52,12 @@ class ChurchProvisioningService
         if (! preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
             throw ValidationException::withMessages([
                 'slug' => __('tenancy.invalid_slug'),
+            ]);
+        }
+
+        if (app(ChurchSlugSuggester::class)->isReserved($slug)) {
+            throw ValidationException::withMessages([
+                'slug' => __('tenancy.slug_reserved'),
             ]);
         }
 
@@ -66,20 +73,23 @@ class ChurchProvisioningService
             ]);
         }
 
+        $accountKind = $this->normalizeAccountKind($input['account_kind'] ?? null);
+        $enforcePlaceKey = $accountKind !== Church::ACCOUNT_KIND_ONE_SERVICE;
+
         $placeKey = ChurchPlace::placeKey([
             'name' => $input['name'] ?? null,
             'place_country_code' => $input['place_country_code'] ?? null,
             'place_governorate' => $input['place_governorate'] ?? null,
             'place_district' => $input['place_district'] ?? null,
         ]);
-        if ($placeKey !== null && Schema::hasColumn('church', 'place_key')
+        if ($enforcePlaceKey && $placeKey !== null && Schema::hasColumn('church', 'place_key')
             && Church::where('place_key', $placeKey)->exists()) {
             throw ValidationException::withMessages([
                 'name' => __('tenancy.name_place_taken'),
             ]);
         }
 
-        return DB::transaction(function () use ($input, $adminUserIds, $slug, $placeKey) {
+        return DB::transaction(function () use ($input, $adminUserIds, $slug, $placeKey, $accountKind, $enforcePlaceKey) {
             $status = $input['status'] ?? 'active';
             $settings = $input['settings'] ?? null;
             $shortName = ChurchPlace::shortName(
@@ -117,7 +127,12 @@ class ChurchProvisioningService
                 $attributes['short_name'] = $shortName;
             }
             if (Schema::hasColumn('church', 'place_street')) {
-                $attributes = array_merge($attributes, $place, ['place_key' => $placeKey]);
+                $attributes = array_merge($attributes, $place, [
+                    'place_key' => $enforcePlaceKey ? $placeKey : null,
+                ]);
+            }
+            if (Schema::hasColumn('church', 'account_kind') && $accountKind !== null) {
+                $attributes['account_kind'] = $accountKind;
             }
 
             $church = Church::create($attributes);
@@ -167,6 +182,7 @@ class ChurchProvisioningService
                 'church_id' => $church->church_id,
                 'organization_id' => $church->fresh()->organization_id,
                 'slug' => $church->slug,
+                'account_kind' => $accountKind,
                 'admin_user_ids' => $adminUserIds,
             ]);
 
@@ -268,6 +284,15 @@ class ChurchProvisioningService
 
             return $church->fresh();
         });
+    }
+
+    private function normalizeAccountKind(mixed $kind): ?string
+    {
+        if ($kind === Church::ACCOUNT_KIND_ONE_SERVICE || $kind === Church::ACCOUNT_KIND_PARISH) {
+            return $kind;
+        }
+
+        return null;
     }
 
     private function organizationsReady(): bool
