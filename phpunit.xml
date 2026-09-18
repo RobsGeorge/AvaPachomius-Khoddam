@@ -57,7 +57,9 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing" force="true"/>
-        <env name="APP_KEY" value="base64:QpqWBoNnyF/v8SmlRC/DzLq9d75hjncrv55mbjLWsVc=" force="true"/>
+        <!-- Cleared (not a real key) so staging/prod APP_KEY cannot leak in.
+             CreatesApplication derives a PHPUnit-only key at runtime. -->
+        <env name="APP_KEY" value="" force="true"/>
         <env name="APP_URL" value="http://localhost" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>
         <env name="CACHE_DRIVER" value="array" force="true"/>
