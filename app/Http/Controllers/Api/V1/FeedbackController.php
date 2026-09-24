@@ -34,6 +34,10 @@ class FeedbackController extends Controller
                     'course_id' => $survey->course_id,
                     'module_id' => $survey->module_id,
                     'is_open' => $survey->isOpen(),
+                    'is_anonymous' => $survey->isAnonymous(),
+                    'is_blocking' => $survey->blocksResults(),
+                    'blocks_assessment' => $survey->blockedAssessmentKey(),
+                    'blocks_assessment_title' => $survey->blockedAssessmentTitle(),
                     'submitted' => $survey->submissions->isNotEmpty(),
                     'opened_at' => $survey->opened_at?->toIso8601String(),
                 ];
@@ -60,6 +64,10 @@ class FeedbackController extends Controller
                 'title' => $survey->title,
                 'status' => $survey->status,
                 'is_open' => $survey->isOpen(),
+                'is_anonymous' => $survey->isAnonymous(),
+                'is_blocking' => $survey->blocksResults(),
+                'blocks_assessment' => $survey->blockedAssessmentKey(),
+                'blocks_assessment_title' => $survey->blockedAssessmentTitle(),
                 'questions' => $survey->questions->map(fn ($q) => [
                     'question_id' => $q->question_id ?? $q->getKey(),
                     'prompt' => $q->prompt ?? $q->question_text ?? null,

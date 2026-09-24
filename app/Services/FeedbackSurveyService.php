@@ -24,7 +24,13 @@ class FeedbackSurveyService
         }
 
         return FeedbackSurvey::query()
-            ->with(['course', 'module', 'submissions' => fn ($q) => $q->where('user_id', $user->user_id)])
+            ->with([
+                'course',
+                'module',
+                'blockedExam',
+                'blockedProjectAssessment',
+                'submissions' => fn ($q) => $q->where('user_id', $user->user_id),
+            ])
             ->whereIn('course_id', $courseIds)
             ->whereIn('status', [FeedbackSurvey::STATUS_OPEN, FeedbackSurvey::STATUS_CLOSED])
             ->orderByDesc('opened_at')
@@ -35,7 +41,7 @@ class FeedbackSurveyService
     public function surveysForAdmin(User $user): \Illuminate\Database\Eloquent\Collection
     {
         $query = FeedbackSurvey::query()
-            ->with(['course', 'module', 'creator'])
+            ->with(['course', 'module', 'creator', 'blockedExam', 'blockedProjectAssessment'])
             ->withCount('submissions')
             ->orderByDesc('survey_id');
 

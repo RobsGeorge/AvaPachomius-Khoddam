@@ -39,7 +39,12 @@
                             <input type="datetime-local" name="due_at" class="form-control"
                                    value="{{ old('due_at', $survey->due_at?->format('Y-m-d\TH:i')) }}">
                         </div>
-                        @include('feedback.admin.partials.blocking-attribute', ['isMandatory' => $survey->is_mandatory])
+                        @include('feedback.admin.partials.anonymity-attribute', ['isAnonymous' => $survey->isAnonymous()])
+                        @include('feedback.admin.partials.blocking-attribute', [
+                            'isMandatory' => $survey->is_mandatory,
+                            'blockedAssessment' => $survey->blockedAssessmentKey(),
+                            'moduleAssessments' => $moduleAssessments ?? [],
+                        ])
                         <button type="submit" class="btn btn-outline-primary btn-sm">{{ __('pages.save') }}</button>
                     </form>
                     <hr>
@@ -179,5 +184,16 @@ function toggleType() {
 scopeEl?.addEventListener('change', toggleScope);
 typeEl?.addEventListener('change', toggleType);
 toggleScope(); toggleType();
+function syncBlockingUi() {
+    const blocking = document.getElementById('survey_blocking')?.checked;
+    const wrap = document.getElementById('blocked-assessment-wrap');
+    const select = document.getElementById('blocked_assessment');
+    if (wrap) wrap.classList.toggle('d-none', !blocking);
+    if (select) select.required = !!blocking;
+    if (!blocking && select) select.value = '';
+}
+document.getElementById('survey_blocking')?.addEventListener('change', syncBlockingUi);
+document.getElementById('survey_non_blocking')?.addEventListener('change', syncBlockingUi);
+syncBlockingUi();
 </script>
 @endpush

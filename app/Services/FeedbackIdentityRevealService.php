@@ -42,6 +42,12 @@ class FeedbackIdentityRevealService
             ]);
         }
 
+        if (! $survey->isAnonymous()) {
+            throw ValidationException::withMessages([
+                'reveal' => __('pages.feedback_reveal_not_anonymous'),
+            ]);
+        }
+
         if ($this->viewerCanSeeIdentity($requester, $submission)) {
             throw ValidationException::withMessages([
                 'reveal' => __('pages.feedback_reveal_already_active'),
@@ -116,6 +122,13 @@ class FeedbackIdentityRevealService
 
     public function viewerCanSeeIdentity(User $viewer, FeedbackSubmission $submission): bool
     {
+        $survey = $submission->relationLoaded('survey')
+            ? $submission->survey
+            : $submission->survey()->first();
+        if ($survey instanceof FeedbackSurvey && ! $survey->isAnonymous()) {
+            return true;
+        }
+
         return FeedbackIdentityRevealRequest::query()
             ->where('submission_id', $submission->submission_id)
             ->where('requested_by_user_id', $viewer->user_id)

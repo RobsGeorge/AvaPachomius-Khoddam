@@ -8,7 +8,10 @@
         <div>
             <h1 class="page-title mb-1">{{ __('pages.feedback_report') }}</h1>
             <p class="text-muted-theme mb-0">{{ $survey->title }} — {{ $survey->course?->title }}</p>
-            <p class="small text-muted mb-0 mt-1">{{ __('pages.feedback_report_anonymous_notice') }}</p>
+            <p class="small text-muted mb-0 mt-1">
+                {{ $survey->isAnonymous() ? __('pages.feedback_report_anonymous_notice') : __('pages.feedback_report_identified_notice') }}
+            </p>
+            @include('feedback.partials.survey-badges', ['survey' => $survey, 'class' => 'mt-2'])
         </div>
         <a href="{{ route('feedback.surveys.edit', $survey) }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back') }}</a>
     </div>
@@ -46,7 +49,7 @@
         </div>
     @endforeach
 
-    <h5 class="mb-3 mt-4">{{ __('pages.responses_anonymous') }}</h5>
+    <h5 class="mb-3 mt-4">{{ $survey->isAnonymous() ? __('pages.responses_anonymous') : __('pages.responses') }}</h5>
     <div class="app-card card">
         <div class="table-responsive d-none d-lg-block admin-table-desktop">
             <table class="table table-hover mb-0">
@@ -54,11 +57,11 @@
                 <tbody>
                     @forelse($submissions as $sub)
                         @php
-                            $revealed = $activeReveals->has($sub->submission_id);
+                            $revealed = ! $survey->isAnonymous() || $activeReveals->has($sub->submission_id);
                             $label = $revealed
                                 ? ($sub->user?->displayName() ?? __('pages.feedback_anonymous_response', ['id' => $sub->submission_id]))
                                 : __('pages.feedback_anonymous_response', ['id' => $sub->submission_id]);
-                            $pending = $pendingRequests->get($sub->submission_id);
+                            $pending = $survey->isAnonymous() ? $pendingRequests->get($sub->submission_id) : null;
                         @endphp
                         <tr>
                             <td>
@@ -72,7 +75,7 @@
                             <td>{{ $sub->submitted_at?->format('Y-m-d H:i') }}</td>
                             <td class="text-end">
                                 <a href="{{ route('feedback.surveys.report.submission', [$survey, $sub]) }}" class="btn btn-sm btn-outline-primary">{{ __('pages.view') }}</a>
-                                @unless($revealed || $pending)
+                                @unless(! $survey->isAnonymous() || $revealed || $pending)
                                     <button type="button" class="btn btn-sm btn-outline-secondary"
                                             data-bs-toggle="modal" data-bs-target="#revealModal{{ $sub->submission_id }}">
                                         {{ __('pages.feedback_request_identity') }}
@@ -90,11 +93,11 @@
         <div class="d-lg-none admin-data-cards student-data-hub p-3">
             @forelse($submissions as $sub)
                 @php
-                    $revealed = $activeReveals->has($sub->submission_id);
+                    $revealed = ! $survey->isAnonymous() || $activeReveals->has($sub->submission_id);
                     $label = $revealed
                         ? ($sub->user?->displayName() ?? __('pages.feedback_anonymous_response', ['id' => $sub->submission_id]))
                         : __('pages.feedback_anonymous_response', ['id' => $sub->submission_id]);
-                    $pending = $pendingRequests->get($sub->submission_id);
+                    $pending = $survey->isAnonymous() ? $pendingRequests->get($sub->submission_id) : null;
                 @endphp
                 <article class="data-card">
                     <div class="data-card-title">{{ $label }}</div>
@@ -106,7 +109,7 @@
                     </dl>
                     <div class="data-card-actions d-grid gap-2">
                         <a href="{{ route('feedback.surveys.report.submission', [$survey, $sub]) }}" class="btn btn-sm btn-outline-primary w-100">{{ __('pages.view') }}</a>
-                        @unless($revealed || $pending)
+                        @unless(! $survey->isAnonymous() || $revealed || $pending)
                             <button type="button" class="btn btn-sm btn-outline-secondary w-100"
                                     data-bs-toggle="modal" data-bs-target="#revealModal{{ $sub->submission_id }}">
                                 {{ __('pages.feedback_request_identity') }}
@@ -125,7 +128,7 @@
 
 @push('modals')
 @foreach($submissions as $sub)
-    @unless($activeReveals->has($sub->submission_id) || $pendingRequests->has($sub->submission_id))
+    @unless(! $survey->isAnonymous() || $activeReveals->has($sub->submission_id) || $pendingRequests->has($sub->submission_id))
         <div class="modal fade" id="revealModal{{ $sub->submission_id }}" tabindex="-1" aria-labelledby="revealModalLabel{{ $sub->submission_id }}" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <form method="POST" action="{{ route('feedback.surveys.report.reveal', [$survey, $sub]) }}" class="modal-content">

@@ -24,7 +24,7 @@ class FeedbackReportController extends Controller
     {
         $this->authorizeReport($survey);
 
-        $survey->load(['course', 'module', 'questions']);
+        $survey->load(['course', 'module', 'questions', 'blockedExam', 'blockedProjectAssessment']);
         $aggregates = $this->surveyService->questionAggregates($survey);
         $viewer = Auth::user();
 
@@ -38,11 +38,15 @@ class FeedbackReportController extends Controller
         $pendingRequests = $this->revealService->pendingRequestsForViewer($viewer, $submissionIds)
             ->keyBy('submission_id');
 
+        $named = ! $survey->isAnonymous();
+
         // Load user only for submissions the viewer is allowed to identify.
-        $revealedUserIds = $activeReveals->keys()
-            ->map(fn ($id) => $submissions->getCollection()->firstWhere('submission_id', $id)?->user_id)
-            ->filter()
-            ->values();
+        $revealedUserIds = $named
+            ? $submissions->getCollection()->pluck('user_id')->filter()->values()
+            : $activeReveals->keys()
+                ->map(fn ($id) => $submissions->getCollection()->firstWhere('submission_id', $id)?->user_id)
+                ->filter()
+                ->values();
 
         if ($revealedUserIds->isNotEmpty()) {
             $submissions->getCollection()->loadMissing(['user' => function ($q) use ($revealedUserIds) {
