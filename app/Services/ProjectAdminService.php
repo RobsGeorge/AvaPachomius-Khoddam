@@ -108,6 +108,7 @@ class ProjectAdminService
      *     sort_order?:int,
      *     phases?:list<array{title:string, description?:?string, deadline?:?string}>,
      *     deliverables?:list<array{title:string, description?:?string, due_at?:?string}>,
+     *     seed_canonical_slots?:bool,
      * }  $data
      */
     public function createProject(ProjectAssessment $assessment, array $data): Project
@@ -121,10 +122,67 @@ class ProjectAdminService
             'sort_order' => $data['sort_order'] ?? ((int) $assessment->projects()->max('sort_order') + 1),
         ], $this->briefPersistAttributes($data)));
 
-        $this->syncPhases($project, $data['phases'] ?? []);
-        $this->syncDeliverables($project, $data['deliverables'] ?? []);
+        [$phases, $deliverables] = $this->resolveWorkflowRows($assessment, $data, (int) $project->project_id);
+        $this->syncPhases($project, $phases);
+        $this->syncDeliverables($project, $deliverables);
 
         return $project->fresh(['phases', 'deliverables']);
+    }
+
+    /**
+     * Teams added later from Manage used to get an empty checklist, so students
+     * saw no URL boxes. Copy the assessment's shared slots, or seed the three
+     * canonical link phases when nothing exists to copy.
+     *
+     * @return int Number of teams that received missing slots
+     */
+    public function backfillMissingSharedWorkflow(): int
+    {
+        $filled = 0;
+
+        // withoutTenancy: production repair must visit every church's empty teams.
+        $projects = Project::withoutTenancy()
+            ->with([
+                'assessment' => fn ($query) => $query->withoutTenancy(),
+                'phases' => fn ($query) => $query->withoutTenancy(),
+                'deliverables' => fn ($query) => $query->withoutTenancy(),
+            ])
+            ->orderBy('project_id')
+            ->get();
+
+        foreach ($projects as $project) {
+            $assessment = $project->assessment;
+            if (! $assessment) {
+                continue;
+            }
+
+            $dueAt = optional($assessment->submission_due_at)?->toDateTimeString();
+            $changed = false;
+
+            if ($project->deliverables->isEmpty()) {
+                $deliverables = $this->sharedDeliverablePayload($assessment, (int) $project->project_id);
+                if ($deliverables === []) {
+                    $deliverables = ProjectTeamWorkflowService::canonicalDeliverablePayload($dueAt);
+                }
+                $this->syncDeliverables($project, $deliverables);
+                $changed = true;
+            }
+
+            if ($project->phases->isEmpty()) {
+                $phases = $this->sharedPhasePayload($assessment, (int) $project->project_id);
+                if ($phases === []) {
+                    $phases = ProjectTeamWorkflowService::canonicalPhasePayload($dueAt);
+                }
+                $this->syncPhases($project, $phases);
+                $changed = true;
+            }
+
+            if ($changed) {
+                $filled++;
+            }
+        }
+
+        return $filled;
     }
 
     /**
@@ -451,6 +509,95 @@ class ProjectAdminService
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @return array{0: list<array<string, mixed>>, 1: list<array<string, mixed>>}
+     */
+    private function resolveWorkflowRows(ProjectAssessment $assessment, array $data, ?int $exceptProjectId = null): array
+    {
+        $phases = $this->titledRows($data['phases'] ?? []);
+        $deliverables = $this->titledRows($data['deliverables'] ?? []);
+        $dueAt = optional($assessment->submission_due_at)?->toDateTimeString();
+        $seedCanonical = (bool) ($data['seed_canonical_slots'] ?? false);
+
+        if ($phases === []) {
+            $phases = $this->sharedPhasePayload($assessment, $exceptProjectId);
+            if ($phases === [] && $seedCanonical) {
+                $phases = ProjectTeamWorkflowService::canonicalPhasePayload($dueAt);
+            }
+        }
+
+        if ($deliverables === []) {
+            $deliverables = $this->sharedDeliverablePayload($assessment, $exceptProjectId);
+            if ($deliverables === [] && $seedCanonical) {
+                $deliverables = ProjectTeamWorkflowService::canonicalDeliverablePayload($dueAt);
+            }
+        }
+
+        return [$phases, $deliverables];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function sharedPhasePayload(ProjectAssessment $assessment, ?int $exceptProjectId = null): array
+    {
+        $template = $this->workflowTemplate($assessment, 'phases', $exceptProjectId);
+        if (! $template) {
+            return [];
+        }
+
+        return $template->phases
+            ->map(fn (ProjectPhase $phase) => [
+                'title' => $phase->title,
+                'description' => $phase->description,
+                'deadline' => optional($phase->deadline)?->toDateTimeString(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function sharedDeliverablePayload(ProjectAssessment $assessment, ?int $exceptProjectId = null): array
+    {
+        $template = $this->workflowTemplate($assessment, 'deliverables', $exceptProjectId);
+        if (! $template) {
+            return [];
+        }
+
+        return $template->deliverables
+            ->map(fn (ProjectDeliverable $deliverable) => [
+                'title' => $deliverable->title,
+                'description' => $deliverable->description,
+                'instructions' => $deliverable->instructions,
+                'due_at' => optional($deliverable->due_at)?->toDateTimeString(),
+                'submission_type' => $deliverable->type(),
+                'file_mode' => $deliverable->file_mode ?? ProjectDeliverable::FILE_MODE_SINGLE,
+                'is_required' => $deliverable->is_required,
+                'allow_late' => $deliverable->allow_late,
+                'max_points' => $deliverable->max_points,
+                'slot_key' => $deliverable->slot_key,
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function workflowTemplate(ProjectAssessment $assessment, string $relation, ?int $exceptProjectId = null): ?Project
+    {
+        // withoutTenancy: sibling copy during repair must see the same assessment
+        // in every church, not only the bound tenant.
+        return Project::withoutTenancy()
+            ->where('project_assessment_id', $assessment->project_assessment_id)
+            ->when($exceptProjectId, fn ($query) => $query->where('project_id', '!=', $exceptProjectId))
+            ->whereHas($relation, fn ($query) => $query->withoutTenancy())
+            ->with([$relation => fn ($query) => $query->withoutTenancy()])
+            ->orderBy('sort_order')
+            ->orderBy('project_id')
+            ->first();
+    }
+
+    /**
      * @param  list<array{title?:string, description?:?string, deadline?:?string}>  $phases
      */
     private function syncPhases(Project $project, array $phases): void
@@ -461,13 +608,17 @@ class ProjectAdminService
                 continue;
             }
 
-            ProjectPhase::create([
+            $row = new ProjectPhase([
                 'project_id' => $project->project_id,
                 'title' => $title,
                 'description' => $phase['description'] ?? null,
                 'deadline' => $phase['deadline'] ?? null,
                 'sort_order' => $index,
             ]);
+            if ($project->church_id) {
+                $row->church_id = $project->church_id;
+            }
+            $row->save();
         }
     }
 
@@ -494,7 +645,7 @@ class ProjectAdminService
                 $fileMode = ProjectDeliverable::FILE_MODE_SINGLE;
             }
 
-            ProjectDeliverable::create([
+            $row = new ProjectDeliverable([
                 'project_id' => $project->project_id,
                 'title' => $title,
                 'description' => $deliverable['description'] ?? null,
@@ -510,6 +661,10 @@ class ProjectAdminService
                     : null,
                 'slot_key' => $this->normalizedSlotKey($deliverable['slot_key'] ?? null),
             ]);
+            if ($project->church_id) {
+                $row->church_id = $project->church_id;
+            }
+            $row->save();
         }
     }
 
