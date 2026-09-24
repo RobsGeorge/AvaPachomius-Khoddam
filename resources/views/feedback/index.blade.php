@@ -24,6 +24,7 @@
                     @if($survey->due_at)
                         <small class="text-muted-theme">{{ __('pages.due') }}: {{ $survey->due_at->format('Y-m-d H:i') }}</small>
                     @endif
+                    @include('feedback.partials.survey-badges', ['survey' => $survey])
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     @if($status === 'submitted')

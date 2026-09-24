@@ -44,7 +44,11 @@
                     <label class="form-label">{{ __('pages.due_date') }}</label>
                     <input type="datetime-local" name="due_at" class="form-control" value="{{ old('due_at') }}">
                 </div>
-                @include('feedback.admin.partials.blocking-attribute', ['isMandatory' => true])
+                @include('feedback.admin.partials.anonymity-attribute', ['isAnonymous' => true])
+                @include('feedback.admin.partials.blocking-attribute', [
+                    'isMandatory' => true,
+                    'moduleAssessments' => $moduleAssessments ?? [],
+                ])
                 <button type="submit" class="btn btn-primary">{{ __('pages.continue_to_builder') }}</button>
             </form>
         </div>
@@ -54,13 +58,43 @@
 
 @push('scripts')
 <script>
-document.getElementById('course_id')?.addEventListener('change', function () {
-    const courseId = this.value;
+function filterModuleOptions() {
+    const courseId = document.getElementById('course_id')?.value;
     document.querySelectorAll('#module_id option[data-course]').forEach(opt => {
         if (!opt.value) return;
         opt.hidden = opt.dataset.course !== courseId;
     });
+}
+function filterBlockedAssessments() {
+    const moduleId = document.getElementById('module_id')?.value;
+    const select = document.getElementById('blocked_assessment');
+    if (!select) return;
+    let keep = false;
+    select.querySelectorAll('option[data-module]').forEach(opt => {
+        const visible = !!moduleId && opt.dataset.module === moduleId;
+        opt.hidden = !visible;
+        if (visible && opt.value === select.value) keep = true;
+    });
+    if (!keep) select.value = '';
+}
+function syncBlockingUi() {
+    const blocking = document.getElementById('survey_blocking')?.checked;
+    const wrap = document.getElementById('blocked-assessment-wrap');
+    const select = document.getElementById('blocked_assessment');
+    if (wrap) wrap.classList.toggle('d-none', !blocking);
+    if (select) select.required = !!blocking;
+    if (!blocking && select) select.value = '';
+}
+document.getElementById('course_id')?.addEventListener('change', function () {
     document.getElementById('module_id').value = '';
+    filterModuleOptions();
+    filterBlockedAssessments();
 });
+document.getElementById('module_id')?.addEventListener('change', filterBlockedAssessments);
+document.getElementById('survey_blocking')?.addEventListener('change', syncBlockingUi);
+document.getElementById('survey_non_blocking')?.addEventListener('change', syncBlockingUi);
+filterModuleOptions();
+filterBlockedAssessments();
+syncBlockingUi();
 </script>
 @endpush

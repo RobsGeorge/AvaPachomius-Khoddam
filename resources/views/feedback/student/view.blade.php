@@ -7,7 +7,8 @@
     <a href="{{ route('feedback.index') }}" class="btn btn-outline-secondary btn-sm mb-3">{{ __('pages.back') }}</a>
 
     <h1 class="page-title mb-1">{{ $survey->title }}</h1>
-    <p class="text-muted-theme mb-3">{{ $survey->course?->title }} — {{ $survey->module?->title }}</p>
+    <p class="text-muted-theme mb-2">{{ $survey->course?->title }} — {{ $survey->module?->title }}</p>
+    @include('feedback.partials.survey-badges', ['survey' => $survey, 'class' => 'mb-3'])
 
 <div class="alert alert-secondary">
         <i class="bi bi-check-circle"></i> {{ __('pages.feedback_submitted_readonly') }}

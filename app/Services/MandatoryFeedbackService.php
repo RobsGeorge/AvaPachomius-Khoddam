@@ -69,7 +69,25 @@ class MandatoryFeedbackService
      */
     public function unsubmittedMandatorySurveys(User $user, int $courseId, ?int $moduleId = null): Collection
     {
+        return $this->unsubmittedBlockingSurveys($user, $courseId, $moduleId);
+    }
+
+    /**
+     * Blocking surveys that hide this exam or project until the student submits.
+     * Legacy rows with no target still hide every assessment on the module.
+     *
+     * @param  'exam'|'project'|null  $kind
+     * @return Collection<int, FeedbackSurvey>
+     */
+    public function unsubmittedBlockingSurveys(
+        User $user,
+        int $courseId,
+        ?int $moduleId = null,
+        ?string $kind = null,
+        ?int $assessmentId = null,
+    ): Collection {
         $surveys = FeedbackSurvey::query()
+            ->with(['blockedExam', 'blockedProjectAssessment'])
             ->where('course_id', $courseId)
             ->when(
                 $moduleId,
@@ -80,6 +98,20 @@ class MandatoryFeedbackService
             ->where('is_mandatory', true)
             ->where(function ($q) {
                 $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
+            ->when($kind && $assessmentId, function ($q) use ($kind, $assessmentId) {
+                $q->where(function ($inner) use ($kind, $assessmentId) {
+                    $inner->where(function ($legacy) {
+                        $legacy->whereNull('blocks_exam_id')
+                            ->whereNull('blocks_project_assessment_id');
+                    });
+                    if ($kind === FeedbackSurvey::BLOCK_KIND_EXAM) {
+                        $inner->orWhere('blocks_exam_id', $assessmentId);
+                    }
+                    if ($kind === FeedbackSurvey::BLOCK_KIND_PROJECT) {
+                        $inner->orWhere('blocks_project_assessment_id', $assessmentId);
+                    }
+                });
             })
             ->orderBy('survey_id')
             ->get();

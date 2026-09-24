@@ -18,7 +18,15 @@ class FeedbackSurveyStudentController extends Controller
     {
         $this->authorizeStudentAccess($survey);
 
-        $survey->load(['course', 'module', 'questions.session', 'questions.lecture', 'questions.targetUser']);
+        $survey->load([
+            'course',
+            'module',
+            'blockedExam',
+            'blockedProjectAssessment',
+            'questions.session',
+            'questions.lecture',
+            'questions.targetUser',
+        ]);
 
         $submission = FeedbackSubmission::query()
             ->with('answers')

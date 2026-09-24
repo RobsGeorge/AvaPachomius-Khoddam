@@ -67,10 +67,12 @@ class ExamResultsVisibilityService
         }
 
         if ($user) {
-            return $this->mandatoryFeedback->unsubmittedMandatorySurveys(
+            return $this->mandatoryFeedback->unsubmittedBlockingSurveys(
                 $user,
                 (int) $exam->course_id,
                 $exam->module_id ? (int) $exam->module_id : null,
+                FeedbackSurvey::BLOCK_KIND_EXAM,
+                (int) $exam->exam_id,
             );
         }
 
@@ -85,6 +87,12 @@ class ExamResultsVisibilityService
             ->where('status', FeedbackSurvey::STATUS_OPEN)
             ->where(function ($q) {
                 $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
+            ->where(function ($q) use ($exam) {
+                $q->where(function ($legacy) {
+                    $legacy->whereNull('blocks_exam_id')
+                        ->whereNull('blocks_project_assessment_id');
+                })->orWhere('blocks_exam_id', $exam->exam_id);
             })
             ->orderBy('survey_id')
             ->get();
