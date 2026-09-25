@@ -150,7 +150,7 @@ class FeedbackSurveyService
     public function validationRules($questions): array
     {
         $rules = [
-            'answers' => 'required|array',
+            'answers' => 'nullable|array',
             'answers_other' => 'nullable|array',
         ];
 
