@@ -56,7 +56,8 @@ class FeedbackSurveyStudentController extends Controller
         $this->surveyService->submit(
             $survey->load('questions'),
             Auth::user(),
-            $request->input('answers', [])
+            $request->input('answers', []),
+            $request->input('answers_other', [])
         );
 
         return redirect()
