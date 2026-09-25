@@ -31,7 +31,22 @@
                 <p class="text-muted-theme mb-0">{{ __('church_applications.status_pending_hint') }}</p>
             @endif
             @if($application->status === \App\Models\ChurchApplication::STATUS_APPROVED)
-                <p class="text-muted-theme mb-0">{{ __('church_applications.status_approved_hint') }}</p>
+                @if($application->isProvisioned())
+                    <p class="text-muted-theme mb-0">{{ __('church_applications.status_provisioned_hint') }}</p>
+                    @if($application->church)
+                        <p class="mb-0">
+                            <strong>{{ __('church_applications.provisioned_slug') }}:</strong>
+                            {{ $application->church->slug }}
+                        </p>
+                        <p class="mb-0">
+                            <a href="{{ \App\Support\ChurchHost::url($application->church, '/login') }}">
+                                {{ __('church_applications.founder_login_cta') }}
+                            </a>
+                        </p>
+                    @endif
+                @else
+                    <p class="text-muted-theme mb-0">{{ __('church_applications.status_approved_hint') }}</p>
+                @endif
             @endif
             @if($application->status === \App\Models\ChurchApplication::STATUS_REJECTED)
                 <p class="text-muted-theme mb-0">{{ __('church_applications.status_rejected_hint') }}</p>

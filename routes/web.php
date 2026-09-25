@@ -431,7 +431,7 @@ Route::post('/observability/client-errors', [\App\Http\Controllers\ClientErrorCo
     ->middleware('throttle:30,1')
     ->name('observability.client-errors');
 
-// Public church registration (lead capture → superadmin queue; no auto-provision).
+// Public church registration (lead capture; instant trial when SELF_SERVE_CHURCH_SIGNUP=true).
 Route::get('/register-church', [ChurchRegistrationController::class, 'create'])->name('church-registration');
 Route::post('/register-church', [ChurchRegistrationController::class, 'store'])
     ->middleware('throttle:30,1')

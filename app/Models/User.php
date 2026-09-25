@@ -40,6 +40,8 @@ class User extends Authenticatable
 
     public const REGISTRATION_LANE_INVITE = 'invite';
 
+    public const REGISTRATION_LANE_CHURCH_FOUNDER = 'church_founder';
+
     public const APPLICATION_STATUS_NEEDS_CORRECTION = 'needs_correction';
 
     public const APPLICATION_STATUS_APPROVED = 'approved';
