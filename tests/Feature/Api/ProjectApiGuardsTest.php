@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectSubmissionService;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\EventModuleTestCase;
 
@@ -93,6 +94,7 @@ class ProjectApiGuardsTest extends EventModuleTestCase
 
     public function test_deleting_a_file_that_belongs_to_another_team_is_not_found(): void
     {
+        Http::fake(['*' => Http::response('ok', 200)]);
         [$course, $assessment, $admin, $students] = $this->fixture();
         $assign = app(ProjectAssignmentService::class);
         $mine = $assign->assignStudent($assessment, $students[0], notify: false);
@@ -124,6 +126,7 @@ class ProjectApiGuardsTest extends EventModuleTestCase
 
     public function test_deleting_a_file_after_the_deliverable_closed_is_rejected(): void
     {
+        Http::fake(['*' => Http::response('ok', 200)]);
         [$course, $assessment, $admin, $students] = $this->fixture();
         $project = app(ProjectAssignmentService::class)->assignStudent($assessment, $students[0], notify: false);
         $deliverable = $this->deliverableFor($project, ProjectDeliverable::TYPE_LINK);

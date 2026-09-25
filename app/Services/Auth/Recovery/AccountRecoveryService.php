@@ -127,7 +127,7 @@ final class AccountRecoveryService
         $tier = AccountRecoveryChallenge::TIER_SELF_SERVE;
         $purpose = AccountRecoveryChallenge::PURPOSE_PASSWORD_RESET;
         $email = strtolower(trim($email));
-        $user = User::query()->where('email', $email)->first();
+        $user = User::query()->whereRaw('lower(email) = ?', [$email])->first();
 
         // Opaque response for unknown emails (no user to rate-limit/notify).
         if (! $user) {
@@ -187,6 +187,83 @@ final class AccountRecoveryService
         $status = Password::sendResetLink(['email' => $email]);
 
         return ['ok' => true, 'status' => $status, 'challenge' => $challenge];
+    }
+
+    /**
+     * Staff-initiated password reset email (same ResetPasswordMail as self-serve).
+     * Bypasses self-serve blocks so admins can help students who cannot log in.
+     *
+     * @return array{ok: bool, reason?: string, status?: string, challenge?: AccountRecoveryChallenge}
+     */
+    public function sendAdminPasswordResetLink(User $actor, User $subject): array
+    {
+        $tier = ($actor->is_superadmin ?? false)
+            ? AccountRecoveryChallenge::TIER_SUPPORT
+            : AccountRecoveryChallenge::TIER_ADMIN_ASSISTED;
+        $purpose = AccountRecoveryChallenge::PURPOSE_PASSWORD_RESET;
+
+        if (! filled($subject->email)) {
+            return ['ok' => false, 'reason' => 'no_email'];
+        }
+
+        if ($this->rateLimiter->tooManyAttempts($subject)) {
+            $this->recordRejected($subject, $tier, $purpose, 'rate_limited', AccountRecoveryChallenge::OUTCOME_RATE_LIMITED);
+
+            return ['ok' => false, 'reason' => 'rate_limited'];
+        }
+
+        $challenge = AccountRecoveryChallenge::query()->create([
+            'user_id' => $subject->user_id,
+            'tier' => $tier,
+            'purpose' => $purpose,
+            'phase' => AccountRecoveryChallenge::PHASE_PROOF,
+            'proof_channel' => 'email',
+            'asserted_channel' => null,
+            'asserted_value' => null,
+            'vouched_by_user_id' => $actor->user_id,
+            'otp_hash' => null,
+            'otp_expires_at' => null,
+            'outcome' => AccountRecoveryChallenge::OUTCOME_OTP_SENT,
+            'created_at' => now(),
+        ]);
+
+        $this->ledger->append([
+            'actor_type' => 'staff',
+            'actor_id' => (int) $actor->user_id,
+            'action' => 'recovery',
+            'subject_type' => User::class,
+            'subject_id' => (int) $subject->user_id,
+            'context' => [
+                'tier' => $tier,
+                'purpose' => $purpose,
+                'outcome' => 'started',
+                'channel' => 'email',
+                'vouched_by' => (int) $actor->user_id,
+                'challenge_id' => (int) $challenge->account_recovery_challenge_id,
+            ],
+        ]);
+
+        AuditLogService::recordEvent('auth.admin_password_reset', [
+            'user_id' => $subject->user_id,
+            'actor_id' => $actor->user_id,
+            'tier' => $tier,
+            'email' => $subject->email,
+        ]);
+
+        try {
+            // Staff resend must mint a fresh token even if the student just
+            // requested a link (broker throttle would otherwise skip send).
+            $token = Password::broker()->createToken($subject);
+            $subject->sendPasswordResetNotification($token);
+        } catch (\Throwable $e) {
+            report($e);
+            $challenge->outcome = AccountRecoveryChallenge::OUTCOME_REJECTED;
+            $challenge->save();
+
+            return ['ok' => false, 'reason' => 'send_failed', 'challenge' => $challenge];
+        }
+
+        return ['ok' => true, 'status' => Password::RESET_LINK_SENT, 'challenge' => $challenge];
     }
 
     /**

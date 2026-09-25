@@ -14,6 +14,7 @@ use App\Services\ProjectAdminService;
 use App\Services\ProjectAssignmentService;
 use App\Services\ProjectGradingService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -200,6 +201,7 @@ class ProjectApiTest extends EventModuleTestCase
 
     public function test_link_deliverable_requires_a_valid_url(): void
     {
+        Http::fake(['*' => Http::response('ok', 200)]);
         [$course, $assessment, $admin, $students] = $this->fixture();
         $project = app(ProjectAssignmentService::class)->assignStudent($assessment, $students[0], notify: false);
         $deliverable = $this->deliverableFor($project, ProjectDeliverable::TYPE_LINK);

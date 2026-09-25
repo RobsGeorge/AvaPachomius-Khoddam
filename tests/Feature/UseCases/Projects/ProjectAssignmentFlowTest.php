@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Module;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectChangeRequest;
+use App\Models\User;
 use App\Models\UserNotification;
 use App\Services\CourseContextService;
 use App\Services\ProjectAdminService;
@@ -465,7 +466,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
     }
 
     /**
-     * @return array{0: Course, 1: Module, 2: \App\Models\User}
+     * @return array{0: Course, 1: Module, 2: User}
      */
     private function staffFixture(): array
     {
@@ -480,7 +481,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
     }
 
     /**
-     * @return array{0: Course, 1: Module, 2: \App\Models\User, 3: list<\App\Models\User>}
+     * @return array{0: Course, 1: Module, 2: User, 3: list<User>}
      */
     private function staffWithStudents(int $studentCount = 2): array
     {
@@ -502,7 +503,7 @@ class ProjectAssignmentFlowTest extends EventModuleTestCase
     }
 
     /**
-     * @return array{0: Course, 1: Module, 2: \App\Models\User, 3: list<\App\Models\User>}
+     * @return array{0: Course, 1: Module, 2: User, 3: list<User>}
      */
     private function publishedFixture(int $projectCount, int $max, int $min = 1): array
     {

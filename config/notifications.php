@@ -19,6 +19,9 @@ return [
             'project_team_completed',
             'project_member_left',
             'project_member_moved',
+            'project_member_removed',
+            'project_join_window_closed',
+            'project_roster_approved',
             'project_change_requested',
             'project_change_decided',
             'project_deliverable_deadline',
@@ -146,6 +149,39 @@ return [
         ],
         'project_member_moved' => [
             'label' => 'notifications.types.project_member_moved',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_member_removed' => [
+            'label' => 'notifications.types.project_member_removed',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_join_window_closed' => [
+            'label' => 'notifications.types.project_join_window_closed',
+            'category' => 'academic',
+            'audience' => ['instructor', 'admin'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'project_roster_approved' => [
+            'label' => 'notifications.types.project_roster_approved',
             'category' => 'academic',
             'audience' => ['student'],
             'defaults' => [

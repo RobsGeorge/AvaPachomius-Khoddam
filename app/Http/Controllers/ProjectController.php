@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Project;
 use App\Models\ProjectAssessment;
 use App\Models\ProjectDeliverable;
@@ -13,6 +14,7 @@ use App\Services\ProjectGradingService;
 use App\Services\ProjectPeerEvaluationService;
 use App\Services\ProjectResultsVisibilityService;
 use App\Services\ProjectSubmissionService;
+use App\Services\ProjectTeamWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -25,6 +27,7 @@ class ProjectController extends Controller
         private ProjectSubmissionService $submissions,
         private ProjectGradingService $grading,
         private ProjectPeerEvaluationService $peerEval,
+        private ProjectTeamWorkflowService $workflow,
     ) {}
 
     public function index()
@@ -87,6 +90,7 @@ class ProjectController extends Controller
             'deliverables',
             'activeMemberships.user',
             'membershipEvents.user',
+            'finalSubmitter',
         ]);
         $assessment = $project->assessment;
         abort_unless($assessment, 404);
@@ -110,6 +114,11 @@ class ProjectController extends Controller
         $checklist = $this->submissions->checklist($project);
         $progress = $this->submissions->progress($project);
         $isMember = $membership && (int) $membership->project_id === (int) $project->project_id;
+        $verifications = $this->workflow->verifications($project);
+        $unverified = $isMember ? $this->workflow->unverifiedMembers($project) : collect();
+        $hasVerified = $isMember && $user
+            ? $this->workflow->memberHasVerified($project, $user)
+            : false;
         $teamHistory = ($isMember || $canManage)
             ? $project->membershipEvents
             : collect();
@@ -144,6 +153,9 @@ class ProjectController extends Controller
             'checklist',
             'progress',
             'isMember',
+            'verifications',
+            'unverified',
+            'hasVerified',
             'rubric',
             'teamHistory',
             'peerEvalOpen',
@@ -239,7 +251,7 @@ class ProjectController extends Controller
 
         $rules = [
             'body' => 'nullable|string|max:20000',
-            'link_url' => 'nullable|string|max:2048',
+            'link_url' => $deliverable->expectsLink() ? 'required|string|max:2048' : 'nullable|string|max:2048',
             'replace_files' => 'nullable|boolean',
         ];
 
@@ -264,6 +276,42 @@ class ProjectController extends Controller
         );
 
         return back()->with('success', __('projects.submission_saved'));
+    }
+
+    public function verify(Project $project)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        $project->load('assessment');
+        abort_unless($project->assessment, 404);
+        $this->assertCanJoin($project->assessment);
+        $this->workflow->verify($project, $user);
+
+        return back()->with('success', __('projects.verified_ok'));
+    }
+
+    public function unverify(Project $project)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        $project->load('assessment');
+        abort_unless($project->assessment, 404);
+        $this->assertCanJoin($project->assessment);
+        $this->workflow->unverify($project, $user);
+
+        return back()->with('success', __('projects.unverified_ok'));
+    }
+
+    public function finalSubmit(Project $project)
+    {
+        $user = Auth::user();
+        abort_unless($user, 403);
+        $project->load('assessment');
+        abort_unless($project->assessment, 404);
+        $this->assertCanJoin($project->assessment);
+        $this->workflow->finalSubmit($project, $user);
+
+        return back()->with('success', __('projects.final_submitted_ok'));
     }
 
     public function destroySubmissionFile(Project $project, ProjectSubmissionFile $file)
@@ -319,12 +367,9 @@ class ProjectController extends Controller
     private function assertCanView(): void
     {
         $user = Auth::user();
-        if ($user?->is_superadmin) {
-            return;
-        }
+        abort_unless($user, 403);
 
-        $course = current_course();
-        if ($course && $this->permissions->canInCourse($user, 'project.view', $course)) {
+        if ($this->permissions->canAnyAssignedCourse($user, ['project.view', 'project.join', 'project.manage', 'project.grade'])) {
             return;
         }
 
@@ -358,13 +403,11 @@ class ProjectController extends Controller
     private function userCanManage(): bool
     {
         $user = Auth::user();
-        if ($user?->is_superadmin) {
-            return true;
+        if (! $user) {
+            return false;
         }
 
-        $course = current_course();
-
-        return $course && $this->permissions->canInCourse($user, 'project.manage', $course);
+        return $this->permissions->canAnyAssignedCourse($user, ['project.manage', 'project.grade']);
     }
 
     private function userCanManageCourse(int $courseId): bool
@@ -374,7 +417,7 @@ class ProjectController extends Controller
             return true;
         }
 
-        $course = \App\Models\Course::find($courseId);
+        $course = Course::find($courseId);
 
         return $course && $this->permissions->canInCourse($user, 'project.manage', $course);
     }

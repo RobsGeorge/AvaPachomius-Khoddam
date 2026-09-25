@@ -537,6 +537,11 @@ class RegisterController extends Controller
             'email'   => $user->email,
         ]);
 
+        AuditLogService::recordEvent('auth.password_changed', [
+            'user_id' => $user->user_id,
+            'source' => 'registration_set',
+        ]);
+
         return redirect()
             ->route('register.enrollment', ['user_id' => $user->user_id])
             ->with('success', __('register.password_saved_continue_enrollment'));

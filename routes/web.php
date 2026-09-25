@@ -96,6 +96,7 @@ use App\Http\Controllers\SuperAdminScheduledTaskController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ModuleStudentAssessmentController;
 use App\Http\Controllers\StudentInstructorNoteController;
+use App\Http\Controllers\AdminPasswordResetController;
 use App\Http\Controllers\StudentRosterController;
 use App\Http\Controllers\StudentBirthdaysController;
 use App\Http\Controllers\AnnouncementController;
@@ -487,11 +488,15 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
 });
 
 // Attendance record mutations — POST only. The coarse `staff` gate keeps students out;
-// AttendanceController enforces the real per-record course scope (attendance.record in the
-// record's own course). Paths match the fetch() calls in attendance-table.blade.php.
+    // AttendanceController enforces the real per-record course scope (attendance.record /
+    // attendance.edit in the record's own course). Both paths stay registered: the roster
+    // JS in status-scripts.blade.php posts to /attendance/{id}/status, and
+    // attendance-table.blade.php posts to /attendance/update-status/{id}.
 Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::post('/attendance/update-status/{id}', [AttendanceController::class, 'updateStatus'])
         ->name('attendance.update-status')->whereNumber('id');
+    Route::post('/attendance/{id}/status', [AttendanceController::class, 'updateStatus'])
+        ->name('attendance.update-status-post')->whereNumber('id');
     Route::post('/attendance/update-permission/{id}', [AttendanceController::class, 'updatePermissionReason'])
         ->name('attendance.update-permission-reason')->whereNumber('id');
 });
@@ -698,9 +703,15 @@ Route::middleware(['auth', 'capability:projects'])->group(function () {
     Route::post('/projects/{project}/cancel', [ProjectAdminController::class, 'cancelProject'])->name('projects.cancel');
     Route::post('/projects/{project}/merge', [ProjectAdminController::class, 'mergeProjects'])->name('projects.merge');
     Route::post('/projects/memberships/{membership}/move', [ProjectAdminController::class, 'moveMember'])->name('projects.members.move');
+    Route::post('/projects/memberships/{membership}/remove', [ProjectAdminController::class, 'removeMember'])->name('projects.members.remove');
+    Route::get('/projects/assessments/{projectAssessment}/report', [ProjectAdminController::class, 'report'])->name('projects.assessments.report');
+    Route::post('/projects/assessments/{projectAssessment}/settle', [ProjectAdminController::class, 'settleRoster'])->name('projects.assessments.settle');
     Route::post('/projects/{project}/workspace', [ProjectAdminController::class, 'updateWorkspace'])->name('projects.workspace.update');
     Route::get('/projects/assessments/{projectAssessment}/export', [ProjectAdminController::class, 'exportCsv'])->name('projects.export');
     Route::post('/projects/{project}/deliverables/{deliverable}/submit', [ProjectController::class, 'submitDeliverable'])->name('projects.deliverables.submit');
+    Route::post('/projects/{project}/verify', [ProjectController::class, 'verify'])->name('projects.verify');
+    Route::delete('/projects/{project}/verify', [ProjectController::class, 'unverify'])->name('projects.unverify');
+    Route::post('/projects/{project}/final-submit', [ProjectController::class, 'finalSubmit'])->name('projects.final-submit');
     Route::post('/projects/{project}/submissions/{submission}/review', [ProjectAdminController::class, 'reviewSubmission'])->name('projects.submissions.review');
     Route::post('/projects/{project}/peer-ratings', [ProjectController::class, 'submitPeerRatings'])->name('projects.peer-ratings.store');
     Route::get('/projects/{project}/peer-review', [ProjectController::class, 'peerReview'])->name('projects.peer-review');
@@ -845,6 +856,11 @@ Route::middleware(['auth', 'permission:staff'])->group(function () {
     Route::get('/students/roster/export',                       [StudentRosterController::class, 'exportCsv'])->name('students.roster.export');
     Route::post('/courses/{course}/students/birthday-announcement', [StudentRosterController::class, 'sendBirthdayAnnouncement'])->name('students.roster.announce');
 
+    Route::middleware('permission:roster.password_reset')->group(function () {
+        Route::get('/students/password-reset', [AdminPasswordResetController::class, 'index'])->name('students.password-reset.index');
+        Route::post('/students/password-reset', [AdminPasswordResetController::class, 'store'])->name('students.password-reset.store');
+    });
+
     Route::middleware('capability:curriculum')->group(function () {
         Route::get('/courses/{course}/modules/{module}/assessments', [ModuleStudentAssessmentController::class, 'index'])
             ->name('module-assessments.index')->whereNumber(['course', 'module']);
@@ -978,6 +994,9 @@ Route::middleware(['auth', 'superadmin'])->prefix('superadmin')->name('superadmi
 
     Route::get('/recovery', [SuperAdminAccountRecoveryController::class, 'index'])->name('recovery.index');
     Route::post('/recovery', [SuperAdminAccountRecoveryController::class, 'store'])->name('recovery.store');
+
+    Route::get('/password-reset', [AdminPasswordResetController::class, 'index'])->name('password-reset.index');
+    Route::post('/password-reset', [AdminPasswordResetController::class, 'store'])->name('password-reset.store');
 
     Route::post('/sessions/flush-all',       [SuperAdminController::class, 'flushAllSessions'])->name('sessions.flush-all');
     Route::post('/sessions/flush-users',    [SuperAdminController::class, 'flushSelectedUsers'])->name('sessions.flush-users');

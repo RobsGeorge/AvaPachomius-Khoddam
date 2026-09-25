@@ -5,6 +5,11 @@ on:
     branches: ['**']
   pull_request:
   workflow_call:
+    inputs:
+      skip_full_suite:
+        description: Skip the non-blocking full Unit/Feature report (used by production deploy).
+        type: boolean
+        default: false
 
 # Categorized test pipelines. Each is a separate, independently-runnable step and
 # they execute in sequence; the whole "gate" job must pass before deploy.yml deploys.
@@ -96,10 +101,13 @@ jobs:
 
   full-suite-report:
     name: Full suite (report only, non-blocking)
+    if: ${{ !inputs.skip_full_suite }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Never blocks the merge/deploy — surfaces the broader Unit/Feature status while
     # the pre-existing failures outside the gated categories are worked through.
+    # A job timeout still fails a reusable workflow call; production deploy skips
+    # this job so it cannot cancel the VPS step.
     continue-on-error: true
 
     steps:

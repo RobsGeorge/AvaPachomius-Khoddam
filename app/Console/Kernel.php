@@ -32,5 +32,7 @@ class Kernel extends ConsoleKernel
         Commands\ScanNotificationEvents::class,
         Commands\FireNotificationReminders::class,
         Commands\SendProfilePhotoReuploadReminders::class,
+        Commands\PruneAuditCommand::class,
+        Commands\PruneObservabilityCommand::class,
     ];
 }
