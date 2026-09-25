@@ -175,6 +175,8 @@ class FeedbackSurveyAdminController extends Controller
             'lecture_id' => 'nullable|exists:lectures,lecture_id',
             'target_user_id' => 'nullable|exists:user,user_id',
             'choices' => 'nullable|string|max:2000',
+            'allow_multiple' => 'boolean',
+            'allow_other' => 'boolean',
             'min' => 'nullable|integer|min:0|max:100',
             'max' => 'nullable|integer|min:1|max:100',
             'max_rating' => 'nullable|integer|min:3|max:10',
@@ -276,7 +278,14 @@ class FeedbackSurveyAdminController extends Controller
 
         if ($data['question_type'] === FeedbackQuestion::TYPE_MCQ) {
             $choices = array_values(array_filter(array_map('trim', explode("\n", $data['choices'] ?? ''))));
+            if ($choices === []) {
+                throw ValidationException::withMessages([
+                    'choices' => [__('pages.feedback_mcq_choices_required')],
+                ]);
+            }
             $config['choices'] = $choices;
+            $config['allow_multiple'] = (bool) ($data['allow_multiple'] ?? false);
+            $config['allow_other'] = (bool) ($data['allow_other'] ?? false);
         }
 
         if ($data['question_type'] === FeedbackQuestion::TYPE_SLIDER) {

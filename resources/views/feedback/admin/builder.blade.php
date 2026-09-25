@@ -120,6 +120,15 @@
                         </div>
                         <div class="mb-2 d-none" id="cfg-mcq">
                             <textarea name="choices" class="form-control form-control-sm" rows="3" placeholder="{{ __('pages.mcq_choices_hint') }}"></textarea>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="allow_multiple" value="1" id="q-multi">
+                                <label class="form-check-label small" for="q-multi">{{ __('pages.feedback_allow_multiple') }}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="allow_other" value="1" id="q-other">
+                                <label class="form-check-label small" for="q-other">{{ __('pages.feedback_allow_other') }}</label>
+                            </div>
+                            <p class="form-text mb-0">{{ __('pages.feedback_mcq_options_help') }}</p>
                         </div>
                         <div class="mb-2 d-none row g-2" id="cfg-slider">
                             <div class="col-6"><input type="number" name="min" class="form-control form-control-sm" placeholder="Min" value="1"></div>
@@ -148,8 +157,13 @@
                                 <span class="badge bg-light text-dark me-1">#{{ $question->order_index }}</span>
                                 <span class="badge bg-primary me-1">{{ $question->question_type }}</span>
                                 <span class="badge bg-secondary">{{ $question->scope }}</span>
+                                @if($question->allowsMultiple())<span class="badge bg-info text-dark">{{ __('pages.feedback_badge_multiple') }}</span>@endif
+                                @if($question->allowsOther())<span class="badge bg-info text-dark">{{ __('pages.feedback_badge_other') }}</span>@endif
                                 @if(!$question->is_required)<span class="badge bg-warning text-dark">{{ __('pages.optional') }}</span>@endif
                                 <div class="fw-semibold mt-1">{{ $question->scopeLabel() }}</div>
+                                @if($question->question_type === 'mcq' && $question->choices())
+                                    <div class="small text-muted mt-1">{{ implode(' · ', $question->choices()) }}</div>
+                                @endif
                             </div>
                             @if($survey->status === 'draft')
                                 <form method="POST" action="{{ route('feedback.surveys.questions.destroy', [$survey, $question]) }}">@csrf @method('DELETE')

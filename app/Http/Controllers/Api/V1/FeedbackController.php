@@ -70,10 +70,12 @@ class FeedbackController extends Controller
                 'blocks_assessment_title' => $survey->blockedAssessmentTitle(),
                 'questions' => $survey->questions->map(fn ($q) => [
                     'question_id' => $q->question_id ?? $q->getKey(),
-                    'prompt' => $q->prompt ?? $q->question_text ?? null,
+                    'prompt' => $q->prompt ?? $q->question_text ?? $q->label ?? null,
                     'type' => $q->type ?? $q->question_type ?? null,
-                    'required' => (bool) ($q->required ?? false),
-                    'options' => $q->options ?? null,
+                    'required' => (bool) ($q->required ?? $q->is_required ?? false),
+                    'options' => $q->options ?? $q->choices(),
+                    'allow_multiple' => $q->allowsMultiple(),
+                    'allow_other' => $q->allowsOther(),
                 ])->values(),
                 'submission' => $submission ? [
                     'submission_id' => $submission->submission_id ?? $submission->getKey(),
@@ -94,11 +96,17 @@ class FeedbackController extends Controller
         $this->authorizeStudentAccess($user, $survey);
 
         $data = $request->validate([
-            'answers' => ['required', 'array'],
+            'answers' => ['nullable', 'array'],
+            'answers_other' => ['nullable', 'array'],
         ]);
 
         try {
-            $submission = $this->surveys->submit($survey->load('questions'), $user, $data['answers']);
+            $submission = $this->surveys->submit(
+                $survey->load('questions'),
+                $user,
+                $data['answers'] ?? [],
+                $data['answers_other'] ?? []
+            );
         } catch (ValidationException $e) {
             throw $e;
         }

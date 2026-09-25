@@ -3,6 +3,10 @@
 @php
     $fieldName = $namePrefix.'['.$question->question_id.']';
     $fieldId = 'q_'.$question->question_id;
+    $oldValue = old($fieldName, $value);
+    $selected = is_array($oldValue) ? $oldValue : ($oldValue !== null && $oldValue !== '' ? [$oldValue] : []);
+    $oldOther = old($namePrefix.'_other.'.$question->question_id, '');
+    $otherChecked = in_array(\App\Models\FeedbackQuestion::OTHER_CHOICE, $selected, true) || $oldOther !== '';
 @endphp
 
 <div class="mb-4 pb-3 border-bottom">
@@ -31,13 +35,36 @@
                oninput="document.getElementById('{{ $fieldId }}_val').textContent = this.value">
         <div class="small text-muted">{{ __('pages.selected_value') }}: <span id="{{ $fieldId }}_val">{{ old($fieldName, $value ?? $question->sliderMin()) }}</span></div>
     @elseif($question->question_type === 'mcq')
+        @php
+            $multiple = $question->allowsMultiple();
+            $inputName = $multiple ? $fieldName.'[]' : $fieldName;
+            $inputType = $multiple ? 'checkbox' : 'radio';
+        @endphp
+        @if($multiple)
+            <div class="form-text mb-2">{{ __('pages.feedback_select_multiple_hint') }}</div>
+        @endif
         @foreach($question->choices() as $idx => $choice)
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="{{ $fieldName }}" id="{{ $fieldId }}_{{ $idx }}"
-                       value="{{ $choice }}" @checked(old($fieldName, $value) === $choice)>
+                <input class="form-check-input" type="{{ $inputType }}" name="{{ $inputName }}" id="{{ $fieldId }}_{{ $idx }}"
+                       value="{{ $choice }}" @checked(in_array($choice, $selected, true))>
                 <label class="form-check-label" for="{{ $fieldId }}_{{ $idx }}">{{ $choice }}</label>
             </div>
         @endforeach
+        @if($question->allowsOther())
+            <div class="form-check">
+                <input class="form-check-input" type="{{ $inputType }}" name="{{ $inputName }}"
+                       id="{{ $fieldId }}_other_choice"
+                       value="{{ \App\Models\FeedbackQuestion::OTHER_CHOICE }}"
+                       @checked($otherChecked)>
+                <label class="form-check-label" for="{{ $fieldId }}_other_choice">{{ __('pages.feedback_other_choice') }}</label>
+            </div>
+            <input type="text" class="form-control form-control-sm mt-2" id="{{ $fieldId }}_other"
+                   name="{{ $namePrefix }}_other[{{ $question->question_id }}]"
+                   value="{{ $oldOther }}"
+                   maxlength="1000"
+                   data-feedback-other="{{ $fieldId }}_other_choice"
+                   placeholder="{{ __('pages.feedback_other_placeholder') }}">
+        @endif
     @else
         <textarea class="form-control" id="{{ $fieldId }}" name="{{ $fieldName }}" rows="3"
                   placeholder="{{ __('pages.your_answer') }}">{{ old($fieldName, $value) }}</textarea>
@@ -51,5 +78,18 @@
     .star-rating label { font-size: 1.5rem; color: #cbd5e0; cursor: pointer; margin: 0; }
     .star-rating label:hover, .star-rating label:hover ~ label, .star-rating input:checked ~ label { color: #f6ad55; }
 </style>
+@endpush
+@push('scripts')
+<script>
+document.querySelectorAll('[data-feedback-other]').forEach(function (box) {
+    const trigger = document.getElementById(box.getAttribute('data-feedback-other'));
+    if (!trigger) return;
+    box.addEventListener('input', function () {
+        if (box.value.trim() !== '') {
+            trigger.checked = true;
+        }
+    });
+});
+</script>
 @endpush
 @endonce
