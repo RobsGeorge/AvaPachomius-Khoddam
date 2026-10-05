@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Announcement;
 use App\Models\Course;
 use App\Models\FeedbackAnswer;
 use App\Models\FeedbackQuestion;
@@ -10,7 +11,9 @@ use App\Models\FeedbackSurvey;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Models\UserNotification;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -52,6 +55,93 @@ class FeedbackSurveyService
         }
 
         return $query->get();
+    }
+
+    /**
+     * Tell enrolled students a survey is open: in-portal notification plus a
+     * course announcement that deep-links to the form.
+     */
+    public function releaseToStudents(FeedbackSurvey $survey, User $publisher): void
+    {
+        $this->notifyStudents($survey);
+        $this->ensureStudentAnnouncement($survey, $publisher);
+    }
+
+    public function notifyStudents(FeedbackSurvey $survey): void
+    {
+        $course = $survey->course ?? Course::find($survey->course_id);
+        if (! $course) {
+            return;
+        }
+
+        $students = app(StudentRosterService::class)->enrolledStudents($course);
+        $generator = app(NotificationGeneratorService::class);
+        $preferences = app(NotificationPreferenceService::class);
+        $path = route('feedback.surveys.show', $survey, false);
+        $title = __('notifications.generated.feedback_survey_open_title', ['title' => $survey->title]);
+        $moduleLabel = $survey->module?->title ?: ($course->title ?? '');
+        $body = __('notifications.generated.feedback_survey_open_body', [
+            'course' => $course->title,
+            'module' => $moduleLabel,
+        ]);
+
+        foreach ($students as $student) {
+            $preferences->ensureDefaults($student);
+            $generator->createOrUpdate(
+                $student,
+                'feedback_survey_open',
+                $title,
+                $body,
+                $path,
+                'feedback_survey',
+                (int) $survey->survey_id,
+                UserNotification::PRIORITY_HIGH,
+                [
+                    'course_id' => $survey->course_id,
+                    'module_id' => $survey->module_id,
+                    'survey_id' => $survey->survey_id,
+                ],
+                "feedback_survey_open:{$survey->survey_id}:user:{$student->user_id}",
+                false
+            );
+        }
+    }
+
+    public function ensureStudentAnnouncement(FeedbackSurvey $survey, User $publisher): void
+    {
+        if (! Schema::hasTable('announcements') || ! Schema::hasColumn('announcements', 'survey_id')) {
+            return;
+        }
+
+        $existing = Announcement::query()->where('survey_id', $survey->survey_id)->first();
+        $announcements = app(AnnouncementService::class);
+
+        if ($existing) {
+            if ($existing->isDraft()) {
+                $announcements->publish($existing, $publisher);
+            }
+
+            return;
+        }
+
+        $body = trim((string) $survey->description);
+        if ($body === '') {
+            $body = __('pages.feedback_survey_open_announcement_body', ['title' => $survey->title]);
+        }
+
+        $draft = $announcements->createDraft($publisher, [
+            'title' => $survey->title,
+            'body' => $body,
+            'target_mode' => Announcement::TARGET_COURSE,
+            'course_id' => $survey->course_id,
+            'survey_id' => $survey->survey_id,
+            'channels' => [
+                Announcement::CHANNEL_HOMEPAGE => true,
+                Announcement::CHANNEL_BANNER_DISMISSIBLE => true,
+            ],
+        ]);
+
+        $announcements->publish($draft, $publisher);
     }
 
     public function staffForCourse(int $courseId): \Illuminate\Support\Collection

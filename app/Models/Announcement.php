@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\InternalRedirect;
 use App\Tenancy\BelongsToChurch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class Announcement extends Model
 {
@@ -40,6 +42,7 @@ class Announcement extends Model
         'created_by_user_id',
         'course_id',
         'service_id',
+        'survey_id',
         'title',
         'body',
         'target_mode',
@@ -76,6 +79,57 @@ class Announcement extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
+    }
+
+    public function survey(): BelongsTo
+    {
+        return $this->belongsTo(FeedbackSurvey::class, 'survey_id', 'survey_id');
+    }
+
+    /**
+     * Survey this announcement should open for students, if any.
+     * Prefer the stored link; also accept a pasted /feedback/surveys/{id} URL in the body
+     * so older announcements still deep-link.
+     */
+    public function linkedFeedbackSurvey(): ?FeedbackSurvey
+    {
+        if (Schema::hasColumn('announcements', 'survey_id') && $this->survey_id) {
+            $linked = $this->relationLoaded('survey')
+                ? $this->survey
+                : FeedbackSurvey::query()->find($this->survey_id);
+            if ($linked && $linked->status !== FeedbackSurvey::STATUS_DRAFT) {
+                return $linked;
+            }
+        }
+
+        if (! preg_match('#/feedback/surveys/(\d+)#', (string) $this->body, $matches)) {
+            return null;
+        }
+
+        $fromBody = FeedbackSurvey::query()->find((int) $matches[1]);
+        if (! $fromBody || $fromBody->status === FeedbackSurvey::STATUS_DRAFT) {
+            return null;
+        }
+
+        if ($this->course_id && (int) $fromBody->course_id !== (int) $this->course_id) {
+            return null;
+        }
+
+        return $fromBody;
+    }
+
+    /**
+     * Path students should land on after opening this announcement.
+     */
+    public function studentActionPath(): string
+    {
+        $survey = $this->linkedFeedbackSurvey();
+        if ($survey) {
+            return route('feedback.surveys.show', $survey, false);
+        }
+
+        return InternalRedirect::path(route('announcements.show', $this))
+            ?? '/announcements/'.$this->announcement_id;
     }
 
     public function targetUsers(): BelongsToMany

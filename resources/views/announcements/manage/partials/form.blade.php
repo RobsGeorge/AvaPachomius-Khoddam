@@ -25,6 +25,21 @@
                 <textarea name="body" id="body" rows="6" class="form-control" required maxlength="10000">{{ old('body', $announcement?->body ?? '') }}</textarea>
             </div>
 
+            <div class="mb-3">
+                <label class="form-label" for="survey_id">{{ __('announcements.linked_survey') }}</label>
+                <select name="survey_id" id="survey_id" class="form-select">
+                    <option value="">{{ __('announcements.linked_survey_none') }}</option>
+                    @foreach(($surveys ?? collect()) as $survey)
+                        <option value="{{ $survey->survey_id }}"
+                                data-course="{{ $survey->course_id }}"
+                                @selected((string) old('survey_id', $announcement?->survey_id ?? '') === (string) $survey->survey_id)>
+                            {{ $survey->course?->title }} — {{ $survey->title }}
+                        </option>
+                    @endforeach
+                </select>
+                <div class="form-text">{{ __('announcements.linked_survey_help') }}</div>
+            </div>
+
             <div class="row g-3 mb-3">
                 <div class="col-md-6">
                     <label class="form-label" for="course_id">{{ __('pages.course') }}</label>
@@ -110,5 +125,19 @@ document.getElementById('course_id')?.addEventListener('change', function () {
     url.searchParams.set('course_id', this.value);
     window.location = url.toString();
 });
+function filterSurveyOptions() {
+    const courseId = document.getElementById('course_id')?.value;
+    const select = document.getElementById('survey_id');
+    if (!select) return;
+    let keep = false;
+    select.querySelectorAll('option[data-course]').forEach((opt) => {
+        const visible = !courseId || opt.dataset.course === courseId;
+        opt.hidden = !visible;
+        if (visible && opt.value === select.value) keep = true;
+    });
+    if (!keep) select.value = '';
+}
+filterSurveyOptions();
+document.getElementById('course_id')?.addEventListener('change', filterSurveyOptions);
 </script>
 @endpush

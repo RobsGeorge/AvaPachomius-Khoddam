@@ -1014,6 +1014,7 @@ return [
     'feedback_question_added'           => 'Question added.',
     'feedback_question_removed'           => 'Question removed.',
     'feedback_survey_published'           => 'Feedback survey is now open for students.',
+    'feedback_survey_open_announcement_body' => 'Please complete the feedback survey: :title',
     'feedback_survey_closed_admin'        => 'Feedback survey closed.',
     'feedback_survey_deleted'             => 'Survey deleted.',
     'feedback_no_questions'               => 'Add at least one question before publishing.',

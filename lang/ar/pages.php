@@ -866,6 +866,7 @@ return [
     'feedback_survey_deleted'         => 'تم حذف الاستطلاع.',
     'feedback_survey_not_open'        => 'استطلاع التغذية الراجعة هذا غير مفتوح.',
     'feedback_survey_published'       => 'أصبح استطلاع التغذية الراجعة مفتوحاً للطلاب الآن.',
+    'feedback_survey_open_announcement_body' => 'يرجى إكمال استبيان التقييم: :title',
     'feedback_survey_saved'           => 'تم حفظ إعدادات الاستطلاع.',
     'help_text_optional'              => 'نص مساعد (اختياري)',
     'max_stars'                       => 'أقصى عدد للنجوم',
