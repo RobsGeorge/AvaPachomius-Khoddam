@@ -30,6 +30,7 @@ return [
             'session_upcoming',
             'grade_posted',
             'new_lecture_content',
+            'feedback_survey_open',
             'assignment_needs_grading',
             'below_passing_grade',
             'attendance_absent_streak',
@@ -226,6 +227,17 @@ return [
         ],
         'project_submission_feedback' => [
             'label' => 'notifications.types.project_submission_feedback',
+            'category' => 'academic',
+            'audience' => ['student'],
+            'defaults' => [
+                'portal_enabled' => true,
+                'email_enabled' => true,
+                'whatsapp_enabled' => false,
+                'config' => [],
+            ],
+        ],
+        'feedback_survey_open' => [
+            'label' => 'notifications.types.feedback_survey_open',
             'category' => 'academic',
             'audience' => ['student'],
             'defaults' => [

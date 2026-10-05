@@ -226,6 +226,12 @@ class FeedbackSurveyAdminController extends Controller
             'closed_at' => null,
         ]);
 
+        try {
+            $this->surveyService->releaseToStudents($survey->fresh(['course', 'module']), Auth::user());
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return back()->with('success', __('pages.feedback_survey_published'));
     }
 

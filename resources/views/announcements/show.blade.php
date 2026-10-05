@@ -14,6 +14,12 @@
                 @if($announcement->course) · {{ $announcement->course->title }} @endif
             </p>
             <div class="announcement-body">{!! nl2br(e($announcement->body)) !!}</div>
+            @php $linkedSurvey = $announcement->linkedFeedbackSurvey(); @endphp
+            @if($linkedSurvey)
+                <a href="{{ route('feedback.surveys.show', $linkedSurvey) }}" class="btn btn-primary mt-4">
+                    {{ __('announcements.open_survey') }}
+                </a>
+            @endif
         </div>
     </article>
 </div>
