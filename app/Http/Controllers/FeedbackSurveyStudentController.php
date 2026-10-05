@@ -16,7 +16,7 @@ class FeedbackSurveyStudentController extends Controller
 
     public function show(FeedbackSurvey $survey)
     {
-        $this->authorizeStudentAccess($survey);
+        $this->authorizeSurveyView($survey);
 
         $survey->load([
             'course',
@@ -51,7 +51,7 @@ class FeedbackSurveyStudentController extends Controller
 
     public function store(Request $request, FeedbackSurvey $survey)
     {
-        $this->authorizeStudentAccess($survey);
+        $this->authorizeStudentSubmit($survey);
 
         $this->surveyService->submit(
             $survey->load('questions'),
@@ -65,14 +65,23 @@ class FeedbackSurveyStudentController extends Controller
             ->with('success', __('pages.feedback_submitted_success'));
     }
 
-    private function authorizeStudentAccess(FeedbackSurvey $survey): void
+    private function authorizeSurveyView(FeedbackSurvey $survey): void
     {
-        abort_unless(Auth::user()->isStudent(), 403);
+        $user = Auth::user();
+        if ($user->isAdmin() || ($user->is_superadmin ?? false)) {
+            return;
+        }
 
-        $enrolled = Auth::user()->courses()
+        $inCourse = $user->courses()
             ->where('course.course_id', $survey->course_id)
             ->exists();
 
-        abort_unless($enrolled, 403);
+        abort_unless($inCourse, 403);
+    }
+
+    private function authorizeStudentSubmit(FeedbackSurvey $survey): void
+    {
+        abort_unless(Auth::user()->isStudent(), 403);
+        $this->authorizeSurveyView($survey);
     }
 }

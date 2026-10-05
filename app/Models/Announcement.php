@@ -102,20 +102,60 @@ class Announcement extends Model
             }
         }
 
-        if (! preg_match('#/feedback/surveys/(\d+)#', (string) $this->body, $matches)) {
+        if (preg_match('#/feedback/surveys/(\d+)#', (string) $this->body, $matches)) {
+            $fromBody = FeedbackSurvey::query()->find((int) $matches[1]);
+            if ($fromBody && $fromBody->status !== FeedbackSurvey::STATUS_DRAFT) {
+                if (! $this->course_id || (int) $fromBody->course_id === (int) $this->course_id) {
+                    return $fromBody;
+                }
+            }
+        }
+
+        return $this->inferredFeedbackSurvey();
+    }
+
+    /**
+     * Older announcements (no survey_id, no pasted URL) still open the survey
+     * when the title/body names an open or closed survey on the same course.
+     */
+    private function inferredFeedbackSurvey(): ?FeedbackSurvey
+    {
+        $candidates = FeedbackSurvey::query()
+            ->whereIn('status', [FeedbackSurvey::STATUS_OPEN, FeedbackSurvey::STATUS_CLOSED])
+            ->when($this->course_id, fn ($q) => $q->where('course_id', $this->course_id))
+            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [FeedbackSurvey::STATUS_OPEN])
+            ->orderByDesc('opened_at')
+            ->orderByDesc('survey_id')
+            ->get();
+
+        if ($candidates->isEmpty()) {
             return null;
         }
 
-        $fromBody = FeedbackSurvey::query()->find((int) $matches[1]);
-        if (! $fromBody || $fromBody->status === FeedbackSurvey::STATUS_DRAFT) {
+        $announcementTitle = trim((string) $this->title);
+        $announcementBody = (string) $this->body;
+
+        $matches = $candidates->filter(function (FeedbackSurvey $survey) use ($announcementTitle, $announcementBody) {
+            $surveyTitle = trim((string) $survey->title);
+            if ($surveyTitle === '') {
+                return false;
+            }
+
+            return $announcementTitle === $surveyTitle
+                || ($announcementTitle !== '' && str_contains($announcementTitle, $surveyTitle))
+                || str_contains($announcementBody, $surveyTitle);
+        });
+
+        if ($matches->isEmpty()) {
             return null;
         }
 
-        if ($this->course_id && (int) $fromBody->course_id !== (int) $this->course_id) {
-            return null;
-        }
-
-        return $fromBody;
+        return $matches->first(
+            fn (FeedbackSurvey $survey) => trim((string) $survey->title) === $announcementTitle
+                && $survey->status === FeedbackSurvey::STATUS_OPEN
+        )
+            ?? $matches->first(fn (FeedbackSurvey $survey) => trim((string) $survey->title) === $announcementTitle)
+            ?? $matches->first();
     }
 
     /**

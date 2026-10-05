@@ -67,11 +67,11 @@ class AnnouncementController extends Controller
         $announcement->load(['course', 'creator', 'survey']);
 
         $survey = $announcement->linkedFeedbackSurvey();
-        if ($survey && $this->studentCanOpenSurvey($user, $survey)) {
+        if ($survey && $this->viewerCanOpenSurvey($user, $survey)) {
             return redirect()->route('feedback.surveys.show', $survey);
         }
 
-        return view('announcements.show', compact('announcement', 'delivery'));
+        return view('announcements.show', compact('announcement', 'delivery', 'survey'));
     }
 
     public function dismissBanner(Request $request, Announcement $announcement)
@@ -91,10 +91,10 @@ class AnnouncementController extends Controller
         return back();
     }
 
-    private function studentCanOpenSurvey(User $user, FeedbackSurvey $survey): bool
+    private function viewerCanOpenSurvey(User $user, FeedbackSurvey $survey): bool
     {
-        if (! $user->isStudent()) {
-            return false;
+        if ($user->isAdmin() || ($user->is_superadmin ?? false)) {
+            return true;
         }
 
         return $user->courses()

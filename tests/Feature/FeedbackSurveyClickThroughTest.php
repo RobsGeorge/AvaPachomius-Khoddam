@@ -187,6 +187,98 @@ class FeedbackSurveyClickThroughTest extends EventModuleTestCase
             ->assertSee(__('pages.submit_feedback'), false);
     }
 
+    public function test_legacy_course_wide_announcement_card_without_survey_id_opens_the_form(): void
+    {
+        [$instructor, $student, $course] = $this->staffStudentAndCourse();
+        $this->enrollStudentInSecondCourse($student);
+
+        $survey = $this->makeSurvey($instructor, $course, [
+            'title' => 'تقييم الخدمة',
+            'module_id' => null,
+            'is_mandatory' => false,
+            'status' => FeedbackSurvey::STATUS_OPEN,
+            'opened_at' => now(),
+        ]);
+        FeedbackQuestion::create([
+            'survey_id' => $survey->survey_id,
+            'question_type' => FeedbackQuestion::TYPE_TEXT,
+            'scope' => FeedbackQuestion::SCOPE_GENERAL,
+            'label' => 'How was serving?',
+            'order_index' => 1,
+            'is_required' => false,
+        ]);
+
+        $announcement = Announcement::create([
+            'created_by_user_id' => $instructor->user_id,
+            'course_id' => $course->course_id,
+            'survey_id' => null,
+            'title' => 'تقييم الخدمة',
+            'body' => 'يرجى تعبئة التقييم.',
+            'target_mode' => Announcement::TARGET_COURSE,
+            'channels' => [Announcement::CHANNEL_HOMEPAGE => true],
+            'status' => Announcement::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+        AnnouncementDelivery::create([
+            'announcement_id' => $announcement->announcement_id,
+            'user_id' => $student->user_id,
+        ]);
+
+        $this->assertNull($announcement->survey_id);
+        $this->assertSame((int) $survey->survey_id, (int) $announcement->linkedFeedbackSurvey()?->survey_id);
+        $this->assertSame(route('feedback.surveys.show', $survey, false), $announcement->studentActionPath());
+
+        $this->actingAs($student)
+            ->get(route('announcements.index'))
+            ->assertOk()
+            ->assertSee(route('feedback.surveys.show', $survey, false), false);
+
+        $this->actingAs($student);
+        app(CourseContextService::class)->clearCurrentCourse();
+
+        $this->actingAs($student)
+            ->followingRedirects()
+            ->get(route('announcements.show', $announcement))
+            ->assertOk()
+            ->assertSee('تقييم الخدمة', false)
+            ->assertSee(__('pages.submit_feedback'), false);
+    }
+
+    public function test_unrelated_course_announcement_does_not_inherit_a_course_wide_survey(): void
+    {
+        [$instructor, $student, $course] = $this->staffStudentAndCourse();
+
+        $this->makeSurvey($instructor, $course, [
+            'title' => 'تقييم الخدمة',
+            'module_id' => null,
+            'is_mandatory' => false,
+            'status' => FeedbackSurvey::STATUS_OPEN,
+            'opened_at' => now(),
+        ]);
+
+        $announcement = Announcement::create([
+            'created_by_user_id' => $instructor->user_id,
+            'course_id' => $course->course_id,
+            'title' => 'Class cancelled',
+            'body' => 'Stay home today.',
+            'target_mode' => Announcement::TARGET_COURSE,
+            'channels' => [Announcement::CHANNEL_HOMEPAGE => true],
+            'status' => Announcement::STATUS_PUBLISHED,
+            'published_at' => now(),
+        ]);
+        AnnouncementDelivery::create([
+            'announcement_id' => $announcement->announcement_id,
+            'user_id' => $student->user_id,
+        ]);
+
+        $this->assertNull($announcement->linkedFeedbackSurvey());
+
+        $this->actingAs($student)
+            ->get(route('announcements.show', $announcement))
+            ->assertOk()
+            ->assertSee('Stay home today.');
+    }
+
     public function test_announcement_body_survey_url_is_followed_without_course_context(): void
     {
         [$instructor, $student, $survey] = $this->moduleSurveyFixture(status: FeedbackSurvey::STATUS_OPEN);
