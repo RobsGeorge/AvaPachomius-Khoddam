@@ -74,6 +74,8 @@ class FeedbackSurveyClickThroughTest extends EventModuleTestCase
         $survey = $this->makeSurvey($instructor, $course, [
             'title' => 'Optional pulse',
             'is_mandatory' => false,
+            'status' => FeedbackSurvey::STATUS_OPEN,
+            'opened_at' => now(),
         ]);
         FeedbackQuestion::create([
             'survey_id' => $survey->survey_id,
