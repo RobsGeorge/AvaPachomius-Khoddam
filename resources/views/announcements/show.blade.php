@@ -14,10 +14,15 @@
                 @if($announcement->course) · {{ $announcement->course->title }} @endif
             </p>
             <div class="announcement-body">{!! nl2br(e($announcement->body)) !!}</div>
-            @php $linkedSurvey = $announcement->linkedFeedbackSurvey(); @endphp
+            @php $linkedSurvey = $survey ?? $announcement->linkedFeedbackSurvey(); @endphp
             @if($linkedSurvey)
-                <a href="{{ route('feedback.surveys.show', $linkedSurvey) }}" class="btn btn-primary mt-4">
-                    {{ __('announcements.open_survey') }}
+                <a href="{{ route('feedback.surveys.show', $linkedSurvey) }}"
+                   class="announcement-home-card text-decoration-none d-block mt-4">
+                    <strong class="d-block mb-1">{{ $linkedSurvey->title }}</strong>
+                    <span class="text-muted-theme small d-block mb-2">
+                        {{ $linkedSurvey->course?->title }} — {{ $linkedSurvey->scopeLabel() }}
+                    </span>
+                    <span class="btn btn-primary btn-sm">{{ __('announcements.open_survey') }}</span>
                 </a>
             @endif
         </div>

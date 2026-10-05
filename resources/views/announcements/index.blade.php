@@ -13,7 +13,7 @@
         <h2 class="h5 text-muted-theme mb-3">{{ __('announcements.section_open') }}</h2>
         @forelse($openDeliveries as $delivery)
             @php($announcement = $delivery->announcement)
-            <a href="{{ route('announcements.show', $announcement) }}"
+            <a href="{{ $announcement->studentActionPath() }}"
                class="app-tile hub-tile d-block text-decoration-none mb-3 {{ $delivery->isUnread() ? 'announcement-card-unread' : '' }}">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <div>
@@ -37,7 +37,7 @@
             <h2 class="h5 text-muted-theme mb-3 mt-4">{{ __('announcements.section_finished') }}</h2>
             @foreach($finishedDeliveries as $delivery)
                 @php($announcement = $delivery->announcement)
-                <a href="{{ route('announcements.show', $announcement) }}"
+                <a href="{{ $announcement->studentActionPath() }}"
                    class="app-tile hub-tile d-block text-decoration-none mb-3 {{ $delivery->isUnread() ? 'announcement-card-unread' : '' }}">
                     <div class="d-flex justify-content-between align-items-start gap-2">
                         <div>
