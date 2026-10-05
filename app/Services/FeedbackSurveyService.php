@@ -12,6 +12,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCourseRole;
 use App\Models\UserNotification;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
@@ -144,7 +145,7 @@ class FeedbackSurveyService
         $announcements->publish($draft, $publisher);
     }
 
-    public function staffForCourse(int $courseId): \Illuminate\Support\Collection
+    public function staffForCourse(int $courseId): Collection
     {
         return UserCourseRole::query()
             ->with(['user', 'role'])
@@ -257,6 +258,7 @@ class FeedbackSurveyService
                     $rules[$key] = array_merge(['nullable', 'string'], $choiceRules);
                 }
                 $rules['answers_other.'.$question->question_id] = ['nullable', 'string', 'max:1000'];
+
                 continue;
             }
 
@@ -426,6 +428,7 @@ class FeedbackSurveyService
                     foreach ($decoded as $item) {
                         $flat->push((string) $item);
                     }
+
                     continue;
                 }
             }
