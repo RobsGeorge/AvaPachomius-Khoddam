@@ -54,13 +54,29 @@
             </div>
         </div>
     @else
-        @foreach($sessions as $session)
+        @foreach($checkIns as $checkIn)
             @php
-                $record = $existingAttendance->get($session->session_id);
+                $session = $checkIn['session'];
+                $lecture = $checkIn['lecture'];
+                $record = $existingAttendance->first(function ($row) use ($session, $lecture) {
+                    if ((int) $row->session_id !== (int) $session->session_id) {
+                        return false;
+                    }
+                    if ($lecture) {
+                        return (int) $row->lecture_id === (int) $lecture->lecture_id;
+                    }
+
+                    return $row->lecture_id === null;
+                });
             @endphp
             <div class="app-card card mb-3">
                 <div class="card-body">
-                    <h4 class="h6 page-title mb-2">{{ $session->session_title }}</h4>
+                    <h4 class="h6 page-title mb-2">
+                        {{ $session->session_title }}
+                        @if($lecture)
+                            <span class="fw-normal"> — {{ $lecture->title }}</span>
+                        @endif
+                    </h4>
                     <p class="mb-1 text-muted-theme small">
                         <i class="bi bi-calendar-event"></i>
                         {{ $session->session_date?->format('d/m/Y') }}
@@ -71,7 +87,9 @@
                         </p>
                     @endif
 
-                    @if($session->isAttendanceClosed() && ! $record)
+                    @if(! empty($checkIn['needs_lectures']))
+                        <div class="alert alert-warning mb-0">{{ __('pages.attendance_needs_lectures') }}</div>
+                    @elseif($session->isAttendanceClosed() && ! $record)
                         <div class="alert alert-secondary mb-0 d-flex align-items-start gap-2">
                             <i class="bi bi-lock-fill mt-1"></i>
                             <div>{{ __('pages.attendance_session_closed') }}</div>
@@ -94,6 +112,9 @@
                             @endif
                             @if(!empty($userId))
                                 <input type="hidden" name="student_user_id" value="{{ $userId }}">
+                            @endif
+                            @if($lecture)
+                                <input type="hidden" name="lecture_id" value="{{ $lecture->lecture_id }}">
                             @endif
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="bi bi-check2-circle"></i> {{ __('pages.confirm_attendance') }}

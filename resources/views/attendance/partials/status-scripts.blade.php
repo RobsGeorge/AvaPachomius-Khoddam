@@ -144,7 +144,8 @@ function setRosterStatus(select) {
         body: JSON.stringify({
             user_id: userId,
             status: status,
-            permission_reason: permissionReason
+            permission_reason: permissionReason,
+            lecture_id: select.dataset.lectureId || null
         })
     })
     .then(response => response.json())

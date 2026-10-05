@@ -23,7 +23,7 @@
                         <tbody>
                             @foreach($attendanceRecords as $record)
                                 <tr>
-                                    <td>{{ $record->session?->session_title ?? __('pages.unspecified') }}</td>
+                                    <td>{{ $record->session?->session_title ?? __('pages.unspecified') }}@if($record->lecture) — {{ $record->lecture->title }}@endif</td>
                                     <td class="text-nowrap">{{ $record->display_session_date ?? __('pages.unspecified') }}</td>
                                     <td class="text-nowrap">
                                         <select class="status-select form-select form-select-sm"
@@ -61,7 +61,7 @@
                 <div class="d-lg-none admin-data-cards student-data-hub mb-4">
                     @foreach($attendanceRecords as $record)
                         <article class="data-card">
-                            <div class="data-card-title">{{ $record->session?->session_title ?? __('pages.unspecified') }}</div>
+                            <div class="data-card-title">{{ $record->session?->session_title ?? __('pages.unspecified') }}@if($record->lecture) — {{ $record->lecture->title }}@endif</div>
                             <dl class="data-meta-list mb-0">
                                 <div class="data-meta-row">
                                     <dt>{{ __('pages.date') }}</dt>

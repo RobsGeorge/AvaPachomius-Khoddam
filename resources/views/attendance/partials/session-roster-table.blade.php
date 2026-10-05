@@ -26,6 +26,7 @@
                             'session' => $session,
                             'student' => $student,
                             'attendance' => $attendance,
+                            'lectureId' => $lectureId ?? null,
                         ])
                     </td>
                     <td class="text-nowrap">
@@ -69,6 +70,7 @@
                             'session' => $session,
                             'student' => $student,
                             'attendance' => $attendance,
+                            'lectureId' => $lectureId ?? null,
                         ])
                     </dd>
                 </div>

@@ -4,15 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\Course;
-use App\Models\Module;
 use App\Models\Session;
 use App\Models\User;
 use App\Services\AttendanceCloseService;
+use App\Services\AttendanceGrain;
+use App\Services\CoursePermissionResolver;
 use App\Services\SessionNotificationService;
 use App\Services\StudentRosterService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -230,8 +232,8 @@ class SessionController extends Controller
         }
 
         $payload = [
-            'course_id'     => $request->input('course_id'),
-            'module_id'     => $request->input('module_id'),
+            'course_id' => $request->input('course_id'),
+            'module_id' => $request->input('module_id'),
             'session_title' => $request->input('session_title'),
             'session_start_time' => $this->normalizeTimeInput($request->input('session_start_time')),
             'creation_mode' => $mode,
@@ -254,10 +256,10 @@ class SessionController extends Controller
         }
 
         $rules = [
-            'course_id'     => 'required|exists:course,course_id',
-            'module_id'     => 'required|exists:modules,module_id',
+            'course_id' => 'required|exists:course,course_id',
+            'module_id' => 'required|exists:modules,module_id',
             'session_title' => 'required|string|max:27',
-            'session_start_time' => 'nullable|date_format:H:i',
+            'session_start_time' => 'nullable|date_format:H:i:s',
             'creation_mode' => 'required|in:single,multi,weekly',
         ];
 
@@ -303,6 +305,11 @@ class SessionController extends Controller
 
         $notifyStudents = $this->parseNotifyStudentsFlag($request);
         $targetUserIds = $this->parseTargetUserIds($request);
+        $course = Course::findOrFail($validated['course_id']);
+        $requestedGrain = $request->input('attendance_grain');
+        $attendanceGrain = in_array($requestedGrain, [AttendanceGrain::SESSION, AttendanceGrain::LECTURE], true)
+            ? $requestedGrain
+            : $course->attendanceGrain();
 
         try {
             $createdSessions = [];
@@ -312,12 +319,13 @@ class SessionController extends Controller
                     : $validated['session_title'].' '.($index + 1);
 
                 $session = Session::create([
-                    'course_id'     => $validated['course_id'],
-                    'module_id'     => $moduleId,
-                    'week_number'   => $index + 1,
+                    'course_id' => $validated['course_id'],
+                    'module_id' => $moduleId,
+                    'week_number' => $index + 1,
                     'session_title' => mb_substr($title, 0, 30),
-                    'session_date'  => $date,
+                    'session_date' => $date,
                     'session_start_time' => $validated['session_start_time'] ?? null,
+                    'attendance_grain' => $attendanceGrain,
                     'notify_students' => $notifyStudents,
                 ]);
 
@@ -327,8 +335,8 @@ class SessionController extends Controller
             }
         } catch (QueryException $e) {
             Log::error('Session create failed', [
-                'mode'    => $mode,
-                'dates'   => $datesToCreate,
+                'mode' => $mode,
+                'dates' => $datesToCreate,
                 'message' => $e->getMessage(),
             ]);
 
@@ -363,18 +371,20 @@ class SessionController extends Controller
 
         $validated = validator(
             [
-                'course_id'     => $request->input('course_id'),
-                'module_id'     => $request->input('module_id'),
+                'course_id' => $request->input('course_id'),
+                'module_id' => $request->input('module_id'),
                 'session_title' => $request->input('session_title'),
-                'session_date'  => $normalizedDate,
+                'session_date' => $normalizedDate,
                 'session_start_time' => $this->normalizeTimeInput($request->input('session_start_time')),
+                'attendance_grain' => $request->input('attendance_grain'),
             ],
             [
-                'course_id'     => 'required|exists:course,course_id',
-                'module_id'     => 'required|exists:modules,module_id',
+                'course_id' => 'required|exists:course,course_id',
+                'module_id' => 'required|exists:modules,module_id',
                 'session_title' => 'required|string|max:30',
-                'session_date'  => 'required|date_format:Y-m-d',
-                'session_start_time' => 'nullable|date_format:H:i',
+                'session_date' => 'required|date_format:Y-m-d',
+                'session_start_time' => 'nullable|date_format:H:i:s',
+                'attendance_grain' => 'nullable|in:session,lecture',
             ],
             [
                 'module_id.required' => __('pages.module_required_for_session'),
@@ -384,8 +394,18 @@ class SessionController extends Controller
         $this->assertModuleBelongsToCourse((int) $validated['module_id'], (int) $validated['course_id']);
 
         $session = Session::findOrFail($id);
+        $grain = AttendanceGrain::normalize($validated['attendance_grain'] ?? $session->attendanceGrain());
+        unset($validated['attendance_grain']);
+
+        if ($session->attendanceGrainLocked() && $grain !== $session->attendanceGrain()) {
+            throw ValidationException::withMessages([
+                'attendance_grain' => __('pages.attendance_grain_locked'),
+            ]);
+        }
+
         $session->update(array_merge($validated, [
             'notify_students' => $this->parseNotifyStudentsFlag($request),
+            'attendance_grain' => $session->attendanceGrainLocked() ? $session->attendanceGrain() : $grain,
         ]));
         $this->sessionNotifications->syncTargets(
             $session->fresh(),
@@ -432,9 +452,9 @@ class SessionController extends Controller
         DB::table('module_session')->where('session_id', $session->session_id)->delete();
 
         DB::table('module_session')->insert([
-            'module_id'    => $moduleId,
-            'session_id'   => $session->session_id,
-            'week_number'  => $weekNumber,
+            'module_id' => $moduleId,
+            'session_id' => $session->session_id,
+            'week_number' => $weekNumber,
         ]);
     }
 
@@ -510,7 +530,7 @@ class SessionController extends Controller
             ->all();
     }
 
-    private function rosterStudentsForCourseId(mixed $courseId): \Illuminate\Support\Collection
+    private function rosterStudentsForCourseId(mixed $courseId): Collection
     {
         if (! $courseId) {
             return collect();
@@ -527,7 +547,7 @@ class SessionController extends Controller
 
         $currentCourse = current_course();
         if ($currentCourse) {
-            return app(\App\Services\CoursePermissionResolver::class)
+            return app(CoursePermissionResolver::class)
                 ->canInCourse($user, 'session.notify', $currentCourse);
         }
 

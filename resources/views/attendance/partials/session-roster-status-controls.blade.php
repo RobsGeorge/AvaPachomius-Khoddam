@@ -20,6 +20,7 @@
     <select class="form-select form-select-sm roster-status-select"
             data-session-id="{{ $session->session_id }}"
             data-user-id="{{ $student->user_id }}"
+            @if(! empty($lectureId)) data-lecture-id="{{ $lectureId }}" @endif
             onchange="setRosterStatus(this)">
         <option value="" selected disabled>{{ __('pages.not_recorded') }}</option>
         <option value="Present">{{ __('pages.present') }}</option>

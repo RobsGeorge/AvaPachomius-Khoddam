@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Tenancy\BelongsToChurch;
-
 use Illuminate\Database\Eloquent\Model;
 
 class GradeItem extends Model
@@ -12,7 +11,7 @@ class GradeItem extends Model
 
     protected $primaryKey = 'item_id';
 
-    protected $fillable = ['category_id', 'session_id', 'title', 'max_score', 'item_date', 'description', 'ordering'];
+    protected $fillable = ['category_id', 'session_id', 'lecture_id', 'title', 'max_score', 'item_date', 'description', 'ordering'];
 
     protected $casts = [
         'item_date' => 'date',

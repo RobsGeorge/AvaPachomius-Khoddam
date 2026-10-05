@@ -60,6 +60,14 @@
                         <i class="bi bi-save"></i> {{ __('pages.save') }}
                     </button>
                 </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold" for="attendance_grain">{{ __('pages.course_attendance_grain') }}</label>
+                    <select name="attendance_grain" id="attendance_grain" class="form-select form-select-sm">
+                        <option value="session" @selected(old('attendance_grain', $course->attendanceGrain()) === 'session')>{{ __('pages.attendance_grain_session') }}</option>
+                        <option value="lecture" @selected(old('attendance_grain', $course->attendanceGrain()) === 'lecture')>{{ __('pages.attendance_grain_lecture') }}</option>
+                    </select>
+                    <div class="form-text">{{ __('pages.course_attendance_grain_hint') }}</div>
+                </div>
             </form>
         </div>
     </div>
@@ -78,6 +86,7 @@
                 <input type="hidden" name="description" value="{{ old('description', $course->description) }}">
                 <input type="hidden" name="year" value="{{ old('year', $course->year) }}">
                 <input type="hidden" name="default_session_start_time" value="{{ old('default_session_start_time', $course->formattedDefaultSessionStartTime()) }}">
+                <input type="hidden" name="attendance_grain" value="{{ old('attendance_grain', $course->attendanceGrain()) }}">
 
                 <div class="col-md-6">
                     <label class="form-label small fw-semibold">{{ __('course_context.title_ar') }}</label>
