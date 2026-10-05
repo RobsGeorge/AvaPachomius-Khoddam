@@ -19,7 +19,7 @@
                 <div>
                     <h5 class="mb-1">{{ $survey->title }}</h5>
                     <small class="text-muted-theme d-block">
-                        {{ $survey->course?->title }} — {{ $survey->module?->title }}
+                        {{ $survey->course?->title }} — {{ $survey->scopeLabel() }}
                     </small>
                     @if($survey->due_at)
                         <small class="text-muted-theme">{{ __('pages.due') }}: {{ $survey->due_at->format('Y-m-d H:i') }}</small>

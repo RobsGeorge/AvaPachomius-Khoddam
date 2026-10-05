@@ -80,7 +80,7 @@ class FeedbackSurveyService
         $preferences = app(NotificationPreferenceService::class);
         $path = route('feedback.surveys.show', $survey, false);
         $title = __('notifications.generated.feedback_survey_open_title', ['title' => $survey->title]);
-        $moduleLabel = $survey->module?->title ?: ($course->title ?? '');
+        $moduleLabel = $survey->scopeLabel() ?: ($course->title ?? '');
         $body = __('notifications.generated.feedback_survey_open_body', [
             'course' => $course->title,
             'module' => $moduleLabel,

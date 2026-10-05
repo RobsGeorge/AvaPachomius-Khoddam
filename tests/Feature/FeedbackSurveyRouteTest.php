@@ -19,6 +19,7 @@ class FeedbackSurveyRouteTest extends EventModuleTestCase
             ->get(route('feedback.surveys.create'))
             ->assertOk()
             ->assertSee(__('pages.feedback_create_survey'), false)
+            ->assertSee(__('pages.feedback_course_wide'), false)
             ->assertSee(__('pages.feedback_blocking_label'), false)
             ->assertSee(__('pages.feedback_non_blocking_label'), false)
             ->assertSee(__('pages.feedback_anonymous_label'), false)
@@ -73,6 +74,44 @@ class FeedbackSurveyRouteTest extends EventModuleTestCase
 
         $this->assertFalse($blocking->fresh()->blocksModuleResults());
         $this->assertNull($blocking->fresh()->blocks_exam_id);
+    }
+
+    public function test_instructor_can_create_a_course_wide_survey_with_no_module(): void
+    {
+        [$instructor, $course, $module] = $this->instructorWithCourse();
+        $exam = $this->moduleExam($course, $module, 'Course final');
+
+        $this->actingAs($instructor)
+            ->post(route('feedback.surveys.store'), [
+                'course_id' => $course->course_id,
+                'module_id' => '',
+                'title' => 'Course-wide pulse',
+                'is_mandatory' => '0',
+                'is_anonymous' => '1',
+            ])
+            ->assertRedirect();
+
+        $optional = FeedbackSurvey::query()->where('title', 'Course-wide pulse')->first();
+        $this->assertNotNull($optional);
+        $this->assertNull($optional->module_id);
+        $this->assertTrue($optional->isCourseWide());
+        $this->assertFalse($optional->blocksModuleResults());
+
+        $this->actingAs($instructor)
+            ->post(route('feedback.surveys.store'), [
+                'course_id' => $course->course_id,
+                'title' => 'Course-wide blocking',
+                'is_mandatory' => '1',
+                'is_anonymous' => '1',
+                'blocked_assessment' => 'exam:'.$exam->exam_id,
+            ])
+            ->assertRedirect();
+
+        $blocking = FeedbackSurvey::query()->where('title', 'Course-wide blocking')->first();
+        $this->assertNotNull($blocking);
+        $this->assertNull($blocking->module_id);
+        $this->assertTrue($blocking->blocksExam($exam));
+        $this->assertSame((int) $exam->exam_id, (int) $blocking->blocks_exam_id);
     }
 
     /**

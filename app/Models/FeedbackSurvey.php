@@ -48,6 +48,20 @@ class FeedbackSurvey extends Model
         return $this->belongsTo(Module::class, 'module_id', 'module_id');
     }
 
+    public function isCourseWide(): bool
+    {
+        return $this->module_id === null;
+    }
+
+    public function scopeLabel(): string
+    {
+        if ($this->isCourseWide()) {
+            return __('pages.feedback_course_wide');
+        }
+
+        return (string) ($this->module?->title ?? '');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id', 'user_id');
@@ -153,6 +167,10 @@ class FeedbackSurvey extends Model
             return false;
         }
 
+        if ($this->isCourseWide()) {
+            return false;
+        }
+
         return (int) $this->module_id === (int) $exam->module_id;
     }
 
@@ -167,6 +185,10 @@ class FeedbackSurvey extends Model
         }
 
         if ($this->blocks_exam_id) {
+            return false;
+        }
+
+        if ($this->isCourseWide()) {
             return false;
         }
 

@@ -14,7 +14,7 @@
             <div class="card-body d-flex flex-wrap justify-content-between gap-2">
                 <div>
                     <h5 class="mb-1">{{ $survey->title }}</h5>
-                    <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->module?->title }}</small><br>
+                    <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->scopeLabel() }}</small><br>
                     <span class="badge bg-{{ $survey->status === 'open' ? 'success' : ($survey->status === 'draft' ? 'secondary' : 'dark') }}">{{ __('pages.feedback_status_'.$survey->status) }}</span>
                     @include('feedback.partials.survey-badges', ['survey' => $survey, 'class' => 'mt-1'])
                     <span class="badge bg-light text-dark">{{ $survey->submissions_count }} {{ __('pages.responses') }}</span>
