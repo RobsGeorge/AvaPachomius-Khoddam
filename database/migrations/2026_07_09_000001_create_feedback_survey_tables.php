@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('feedback_surveys', function (Blueprint $table) {
             $table->id('survey_id');
             $table->unsignedBigInteger('course_id')->index();
-            $table->unsignedBigInteger('module_id')->index();
+            $table->unsignedBigInteger('module_id')->nullable()->index();
             $table->string('title', 200);
             $table->text('description')->nullable();
             $table->unsignedBigInteger('created_by_user_id')->index();

@@ -43,7 +43,7 @@ class FeedbackSurveyAdminController extends Controller
     {
         $data = $request->validate([
             'course_id' => 'required|exists:course,course_id',
-            'module_id' => 'required|exists:modules,module_id',
+            'module_id' => 'nullable|exists:modules,module_id',
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:2000',
             'due_at' => 'nullable|date',
@@ -53,16 +53,17 @@ class FeedbackSurveyAdminController extends Controller
         ]);
 
         $this->authorizeCourse((int) $data['course_id']);
+        $moduleId = isset($data['module_id']) ? (int) $data['module_id'] : null;
         $block = $this->resolvedBlockTarget(
             $request->boolean('is_mandatory'),
             $data['blocked_assessment'] ?? null,
             (int) $data['course_id'],
-            (int) $data['module_id'],
+            $moduleId,
         );
 
         $survey = FeedbackSurvey::create([
             'course_id' => $data['course_id'],
-            'module_id' => $data['module_id'],
+            'module_id' => $moduleId,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'created_by_user_id' => Auth::user()->user_id,
@@ -94,20 +95,26 @@ class FeedbackSurveyAdminController extends Controller
         ]);
 
         $course = $survey->course;
+        $moduleId = $survey->module_id !== null ? (int) $survey->module_id : null;
         $sessions = Session::where('course_id', $course->course_id)
-            ->where(function ($q) use ($survey) {
-                $q->where('module_id', $survey->module_id)
-                    ->orWhereNull('module_id');
+            ->when($moduleId !== null, function ($q) use ($moduleId) {
+                $q->where(function ($inner) use ($moduleId) {
+                    $inner->where('module_id', $moduleId)
+                        ->orWhereNull('module_id');
+                });
             })
             ->orderBy('session_date')
             ->get();
 
-        $lectures = Lecture::where('module_id', $survey->module_id)
-            ->orderBy('order_index')
-            ->get();
+        $lectures = $moduleId !== null
+            ? Lecture::where('module_id', $moduleId)->orderBy('order_index')->get()
+            : Lecture::query()
+                ->whereIn('module_id', $course->modules()->pluck('modules.module_id'))
+                ->orderBy('order_index')
+                ->get();
 
         $staff = $this->surveyService->staffForCourse((int) $survey->course_id);
-        $moduleAssessments = $this->assessmentsForModule((int) $survey->course_id, (int) $survey->module_id);
+        $moduleAssessments = $this->assessmentsForModule((int) $survey->course_id, $moduleId);
 
         return view('feedback.admin.builder', compact(
             'survey',
@@ -135,7 +142,7 @@ class FeedbackSurveyAdminController extends Controller
             $request->boolean('is_mandatory'),
             $data['blocked_assessment'] ?? null,
             (int) $survey->course_id,
-            (int) $survey->module_id,
+            $survey->module_id !== null ? (int) $survey->module_id : null,
         );
 
         $survey->update([
@@ -309,7 +316,7 @@ class FeedbackSurveyAdminController extends Controller
     /**
      * @return array{blocks_exam_id:?int, blocks_project_assessment_id:?int}
      */
-    private function resolvedBlockTarget(bool $blocking, ?string $key, int $courseId, int $moduleId): array
+    private function resolvedBlockTarget(bool $blocking, ?string $key, int $courseId, ?int $moduleId): array
     {
         if (! $blocking) {
             return ['blocks_exam_id' => null, 'blocks_project_assessment_id' => null];
@@ -326,7 +333,7 @@ class FeedbackSurveyAdminController extends Controller
             $exists = Exam::query()
                 ->where('exam_id', $id)
                 ->where('course_id', $courseId)
-                ->where('module_id', $moduleId)
+                ->when($moduleId !== null, fn ($q) => $q->where('module_id', $moduleId))
                 ->exists();
             if (! $exists) {
                 throw ValidationException::withMessages([
@@ -340,7 +347,7 @@ class FeedbackSurveyAdminController extends Controller
         $exists = ProjectAssessment::query()
             ->where('project_assessment_id', $id)
             ->where('course_id', $courseId)
-            ->where('module_id', $moduleId)
+            ->when($moduleId !== null, fn ($q) => $q->where('module_id', $moduleId))
             ->exists();
         if (! $exists) {
             throw ValidationException::withMessages([
@@ -353,7 +360,7 @@ class FeedbackSurveyAdminController extends Controller
 
     /**
      * @param  Collection<int, Course>  $courses
-     * @return list<array{key:string, module_id:int, label:string}>
+     * @return list<array{key:string, module_id:?int, course_id:int, label:string}>
      */
     private function assessmentsForCourses(Collection $courses): array
     {
@@ -366,14 +373,16 @@ class FeedbackSurveyAdminController extends Controller
         foreach (Exam::query()->whereIn('course_id', $courseIds)->orderBy('exam_name')->get() as $exam) {
             $rows[] = [
                 'key' => FeedbackSurvey::BLOCK_KIND_EXAM.':'.$exam->exam_id,
-                'module_id' => (int) $exam->module_id,
+                'module_id' => $exam->module_id !== null ? (int) $exam->module_id : null,
+                'course_id' => (int) $exam->course_id,
                 'label' => __('pages.feedback_assessment_exam', ['name' => $exam->exam_name]),
             ];
         }
         foreach (ProjectAssessment::query()->whereIn('course_id', $courseIds)->orderBy('title')->get() as $project) {
             $rows[] = [
                 'key' => FeedbackSurvey::BLOCK_KIND_PROJECT.':'.$project->project_assessment_id,
-                'module_id' => (int) $project->module_id,
+                'module_id' => $project->module_id !== null ? (int) $project->module_id : null,
+                'course_id' => (int) $project->course_id,
                 'label' => __('pages.feedback_assessment_project', ['name' => $project->title]),
             ];
         }
@@ -382,14 +391,20 @@ class FeedbackSurveyAdminController extends Controller
     }
 
     /**
-     * @return list<array{key:string, module_id:int, label:string}>
+     * @return list<array{key:string, module_id:?int, course_id:int, label:string}>
      */
-    private function assessmentsForModule(int $courseId, int $moduleId): array
+    private function assessmentsForModule(int $courseId, ?int $moduleId): array
     {
+        $rows = $this->assessmentsForCourses(collect([
+            (object) ['course_id' => $courseId],
+        ]));
+
+        if ($moduleId === null) {
+            return array_values($rows);
+        }
+
         return array_values(array_filter(
-            $this->assessmentsForCourses(collect([
-                (object) ['course_id' => $courseId],
-            ])),
+            $rows,
             fn (array $row) => $row['module_id'] === $moduleId
         ));
     }

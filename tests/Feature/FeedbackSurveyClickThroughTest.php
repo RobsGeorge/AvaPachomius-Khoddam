@@ -125,6 +125,68 @@ class FeedbackSurveyClickThroughTest extends EventModuleTestCase
             ->assertSee(__('pages.submit_feedback'), false);
     }
 
+    public function test_course_wide_survey_announcement_and_notification_open_the_form(): void
+    {
+        [$instructor, $student, $course] = $this->staffStudentAndCourse();
+        $this->enrollStudentInSecondCourse($student);
+
+        $survey = $this->makeSurvey($instructor, $course, [
+            'title' => 'Open course feedback',
+            'module_id' => null,
+            'is_mandatory' => false,
+            'status' => FeedbackSurvey::STATUS_DRAFT,
+        ]);
+        FeedbackQuestion::create([
+            'survey_id' => $survey->survey_id,
+            'question_type' => FeedbackQuestion::TYPE_TEXT,
+            'scope' => FeedbackQuestion::SCOPE_GENERAL,
+            'label' => 'How was the course?',
+            'order_index' => 1,
+            'is_required' => false,
+        ]);
+
+        $this->actingAs($instructor)
+            ->post(route('feedback.surveys.publish', $survey))
+            ->assertRedirect();
+
+        $survey->refresh();
+        $this->assertSame(FeedbackSurvey::STATUS_OPEN, $survey->status);
+        $this->assertNull($survey->module_id);
+
+        $notification = UserNotification::query()
+            ->where('user_id', $student->user_id)
+            ->where('type', 'feedback_survey_open')
+            ->first();
+        $this->assertNotNull($notification);
+        $this->assertSame(route('feedback.surveys.show', $survey, false), $notification->action_url);
+        $this->assertStringContainsString(__('pages.feedback_course_wide'), (string) $notification->body);
+
+        $announcement = Announcement::query()->where('survey_id', $survey->survey_id)->first();
+        $this->assertNotNull($announcement);
+        $this->assertTrue($announcement->isPublished());
+
+        $this->actingAs($student);
+        app(CourseContextService::class)->clearCurrentCourse();
+
+        $this->actingAs($student)
+            ->followingRedirects()
+            ->get(route('notifications.show', $notification))
+            ->assertOk()
+            ->assertSee('Open course feedback', false)
+            ->assertSee(__('pages.feedback_course_wide'), false)
+            ->assertSee(__('pages.submit_feedback'), false);
+
+        $this->actingAs($student);
+        app(CourseContextService::class)->clearCurrentCourse();
+
+        $this->actingAs($student)
+            ->followingRedirects()
+            ->get(route('announcements.show', $announcement))
+            ->assertOk()
+            ->assertSee('Open course feedback', false)
+            ->assertSee(__('pages.submit_feedback'), false);
+    }
+
     public function test_announcement_body_survey_url_is_followed_without_course_context(): void
     {
         [$instructor, $student, $survey] = $this->moduleSurveyFixture(status: FeedbackSurvey::STATUS_OPEN);

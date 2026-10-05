@@ -74,7 +74,15 @@ class ProjectResultsVisibilityService
             ->where('course_id', $assessment->course_id)
             ->when(
                 $assessment->module_id,
-                fn ($q) => $q->where('module_id', $assessment->module_id),
+                function ($q) use ($assessment) {
+                    $q->where(function ($inner) use ($assessment) {
+                        $inner->where('module_id', $assessment->module_id)
+                            ->orWhere(function ($courseWide) use ($assessment) {
+                                $courseWide->whereNull('module_id')
+                                    ->where('blocks_project_assessment_id', $assessment->project_assessment_id);
+                            });
+                    });
+                },
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('is_mandatory', true)
