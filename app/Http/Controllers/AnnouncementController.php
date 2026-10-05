@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Announcement;
 use App\Models\AnnouncementDelivery;
+use App\Models\FeedbackSurvey;
+use App\Models\User;
 use App\Services\AnnouncementService;
 use App\Services\CoursePermissionResolver;
 use Illuminate\Http\Request;
@@ -62,7 +64,12 @@ class AnnouncementController extends Controller
         $this->announcements->markOpened($announcement, $user);
         $this->announcements->markRead($delivery->fresh());
 
-        $announcement->load(['course', 'creator']);
+        $announcement->load(['course', 'creator', 'survey']);
+
+        $survey = $announcement->linkedFeedbackSurvey();
+        if ($survey && $this->studentCanOpenSurvey($user, $survey)) {
+            return redirect()->route('feedback.surveys.show', $survey);
+        }
 
         return view('announcements.show', compact('announcement', 'delivery'));
     }
@@ -82,5 +89,16 @@ class AnnouncementController extends Controller
         $this->announcements->dismissBanner($announcement, $user);
 
         return back();
+    }
+
+    private function studentCanOpenSurvey(User $user, FeedbackSurvey $survey): bool
+    {
+        if (! $user->isStudent()) {
+            return false;
+        }
+
+        return $user->courses()
+            ->where('course.course_id', $survey->course_id)
+            ->exists();
     }
 }

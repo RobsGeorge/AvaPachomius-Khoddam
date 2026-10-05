@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
         <div>
             <h1 class="page-title mb-1">{{ $survey->title }}</h1>
-            <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->module?->title }}</small>
+            <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->scopeLabel() }}</small>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('feedback.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back') }}</a>

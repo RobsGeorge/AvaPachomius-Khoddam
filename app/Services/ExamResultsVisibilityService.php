@@ -80,7 +80,15 @@ class ExamResultsVisibilityService
             ->where('course_id', $exam->course_id)
             ->when(
                 $exam->module_id,
-                fn ($q) => $q->where('module_id', $exam->module_id),
+                function ($q) use ($exam) {
+                    $q->where(function ($inner) use ($exam) {
+                        $inner->where('module_id', $exam->module_id)
+                            ->orWhere(function ($courseWide) use ($exam) {
+                                $courseWide->whereNull('module_id')
+                                    ->where('blocks_exam_id', $exam->exam_id);
+                            });
+                    });
+                },
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('is_mandatory', true)

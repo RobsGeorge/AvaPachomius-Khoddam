@@ -28,6 +28,7 @@
             @foreach($assessments as $row)
                 <option value="{{ $row['key'] }}"
                         data-module="{{ $row['module_id'] }}"
+                        data-course="{{ $row['course_id'] ?? '' }}"
                         @selected($selectedBlock === $row['key'])>
                     {{ $row['label'] }}
                 </option>

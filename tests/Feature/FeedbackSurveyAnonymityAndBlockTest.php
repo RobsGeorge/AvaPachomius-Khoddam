@@ -141,6 +141,39 @@ class FeedbackSurveyAnonymityAndBlockTest extends EventModuleTestCase
         $this->assertTrue($visibility->canStudentViewScore($student, $blocked['exam']->fresh()));
     }
 
+    public function test_course_wide_survey_blocks_the_selected_exam(): void
+    {
+        [$instructor, $student, $course, $module] = $this->staffAndStudent();
+        $blocked = $this->gradedExam($course, $module, $student, 'Course blocked exam', 80);
+        $other = $this->gradedExam($course, $module, $student, 'Course open exam', 70);
+
+        $survey = FeedbackSurvey::create([
+            'course_id' => $course->course_id,
+            'module_id' => null,
+            'title' => 'Course-wide blocks one exam',
+            'created_by_user_id' => $instructor->user_id,
+            'status' => FeedbackSurvey::STATUS_OPEN,
+            'is_mandatory' => true,
+            'is_anonymous' => true,
+            'opened_at' => now(),
+            'blocks_exam_id' => $blocked['exam']->exam_id,
+        ]);
+
+        $blocked['exam']->update([
+            'results_announced_at' => now(),
+            'results_announced_by_user_id' => $instructor->user_id,
+        ]);
+        $other['exam']->update([
+            'results_announced_at' => now(),
+            'results_announced_by_user_id' => $instructor->user_id,
+        ]);
+
+        $visibility = app(ExamResultsVisibilityService::class);
+        $this->assertTrue($survey->blocksExam($blocked['exam']->fresh()));
+        $this->assertFalse($visibility->canStudentViewScore($student, $blocked['exam']->fresh()));
+        $this->assertTrue($visibility->canStudentViewScore($student, $other['exam']->fresh()));
+    }
+
     public function test_named_survey_report_shows_the_student_name(): void
     {
         [$instructor, $student, $course, $module] = $this->staffAndStudent([

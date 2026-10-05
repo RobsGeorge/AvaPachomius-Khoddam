@@ -91,7 +91,22 @@ class MandatoryFeedbackService
             ->where('course_id', $courseId)
             ->when(
                 $moduleId,
-                fn ($q) => $q->where('module_id', $moduleId),
+                function ($q) use ($moduleId, $kind, $assessmentId) {
+                    $q->where(function ($inner) use ($moduleId, $kind, $assessmentId) {
+                        $inner->where('module_id', $moduleId);
+                        if ($kind && $assessmentId) {
+                            $inner->orWhere(function ($courseWide) use ($kind, $assessmentId) {
+                                $courseWide->whereNull('module_id');
+                                if ($kind === FeedbackSurvey::BLOCK_KIND_EXAM) {
+                                    $courseWide->where('blocks_exam_id', $assessmentId);
+                                }
+                                if ($kind === FeedbackSurvey::BLOCK_KIND_PROJECT) {
+                                    $courseWide->where('blocks_project_assessment_id', $assessmentId);
+                                }
+                            });
+                        }
+                    });
+                },
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('status', FeedbackSurvey::STATUS_OPEN)

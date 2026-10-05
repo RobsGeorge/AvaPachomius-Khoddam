@@ -71,4 +71,8 @@ return [
     'whatsapp_help' => 'Open each WhatsApp link to send the message manually, then mark recipients as sent.',
     'copy_message' => 'Message preview',
     'notifications' => 'Notifications',
+    'linked_survey' => 'Linked feedback survey',
+    'linked_survey_help' => 'Optional. Opening this announcement takes students straight to the survey.',
+    'linked_survey_none' => 'No survey',
+    'open_survey' => 'Open survey',
 ];
