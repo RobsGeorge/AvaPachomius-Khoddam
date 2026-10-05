@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\FeedbackSubmission;
 use App\Models\FeedbackSurvey;
-use App\Models\Course;
 use App\Models\Module;
 use App\Models\Session;
 use App\Models\User;
@@ -96,7 +96,7 @@ class CurriculumController extends Controller
             'sessions',
         ])->findOrFail($courseId);
 
-        $linkedModuleIds  = $course->modules->pluck('module_id');
+        $linkedModuleIds = $course->modules->pluck('module_id');
         $availableModules = Module::whereNotIn('module_id', $linkedModuleIds)
             ->orderBy('title')
             ->get();
@@ -134,7 +134,7 @@ class CurriculumController extends Controller
     public function createAndAttachModule(Request $request, string $courseId)
     {
         $request->validate([
-            'title'       => 'required|string|max:30',
+            'title' => 'required|string|max:30',
             'description' => 'required|string|max:255',
         ]);
 
@@ -166,19 +166,19 @@ class CurriculumController extends Controller
         $module = $course->modules()->where('modules.module_id', $moduleId)->firstOrFail();
 
         $data = $request->validate([
-            'start_date'  => 'nullable|date',
-            'end_date'    => 'nullable|date|after_or_equal:start_date',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
             'order_index' => 'nullable|integer|min:0|max:999',
-            'status'      => 'required|in:draft,active,ended',
+            'status' => 'required|in:draft,active,ended',
             'session_ids' => 'nullable|array',
             'session_ids.*' => 'integer|exists:session,session_id',
         ]);
 
         $course->modules()->updateExistingPivot($moduleId, [
-            'start_date'  => $data['start_date'] ?? null,
-            'end_date'    => $data['end_date'] ?? null,
+            'start_date' => $data['start_date'] ?? null,
+            'end_date' => $data['end_date'] ?? null,
             'order_index' => $data['order_index'] ?? ($module->pivot->order_index ?? 0),
-            'status'      => $data['status'],
+            'status' => $data['status'],
         ]);
 
         $sessionIds = collect($data['session_ids'] ?? [])
@@ -200,7 +200,7 @@ class CurriculumController extends Controller
             $weekNumber = $index + 1;
             $sync[$sessionId] = ['week_number' => $weekNumber];
             Session::where('session_id', $sessionId)->update([
-                'module_id'   => $moduleId,
+                'module_id' => $moduleId,
                 'week_number' => $weekNumber,
             ]);
         }
@@ -245,6 +245,7 @@ class CurriculumController extends Controller
             'inherit_theme' => 'sometimes|boolean',
             'year' => 'required|integer|min:2000|max:2100',
             'default_session_start_time' => 'required|date_format:H:i',
+            'attendance_grain' => 'nullable|in:session,lecture',
         ]);
 
         $courseUpdate = [
@@ -253,6 +254,10 @@ class CurriculumController extends Controller
             'year' => $validated['year'],
             'default_session_start_time' => $validated['default_session_start_time'].':00',
         ];
+
+        if ($request->filled('attendance_grain')) {
+            $courseUpdate['attendance_grain'] = $validated['attendance_grain'];
+        }
 
         if ($request->has('title_ar') || $request->has('title_en') || $request->has('description_ar') || $request->has('description_en')) {
             $courseUpdate['title_ar'] = $validated['title_ar'] ?? null;

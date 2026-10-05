@@ -16,7 +16,7 @@ class AttendanceController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        $records = Attendance::with(['session'])
+        $records = Attendance::with(['session', 'lecture'])
             ->where('user_id', $user->user_id)
             ->orderByDesc('attendance_time')
             ->limit(200)
@@ -26,6 +26,8 @@ class AttendanceController extends Controller
                 'session_id' => $row->session_id,
                 'session_title' => $row->session?->session_title,
                 'session_date' => $row->session?->session_date,
+                'lecture_id' => $row->lecture_id,
+                'lecture_title' => $row->lecture?->title,
                 'status' => $row->status,
                 'attendance_time' => $this->isoOrString($row->attendance_time),
                 'permission_reason' => $row->permission_reason,

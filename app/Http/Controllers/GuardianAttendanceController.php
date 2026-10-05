@@ -27,6 +27,7 @@ class GuardianAttendanceController extends Controller
             'person_id' => 'required|integer|exists:people,person_id',
             'status' => 'nullable|in:Present,Absent,Late,Permission',
             'permission_reason' => 'required_if:status,Permission|nullable|string|max:255',
+            'lecture_id' => 'nullable|integer|exists:lectures,lecture_id',
         ]);
 
         $guardian = $request->user();
@@ -53,6 +54,7 @@ class GuardianAttendanceController extends Controller
             (int) $guardian->user_id,
             $validated['permission_reason'] ?? null,
             allowNonEnrolled: true,
+            lectureId: isset($validated['lecture_id']) ? (int) $validated['lecture_id'] : null,
         );
 
         AuditLogService::recordEvent('attendance.guardian_check_in', [

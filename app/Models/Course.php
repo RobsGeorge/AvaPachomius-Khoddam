@@ -2,18 +2,12 @@
 
 namespace App\Models;
 
-use App\Tenancy\BelongsToChurch;
-
 use App\Database\CourseModulePivot;
+use App\Services\AttendanceGrain;
 use App\Services\Structure\ServiceUnitDualWrite;
+use App\Tenancy\BelongsToChurch;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Module;
-use App\Models\Session;
-use App\Models\Exam;
-use App\Models\CourseAssessment;
-use App\Models\GradeCategory;
 
 class Course extends Model
 {
@@ -64,6 +58,7 @@ class Course extends Model
         'branding_theme',
         'year',
         'default_session_start_time',
+        'attendance_grain',
         'passing_percentage',
         'min_attendance_percentage',
         'status',
@@ -80,13 +75,13 @@ class Course extends Model
     ];
 
     protected $casts = [
-        'passing_percentage'        => 'float',
+        'passing_percentage' => 'float',
         'min_attendance_percentage' => 'float',
-        'grading_locked_at'         => 'datetime',
-        'grades_announced_at'       => 'datetime',
-        'closed_at'                 => 'datetime',
-        'grace_marks_enabled'       => 'boolean',
-        'max_grace_marks'           => 'float',
+        'grading_locked_at' => 'datetime',
+        'grades_announced_at' => 'datetime',
+        'closed_at' => 'datetime',
+        'grace_marks_enabled' => 'boolean',
+        'max_grace_marks' => 'float',
     ];
 
     protected function brandingTheme(): Attribute
@@ -247,7 +242,7 @@ class Course extends Model
     public function gradeCategories()
     {
         return $this->hasMany(GradeCategory::class, 'course_id', 'course_id')
-                    ->orderBy('ordering');
+            ->orderBy('ordering');
     }
 
     public function graduations()
@@ -328,6 +323,12 @@ class Course extends Model
     public function effectiveMinAttendancePercentage(): float
     {
         return (float) ($this->min_attendance_percentage ?? 75);
+    }
+
+    /** Default roll-call mode copied onto new sessions. */
+    public function attendanceGrain(): string
+    {
+        return AttendanceGrain::normalize($this->attendance_grain ?? null);
     }
 
     public function formattedDefaultSessionStartTime(): string
