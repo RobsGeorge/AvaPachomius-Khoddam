@@ -29,9 +29,11 @@ php artisan test --testsuite=Notifications
 
 ### Local / staging runner note
 
-`phpunit.xml` sets `force="true"` on `APP_ENV`, `APP_URL`, `DB_*`, `MULTI_TENANT`,
-and related drivers so a staging/prod shell (or cached `.env` exports) cannot leak
-TrustHosts / live MySQL / `MULTI_TENANT=true` into the suite.
+`phpunit.xml` sets `force="true"` on `APP_ENV`, `APP_URL`, `APP_KEY` (cleared — the
+PHPUnit-only key is derived at runtime in `CreatesApplication`, never committed),
+`DB_*`, `MULTI_TENANT`, and related drivers so a staging/prod shell (or cached
+`.env` exports) cannot leak TrustHosts / live MySQL / `MULTI_TENANT=true` into
+the suite.
 
 On a box whose `.env` enables Pulse/Telescope, you can still run:
 
