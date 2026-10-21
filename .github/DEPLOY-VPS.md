@@ -218,8 +218,10 @@ The production site can stay up (nginx/HTTPS) while GitHub Actions cannot open
 SSH. That is a **connect** failure — the remote deploy script never starts, so
 the VPS stays on the last successful commit and is not left in maintenance.
 
-The production workflow retries the SSH step up to 4 times (45s apart, 180s
-connect timeout). If it still fails:
+The production workflow retries SSH up to 4 times (45s apart, 180s connect
+timeout) as native steps. Do not wrap `appleboy/ssh-action` in
+`wretry.action` — the multiline `SSH_PRIVATE_KEY` secret breaks that
+action's YAML `with:` block. If it still fails:
 
 1. Confirm the host answers SSH from a trusted machine (`nc -zv <host> <port>`).
 2. Confirm the VPS firewall still allows GitHub Actions IPs (they rotate).

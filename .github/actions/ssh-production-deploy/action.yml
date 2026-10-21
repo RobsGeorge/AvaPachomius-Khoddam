@@ -1,0 +1,26 @@
+name: SSH production deploy
+description: Run scripts/vps/deploy-production.sh on the VPS over SSH.
+
+inputs:
+  host:
+    required: true
+  username:
+    required: true
+  key:
+    required: true
+  port:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ inputs.host }}
+        username: ${{ inputs.username }}
+        key: ${{ inputs.key }}
+        port: ${{ inputs.port }}
+        timeout: 180s
+        command_timeout: 30m
+        script_path: scripts/vps/deploy-production.sh

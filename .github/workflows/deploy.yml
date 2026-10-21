@@ -26,17 +26,75 @@ jobs:
       - name: Checkout deploy script
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS
-        uses: Wandalen/wretry.action@v3.8.0
+      # Do not wrap appleboy/ssh-action in wretry.action: the multiline
+      # SSH_PRIVATE_KEY secret breaks that action's YAML `with:` block.
+      - name: Deploy to VPS (attempt 1)
+        id: ssh1
+        continue-on-error: true
+        uses: ./.github/actions/ssh-production-deploy
         with:
-          action: appleboy/ssh-action@v1.0.3
-          attempt_limit: 4
-          attempt_delay: 45000
-          with: |
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: ${{ secrets.SSH_PORT }}
-            timeout: 180s
-            command_timeout: 30m
-            script_path: scripts/vps/deploy-production.sh
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+
+      - name: Wait before SSH retry 2
+        if: steps.ssh1.outcome == 'failure'
+        run: sleep 45
+
+      - name: Deploy to VPS (attempt 2)
+        id: ssh2
+        if: steps.ssh1.outcome == 'failure'
+        continue-on-error: true
+        uses: ./.github/actions/ssh-production-deploy
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+
+      - name: Wait before SSH retry 3
+        if: steps.ssh1.outcome == 'failure' && steps.ssh2.outcome == 'failure'
+        run: sleep 45
+
+      - name: Deploy to VPS (attempt 3)
+        id: ssh3
+        if: steps.ssh1.outcome == 'failure' && steps.ssh2.outcome == 'failure'
+        continue-on-error: true
+        uses: ./.github/actions/ssh-production-deploy
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+
+      - name: Wait before SSH retry 4
+        if: >-
+          steps.ssh1.outcome == 'failure' &&
+          steps.ssh2.outcome == 'failure' &&
+          steps.ssh3.outcome == 'failure'
+        run: sleep 45
+
+      - name: Deploy to VPS (attempt 4)
+        id: ssh4
+        if: >-
+          steps.ssh1.outcome == 'failure' &&
+          steps.ssh2.outcome == 'failure' &&
+          steps.ssh3.outcome == 'failure'
+        continue-on-error: true
+        uses: ./.github/actions/ssh-production-deploy
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+
+      - name: Fail if SSH deploy never succeeded
+        if: >-
+          steps.ssh1.outcome != 'success' &&
+          steps.ssh2.outcome != 'success' &&
+          steps.ssh3.outcome != 'success' &&
+          steps.ssh4.outcome != 'success'
+        run: |
+          echo "SSH deploy failed after 4 attempts"
+          exit 1
