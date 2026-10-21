@@ -3,16 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
+use App\Models\Exam;
 use App\Models\FeedbackIdentityRevealRequest;
 use App\Models\FeedbackQuestion;
 use App\Models\FeedbackSurvey;
 use App\Models\Lecture;
+use App\Models\ProjectAssessment;
 use App\Models\Session;
 use App\Services\AuditLogService;
 use App\Services\FeedbackSurveyService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class FeedbackSurveyAdminController extends Controller
 {
@@ -25,32 +29,50 @@ class FeedbackSurveyAdminController extends Controller
         $courses = $this->accessibleCourses();
         $selectedCourse = $request->query('course_id');
         $selectedModule = $request->query('module_id');
+        $moduleAssessments = $this->assessmentsForCourses($courses);
 
-        return view('feedback.admin.create', compact('courses', 'selectedCourse', 'selectedModule'));
+        return view('feedback.admin.create', compact(
+            'courses',
+            'selectedCourse',
+            'selectedModule',
+            'moduleAssessments'
+        ));
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
             'course_id' => 'required|exists:course,course_id',
-            'module_id' => 'required|exists:modules,module_id',
+            'module_id' => 'nullable|exists:modules,module_id',
             'title' => 'required|string|max:200',
             'description' => 'nullable|string|max:2000',
             'due_at' => 'nullable|date',
             'is_mandatory' => 'required|boolean',
+            'is_anonymous' => 'required|boolean',
+            'blocked_assessment' => 'nullable|string|max:40',
         ]);
 
         $this->authorizeCourse((int) $data['course_id']);
+        $moduleId = isset($data['module_id']) ? (int) $data['module_id'] : null;
+        $block = $this->resolvedBlockTarget(
+            $request->boolean('is_mandatory'),
+            $data['blocked_assessment'] ?? null,
+            (int) $data['course_id'],
+            $moduleId,
+        );
 
         $survey = FeedbackSurvey::create([
             'course_id' => $data['course_id'],
-            'module_id' => $data['module_id'],
+            'module_id' => $moduleId,
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'created_by_user_id' => Auth::user()->user_id,
             'status' => FeedbackSurvey::STATUS_DRAFT,
             'is_mandatory' => $request->boolean('is_mandatory'),
+            'is_anonymous' => $request->boolean('is_anonymous'),
             'due_at' => $data['due_at'] ?? null,
+            'blocks_exam_id' => $block['blocks_exam_id'],
+            'blocks_project_assessment_id' => $block['blocks_project_assessment_id'],
         ]);
 
         return redirect()
@@ -62,24 +84,45 @@ class FeedbackSurveyAdminController extends Controller
     {
         $this->authorizeSurvey($survey);
 
-        $survey->load(['questions.session', 'questions.lecture', 'questions.targetUser', 'course', 'module']);
+        $survey->load([
+            'questions.session',
+            'questions.lecture',
+            'questions.targetUser',
+            'course',
+            'module',
+            'blockedExam',
+            'blockedProjectAssessment',
+        ]);
 
         $course = $survey->course;
+        $moduleId = $survey->module_id !== null ? (int) $survey->module_id : null;
         $sessions = Session::where('course_id', $course->course_id)
-            ->where(function ($q) use ($survey) {
-                $q->where('module_id', $survey->module_id)
-                    ->orWhereNull('module_id');
+            ->when($moduleId !== null, function ($q) use ($moduleId) {
+                $q->where(function ($inner) use ($moduleId) {
+                    $inner->where('module_id', $moduleId)
+                        ->orWhereNull('module_id');
+                });
             })
             ->orderBy('session_date')
             ->get();
 
-        $lectures = Lecture::where('module_id', $survey->module_id)
-            ->orderBy('order_index')
-            ->get();
+        $lectures = $moduleId !== null
+            ? Lecture::where('module_id', $moduleId)->orderBy('order_index')->get()
+            : Lecture::query()
+                ->whereIn('module_id', $course->modules()->pluck('modules.module_id'))
+                ->orderBy('order_index')
+                ->get();
 
         $staff = $this->surveyService->staffForCourse((int) $survey->course_id);
+        $moduleAssessments = $this->assessmentsForModule((int) $survey->course_id, $moduleId);
 
-        return view('feedback.admin.builder', compact('survey', 'sessions', 'lectures', 'staff'));
+        return view('feedback.admin.builder', compact(
+            'survey',
+            'sessions',
+            'lectures',
+            'staff',
+            'moduleAssessments'
+        ));
     }
 
     public function update(Request $request, FeedbackSurvey $survey)
@@ -91,13 +134,25 @@ class FeedbackSurveyAdminController extends Controller
             'description' => 'nullable|string|max:2000',
             'due_at' => 'nullable|date',
             'is_mandatory' => 'required|boolean',
+            'is_anonymous' => 'required|boolean',
+            'blocked_assessment' => 'nullable|string|max:40',
         ]);
+
+        $block = $this->resolvedBlockTarget(
+            $request->boolean('is_mandatory'),
+            $data['blocked_assessment'] ?? null,
+            (int) $survey->course_id,
+            $survey->module_id !== null ? (int) $survey->module_id : null,
+        );
 
         $survey->update([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'is_mandatory' => $request->boolean('is_mandatory'),
+            'is_anonymous' => $request->boolean('is_anonymous'),
             'due_at' => $data['due_at'] ?? null,
+            'blocks_exam_id' => $block['blocks_exam_id'],
+            'blocks_project_assessment_id' => $block['blocks_project_assessment_id'],
         ]);
 
         return back()->with('success', __('pages.feedback_survey_saved'));
@@ -127,6 +182,8 @@ class FeedbackSurveyAdminController extends Controller
             'lecture_id' => 'nullable|exists:lectures,lecture_id',
             'target_user_id' => 'nullable|exists:user,user_id',
             'choices' => 'nullable|string|max:2000',
+            'allow_multiple' => 'boolean',
+            'allow_other' => 'boolean',
             'min' => 'nullable|integer|min:0|max:100',
             'max' => 'nullable|integer|min:1|max:100',
             'max_rating' => 'nullable|integer|min:3|max:10',
@@ -175,6 +232,12 @@ class FeedbackSurveyAdminController extends Controller
             'opened_at' => now(),
             'closed_at' => null,
         ]);
+
+        try {
+            $this->surveyService->releaseToStudents($survey->fresh(['course', 'module']), Auth::user());
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return back()->with('success', __('pages.feedback_survey_published'));
     }
@@ -228,7 +291,14 @@ class FeedbackSurveyAdminController extends Controller
 
         if ($data['question_type'] === FeedbackQuestion::TYPE_MCQ) {
             $choices = array_values(array_filter(array_map('trim', explode("\n", $data['choices'] ?? ''))));
+            if ($choices === []) {
+                throw ValidationException::withMessages([
+                    'choices' => [__('pages.feedback_mcq_choices_required')],
+                ]);
+            }
             $config['choices'] = $choices;
+            $config['allow_multiple'] = (bool) ($data['allow_multiple'] ?? false);
+            $config['allow_other'] = (bool) ($data['allow_other'] ?? false);
         }
 
         if ($data['question_type'] === FeedbackQuestion::TYPE_SLIDER) {
@@ -241,6 +311,102 @@ class FeedbackSurveyAdminController extends Controller
         }
 
         return $config;
+    }
+
+    /**
+     * @return array{blocks_exam_id:?int, blocks_project_assessment_id:?int}
+     */
+    private function resolvedBlockTarget(bool $blocking, ?string $key, int $courseId, ?int $moduleId): array
+    {
+        if (! $blocking) {
+            return ['blocks_exam_id' => null, 'blocks_project_assessment_id' => null];
+        }
+
+        [$kind, $id] = FeedbackSurvey::parseBlockedAssessment($key);
+        if ($kind === null || $id === null) {
+            throw ValidationException::withMessages([
+                'blocked_assessment' => [__('pages.feedback_blocked_assessment_required')],
+            ]);
+        }
+
+        if ($kind === FeedbackSurvey::BLOCK_KIND_EXAM) {
+            $exists = Exam::query()
+                ->where('exam_id', $id)
+                ->where('course_id', $courseId)
+                ->when($moduleId !== null, fn ($q) => $q->where('module_id', $moduleId))
+                ->exists();
+            if (! $exists) {
+                throw ValidationException::withMessages([
+                    'blocked_assessment' => [__('pages.feedback_blocked_assessment_invalid')],
+                ]);
+            }
+
+            return ['blocks_exam_id' => $id, 'blocks_project_assessment_id' => null];
+        }
+
+        $exists = ProjectAssessment::query()
+            ->where('project_assessment_id', $id)
+            ->where('course_id', $courseId)
+            ->when($moduleId !== null, fn ($q) => $q->where('module_id', $moduleId))
+            ->exists();
+        if (! $exists) {
+            throw ValidationException::withMessages([
+                'blocked_assessment' => [__('pages.feedback_blocked_assessment_invalid')],
+            ]);
+        }
+
+        return ['blocks_exam_id' => null, 'blocks_project_assessment_id' => $id];
+    }
+
+    /**
+     * @param  Collection<int, Course>  $courses
+     * @return list<array{key:string, module_id:?int, course_id:int, label:string}>
+     */
+    private function assessmentsForCourses(Collection $courses): array
+    {
+        $courseIds = $courses->pluck('course_id')->filter()->all();
+        if ($courseIds === []) {
+            return [];
+        }
+
+        $rows = [];
+        foreach (Exam::query()->whereIn('course_id', $courseIds)->orderBy('exam_name')->get() as $exam) {
+            $rows[] = [
+                'key' => FeedbackSurvey::BLOCK_KIND_EXAM.':'.$exam->exam_id,
+                'module_id' => $exam->module_id !== null ? (int) $exam->module_id : null,
+                'course_id' => (int) $exam->course_id,
+                'label' => __('pages.feedback_assessment_exam', ['name' => $exam->exam_name]),
+            ];
+        }
+        foreach (ProjectAssessment::query()->whereIn('course_id', $courseIds)->orderBy('title')->get() as $project) {
+            $rows[] = [
+                'key' => FeedbackSurvey::BLOCK_KIND_PROJECT.':'.$project->project_assessment_id,
+                'module_id' => $project->module_id !== null ? (int) $project->module_id : null,
+                'course_id' => (int) $project->course_id,
+                'label' => __('pages.feedback_assessment_project', ['name' => $project->title]),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return list<array{key:string, module_id:?int, course_id:int, label:string}>
+     */
+    private function assessmentsForModule(int $courseId, ?int $moduleId): array
+    {
+        $rows = $this->assessmentsForCourses(collect([
+            (object) ['course_id' => $courseId],
+        ]));
+
+        if ($moduleId === null) {
+            return array_values($rows);
+        }
+
+        return array_values(array_filter(
+            $rows,
+            fn (array $row) => $row['module_id'] === $moduleId
+        ));
     }
 
     private function accessibleCourses()

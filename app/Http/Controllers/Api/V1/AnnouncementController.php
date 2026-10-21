@@ -84,6 +84,8 @@ class AnnouncementController extends Controller
             'opened_at' => $delivery->opened_at?->toIso8601String(),
             'is_unread' => $delivery->isUnread(),
             'is_finished' => (bool) $announcement?->isFinished(),
+            'survey_id' => $announcement?->survey_id,
+            'action_url' => $announcement?->studentActionPath(),
         ];
     }
 }

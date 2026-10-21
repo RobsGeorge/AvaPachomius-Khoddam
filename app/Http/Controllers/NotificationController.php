@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
+use App\Models\FeedbackSurvey;
 use App\Models\UserNotification;
 use App\Services\NotificationFeedService;
+use App\Support\InternalRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 
 class NotificationController extends Controller
 {
@@ -34,8 +36,9 @@ class NotificationController extends Controller
 
         $this->feed->markRead($notification);
 
-        if ($this->isSafeInternalUrl($notification->action_url)) {
-            return redirect($notification->action_url);
+        $destination = $this->destinationPath($notification);
+        if ($destination) {
+            return redirect($destination);
         }
 
         return redirect()->route('notifications.index');
@@ -45,31 +48,47 @@ class NotificationController extends Controller
      * Follow an action_url only when it targets this application (F9 — prevent open
      * redirects). Accepts app-relative paths (but not protocol-relative "//host") and
      * absolute URLs whose host matches the app host; rejects any cross-host target.
+     * Always returns a path so APP_URL host/port mismatches cannot hang the browser.
      */
-    private function isSafeInternalUrl(?string $url): bool
+    private function destinationPath(UserNotification $notification): ?string
     {
-        if (! is_string($url) || $url === '') {
-            return false;
+        $surveyPath = $this->linkedSurveyPath($notification);
+        if ($surveyPath) {
+            return $surveyPath;
         }
 
-        // Protocol-relative ("//evil.example") is an external target in disguise.
-        if (Str::startsWith($url, '//')) {
-            return false;
+        return InternalRedirect::path($notification->action_url);
+    }
+
+    private function linkedSurveyPath(UserNotification $notification): ?string
+    {
+        $surveyId = $notification->source_type === 'feedback_survey'
+            ? (int) $notification->source_id
+            : (int) ($notification->metadata['survey_id'] ?? 0);
+
+        if ($surveyId < 1 && $notification->source_type === 'announcement' && $notification->source_id) {
+            $announcement = Announcement::query()->find($notification->source_id);
+            $surveyId = (int) ($announcement?->linkedFeedbackSurvey()?->survey_id ?? 0);
         }
 
-        // App-relative path.
-        if (Str::startsWith($url, '/')) {
-            return true;
+        if ($surveyId < 1) {
+            $fromAction = InternalRedirect::path($notification->action_url);
+            if ($fromAction && preg_match('#^/announcements/(\d+)#', $fromAction, $matches)) {
+                $announcement = Announcement::query()->find((int) $matches[1]);
+                $surveyId = (int) ($announcement?->linkedFeedbackSurvey()?->survey_id ?? 0);
+            }
         }
 
-        $host = parse_url($url, PHP_URL_HOST);
-        if ($host === null || $host === '') {
-            return false;
+        if ($surveyId < 1) {
+            return null;
         }
 
-        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+        $survey = FeedbackSurvey::query()->find($surveyId);
+        if (! $survey || $survey->status === FeedbackSurvey::STATUS_DRAFT) {
+            return null;
+        }
 
-        return $host === request()->getHost() || ($appHost !== null && $host === $appHost);
+        return route('feedback.surveys.show', $survey, false);
     }
 
     public function markAllRead()

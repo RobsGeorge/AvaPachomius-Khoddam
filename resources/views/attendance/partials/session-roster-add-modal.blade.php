@@ -18,6 +18,9 @@
 
                     <input type="hidden" name="person_id" id="selected-person-id">
                     <input type="hidden" name="user_id" id="selected-student-id">
+                    @if(! empty($lectureId))
+                        <input type="hidden" name="lecture_id" value="{{ $lectureId }}">
+                    @endif
 
                     <div class="mb-3">
                         <label for="add-attendance-status" class="form-label">{{ __('pages.status') }}</label>

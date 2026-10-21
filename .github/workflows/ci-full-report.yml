@@ -1,0 +1,57 @@
+name: CI full report
+
+# Visibility for the broad Unit and Feature suites. Those suites contain known
+# failures outside the deploy gate, and a 20-minute run was marking every pull
+# request CI check as cancelled. This report does not block deploys.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * 1'
+
+jobs:
+  full-suite-report:
+    name: Full suite (report only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, curl, json, bcmath, gd, sqlite3, pdo_sqlite
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare application
+        run: |
+          cp .env.example .env
+          {
+            echo "PULSE_ENABLED=false"
+            echo "TELESCOPE_ENABLED=false"
+          } >> .env
+          php artisan key:generate
+
+      - name: Unit suite (full)
+        run: php artisan test --testsuite=Unit --compact
+        continue-on-error: true
+
+      - name: Feature suite (full)
+        run: php artisan test --testsuite=Feature --compact
+        continue-on-error: true

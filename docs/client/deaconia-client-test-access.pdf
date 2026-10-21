@@ -1,0 +1,369 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 2
+/Kids [ 4 0 R 9 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Contents 5 0 R
+/Resources 6 0 R
+/Type /Page
+/MediaBox [ 0 0 595.28 841.89 ]
+/Parent 2 0 R
+>>
+endobj
+5 0 obj
+<<
+/Length 10796
+>>
+stream
+2 J
+0.57 w
+0.0549 0.2902 0.3216 rg
+0.00 841.89 595.28 -90.71 re f
+BT /F1 18.00 Tf ET
+q BT 48.19 802.47 Td 1 1 1 rg (Deaconia  -  client test access) Tj ET Q
+BT /F2 10.00 Tf ET
+q BT 48.19 785.03 Td 1 1 1 rg (St Mark demo church   |   21 October 2026) Tj ET Q
+BT /F1 12.00 Tf ET
+BT 48.19 709.31 Td (Open these addresses) Tj ET
+BT /F2 10.00 Tf ET
+0.9569 0.9255 0.8392 rg
+45.36 666.14 175.75 19.84 re B
+BT /F1 10.00 Tf ET
+q BT 48.19 673.06 Td 0.1176 0.1176 0.1176 rg (Where) Tj ET Q
+221.10 666.14 328.82 19.84 re B
+BT /F1 10.00 Tf ET
+q BT 223.94 673.06 Td 0.1176 0.1176 0.1176 rg (URL) Tj ET Q
+45.36 646.30 175.75 19.84 re B
+BT /F2 10.00 Tf ET
+q BT 48.19 653.22 Td 0.1176 0.1176 0.1176 rg (St Mark church \(main test\)) Tj ET Q
+221.10 646.30 328.82 19.84 re B
+BT /F2 10.00 Tf ET
+q BT 223.94 653.22 Td 0.1176 0.1176 0.1176 rg (https://demo-stmark.deaconia.com/login) Tj ET Q
+45.36 626.46 175.75 19.84 re B
+BT /F2 10.00 Tf ET
+q BT 48.19 633.38 Td 0.1176 0.1176 0.1176 rg (Platform superadmin console) Tj ET Q
+221.10 626.46 328.82 19.84 re B
+BT /F2 10.00 Tf ET
+q BT 223.94 633.38 Td 0.1176 0.1176 0.1176 rg (https://admin.deaconia.com/login) Tj ET Q
+45.36 606.61 175.75 19.84 re B
+BT /F2 10.00 Tf ET
+q BT 48.19 613.54 Td 0.1176 0.1176 0.1176 rg (St George church \(second tenant\)) Tj ET Q
+221.10 606.61 328.82 19.84 re B
+BT /F2 10.00 Tf ET
+q BT 223.94 613.54 Td 0.1176 0.1176 0.1176 rg (https://demo-stgeorge.deaconia.com/login) Tj ET Q
+0.9569 0.9255 0.8392 rg
+BT /F1 11.00 Tf ET
+q 45.35 600.95 504.57 -22.68 re f BT 48.19 586.31 Td 0.1176 0.1176 0.1176 rg (  Shared password for every account:  Demo1234!) Tj ET Q
+BT /F1 12.00 Tf ET
+q BT 48.19 559.08 Td 0.0549 0.2902 0.3216 rg (Accounts to use) Tj ET Q
+BT /F2 10.00 Tf ET
+q BT 48.19 542.67 Td 0.1176 0.1176 0.1176 rg 0.806 Tw (Log in at the St Mark address unless the role says otherwise. These four cover superadmin, admin, instructor,) Tj ET Q
+q BT 48.19 528.50 Td 0.1176 0.1176 0.1176 rg (and student.) Tj ET Q
+45.36 501.73 102.05 19.84 re B
+BT /F1 10.00 Tf ET
+q BT 48.19 508.65 Td 0.1176 0.1176 0.1176 rg (View) Tj ET Q
+147.40 501.73 221.10 19.84 re B
+BT /F1 10.00 Tf ET
+q BT 150.24 508.65 Td 0.1176 0.1176 0.1176 rg (Email) Tj ET Q
+368.51 501.73 181.42 19.84 re B
+BT /F1 10.00 Tf ET
+q BT 371.34 508.65 Td 0.1176 0.1176 0.1176 rg (Log in at) Tj ET Q
+45.36 481.89 102.05 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 489.11 Td 0.1176 0.1176 0.1176 rg (Superadmin) Tj ET Q
+147.40 481.89 221.10 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 150.24 489.11 Td 0.1176 0.1176 0.1176 rg (superadmin@demo.khedma.test) Tj ET Q
+368.51 481.89 181.42 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 371.34 489.11 Td 0.1176 0.1176 0.1176 rg (https://admin.deaconia.com/login) Tj ET Q
+45.36 462.05 102.05 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 469.27 Td 0.1176 0.1176 0.1176 rg (Church admin) Tj ET Q
+147.40 462.05 221.10 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 150.24 469.27 Td 0.1176 0.1176 0.1176 rg (admin.stmark@demo.khedma.test) Tj ET Q
+368.51 462.05 181.42 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 371.34 469.27 Td 0.1176 0.1176 0.1176 rg (https://demo-stmark.deaconia.com/login) Tj ET Q
+45.36 442.20 102.05 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 449.43 Td 0.1176 0.1176 0.1176 rg (Instructor) Tj ET Q
+147.40 442.20 221.10 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 150.24 449.43 Td 0.1176 0.1176 0.1176 rg (instructor.stmark@demo.khedma.test) Tj ET Q
+368.51 442.20 181.42 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 371.34 449.43 Td 0.1176 0.1176 0.1176 rg (https://demo-stmark.deaconia.com/login) Tj ET Q
+45.36 422.36 102.05 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 429.58 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+147.40 422.36 221.10 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 150.24 429.58 Td 0.1176 0.1176 0.1176 rg (student1.stmark@demo.khedma.test) Tj ET Q
+368.51 422.36 181.42 19.84 re B
+BT /F2 9.00 Tf ET
+q BT 371.34 429.58 Td 0.1176 0.1176 0.1176 rg (https://demo-stmark.deaconia.com/login) Tj ET Q
+BT /F1 12.00 Tf ET
+q BT 48.19 403.17 Td 0.0549 0.2902 0.3216 rg (All demo accounts) Tj ET Q
+BT /F2 10.00 Tf ET
+q BT 48.19 386.76 Td 0.1176 0.1176 0.1176 rg 1.363 Tw (Same password on every row. Students 2 to 5 are extra student logins. St George is a second church, kept) Tj ET Q
+q BT 48.19 372.59 Td 0.1176 0.1176 0.1176 rg (separate from St Mark.) Tj ET Q
+45.36 348.09 90.71 17.57 re B
+BT /F1 9.00 Tf ET
+q BT 48.19 354.18 Td 0.1176 0.1176 0.1176 rg (Church) Tj ET Q
+136.07 348.09 175.75 17.57 re B
+BT /F1 9.00 Tf ET
+q BT 138.90 354.18 Td 0.1176 0.1176 0.1176 rg (Role) Tj ET Q
+311.81 348.09 238.11 17.57 re B
+BT /F1 9.00 Tf ET
+q BT 314.65 354.18 Td 0.1176 0.1176 0.1176 rg (Email) Tj ET Q
+45.36 330.52 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 336.61 Td 0.1176 0.1176 0.1176 rg (Platform) Tj ET Q
+136.07 330.52 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 336.61 Td 0.1176 0.1176 0.1176 rg (Superadmin) Tj ET Q
+311.81 330.52 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 336.61 Td 0.1176 0.1176 0.1176 rg (superadmin@demo.khedma.test) Tj ET Q
+45.36 312.95 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 319.03 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 312.95 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 319.03 Td 0.1176 0.1176 0.1176 rg (Church admin) Tj ET Q
+311.81 312.95 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 319.03 Td 0.1176 0.1176 0.1176 rg (admin.stmark@demo.khedma.test) Tj ET Q
+45.36 295.37 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 301.46 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 295.37 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 301.46 Td 0.1176 0.1176 0.1176 rg (Priest) Tj ET Q
+311.81 295.37 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 301.46 Td 0.1176 0.1176 0.1176 rg (priest1.stmark@demo.khedma.test) Tj ET Q
+45.36 277.80 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 283.88 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 277.80 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 283.88 Td 0.1176 0.1176 0.1176 rg (Priest) Tj ET Q
+311.81 277.80 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 283.88 Td 0.1176 0.1176 0.1176 rg (priest2.stmark@demo.khedma.test) Tj ET Q
+45.36 260.22 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 266.31 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 260.22 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 266.31 Td 0.1176 0.1176 0.1176 rg (Service admin \(Sunday School\)) Tj ET Q
+311.81 260.22 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 266.31 Td 0.1176 0.1176 0.1176 rg (service-admin.stmark@demo.khedma.test) Tj ET Q
+45.36 242.65 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 248.73 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 242.65 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 248.73 Td 0.1176 0.1176 0.1176 rg (Servant) Tj ET Q
+311.81 242.65 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 248.73 Td 0.1176 0.1176 0.1176 rg (servant1.stmark@demo.khedma.test) Tj ET Q
+45.36 225.07 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 231.16 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 225.07 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 231.16 Td 0.1176 0.1176 0.1176 rg (Servant) Tj ET Q
+311.81 225.07 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 231.16 Td 0.1176 0.1176 0.1176 rg (servant2.stmark@demo.khedma.test) Tj ET Q
+45.36 207.50 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 213.58 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 207.50 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 213.58 Td 0.1176 0.1176 0.1176 rg (Instructor) Tj ET Q
+311.81 207.50 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 213.58 Td 0.1176 0.1176 0.1176 rg (instructor.stmark@demo.khedma.test) Tj ET Q
+45.36 189.92 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 196.01 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 189.92 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 196.01 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+311.81 189.92 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 196.01 Td 0.1176 0.1176 0.1176 rg (student1.stmark@demo.khedma.test) Tj ET Q
+45.36 172.35 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 178.43 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 172.35 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 178.43 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+311.81 172.35 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 178.43 Td 0.1176 0.1176 0.1176 rg (student2.stmark@demo.khedma.test) Tj ET Q
+45.36 154.77 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 160.86 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 154.77 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 160.86 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+311.81 154.77 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 160.86 Td 0.1176 0.1176 0.1176 rg (student3.stmark@demo.khedma.test) Tj ET Q
+45.36 137.20 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 143.28 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 137.20 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 143.28 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+311.81 137.20 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 143.28 Td 0.1176 0.1176 0.1176 rg (student4.stmark@demo.khedma.test) Tj ET Q
+45.36 119.62 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 125.71 Td 0.1176 0.1176 0.1176 rg (St Mark) Tj ET Q
+136.07 119.62 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 125.71 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+311.81 119.62 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 125.71 Td 0.1176 0.1176 0.1176 rg (student5.stmark@demo.khedma.test) Tj ET Q
+45.36 102.05 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 108.13 Td 0.1176 0.1176 0.1176 rg (St George) Tj ET Q
+136.07 102.05 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 108.13 Td 0.1176 0.1176 0.1176 rg (Church admin) Tj ET Q
+311.81 102.05 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 108.13 Td 0.1176 0.1176 0.1176 rg (admin.stgeorge@demo.khedma.test) Tj ET Q
+45.36 84.47 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 90.56 Td 0.1176 0.1176 0.1176 rg (St George) Tj ET Q
+136.07 84.47 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 90.56 Td 0.1176 0.1176 0.1176 rg (Priest) Tj ET Q
+311.81 84.47 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 90.56 Td 0.1176 0.1176 0.1176 rg (priest1.stgeorge@demo.khedma.test) Tj ET Q
+45.36 66.90 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 72.99 Td 0.1176 0.1176 0.1176 rg (St George) Tj ET Q
+136.07 66.90 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 72.99 Td 0.1176 0.1176 0.1176 rg (Instructor) Tj ET Q
+311.81 66.90 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 72.99 Td 0.1176 0.1176 0.1176 rg (instructor.stgeorge@demo.khedma.test) Tj ET Q
+45.36 49.32 90.71 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 48.19 55.41 Td 0.1176 0.1176 0.1176 rg (St George) Tj ET Q
+136.07 49.32 175.75 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 138.90 55.41 Td 0.1176 0.1176 0.1176 rg (Student) Tj ET Q
+311.81 49.32 238.11 17.57 re B
+BT /F2 9.00 Tf ET
+q BT 314.65 55.41 Td 0.1176 0.1176 0.1176 rg (student1.stgeorge@demo.khedma.test) Tj ET Q
+
+endstream
+endobj
+6 0 obj
+<<
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+>>
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+endobj
+7 0 obj
+<<
+/BaseFont /Helvetica-Bold
+/Encoding /WinAnsiEncoding
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+8 0 obj
+<<
+/BaseFont /Helvetica
+/Encoding /WinAnsiEncoding
+/Subtype /Type1
+/Type /Font
+>>
+endobj
+9 0 obj
+<<
+/Contents 10 0 R
+/Resources 11 0 R
+/Type /Page
+/MediaBox [ 0 0 595.28 841.89 ]
+/Parent 2 0 R
+>>
+endobj
+10 0 obj
+<<
+/Filter /FlateDecode
+/Length 424
+>>
+stream
+xúùî¡nú0ÜÔ<≈7R5¡€∏ß*M6R•⁄pÃÖÇw°a±jõD}˚ÃÜE-!a{aöôèˇ≥‰~D1
+œT¥ê®$BP…∏N¿m£T ó†TÜZÇéQ1`j?‚\EW9\Æhåc»7pìGÅæ•2*»+Z«òí'≈maıΩÓ]Y_@˛áf·gƒ∏ƒXç8¶*±Ä«8ı«KÄølké8Œflƒ%¥Ö-â«YäR,¡›Ïä¶=Ú2%CÆgd&s2•¬T}ªpk¨€ö©œÅ8„sä}.aˆïÈ¬TÈ@úQ:%éJ?'˙Åò†€◊¥ﬂ*≥≥¯XõjW`0>L|ß|ˇKg˙Nı^¡˙àg˚^¬úÒ=œˆ˝9Ò‡õ/Ò}ÄeÔMRL,.}RàEWe»üauM®äPÄÌ⁄◊:†˜BmËYî•Ìª‡ac-Z(_Øz/≠´<ùŒ]·Å˙4M6~˜M[}Ö5M”˛∆vÏ÷EjxXŸnﬂÈÉÎÀ`›ÿ4OoN˜m∆1ñÖ≈˘á<Æx[BNª
+endstream
+endobj
+11 0 obj
+<<
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+>>
+/ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000054 00000 n 
+0000000119 00000 n 
+0000000168 00000 n 
+0000000280 00000 n 
+0000011129 00000 n 
+0000011230 00000 n 
+0000011332 00000 n 
+0000011429 00000 n 
+0000011543 00000 n 
+0000012040 00000 n 
+trailer
+<<
+/Size 12
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+12142
+%%EOF

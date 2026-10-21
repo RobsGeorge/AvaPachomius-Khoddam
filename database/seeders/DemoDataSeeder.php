@@ -2,8 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Announcement;
-use App\Models\Assignment;
+use App\Models\AttendancePolicy;
 use App\Models\Church;
 use App\Models\ChurchService;
 use App\Models\ConfessionSlot;
@@ -16,7 +15,7 @@ use App\Models\MoneyIn;
 use App\Models\Person;
 use App\Models\Priest;
 use App\Models\Role;
-use App\Models\Session;
+use App\Models\StructureTemplate;
 use App\Models\User;
 use App\Services\ChurchProvisioningService;
 use App\Services\CourseRoleAssignmentService;
@@ -24,6 +23,7 @@ use App\Services\RoleTemplateService;
 use App\Services\ServiceRoleAssignmentService;
 use App\Support\Demo\DemoData;
 use App\Tenancy\TenantContext;
+use Database\Seeders\Demo\ServantsPrepDemoCourse;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -31,9 +31,9 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Representative dummy data for a staging / local environment: churches (tenants) each with
- * services, priests, confession slots, courses (instructors + students + sessions +
- * assignments + announcements), home visits, finance records, families, events, and the
- * full role/membership graph — all logged-in-able.
+ * services, priests, confession slots, courses, home visits, finance records, families,
+ * events, and the full role/membership graph — all logged-in-able. St Mark's servants-prep
+ * course carries a full term of activity (see Demo\ServantsPrepDemoCourse).
  *
  * Every row is tagged (see App\Support\Demo\DemoData) so `demo:wipe` can remove it exactly.
  * This seeder is pure (no environment guard); the demo:seed command owns the guard.
@@ -47,6 +47,14 @@ class DemoDataSeeder extends Seeder
     private CourseRoleAssignmentService $courseRoles;
 
     private ServiceRoleAssignmentService $serviceRoles;
+
+    /** St Mark servants-prep students (first, second name); student{n}.stmark in order. */
+    private const STUDENT_NAMES = [
+        ['مينا', 'عادل'], ['مريم', 'جرجس'], ['كيرلس', 'نبيل'], ['مارينا', 'سمير'], ['أبانوب', 'فايز'],
+        ['دميانة', 'رأفت'], ['بيشوي', 'مجدي'], ['فيرونيا', 'إسحق'], ['مارك', 'حنا'], ['كاترين', 'عزيز'],
+        ['أندرو', 'رمزي'], ['ساندرا', 'لطفي'], ['يوسف', 'منير'], ['ماريان', 'صبحي'], ['بولا', 'شكري'],
+        ['إيريني', 'وديع'], ['ديفيد', 'مكرم'], ['نرمين', 'فوزي'], ['جون', 'ميخائيل'], ['هايدي', 'بطرس'],
+    ];
 
     /** @var list<array{church: string, role: string, email: string, password: string}> */
     public array $credentials = [];
@@ -79,10 +87,20 @@ class DemoDataSeeder extends Seeder
         $this->roleTemplates->ensureServiceTemplates();
         $this->roleTemplates->ensureChurchTemplates();
 
+        // Materialise the platform attendance-policy singleton before any demo church is bound:
+        // created under a demo tenant it would be stamped with that church_id and demo:wipe
+        // would delete it.
+        AttendancePolicy::current();
+
         // A platform superadmin (reaches the console host; church-membership exempt).
-        $this->makeUser('superadmin', 'Demo', 'Superadmin', 'Platform', 'Superadmin', ['is_superadmin' => true]);
+        $superadmin = $this->makeUser('superadmin', 'Demo', 'Superadmin', 'Platform', 'Superadmin', ['is_superadmin' => true]);
 
         $this->seedStMark();
+
+        // No church membership, so its person row would otherwise sit in Tenant Zero's registry.
+        Person::withoutTenancy()
+            ->whereKey($superadmin->fresh()->person_id)
+            ->update(['church_id' => Church::where('slug', DemoData::slug('stmark'))->value('church_id')]);
         $this->seedStGeorge();
 
         TenantContext::clear();
@@ -125,78 +143,67 @@ class DemoDataSeeder extends Seeder
             }
 
             // --- Services (departments) ---
+            $servantsPrep = $this->makeService('Servants Preparation', 'إعداد الخدام', 'servants-prep', StructureTemplate::KEY_EDUCATIONAL_STANDARD);
             $sundaySchool = $this->makeService('Sunday School', 'مدارس الأحد');
             $youth = $this->makeService('Youth Meeting', 'اجتماع الشباب');
 
-            // Service admin over Sunday School.
-            $svcAdmin = $this->makeUser('service-admin.stmark', 'Marina', 'Fawzy', $label, 'Service Admin — Sunday School');
+            // Service admin over Servants Preparation.
+            $svcAdmin = $this->makeUser('service-admin.stmark', 'Marina', 'Fawzy', $label, 'Service Admin — Servants Preparation');
             $this->provisioning->addMember($church, $svcAdmin, $servantRole);
-            $this->serviceRoles->assign($svcAdmin, $sundaySchool, $this->serviceRoles->adminRoleFor($sundaySchool), true, true);
+            $this->serviceRoles->assign($svcAdmin, $servantsPrep, $this->serviceRoles->adminRoleFor($servantsPrep), true, true);
 
             // A couple of plain servants (service members).
-            foreach ([['servant1.stmark', 'Verena', 'Adel'], ['servant2.stmark', 'Karas', 'Nabil']] as [$local, $first, $second]) {
+            foreach ([['servant1.stmark', 'Verena', 'Adel', $sundaySchool], ['servant2.stmark', 'Karas', 'Nabil', $youth]] as [$local, $first, $second, $service]) {
                 $servant = $this->makeUser($local, $first, $second, $label, 'Servant / Service Member');
                 $this->provisioning->addMember($church, $servant, $servantRole);
-                $this->serviceRoles->assign($servant, $youth, $this->serviceRoles->memberRoleFor($youth), false, true);
+                $this->serviceRoles->assign($servant, $service, $this->serviceRoles->memberRoleFor($service), false, true);
             }
 
-            // --- A course with instructor, students, sessions, assignment, announcement ---
+            // --- The servants-prep course, filled with a term of activity ---
             $course = Course::create([
-                'service_id' => $sundaySchool->service_id,
-                'title' => 'Foundations of Faith',
-                'title_en' => 'Foundations of Faith',
-                'title_ar' => 'أساسيات الإيمان',
-                'description' => 'Introductory servants-preparation course.',
+                'service_id' => $servantsPrep->service_id,
+                'title' => 'إعداد الخدام — السنة الأولى',
+                'title_ar' => 'إعداد الخدام — السنة الأولى',
+                'title_en' => 'Servants Preparation — Year 1',
+                'description' => 'Two-year servants-preparation programme: theology, Bible study, and pastoral practice.',
+                'description_ar' => 'برنامج إعداد الخدام: اللاهوت، دراسة الكتاب المقدس، والتربية الكنسية.',
+                'description_en' => 'Servants-preparation programme: theology, Bible study, and pastoral practice.',
                 'year' => (int) date('Y'),
                 'status' => Course::STATUS_ACTIVE,
+                'default_session_start_time' => '19:00',
                 'passing_percentage' => 60,
                 'min_attendance_percentage' => 75,
             ]);
             $courseRoleSet = $this->roleTemplates->cloneTemplatesIntoCourse($course);
 
-            $instructor = $this->makeUser('instructor.stmark', 'George', 'Rizk', $label, 'Course Instructor');
-            $this->provisioning->addMember($church, $instructor, $servantRole);
-            $this->serviceRoles->assign($instructor, $sundaySchool, $this->serviceRoles->memberRoleFor($sundaySchool), false, true);
-            $this->courseRoles->assignOrUpdate($instructor, $course->course_id, $courseRoleSet['instructor']->role_id, false);
+            $staff = function (string $local, string $first, string $second, string $roleLabel, string $courseRole) use ($church, $servantRole, $servantsPrep, $course, $courseRoleSet, $label): User {
+                $user = $this->makeUser($local, $first, $second, $label, $roleLabel);
+                $this->provisioning->addMember($church, $user, $servantRole);
+                $this->serviceRoles->assign($user, $servantsPrep, $this->serviceRoles->memberRoleFor($servantsPrep), false, true);
+                $this->courseRoles->assignOrUpdate($user, $course->course_id, $courseRoleSet[$courseRole]->role_id, false);
 
-            for ($s = 1; $s <= 5; $s++) {
-                $student = $this->makeUser("student{$s}.stmark", 'Student'.$s, 'Sameh', $label, 'Student — Foundations of Faith');
+                return $user;
+            };
+
+            $courseAdmin = $staff('course-admin.stmark', 'Mariam', 'Shenouda', 'Course Admin — Servants Preparation', 'admin');
+            $instructor = $staff('instructor.stmark', 'George', 'Rizk', 'Instructor — Theology & Bible', 'instructor');
+            $instructor2 = $staff('instructor2.stmark', 'Bishoy', 'Fahim', 'Instructor — Pastoral Practice', 'instructor');
+
+            $students = [];
+            foreach (self::STUDENT_NAMES as $s => [$first, $second]) {
+                $student = $this->makeUser('student'.($s + 1).'.stmark', $first, $second, $label, 'Student — Servants Preparation');
                 $this->provisioning->addMember($church, $student, $servantRole);
-                $this->serviceRoles->assign($student, $sundaySchool, $this->serviceRoles->memberRoleFor($sundaySchool), false, true);
+                $this->serviceRoles->assign($student, $servantsPrep, $this->serviceRoles->memberRoleFor($servantsPrep), false, true);
                 $this->courseRoles->assignOrUpdate($student, $course->course_id, $courseRoleSet['student']->role_id, false);
+                $students[] = $student->fresh();
             }
 
-            for ($w = 1; $w <= 4; $w++) {
-                Session::create([
-                    'course_id' => $course->course_id,
-                    'week_number' => $w,
-                    'session_title' => "Week {$w} — Lesson {$w}",
-                    'session_date' => now()->addWeeks($w)->toDateString(),
-                    'session_start_time' => '18:00',
-                    'notify_students' => false,
-                ]);
-            }
-
-            Assignment::create([
-                'course_id' => $course->course_id,
-                'assignment_name' => 'Reflection Paper',
-                'assignment_description' => 'Write a one-page reflection on the first lesson.',
-                'total_points' => 10,
-                'due_date' => now()->addWeeks(2),
-                'instructions' => 'Submit as a PDF before the due date.',
-            ]);
-
-            Announcement::create([
-                'created_by_user_id' => $instructor->user_id,
-                'course_id' => $course->course_id,
-                'title' => 'Welcome to Foundations of Faith',
-                'body' => 'Our first session starts next week. Please review the syllabus.',
-                'target_mode' => Announcement::TARGET_COURSE,
-                'channels' => [Announcement::CHANNEL_HOMEPAGE],
-                'status' => Announcement::STATUS_PUBLISHED,
-                'published_at' => now(),
-                'published_by_user_id' => $instructor->user_id,
-            ]);
+            app(ServantsPrepDemoCourse::class)->build(
+                $course,
+                $courseAdmin,
+                [$instructor, $instructor, $instructor2],
+                $students,
+            );
 
             // --- Home visits, finance, families, events ---
             HomeVisit::create([
@@ -250,6 +257,7 @@ class DemoDataSeeder extends Seeder
                 'created_by_id' => $admin->user_id,
             ]);
 
+            $this->rehomePeople($church);
             TenantContext::clear();
         });
     }
@@ -325,6 +333,7 @@ class DemoDataSeeder extends Seeder
                 'received_at' => now()->toDateString(),
             ]);
 
+            $this->rehomePeople($church);
             TenantContext::clear();
         });
     }
@@ -348,20 +357,40 @@ class DemoDataSeeder extends Seeder
         return $church;
     }
 
+    /**
+     * Users are created before they join the church, so the person registry stamps their
+     * people rows with Tenant Zero. Move the demo members' rows to their demo church so
+     * they never appear in a real church's registry.
+     */
+    private function rehomePeople(Church $church): void
+    {
+        $memberIds = DB::table('church_user')->where('church_id', $church->church_id)->pluck('user_id');
+        $personIds = User::query()
+            ->whereIn('user_id', $memberIds)
+            ->where('email', 'like', '%@'.DemoData::emailDomain())
+            ->whereNotNull('person_id')
+            ->pluck('person_id');
+
+        // withoutTenancy: these rows are stamped with Tenant Zero, outside the bound demo church.
+        Person::withoutTenancy()->whereIn('person_id', $personIds)->update(['church_id' => $church->church_id]);
+    }
+
     private function churchRole(Church $church, string $slug): ?Role
     {
         return Role::where('church_id', $church->church_id)->where('slug', $slug)->first();
     }
 
-    private function makeService(string $en, string $ar): ChurchService
+    private function makeService(string $en, string $ar, ?string $slug = null, ?string $templateKey = null): ChurchService
     {
-        $service = ChurchService::create([
+        $service = ChurchService::create(array_filter([
             'title' => $en,
             'title_en' => $en,
             'title_ar' => $ar,
             'status' => ChurchService::STATUS_ACTIVE,
             'permissions_version' => 0,
-        ]);
+            'slug' => $slug,
+            'structure_template_id' => $templateKey ? StructureTemplate::byKey($templateKey)?->structure_template_id : null,
+        ], fn ($value) => $value !== null));
 
         // Give the service its service-admin / service-member roles.
         $this->roleTemplates->cloneTemplatesIntoService($service);

@@ -61,10 +61,12 @@ class ProjectResultsVisibilityService
         }
 
         if ($user) {
-            return $this->mandatoryFeedback->unsubmittedMandatorySurveys(
+            return $this->mandatoryFeedback->unsubmittedBlockingSurveys(
                 $user,
                 (int) $assessment->course_id,
                 $assessment->module_id ? (int) $assessment->module_id : null,
+                FeedbackSurvey::BLOCK_KIND_PROJECT,
+                (int) $assessment->project_assessment_id,
             );
         }
 
@@ -72,13 +74,27 @@ class ProjectResultsVisibilityService
             ->where('course_id', $assessment->course_id)
             ->when(
                 $assessment->module_id,
-                fn ($q) => $q->where('module_id', $assessment->module_id),
+                function ($q) use ($assessment) {
+                    $q->where(function ($inner) use ($assessment) {
+                        $inner->where('module_id', $assessment->module_id)
+                            ->orWhere(function ($courseWide) use ($assessment) {
+                                $courseWide->whereNull('module_id')
+                                    ->where('blocks_project_assessment_id', $assessment->project_assessment_id);
+                            });
+                    });
+                },
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('is_mandatory', true)
             ->where('status', FeedbackSurvey::STATUS_OPEN)
             ->where(function ($q) {
                 $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
+            ->where(function ($q) use ($assessment) {
+                $q->where(function ($legacy) {
+                    $legacy->whereNull('blocks_exam_id')
+                        ->whereNull('blocks_project_assessment_id');
+                })->orWhere('blocks_project_assessment_id', $assessment->project_assessment_id);
             })
             ->orderBy('survey_id')
             ->get();

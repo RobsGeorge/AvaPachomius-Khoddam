@@ -309,18 +309,30 @@ class NotificationScannerService
     {
         $this->preferences->ensureDefaults($user);
         // Portal row only here. Email/WhatsApp are owned by announcement channels
-        // (AnnouncementMail / WhatsApp dispatch UI) â€” avoid a second SMTP blast and
+        // (AnnouncementMail / WhatsApp dispatch UI) — avoid a second SMTP blast and
         // keep publish resilient when mail is slow or misconfigured.
+        $survey = $announcement->linkedFeedbackSurvey();
+        $actionUrl = $survey
+            ? route('feedback.surveys.show', $survey, false)
+            : route('announcements.show', $announcement, false);
+        $metadata = [
+            'course_id' => $announcement->course_id,
+            'service_id' => $announcement->service_id,
+        ];
+        if ($survey) {
+            $metadata['survey_id'] = $survey->survey_id;
+        }
+
         $this->generator->createOrUpdate(
             $user,
             UserNotification::TYPE_ADMIN_ANNOUNCEMENT,
             $announcement->title,
             \Illuminate\Support\Str::limit($announcement->body, 200),
-            route('announcements.show', $announcement),
+            $actionUrl,
             'announcement',
             $announcement->announcement_id,
             UserNotification::PRIORITY_HIGH,
-            ['course_id' => $announcement->course_id, 'service_id' => $announcement->service_id],
+            $metadata,
             "admin_announcement:{$announcement->announcement_id}:user:{$user->user_id}",
             false
         );

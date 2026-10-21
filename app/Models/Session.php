@@ -2,13 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\AttendanceGrain;
 use App\Tenancy\BelongsToChurch;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Course;
-use App\Models\Attendance;
-use App\Models\User;
 
 class Session extends Model
 {
@@ -28,6 +24,7 @@ class Session extends Model
         'session_title',
         'session_date',
         'session_start_time',
+        'attendance_grain',
         'notify_students',
         'attendance_closed_at',
         'attendance_closed_by_id',
@@ -35,11 +32,11 @@ class Session extends Model
 
     protected $casts = [
         'session_date' => 'date',
-        'week_number'  => 'integer',
+        'week_number' => 'integer',
         'notify_students' => 'boolean',
         'attendance_closed_at' => 'datetime',
-        'created_at'   => 'datetime',
-        'updated_at'   => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function shouldNotifyStudents(): bool
@@ -50,6 +47,21 @@ class Session extends Model
     public function isAttendanceClosed(): bool
     {
         return $this->attendance_closed_at !== null;
+    }
+
+    public function attendanceGrain(): string
+    {
+        return AttendanceGrain::normalize($this->attendance_grain ?? null);
+    }
+
+    public function usesLectureAttendance(): bool
+    {
+        return $this->attendanceGrain() === AttendanceGrain::LECTURE;
+    }
+
+    public function attendanceGrainLocked(): bool
+    {
+        return $this->attendances()->exists();
     }
 
     public function attendanceClosedBy()
@@ -103,4 +115,3 @@ class Session extends Model
         )->withTimestamps();
     }
 }
-

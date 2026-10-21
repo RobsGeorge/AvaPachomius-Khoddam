@@ -13,6 +13,8 @@ class FeedbackQuestion extends Model
     public const TYPE_MCQ = 'mcq';
     public const TYPE_TEXT = 'text';
 
+    public const OTHER_CHOICE = '__other__';
+
     public const SCOPE_GENERAL = 'general';
     public const SCOPE_SESSION = 'session';
     public const SCOPE_LECTURE = 'lecture';
@@ -58,6 +60,26 @@ class FeedbackQuestion extends Model
     public function choices(): array
     {
         return $this->config['choices'] ?? [];
+    }
+
+    public function allowsMultiple(): bool
+    {
+        return (bool) ($this->config['allow_multiple'] ?? false);
+    }
+
+    public function allowsOther(): bool
+    {
+        return (bool) ($this->config['allow_other'] ?? false);
+    }
+
+    public function allowedChoiceValues(): array
+    {
+        $choices = $this->choices();
+        if ($this->allowsOther()) {
+            $choices[] = self::OTHER_CHOICE;
+        }
+
+        return $choices;
     }
 
     public function sliderMin(): int

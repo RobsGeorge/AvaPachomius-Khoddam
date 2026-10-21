@@ -92,6 +92,24 @@
                     @enderror
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="attendance_grain">{{ __('pages.attendance_grain') }}</label>
+                    @if($session->attendanceGrainLocked())
+                        <input type="hidden" name="attendance_grain" value="{{ $session->attendanceGrain() }}">
+                    @endif
+                    <select id="attendance_grain" class="form-select" @disabled($session->attendanceGrainLocked())
+                            @unless($session->attendanceGrainLocked()) name="attendance_grain" @endunless>
+                        <option value="session" @selected(old('attendance_grain', $session->attendanceGrain()) === 'session')>{{ __('pages.attendance_grain_session') }}</option>
+                        <option value="lecture" @selected(old('attendance_grain', $session->attendanceGrain()) === 'lecture')>{{ __('pages.attendance_grain_lecture') }}</option>
+                    </select>
+                    <div class="form-text text-muted-theme">
+                        {{ $session->attendanceGrainLocked() ? __('pages.attendance_grain_locked') : __('pages.attendance_grain_hint') }}
+                    </div>
+                    @error('attendance_grain')
+                        <div class="text-danger small">{{ $message }}</div>
+                    @enderror
+                </div>
+
                 @include('sessions.partials.notification-settings', [
                     'session' => $session,
                     'rosterStudents' => $rosterStudents,

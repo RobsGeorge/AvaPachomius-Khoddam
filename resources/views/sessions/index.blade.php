@@ -58,7 +58,7 @@
                     @if($canCloseFocus)
                         <form method="POST"
                               action="{{ route('sessions.close-attendance', $focusSession->session_id) }}"
-                              data-confirm="{{ __('pages.confirm_close_attendance') }}">
+                              data-confirm="{{ $focusSession->usesLectureAttendance() ? __('pages.confirm_close_lecture_attendance') : __('pages.confirm_close_attendance') }}">
                             @csrf
                             <button type="submit" class="btn btn-success btn-sm">
                                 <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
@@ -141,7 +141,7 @@
                                     @if($canClose)
                                         <form method="POST"
                                               action="{{ route('sessions.close-attendance', $session->session_id) }}"
-                                              data-confirm="{{ __('pages.confirm_close_attendance') }}">
+                                              data-confirm="{{ $session->usesLectureAttendance() ? __('pages.confirm_close_lecture_attendance') : __('pages.confirm_close_attendance') }}">
                                             @csrf
                                             <button type="submit" class="btn btn-sm btn-outline-success" title="{{ __('pages.close_attendance') }}">
                                                 <i class="bi bi-lock"></i>
@@ -247,7 +247,7 @@
                                     <form method="POST"
                                           action="{{ route('sessions.close-attendance', $session->session_id) }}"
                                           class="w-100"
-                                          data-confirm="{{ __('pages.confirm_close_attendance') }}">
+                                          data-confirm="{{ $session->usesLectureAttendance() ? __('pages.confirm_close_lecture_attendance') : __('pages.confirm_close_attendance') }}">
                                         @csrf
                                         <button type="submit" class="btn btn-sm btn-outline-success w-100">
                                             <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}

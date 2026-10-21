@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\InternalRedirect;
 use App\Tenancy\BelongsToChurch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class Announcement extends Model
 {
@@ -40,6 +42,7 @@ class Announcement extends Model
         'created_by_user_id',
         'course_id',
         'service_id',
+        'survey_id',
         'title',
         'body',
         'target_mode',
@@ -76,6 +79,97 @@ class Announcement extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(ChurchService::class, 'service_id', 'service_id');
+    }
+
+    public function survey(): BelongsTo
+    {
+        return $this->belongsTo(FeedbackSurvey::class, 'survey_id', 'survey_id');
+    }
+
+    /**
+     * Survey this announcement should open for students, if any.
+     * Prefer the stored link; also accept a pasted /feedback/surveys/{id} URL in the body
+     * so older announcements still deep-link.
+     */
+    public function linkedFeedbackSurvey(): ?FeedbackSurvey
+    {
+        if (Schema::hasColumn('announcements', 'survey_id') && $this->survey_id) {
+            $linked = $this->relationLoaded('survey')
+                ? $this->survey
+                : FeedbackSurvey::query()->find($this->survey_id);
+            if ($linked && $linked->status !== FeedbackSurvey::STATUS_DRAFT) {
+                return $linked;
+            }
+        }
+
+        if (preg_match('#/feedback/surveys/(\d+)#', (string) $this->body, $matches)) {
+            $fromBody = FeedbackSurvey::query()->find((int) $matches[1]);
+            if ($fromBody && $fromBody->status !== FeedbackSurvey::STATUS_DRAFT) {
+                if (! $this->course_id || (int) $fromBody->course_id === (int) $this->course_id) {
+                    return $fromBody;
+                }
+            }
+        }
+
+        return $this->inferredFeedbackSurvey();
+    }
+
+    /**
+     * Older announcements (no survey_id, no pasted URL) still open the survey
+     * when the title/body names an open or closed survey on the same course.
+     */
+    private function inferredFeedbackSurvey(): ?FeedbackSurvey
+    {
+        $candidates = FeedbackSurvey::query()
+            ->whereIn('status', [FeedbackSurvey::STATUS_OPEN, FeedbackSurvey::STATUS_CLOSED])
+            ->when($this->course_id, fn ($q) => $q->where('course_id', $this->course_id))
+            ->orderByRaw('CASE WHEN status = ? THEN 0 ELSE 1 END', [FeedbackSurvey::STATUS_OPEN])
+            ->orderByDesc('opened_at')
+            ->orderByDesc('survey_id')
+            ->get();
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        $announcementTitle = trim((string) $this->title);
+        $announcementBody = (string) $this->body;
+
+        $matches = $candidates->filter(function (FeedbackSurvey $survey) use ($announcementTitle, $announcementBody) {
+            $surveyTitle = trim((string) $survey->title);
+            if ($surveyTitle === '') {
+                return false;
+            }
+
+            return $announcementTitle === $surveyTitle
+                || ($announcementTitle !== '' && str_contains($announcementTitle, $surveyTitle))
+                || str_contains($announcementBody, $surveyTitle);
+        });
+
+        if ($matches->isEmpty()) {
+            return null;
+        }
+
+        return $matches->first(
+            fn (FeedbackSurvey $survey) => trim((string) $survey->title) === $announcementTitle
+                && $survey->status === FeedbackSurvey::STATUS_OPEN
+        )
+            ?? $matches->first(fn (FeedbackSurvey $survey) => trim((string) $survey->title) === $announcementTitle)
+            ?? $matches->first();
+    }
+
+    /**
+     * Path students should land on after opening this announcement.
+     */
+    public function studentActionPath(): string
+    {
+        $survey = $this->linkedFeedbackSurvey();
+        if ($survey) {
+            return route('feedback.surveys.show', $survey, false);
+        }
+
+        return InternalRedirect::path(route('announcements.show', $this))
+            ?? '/announcements/'.$this->announcement_id;
     }
 
     public function targetUsers(): BelongsToMany

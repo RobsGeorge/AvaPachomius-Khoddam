@@ -64,6 +64,37 @@ class Church extends Model
         return ChurchPlace::shortName($this->short_name, $this->name);
     }
 
+    /**
+     * Name for the active locale. An Arabic UI uses name_ar when the church has
+     * one; otherwise it keeps the church's own name and does not borrow Tenant Zero.
+     */
+    public function localizedName(?string $locale = null): string
+    {
+        $locale = $locale ?? app()->getLocale();
+        $settings = is_array($this->settings) ? $this->settings : [];
+        $nameAr = trim((string) ($settings['name_ar'] ?? ''));
+        $nameEn = trim((string) ($settings['name_en'] ?? ''));
+        $name = trim((string) $this->name);
+
+        if ($nameAr === '' && self::textHasArabic($name)) {
+            $nameAr = $name;
+        }
+        if ($nameEn === '' && $name !== '' && ! self::textHasArabic($name)) {
+            $nameEn = $name;
+        }
+
+        if ($locale === 'ar') {
+            return $nameAr !== '' ? $nameAr : ($nameEn !== '' ? $nameEn : $name);
+        }
+
+        return $nameEn !== '' ? $nameEn : ($nameAr !== '' ? $nameAr : $name);
+    }
+
+    private static function textHasArabic(string $value): bool
+    {
+        return $value !== '' && preg_match('/\p{Arabic}/u', $value) === 1;
+    }
+
     /** Disambiguated label including place (admin lists / pickers). */
     public function shownName(): string
     {

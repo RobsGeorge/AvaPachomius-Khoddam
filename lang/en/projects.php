@@ -433,7 +433,7 @@ return [
     'team_description_help' => 'What this team specifically works on. Fill the four brief fields; the assessment name above stays the same for everyone.',
     'team_description_student_help' => 'Your team’s brief. Other teams may have a different description under the same assessment.',
     'save_team_details' => 'Save team title & brief',
-    'add_subproject_help' => 'Adds another team with its own title and four brief fields under this assessment.',
+    'add_subproject_help' => 'Adds another team with its own title and brief. The three required link submissions are copied from the other teams.',
     'phases_help' => 'Milestones shared by every team (title, deadline, notes).',
     'phase_title' => 'Phase title',
     'phase_deadline' => 'Phase deadline',

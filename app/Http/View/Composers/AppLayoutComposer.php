@@ -64,6 +64,8 @@ class AppLayoutComposer
             if (! $church) {
                 $view->with('churchBrandingCss', null);
                 $view->with('churchLogoUrl', null);
+                $view->with('brandedChurchName', null);
+                $view->with('churchDisplayName', null);
                 $view->with('eventThemeActive', false);
 
                 return;
@@ -73,12 +75,14 @@ class AppLayoutComposer
             $view->with('churchBrandingCss', ChurchBranding::portalCss($branding));
             $view->with('churchLogoUrl', ChurchBranding::logoUrl($branding));
             $view->with('brandedChurchName', $church->preferredShortName());
+            $view->with('churchDisplayName', $church->localizedName());
             $view->with('eventThemeActive', EventTheme::isActive(EventTheme::fromSettings($church->settings)));
         } catch (\Throwable $e) {
             report($e);
             $view->with('churchBrandingCss', null);
             $view->with('churchLogoUrl', null);
             $view->with('brandedChurchName', null);
+            $view->with('churchDisplayName', null);
             $view->with('eventThemeActive', false);
         }
     }
@@ -249,7 +253,7 @@ class AppLayoutComposer
             $view->with('showCourseContextLabel', $showCourseContextLabel);
             $view->with('isSystemWideMode', $this->courseContext->isSystemWideMode($user));
             $view->with('selectableCourses', $selectableCourses);
-            $view->with('instituteName', __('app.institute_name'));
+            $view->with('instituteName', $currentChurch?->localizedName() ?? __('app.institute_name'));
             $view->with('courseBrandingCss', $this->courseContext->brandingCss($currentCourse));
         } catch (\Throwable $e) {
             report($e);
@@ -271,7 +275,7 @@ class AppLayoutComposer
             $view->with('showCourseContextLabel', false);
             $view->with('isSystemWideMode', false);
             $view->with('selectableCourses', collect());
-            $view->with('instituteName', __('app.institute_name'));
+            $view->with('instituteName', TenantContext::current()?->localizedName() ?? __('app.institute_name'));
             $view->with('courseBrandingCss', '');
         }
     }

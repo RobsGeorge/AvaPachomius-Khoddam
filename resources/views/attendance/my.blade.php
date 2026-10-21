@@ -13,7 +13,12 @@
             @else
                 @foreach($attendanceRecords as $record)
                     <article class="data-card">
-                        <div class="data-card-title">{{ $record->session->session_title ?? __('pages.unspecified') }}</div>
+                        <div class="data-card-title">
+                            {{ $record->session->session_title ?? __('pages.unspecified') }}
+                            @if($record->lecture)
+                                <span class="fw-normal text-muted-theme"> — {{ $record->lecture->title }}</span>
+                            @endif
+                        </div>
                         <dl class="data-meta-list mb-0">
                             <div class="data-meta-row">
                                 <dt>{{ __('pages.date') }}</dt>

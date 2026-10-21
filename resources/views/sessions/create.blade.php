@@ -25,6 +25,7 @@
                         <option value="">{{ __('pages.select_course') }}</option>
                         @foreach($courses as $course)
                             <option value="{{ $course->course_id }}"
+                                data-attendance-grain="{{ $course->attendanceGrain() }}"
                                 {{ old('course_id', $defaultCourseId ?? null) == $course->course_id ? 'selected' : '' }}>
                                 {{ $course->title }} ({{ $course->year }})
                             </option>
@@ -77,6 +78,15 @@
                     @error('session_start_time')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">{{ __('pages.attendance_grain') }}</label>
+                    <select name="attendance_grain" id="attendance_grain" class="form-select">
+                        <option value="session" @selected(old('attendance_grain', 'session') === 'session')>{{ __('pages.attendance_grain_session') }}</option>
+                        <option value="lecture" @selected(old('attendance_grain') === 'lecture')>{{ __('pages.attendance_grain_lecture') }}</option>
+                    </select>
+                    <div class="form-text text-muted-theme">{{ __('pages.attendance_grain_hint') }}</div>
                 </div>
 
                 <div class="mb-4">
@@ -298,13 +308,36 @@ function filterModulesByCourse() {
     if (!hasVisible) moduleSelect.value = '';
 }
 
-document.getElementById('course_id')?.addEventListener('change', filterModulesByCourse);
+function applyCourseAttendanceGrain() {
+    const grain = document.getElementById('attendance_grain');
+    const course = document.getElementById('course_id');
+    if (!grain || !course || grain.dataset.touched === '1') {
+        return;
+    }
+    const selected = course.options[course.selectedIndex];
+    const courseGrain = selected?.dataset?.attendanceGrain;
+    if (courseGrain === 'lecture' || courseGrain === 'session') {
+        grain.value = courseGrain;
+    }
+}
+
+document.getElementById('attendance_grain')?.addEventListener('change', (event) => {
+    event.target.dataset.touched = '1';
+});
+
+document.getElementById('course_id')?.addEventListener('change', () => {
+    filterModulesByCourse();
+    applyCourseAttendanceGrain();
+});
 
 document.addEventListener('DOMContentLoaded', () => {
     const checked = document.querySelector('input[name="creation_mode"]:checked');
     if (checked) switchMode(checked.value);
     updatePreview();
     filterModulesByCourse();
+    if (!@json(old('attendance_grain') !== null)) {
+        applyCourseAttendanceGrain();
+    }
 });
 </script>
 @endpush

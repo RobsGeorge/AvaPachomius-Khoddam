@@ -116,7 +116,7 @@ number of distinct subprojects in play down to what the remaining students need.
 The assessment is the shared project (rubric, passing bar, shared phases /
 deliverables). Each `projects` row is one team **and** one unique topic.
 
-- Admin lists distinct titles at create (and can add/rename later).
+- Admin lists distinct titles at create (and can add/rename later). Adding a team later copies the shared phases and typed deliverables onto the new row so students still get the URL boxes.
 - Titles are unique per assessment (trimmed, case-insensitive).
 - Pack-fill still assigns students to teams. Opening an empty team therefore
   assigns that student a remaining unused subproject at random.

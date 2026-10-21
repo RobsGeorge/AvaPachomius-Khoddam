@@ -23,12 +23,30 @@ class FeedbackAnswer extends Model
         return $this->belongsTo(FeedbackQuestion::class, 'question_id', 'question_id');
     }
 
-    public function displayValue(): string
+    /**
+     * @return list<string>
+     */
+    public function decodedValues(): array
     {
         if ($this->value === null || $this->value === '') {
-            return '—';
+            return [];
         }
 
-        return (string) $this->value;
+        $raw = (string) $this->value;
+        if (str_starts_with(ltrim($raw), '[')) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return array_values(array_map(static fn ($item) => (string) $item, $decoded));
+            }
+        }
+
+        return [$raw];
+    }
+
+    public function displayValue(): string
+    {
+        $values = $this->decodedValues();
+
+        return $values === [] ? '—' : implode(' · ', $values);
     }
 }

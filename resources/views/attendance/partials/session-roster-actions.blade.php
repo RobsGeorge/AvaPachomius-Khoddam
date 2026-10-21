@@ -10,6 +10,9 @@
                   data-confirm="{{ __('pages.confirm_fill_missing_attendance') }}">
                 @csrf
                 <input type="hidden" name="status" value="Absent">
+                @if(! empty($roster['lecture']))
+                    <input type="hidden" name="lecture_id" value="{{ $roster['lecture']->lecture_id }}">
+                @endif
                 <button type="submit" class="btn btn-sm btn-outline-danger">
                     <i class="bi bi-person-x"></i> {{ __('pages.fill_missing_as_absent') }}
                 </button>
@@ -24,5 +27,8 @@
         </button>
     </div>
 
-    @include('attendance.partials.session-roster-add-modal', ['session' => $session])
+    @include('attendance.partials.session-roster-add-modal', [
+        'session' => $session,
+        'lectureId' => $roster['lecture']?->lecture_id,
+    ])
 @endif
