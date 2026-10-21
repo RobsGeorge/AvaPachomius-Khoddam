@@ -1,0 +1,1634 @@
+From a3ed404e3c8613db4d6bbfa87124c676397fafd6 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 5 Sep 2026 04:32:28 +0000
+Subject: [PATCH] =?UTF-8?q?feat(api):=20S1=20=E2=80=94=20/api/v1=20foundat?=
+ =?UTF-8?q?ion=20(login,=20logout,=20me,=20branding)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The first mobile API endpoints. Everything downstream (S6 student API, S8
+instructor API) depends on this shape existing before it multiplies across
+60+ endpoints.
+
+Auth is email + password -> Sanctum bearer token, NOT the OTP flow the
+implementation plan originally assumed. spims-edu's actual login
+(AuthService::login) has always been password-based; OTP is used only for
+email verification and password reset. Corrected before implementing rather
+than building the wrong contract:
+
+  POST /api/v1/login  { email, password, device_name? } -> { token, user }
+  POST /api/v1/logout                                    -> 204, revokes only this token
+  GET  /api/v1/me                                        -> the caller's profile + roles
+  GET  /api/v1/branding                                  -> public, safe pre-login
+
+AuthService gains issueApiToken()/revokeApiToken(), sharing the existing
+verifyCredentials() check (wrong password, suspended, not-yet-active) with the
+web login rather than forking it. issueApiToken() deliberately does NOT call
+Auth::login() - that needs a started session, which the stateless api
+middleware group does not provide; conflating the two paths would have made
+API login silently depend on session middleware that was never applied to it.
+
+Tokens carry role abilities (role:STUDENT, role:INSTRUCTOR, ...) so later
+phases can gate mutations without re-touching login.
+
+config/auth.php gains the 'sanctum' guard. It was missing entirely - auth:sanctum
+would have thrown 'Auth guard [sanctum] is not defined' for every request,
+including the pre-existing /api/user scaffold route, which no test exercises
+and was therefore never known to be broken.
+
+One error shape for every /api/v1 failure: { message, code, errors? }.
+AuthorizationException defines its own render(), which Laravel checks before
+any Handler::renderable() callback runs - a callback registered in Handler
+would never fire for it, so it is special-cased directly instead. A 404 from a
+missing route-bound model no longer leaks the model's FQCN in its message.
+
+Locale (Accept-Language -> user's preferred_locale -> en) is resolved directly
+at the point each translated string is produced, not only via a middleware
+side-effect: Laravel's global middleware-priority list runs auth checks before
+ordinary route middleware regardless of registration order, so an
+unauthenticated request's 401 could fire before SetApiLocale ever ran. Caught
+by LocaleTest failing against the middleware-only version during development.
+
+No new migration - purely additive app/routes/config/lang/docs, verified
+against PostgreSQL 16 as well as the in-memory SQLite test suite.
+
+docs/api/openapi.yaml is hand-maintained; OpenApiCoverageTest fails the build
+if a registered api/v1 route has no matching entry.
+
+--- Independent review (separate agent, cold review of this diff) ---
+
+Verified against framework/Sanctum source, three of this commit's own
+technical claims:
+- AuthorizationException::render() precedence over Handler renderable
+  callbacks: Handler.php:455-457 runs it before renderViaCallbacks at 464-466.
+- Middleware-priority reordering auth ahead of SetApiLocale regardless of
+  registration order: Kernel.php's $middlewarePriority + SortedMiddleware's
+  interface/parent-class matching, confirmed empirically by reverting the fix
+  and watching LocaleTest fail exactly as predicted.
+- Sanctum RequestGuard's per-instance user-caching requiring Auth::forgetGuards()
+  between requests in one test method: RequestGuard.php:52-59 + AuthManager's
+  guard memoization, confirmed by removing the workaround and watching two
+  tests false-pass 200 instead of 401.
+
+Found and fixed:
+- codeForStatus() had no 401/403 mapping. Harmless for this app's own
+  AuthorizationException (hardcoded to FORBIDDEN, never reaches this method),
+  but Illuminate\Auth\Access\AuthorizationException - the type Policies,
+  Gate::authorize(), and can: middleware throw - has no render() of its own,
+  gets converted to AccessDeniedHttpException, and DOES reach this method;
+  without the mapping it fell to the generic 'ERROR' code. Two exception types,
+  identical HTTP status, different code - the exact inconsistency 'one error
+  shape' exists to prevent, the moment either is actually used.
+- OpenApiCoverageTest filtered on route NAME ('api.v1.' prefix) rather than
+  URI. A route registered under /api/v1/* with an unrelated name - a typo, or
+  one added outside the Route::prefix('v1')->name('api.v1.') group - passed
+  the coverage test while being live, reachable, and undocumented. Reproduced
+  exactly as described, then fixed to filter on $route->uri() instead; the
+  same reproduction now fails the test.
+- Added a regression test locking in that the 'api' middleware group carries
+  no session middleware, which is the actual reason Sanctum's
+  session fallback can never authenticate an /api/v1 request today - and would
+  silently stop being true if EnsureFrontendRequestsAreStateful or StartSession
+  were ever added to that group.
+- Added a test locking in the zero-role-account edge case (reachable via
+  UserAdminService::createUser() with an empty roles array): login succeeds,
+  the token's abilities array is empty, and it therefore fails closed on every
+  future tokenCan() check - confirmed deliberately, not left unspecified.
+- Fixed a stale docblock on ApiError.php contradicting ApiLocale.php's own
+  documented reasoning.
+
+Deliberately NOT fixed here: AuthorizeService::authorize(null, ...) throws
+this app's own AuthorizationException (403-only render()) for what is
+semantically a 401 case (message text is the unauthenticated string, wrapped
+in a FORBIDDEN envelope). This is pre-existing behavior in code S0 shipped
+untouched by this commit - existing coverage
+(tests/Feature/Auth/AuthorizeServiceTest::guest_raises_unauthorized) asserts
+only the exception type, not its rendered status, so the mismatch was never
+caught. Not reachable via any S1 route today (none call AuthorizeService).
+Changing it means changing what AuthorizeService/AuthorizationException throw
+for a null actor, which has its own blast radius and belongs in its own
+dedicated, test-first patch - not folded into an API-foundation commit as a
+side effect of review.
+
+38 tests across 6 files (up from 34 after the review pass), verified failing
+against the pre-fix code where a fix was made. 176 total passing (up from
+139), 712 assertions.
+---
+ app/Exceptions/AuthorizationException.php     |  20 ++
+ app/Exceptions/Handler.php                    | 100 ++++++++
+ .../Controllers/Api/V1/AuthController.php     |  38 +++
+ .../Controllers/Api/V1/BrandingController.php |  42 ++++
+ app/Http/Controllers/Api/V1/MeController.php  |  15 ++
+ app/Http/Middleware/Api/SetApiLocale.php      |  29 +++
+ app/Http/Resources/Api/V1/UserResource.php    |  30 +++
+ app/Services/Auth/AuthService.php             |  68 +++++-
+ app/Support/Api/ApiError.php                  |  35 +++
+ app/Support/Api/ApiLocale.php                 |  52 ++++
+ config/auth.php                               |   8 +
+ docs/api/openapi.yaml                         | 156 ++++++++++++
+ lang/ar/api.php                               |   5 +
+ lang/en/api.php                               |   5 +
+ lang/fr/api.php                               |   5 +
+ routes/api.php                                |  28 +++
+ tests/Feature/Api/V1/AuthTest.php             | 231 ++++++++++++++++++
+ tests/Feature/Api/V1/BrandingTest.php         |  37 +++
+ tests/Feature/Api/V1/ErrorEnvelopeTest.php    | 120 +++++++++
+ tests/Feature/Api/V1/LocaleTest.php           | 112 +++++++++
+ tests/Feature/Api/V1/MeTest.php               |  83 +++++++
+ tests/Feature/Api/V1/OpenApiCoverageTest.php  |  69 ++++++
+ 22 files changed, 1276 insertions(+), 12 deletions(-)
+ create mode 100644 app/Http/Controllers/Api/V1/AuthController.php
+ create mode 100644 app/Http/Controllers/Api/V1/BrandingController.php
+ create mode 100644 app/Http/Controllers/Api/V1/MeController.php
+ create mode 100644 app/Http/Middleware/Api/SetApiLocale.php
+ create mode 100644 app/Http/Resources/Api/V1/UserResource.php
+ create mode 100644 app/Support/Api/ApiError.php
+ create mode 100644 app/Support/Api/ApiLocale.php
+ create mode 100644 docs/api/openapi.yaml
+ create mode 100644 lang/ar/api.php
+ create mode 100644 lang/en/api.php
+ create mode 100644 lang/fr/api.php
+ create mode 100644 tests/Feature/Api/V1/AuthTest.php
+ create mode 100644 tests/Feature/Api/V1/BrandingTest.php
+ create mode 100644 tests/Feature/Api/V1/ErrorEnvelopeTest.php
+ create mode 100644 tests/Feature/Api/V1/LocaleTest.php
+ create mode 100644 tests/Feature/Api/V1/MeTest.php
+ create mode 100644 tests/Feature/Api/V1/OpenApiCoverageTest.php
+
+diff --git a/app/Exceptions/AuthorizationException.php b/app/Exceptions/AuthorizationException.php
+index c879093..5ee85f8 100644
+--- a/app/Exceptions/AuthorizationException.php
++++ b/app/Exceptions/AuthorizationException.php
+@@ -2,14 +2,34 @@
+ 
+ namespace App\Exceptions;
+ 
++use App\Support\Api\ApiError;
++use App\Support\Api\ApiLocale;
+ use Exception;
+ use Illuminate\Http\Request;
+ use Symfony\Component\HttpFoundation\Response;
+ 
+ class AuthorizationException extends Exception
+ {
++    /**
++     * Laravel checks an exception's own `render()` before any `renderable()`
++     * callback registered in the Handler (see `Handler::render()`), so the api/v1
++     * envelope has to be special-cased here rather than in the Handler — a
++     * renderable callback would never be reached for this exception.
++     */
+     public function render(Request $request): Response
+     {
++        if ($request->is('api/v1/*')) {
++            // The message is set at throw time (see AuthorizeService), typically
++            // via __('auth.forbidden') resolved in whatever locale was active
++            // then — which may not be this request's. Re-resolve for api/v1 so
++            // the response is never accidentally in the wrong language.
++            $message = $this->getMessage() === __('auth.forbidden')
++                ? __('auth.forbidden', [], ApiLocale::resolve($request))
++                : $this->getMessage();
++
++            return ApiError::response($request, 'FORBIDDEN', $message, 403);
++        }
++
+         if ($request->expectsJson()) {
+             return response()->json(['message' => $this->getMessage()], 403);
+         }
+diff --git a/app/Exceptions/Handler.php b/app/Exceptions/Handler.php
+index 56af264..cd3a7f4 100644
+--- a/app/Exceptions/Handler.php
++++ b/app/Exceptions/Handler.php
+@@ -2,7 +2,13 @@
+ 
+ namespace App\Exceptions;
+ 
++use App\Support\Api\ApiError;
++use App\Support\Api\ApiLocale;
++use Illuminate\Auth\AuthenticationException;
+ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
++use Illuminate\Http\Request;
++use Illuminate\Validation\ValidationException;
++use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+ use Throwable;
+ 
+ class Handler extends ExceptionHandler
+@@ -26,5 +32,99 @@ public function register(): void
+         $this->reportable(function (Throwable $e) {
+             //
+         });
++
++        // One error shape for every /api/v1 failure. Every branch below returns
++        // null for a non-v1 request, leaving Laravel's normal handling — including
++        // any web view, redirect, or non-versioned JSON — completely untouched.
++        //
++        // App\Exceptions\AuthorizationException is deliberately NOT handled here:
++        // it defines its own render(), which Laravel checks before any renderable
++        // callback runs (see Handler::render() in the framework), so a callback
++        // registered here would never fire for it.
++
++        $this->renderable(function (ValidationException $e, Request $request) {
++            if (! $request->is('api/v1/*')) {
++                return null;
++            }
++
++            return ApiError::response(
++                $request,
++                'VALIDATION_FAILED',
++                $e->getMessage(),
++                422,
++                errors: $e->errors(),
++            );
++        });
++
++        $this->renderable(function (AuthenticationException $e, Request $request) {
++            if (! $request->is('api/v1/*')) {
++                return null;
++            }
++
++            $locale = ApiLocale::resolve($request);
++
++            return ApiError::response($request, 'UNAUTHENTICATED', __('auth.unauthorized', [], $locale), 401);
++        });
++
++        // Catches NotFoundHttpException, MethodNotAllowedHttpException,
++        // ThrottleRequestsException (429, with Retry-After preserved), and any other
++        // Symfony HTTP exception — but never AuthorizationException, which never
++        // reaches renderable callbacks in the first place.
++        $this->renderable(function (HttpExceptionInterface $e, Request $request) {
++            if (! $request->is('api/v1/*')) {
++                return null;
++            }
++
++            $status = $e->getStatusCode();
++
++            return ApiError::response(
++                $request,
++                self::codeForStatus($status),
++                self::messageForStatus($status, $e->getMessage(), ApiLocale::resolve($request)),
++                $status,
++                headers: $e->getHeaders(),
++            );
++        });
++    }
++
++    /**
++     * Covers every status this handler actually maps a Symfony HTTP exception to.
++     * 401/403 matter here even though App\Exceptions\AuthorizationException (this
++     * app's own) never reaches this method (see the class-level note above) —
++     * Laravel's own Illuminate\Auth\Access\AuthorizationException, thrown by
++     * Policies, Gate::authorize(), and the `can:` middleware, has no render() of
++     * its own and is converted to AccessDeniedHttpException by prepareException(),
++     * which *does* arrive here. Without an explicit 403 mapping it would have
++     * fallen to the generic 'ERROR' code — a different code than this app's own
++     * AuthorizationException for the identical HTTP status, contradicting the
++     * "one error shape" premise the moment either is used.
++     */
++    private static function codeForStatus(int $status): string
++    {
++        return match ($status) {
++            401 => 'UNAUTHENTICATED',
++            403 => 'FORBIDDEN',
++            404 => 'NOT_FOUND',
++            405 => 'METHOD_NOT_ALLOWED',
++            409 => 'CONFLICT',
++            423 => 'LOCKED',
++            429 => 'RATE_LIMITED',
++            default => $status >= 500 ? 'SERVER_ERROR' : 'ERROR',
++        };
++    }
++
++    /**
++     * A 404 from a missing route-bound model carries the model's fully-qualified
++     * class name in its message ("No query results for model [App\Models\...]").
++     * That is fine on a Blade error page; it is not something to hand a client
++     * probing IDs, so 404s get a fixed generic message instead of the raw one.
++     */
++    private static function messageForStatus(int $status, string $raw, string $locale): string
++    {
++        if ($status === 404) {
++            return __('api.not_found', [], $locale);
++        }
++
++        return $raw !== '' ? $raw : self::codeForStatus($status);
+     }
+ }
+diff --git a/app/Http/Controllers/Api/V1/AuthController.php b/app/Http/Controllers/Api/V1/AuthController.php
+new file mode 100644
+index 0000000..9325772
+--- /dev/null
++++ b/app/Http/Controllers/Api/V1/AuthController.php
+@@ -0,0 +1,38 @@
++<?php
++
++namespace App\Http\Controllers\Api\V1;
++
++use App\Http\Controllers\Controller;
++use App\Http\Resources\Api\V1\UserResource;
++use App\Services\Auth\AuthService;
++use Illuminate\Http\JsonResponse;
++use Illuminate\Http\Request;
++
++class AuthController extends Controller
++{
++    public function login(Request $request, AuthService $auth): JsonResponse
++    {
++        $data = $request->validate([
++            'email' => 'required|email',
++            'password' => 'required|string',
++            'device_name' => 'nullable|string|max:120',
++        ]);
++
++        $result = $auth->issueApiToken($data['email'], $data['password'], $data['device_name'] ?? null);
++
++        return response()->json([
++            'data' => [
++                'token' => $result['token'],
++                'token_type' => 'Bearer',
++                'user' => (new UserResource($result['user']))->resolve($request),
++            ],
++        ]);
++    }
++
++    public function logout(Request $request, AuthService $auth): JsonResponse
++    {
++        $auth->revokeApiToken($request->user());
++
++        return response()->json(status: 204);
++    }
++}
+diff --git a/app/Http/Controllers/Api/V1/BrandingController.php b/app/Http/Controllers/Api/V1/BrandingController.php
+new file mode 100644
+index 0000000..bde3849
+--- /dev/null
++++ b/app/Http/Controllers/Api/V1/BrandingController.php
+@@ -0,0 +1,42 @@
++<?php
++
++namespace App\Http\Controllers\Api\V1;
++
++use App\Http\Controllers\Controller;
++use App\Models\Theme;
++use App\Support\ThemeTokens;
++use Illuminate\Http\JsonResponse;
++
++/**
++ * Versioned counterpart to the legacy `GET /api/branding` (unauthenticated, used by
++ * the web shell before login). Same data, `data`-wrapped envelope.
++ */
++class BrandingController extends Controller
++{
++    public function show(): JsonResponse
++    {
++        $theme = Theme::query()->where('is_active', true)->first();
++
++        if ($theme === null) {
++            return response()->json([
++                'data' => [
++                    'site_name' => 'SPIMS',
++                    'logo_light_url' => null,
++                    'logo_dark_url' => null,
++                    'favicon_url' => null,
++                    'tokens' => ThemeTokens::defaults(),
++                ],
++            ]);
++        }
++
++        return response()->json([
++            'data' => [
++                'site_name' => $theme->site_name,
++                'logo_light_url' => $theme->logo_light_url,
++                'logo_dark_url' => $theme->logo_dark_url,
++                'favicon_url' => $theme->favicon_url,
++                'tokens' => ThemeTokens::resolve($theme->tokens),
++            ],
++        ]);
++    }
++}
+diff --git a/app/Http/Controllers/Api/V1/MeController.php b/app/Http/Controllers/Api/V1/MeController.php
+new file mode 100644
+index 0000000..86a7f0c
+--- /dev/null
++++ b/app/Http/Controllers/Api/V1/MeController.php
+@@ -0,0 +1,15 @@
++<?php
++
++namespace App\Http\Controllers\Api\V1;
++
++use App\Http\Controllers\Controller;
++use App\Http\Resources\Api\V1\UserResource;
++use Illuminate\Http\Request;
++
++class MeController extends Controller
++{
++    public function show(Request $request): UserResource
++    {
++        return new UserResource($request->user());
++    }
++}
+diff --git a/app/Http/Middleware/Api/SetApiLocale.php b/app/Http/Middleware/Api/SetApiLocale.php
+new file mode 100644
+index 0000000..36214f3
+--- /dev/null
++++ b/app/Http/Middleware/Api/SetApiLocale.php
+@@ -0,0 +1,29 @@
++<?php
++
++namespace App\Http\Middleware\Api;
++
++use App\Support\Api\ApiLocale;
++use Closure;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\App;
++use Symfony\Component\HttpFoundation\Response;
++
++/**
++ * Sets the app locale for the happy path of an /api/v1 request (controllers that
++ * localize their own response content). Deliberately not added to the shared
++ * `api` middleware group, so it cannot affect the legacy `/api/user` scaffold or
++ * the unversioned `/api/branding` route.
++ *
++ * This does NOT make locale-aware exception rendering safe on its own — see
++ * ApiLocale for why the Handler and AuthorizationException resolve it directly
++ * rather than trusting that this middleware ran first.
++ */
++class SetApiLocale
++{
++    public function handle(Request $request, Closure $next): Response
++    {
++        App::setLocale(ApiLocale::resolve($request));
++
++        return $next($request);
++    }
++}
+diff --git a/app/Http/Resources/Api/V1/UserResource.php b/app/Http/Resources/Api/V1/UserResource.php
+new file mode 100644
+index 0000000..abd88d0
+--- /dev/null
++++ b/app/Http/Resources/Api/V1/UserResource.php
+@@ -0,0 +1,30 @@
++<?php
++
++namespace App\Http\Resources\Api\V1;
++
++use Illuminate\Http\Request;
++use Illuminate\Http\Resources\Json\JsonResource;
++
++/**
++ * @mixin \App\Models\User
++ */
++class UserResource extends JsonResource
++{
++    /** @return array<string, mixed> */
++    public function toArray(Request $request): array
++    {
++        return [
++            'id' => $this->id,
++            'email' => $this->email,
++            'phone' => $this->phone,
++            'first_name' => $this->first_name,
++            'last_name' => $this->last_name,
++            'roles' => $this->roleTypes()->map(fn ($role) => $role->value)->values(),
++            'status' => $this->status->value,
++            'email_verified' => $this->email_verified,
++            'preferred_locale' => $this->preferred_locale,
++            'theme_preference' => $this->theme_preference?->value,
++            'notify_email' => $this->notify_email,
++        ];
++    }
++}
+diff --git a/app/Services/Auth/AuthService.php b/app/Services/Auth/AuthService.php
+index 4e14b81..6a70fc2 100644
+--- a/app/Services/Auth/AuthService.php
++++ b/app/Services/Auth/AuthService.php
+@@ -72,6 +72,62 @@ public function setPassword(User $user, string $password): void
+     }
+ 
+     public function login(string $email, string $password): User
++    {
++        $user = $this->verifyCredentials($email, $password);
++
++        Auth::login($user, false);
++        $this->audit->write($user, 'auth.login', 'User', $user->id);
++
++        return $user;
++    }
++
++    public function logout(): void
++    {
++        $user = Auth::user();
++        if ($user instanceof User) {
++            $this->audit->write($user, 'auth.logout', 'User', $user->id);
++        }
++        Auth::logout();
++    }
++
++    /**
++     * Bearer-token login for the /api/v1 mobile clients. Shares the same credential
++     * and account-status checks as the web session login via `verifyCredentials()`,
++     * but never touches the session guard — `Auth::login()` requires a started
++     * session, which the stateless `api` middleware group does not provide.
++     *
++     * @return array{user: User, token: string}
++     */
++    public function issueApiToken(string $email, string $password, ?string $deviceName = null): array
++    {
++        $user = $this->verifyCredentials($email, $password);
++
++        $abilities = $user->roleTypes()
++            ->map(fn ($role) => "role:{$role->value}")
++            ->unique()
++            ->values()
++            ->all();
++
++        $token = $user->createToken($deviceName ?: 'mobile', $abilities);
++
++        $this->audit->write($user, 'auth.api_login', 'User', $user->id);
++
++        return ['user' => $user, 'token' => $token->plainTextToken];
++    }
++
++    public function revokeApiToken(User $user): void
++    {
++        $token = $user->currentAccessToken();
++
++        if ($token instanceof \Laravel\Sanctum\PersonalAccessToken) {
++            $token->delete();
++        }
++
++        $this->audit->write($user, 'auth.api_logout', 'User', $user->id);
++    }
++
++    /** @throws ValidationException */
++    private function verifyCredentials(string $email, string $password): User
+     {
+         $user = User::query()->where('email', strtolower($email))->first();
+ 
+@@ -87,21 +143,9 @@ public function login(string $email, string $password): User
+             throw ValidationException::withMessages(['email' => [__('auth.not_active')]]);
+         }
+ 
+-        Auth::login($user, false);
+-        $this->audit->write($user, 'auth.login', 'User', $user->id);
+-
+         return $user;
+     }
+ 
+-    public function logout(): void
+-    {
+-        $user = Auth::user();
+-        if ($user instanceof User) {
+-            $this->audit->write($user, 'auth.logout', 'User', $user->id);
+-        }
+-        Auth::logout();
+-    }
+-
+     public function requestPasswordReset(string $email): string
+     {
+         $user = User::query()->where('email', strtolower($email))->first();
+diff --git a/app/Support/Api/ApiError.php b/app/Support/Api/ApiError.php
+new file mode 100644
+index 0000000..cac7289
+--- /dev/null
++++ b/app/Support/Api/ApiError.php
+@@ -0,0 +1,35 @@
++<?php
++
++namespace App\Support\Api;
++
++use Illuminate\Http\JsonResponse;
++use Illuminate\Http\Request;
++
++/**
++ * One error shape for every /api/v1 failure:
++ *
++ *     { "message": "...", "code": "FORBIDDEN", "errors": {...}? }
++ *
++ * `errors` is present only for 422s. `$message` must already be localized by the
++ * caller — see ApiLocale for why that has to be resolved explicitly at the point
++ * of throwing/rendering rather than trusted from `App::getLocale()`.
++ */
++final class ApiError
++{
++    public static function response(
++        Request $request,
++        string $code,
++        string $message,
++        int $status,
++        ?array $errors = null,
++        array $headers = [],
++    ): JsonResponse {
++        $body = ['message' => $message, 'code' => $code];
++
++        if ($errors !== null) {
++            $body['errors'] = $errors;
++        }
++
++        return response()->json($body, $status, $headers);
++    }
++}
+diff --git a/app/Support/Api/ApiLocale.php b/app/Support/Api/ApiLocale.php
+new file mode 100644
+index 0000000..aaa7092
+--- /dev/null
++++ b/app/Support/Api/ApiLocale.php
+@@ -0,0 +1,52 @@
++<?php
++
++namespace App\Support\Api;
++
++use Illuminate\Http\Request;
++
++/**
++ * Locale resolution as a pure function of the request, usable both from
++ * `SetApiLocale` (for the happy path) and directly from exception rendering.
++ *
++ * It must be usable directly from exception rendering rather than only via the
++ * middleware side-effect: Laravel's global middleware-priority list runs
++ * `Authenticate` before ordinary route middleware regardless of registration
++ * order, so an unauthenticated request's 401 can fire before `SetApiLocale` — a
++ * middleware that "sets the locale" is not a substitute for resolving it at the
++ * point a translated string is actually produced.
++ */
++final class ApiLocale
++{
++    private const SUPPORTED = ['ar', 'en', 'fr'];
++
++    public static function resolve(Request $request): string
++    {
++        foreach (self::acceptLanguageCandidates($request) as $candidate) {
++            if (in_array($candidate, self::SUPPORTED, true)) {
++                return $candidate;
++            }
++        }
++
++        $preferred = $request->user()?->preferred_locale;
++        if (is_string($preferred) && in_array($preferred, self::SUPPORTED, true)) {
++            return $preferred;
++        }
++
++        return 'en';
++    }
++
++    /** @return array<int, string> */
++    private static function acceptLanguageCandidates(Request $request): array
++    {
++        $header = $request->header('Accept-Language');
++        if (! is_string($header) || $header === '') {
++            return [];
++        }
++
++        // "ar;q=0.9, en-US;q=0.8" -> ["ar", "en"], preserving priority order.
++        return array_map(
++            fn (string $tag) => strtolower(substr(trim(explode(';', $tag)[0]), 0, 2)),
++            explode(',', $header)
++        );
++    }
++}
+diff --git a/config/auth.php b/config/auth.php
+index 9548c15..4866250 100644
+--- a/config/auth.php
++++ b/config/auth.php
+@@ -40,6 +40,14 @@
+             'driver' => 'session',
+             'provider' => 'users',
+         ],
++
++        // Bearer-token auth for /api/v1 (mobile clients). Sanctum ships this driver;
++        // without the guard entry, `auth:sanctum` fails with "guard [sanctum] is not
++        // defined" for every request.
++        'sanctum' => [
++            'driver' => 'sanctum',
++            'provider' => 'users',
++        ],
+     ],
+ 
+     /*
+diff --git a/docs/api/openapi.yaml b/docs/api/openapi.yaml
+new file mode 100644
+index 0000000..f3db2dd
+--- /dev/null
++++ b/docs/api/openapi.yaml
+@@ -0,0 +1,156 @@
++openapi: 3.0.3
++info:
++  title: SPIMS Mobile API
++  version: "1.0"
++  description: >
++    Bearer-token API for the SPIMS student and instructor mobile clients.
++    Every registered `api.v1.*` route must have an entry here — enforced by
++    tests/Feature/Api/V1/OpenApiCoverageTest.php.
++servers:
++  - url: /api/v1
++
++components:
++  securitySchemes:
++    bearerAuth:
++      type: http
++      scheme: bearer
++  schemas:
++    Error:
++      type: object
++      required: [message, code]
++      properties:
++        message:
++          type: string
++        code:
++          type: string
++          enum:
++            - UNAUTHENTICATED
++            - FORBIDDEN
++            - NOT_FOUND
++            - CONFLICT
++            - VALIDATION_FAILED
++            - LOCKED
++            - RATE_LIMITED
++            - METHOD_NOT_ALLOWED
++            - SERVER_ERROR
++            - ERROR
++        errors:
++          type: object
++          additionalProperties:
++            type: array
++            items:
++              type: string
++    User:
++      type: object
++      properties:
++        id: { type: string }
++        email: { type: string, format: email }
++        phone: { type: string, nullable: true }
++        first_name: { type: string }
++        last_name: { type: string }
++        roles:
++          type: array
++          items: { type: string }
++        status: { type: string, enum: [ACTIVE, SUSPENDED, PENDING] }
++        email_verified: { type: boolean }
++        preferred_locale: { type: string, enum: [ar, en, fr] }
++        theme_preference: { type: string, nullable: true, enum: [LIGHT, DARK, SYSTEM] }
++        notify_email: { type: boolean }
++
++paths:
++  /branding:
++    get:
++      operationId: branding
++      summary: Public theme tokens and branding, safe to call before login.
++      security: []
++      responses:
++        "200":
++          description: OK
++          content:
++            application/json:
++              schema:
++                type: object
++                properties:
++                  data:
++                    type: object
++                    properties:
++                      site_name: { type: string }
++                      logo_light_url: { type: string, nullable: true }
++                      logo_dark_url: { type: string, nullable: true }
++                      favicon_url: { type: string, nullable: true }
++                      tokens: { type: object }
++
++  /login:
++    post:
++      operationId: login
++      summary: Exchange email + password for a bearer token.
++      security: []
++      requestBody:
++        required: true
++        content:
++          application/json:
++            schema:
++              type: object
++              required: [email, password]
++              properties:
++                email: { type: string, format: email }
++                password: { type: string }
++                device_name: { type: string, nullable: true }
++      responses:
++        "200":
++          description: OK
++          content:
++            application/json:
++              schema:
++                type: object
++                properties:
++                  data:
++                    type: object
++                    properties:
++                      token: { type: string }
++                      token_type: { type: string, enum: [Bearer] }
++                      user: { $ref: "#/components/schemas/User" }
++        "422":
++          description: Invalid credentials, suspended, or not yet active.
++          content:
++            application/json:
++              schema: { $ref: "#/components/schemas/Error" }
++        "429":
++          description: Too many attempts for this email + IP.
++          content:
++            application/json:
++              schema: { $ref: "#/components/schemas/Error" }
++
++  /logout:
++    post:
++      operationId: logout
++      summary: Revoke the token used to authenticate this request (only that one).
++      security: [{ bearerAuth: [] }]
++      responses:
++        "204":
++          description: No content.
++        "401":
++          description: Missing or invalid token.
++          content:
++            application/json:
++              schema: { $ref: "#/components/schemas/Error" }
++
++  /me:
++    get:
++      operationId: me
++      summary: The authenticated user's profile.
++      security: [{ bearerAuth: [] }]
++      responses:
++        "200":
++          description: OK
++          content:
++            application/json:
++              schema:
++                type: object
++                properties:
++                  data: { $ref: "#/components/schemas/User" }
++        "401":
++          description: Missing or invalid token.
++          content:
++            application/json:
++              schema: { $ref: "#/components/schemas/Error" }
+diff --git a/lang/ar/api.php b/lang/ar/api.php
+new file mode 100644
+index 0000000..7a6ab00
+--- /dev/null
++++ b/lang/ar/api.php
+@@ -0,0 +1,5 @@
++<?php
++
++return [
++    'not_found' => 'لم يتم العثور على المورد المطلوب.',
++];
+diff --git a/lang/en/api.php b/lang/en/api.php
+new file mode 100644
+index 0000000..1e4143a
+--- /dev/null
++++ b/lang/en/api.php
+@@ -0,0 +1,5 @@
++<?php
++
++return [
++    'not_found' => 'The requested resource could not be found.',
++];
+diff --git a/lang/fr/api.php b/lang/fr/api.php
+new file mode 100644
+index 0000000..b5398a3
+--- /dev/null
++++ b/lang/fr/api.php
+@@ -0,0 +1,5 @@
++<?php
++
++return [
++    'not_found' => 'La ressource demandée est introuvable.',
++];
+diff --git a/routes/api.php b/routes/api.php
+index 889937e..c776f96 100644
+--- a/routes/api.php
++++ b/routes/api.php
+@@ -1,5 +1,9 @@
+ <?php
+ 
++use App\Http\Controllers\Api\V1\AuthController;
++use App\Http\Controllers\Api\V1\BrandingController;
++use App\Http\Controllers\Api\V1\MeController;
++use App\Http\Middleware\Api\SetApiLocale;
+ use Illuminate\Http\Request;
+ use Illuminate\Support\Facades\Route;
+ 
+@@ -17,3 +21,27 @@
+ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+     return $request->user();
+ });
++
++/*
++|--------------------------------------------------------------------------
++| /api/v1 — mobile clients (student, instructor)
++|--------------------------------------------------------------------------
++|
++| Bearer-token auth via Sanctum. Controllers are thin: validate, delegate to
++| the same App\Services\* used by the web app, return a Resource or a plain
++| `data`-wrapped array. See docs/api/openapi.yaml for the contract and
++| docs/plans/spims/mobile-api-spec.md (companion repo) for the full design.
++|
++*/
++Route::prefix('v1')->name('api.v1.')->middleware(SetApiLocale::class)->group(function () {
++    Route::get('/branding', [BrandingController::class, 'show'])->name('branding');
++
++    Route::post('/login', [AuthController::class, 'login'])
++        ->middleware('throttle:login')
++        ->name('login');
++
++    Route::middleware('auth:sanctum')->group(function () {
++        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
++        Route::get('/me', [MeController::class, 'show'])->name('me');
++    });
++});
+diff --git a/tests/Feature/Api/V1/AuthTest.php b/tests/Feature/Api/V1/AuthTest.php
+new file mode 100644
+index 0000000..5ee6f36
+--- /dev/null
++++ b/tests/Feature/Api/V1/AuthTest.php
+@@ -0,0 +1,231 @@
++<?php
++
++namespace Tests\Feature\Api\V1;
++
++use App\Enums\RoleType;
++use App\Enums\UserStatus;
++use App\Models\AuditLog;
++use App\Models\User;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\Hash;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++class AuthTest extends TestCase
++{
++    use RefreshDatabase;
++
++    private function activeUser(array $overrides = []): User
++    {
++        return User::factory()->withRole(RoleType::Student)->create(array_merge([
++            'password_hash' => Hash::make('Password123!'),
++            'status' => UserStatus::Active,
++        ], $overrides));
++    }
++
++    #[Test]
++    public function login_issues_a_bearer_token_and_the_user_payload(): void
++    {
++        $user = $this->activeUser();
++
++        $response = $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'Password123!',
++            'device_name' => 'iPhone 15',
++        ]);
++
++        $response->assertOk()
++            ->assertJsonPath('data.token_type', 'Bearer')
++            ->assertJsonPath('data.user.email', $user->email)
++            ->assertJsonPath('data.user.roles.0', 'STUDENT')
++            ->assertJsonMissingPath('data.user.password_hash');
++
++        $this->assertIsString($response->json('data.token'));
++        $this->assertNotEmpty($response->json('data.token'));
++
++        $this->assertDatabaseHas('personal_access_tokens', [
++            'tokenable_id' => $user->id,
++            'name' => 'iPhone 15',
++        ]);
++        $this->assertTrue(
++            AuditLog::query()->where('action', 'auth.api_login')->where('actor_id', $user->id)->exists()
++        );
++    }
++
++    #[Test]
++    public function login_mints_a_token_scoped_to_the_users_roles(): void
++    {
++        $user = $this->activeUser();
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'Password123!',
++        ])->assertOk();
++
++        $token = $user->tokens()->latest()->first();
++        $this->assertNotNull($token);
++        $this->assertSame(['role:STUDENT'], $token->abilities);
++    }
++
++    #[Test]
++    public function login_never_touches_the_session_guard(): void
++    {
++        // AuthService::login() (web) calls Auth::login(), which needs a started
++        // session. The api group has no session middleware, so issueApiToken()
++        // must not go anywhere near it — this is the regression that motivated
++        // splitting the two code paths in the first place.
++        $user = $this->activeUser();
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'Password123!',
++        ])->assertOk();
++
++        $this->assertGuest('web');
++    }
++
++    #[Test]
++    public function wrong_password_is_rejected_without_revealing_which_field_was_wrong(): void
++    {
++        $user = $this->activeUser();
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'wrong-password',
++        ])
++            ->assertStatus(422)
++            ->assertJsonPath('code', 'VALIDATION_FAILED')
++            ->assertJsonValidationErrors('email');
++
++        $this->assertDatabaseCount('personal_access_tokens', 0);
++    }
++
++    #[Test]
++    public function an_unknown_email_gets_the_same_generic_failure_as_a_wrong_password(): void
++    {
++        $this->postJson(route('api.v1.login'), [
++            'email' => 'nobody@example.com',
++            'password' => 'whatever',
++        ])->assertStatus(422)->assertJsonValidationErrors('email');
++    }
++
++    #[Test]
++    public function a_suspended_user_is_refused_a_token(): void
++    {
++        $user = $this->activeUser(['status' => UserStatus::Suspended]);
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'Password123!',
++        ])->assertStatus(422);
++
++        $this->assertDatabaseCount('personal_access_tokens', 0);
++    }
++
++    #[Test]
++    public function a_pending_user_is_refused_a_token(): void
++    {
++        $user = $this->activeUser(['status' => UserStatus::Pending]);
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'Password123!',
++        ])->assertStatus(422);
++    }
++
++    #[Test]
++    public function missing_credentials_return_a_422_naming_both_fields(): void
++    {
++        $this->postJson(route('api.v1.login'), [])
++            ->assertStatus(422)
++            ->assertJsonValidationErrors(['email', 'password']);
++    }
++
++    #[Test]
++    public function logout_revokes_only_the_token_used_for_this_request(): void
++    {
++        $user = $this->activeUser();
++        $kept = $user->createToken('other-device')->plainTextToken;
++        $revoking = $user->createToken('this-device')->plainTextToken;
++
++        $this->withToken($revoking)
++            ->postJson(route('api.v1.logout'))
++            ->assertNoContent();
++
++        $this->assertDatabaseCount('personal_access_tokens', 1);
++
++        // See MeTest::a_revoked_token_no_longer_authenticates() for why this is
++        // needed: the sanctum RequestGuard caches its resolved user per instance,
++        // and the test client reuses one instance across requests in this method.
++        Auth::forgetGuards();
++
++        $this->withToken($kept)->getJson(route('api.v1.me'))->assertOk();
++        Auth::forgetGuards();
++        $this->withToken($revoking)->getJson(route('api.v1.me'))->assertUnauthorized();
++    }
++
++    #[Test]
++    public function logout_without_a_token_is_unauthenticated(): void
++    {
++        $this->postJson(route('api.v1.logout'))->assertUnauthorized();
++    }
++
++    #[Test]
++    public function a_zero_role_account_can_log_in_but_the_token_grants_no_ability(): void
++    {
++        // Reachable via UserAdminService::createUser() with an empty roles array
++        // (unlike self-registration, which always assigns Student). Locking this in:
++        // it must fail closed for any future `tokenCan()` check, not merely happen
++        // to be harmless today by accident.
++        $user = $this->activeUser();
++        $user->roles()->delete();
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'Password123!',
++        ])->assertOk();
++
++        $token = $user->tokens()->latest()->first();
++        $this->assertSame([], $token->abilities);
++        $this->assertFalse($token->can('role:STUDENT'));
++        $this->assertFalse($token->can('anything'));
++    }
++
++    #[Test]
++    public function the_api_middleware_group_carries_no_session_middleware(): void
++    {
++        // The reason a browser session cookie can never authenticate an /api/v1
++        // request via Sanctum's `guard => ['web']` fallback (Guard::__invoke checks
++        // the web session guard before falling back to a bearer token) is
++        // architectural, not a runtime check: the `api` group never loads a
++        // session, so there is nothing for that guard to read. This test exists so
++        // that adding EnsureFrontendRequestsAreStateful, StartSession, or moving
++        // these routes into a group that has one is a visible, deliberate change
++        // rather than a silent one.
++        $middleware = app('router')->getMiddlewareGroups()['api'];
++
++        foreach ($middleware as $entry) {
++            $this->assertStringNotContainsString('StartSession', $entry);
++            $this->assertStringNotContainsString('EnsureFrontendRequestsAreStateful', $entry);
++        }
++    }
++
++    #[Test]
++    public function repeated_failed_attempts_for_the_same_email_are_throttled(): void
++    {
++        $user = $this->activeUser();
++
++        for ($i = 0; $i < 5; $i++) {
++            $this->postJson(route('api.v1.login'), [
++                'email' => $user->email,
++                'password' => 'wrong',
++            ])->assertStatus(422);
++        }
++
++        $this->postJson(route('api.v1.login'), [
++            'email' => $user->email,
++            'password' => 'wrong',
++        ])->assertStatus(429)->assertJsonPath('code', 'RATE_LIMITED');
++    }
++}
+diff --git a/tests/Feature/Api/V1/BrandingTest.php b/tests/Feature/Api/V1/BrandingTest.php
+new file mode 100644
+index 0000000..01b8fd1
+--- /dev/null
++++ b/tests/Feature/Api/V1/BrandingTest.php
+@@ -0,0 +1,37 @@
++<?php
++
++namespace Tests\Feature\Api\V1;
++
++use App\Models\Theme;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++class BrandingTest extends TestCase
++{
++    use RefreshDatabase;
++
++    #[Test]
++    public function it_is_public_and_returns_defaults_with_no_active_theme(): void
++    {
++        $this->getJson(route('api.v1.branding'))
++            ->assertOk()
++            ->assertJsonPath('data.site_name', 'SPIMS')
++            ->assertJsonStructure(['data' => ['tokens']]);
++    }
++
++    #[Test]
++    public function it_returns_the_active_theme_when_one_exists(): void
++    {
++        Theme::query()->create([
++            'name' => 'Custom',
++            'site_name' => 'Custom SPIMS',
++            'is_active' => true,
++            'tokens' => ['primary' => '#5d0326'],
++        ]);
++
++        $this->getJson(route('api.v1.branding'))
++            ->assertOk()
++            ->assertJsonPath('data.site_name', 'Custom SPIMS');
++    }
++}
+diff --git a/tests/Feature/Api/V1/ErrorEnvelopeTest.php b/tests/Feature/Api/V1/ErrorEnvelopeTest.php
+new file mode 100644
+index 0000000..e0594eb
+--- /dev/null
++++ b/tests/Feature/Api/V1/ErrorEnvelopeTest.php
+@@ -0,0 +1,120 @@
++<?php
++
++namespace Tests\Feature\Api\V1;
++
++use App\Enums\RoleType;
++use App\Models\User;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++/**
++ * Every /api/v1 failure uses one shape: { message, code, errors? }. These four
++ * exception types are handled in three different places (AuthorizationException
++ * has its own render(); ValidationException, AuthenticationException, and
++ * Symfony HTTP exceptions go through Handler::register()'s renderable callbacks),
++ * so each is exercised here rather than assumed from one being correct.
++ */
++class ErrorEnvelopeTest extends TestCase
++{
++    use RefreshDatabase;
++
++    #[Test]
++    public function validation_failure_is_422_with_a_field_level_errors_map(): void
++    {
++        $this->postJson(route('api.v1.login'), [])
++            ->assertStatus(422)
++            ->assertJsonStructure(['message', 'code', 'errors'])
++            ->assertJsonPath('code', 'VALIDATION_FAILED');
++    }
++
++    #[Test]
++    public function unauthenticated_is_401_with_no_errors_key(): void
++    {
++        $this->getJson(route('api.v1.me'))
++            ->assertStatus(401)
++            ->assertJsonStructure(['message', 'code'])
++            ->assertJsonMissingPath('errors')
++            ->assertJsonPath('code', 'UNAUTHENTICATED');
++    }
++
++    #[Test]
++    public function an_unmatched_route_is_404_with_the_shared_shape(): void
++    {
++        $this->getJson('/api/v1/does-not-exist')
++            ->assertStatus(404)
++            ->assertJsonPath('code', 'NOT_FOUND')
++            ->assertJsonMissingPath('errors');
++    }
++
++    #[Test]
++    public function a_missing_route_bound_model_is_404_with_a_generic_message_not_the_model_class(): void
++    {
++        // `/api/v1/does-not-exist` above proves the shape for a plain routing miss,
++        // whose message is already generic. A route-model-binding miss is the case
++        // that actually needs sanitizing: ModelNotFoundException's own message
++        // ("No query results for model [App\Models\User] ...") would otherwise leak
++        // the model's FQCN to a client probing an id. Registering a throwaway
++        // model-bound route is the only way to exercise that path — S1 ships no
++        // model-bound v1 route of its own yet.
++        \Illuminate\Support\Facades\Route::middleware('api')
++            ->get('/api/v1/_probe/{user}', fn (\App\Models\User $user) => $user)
++            ->name('api.v1._probe');
++
++        $response = $this->getJson('/api/v1/_probe/00000000000000000000000000');
++
++        $response->assertStatus(404)->assertJsonPath('code', 'NOT_FOUND');
++        $message = $response->json('message');
++        $this->assertStringNotContainsString('App\\Models\\User', (string) $message);
++        $this->assertSame(__('api.not_found'), $message);
++    }
++
++    #[Test]
++    public function throttling_is_429_and_the_shape_still_holds(): void
++    {
++        $user = User::factory()->withRole(RoleType::Student)->create();
++
++        for ($i = 0; $i < 6; $i++) {
++            $this->postJson(route('api.v1.login'), ['email' => $user->email, 'password' => 'x']);
++        }
++
++        $this->postJson(route('api.v1.login'), ['email' => $user->email, 'password' => 'x'])
++            ->assertStatus(429)
++            ->assertJsonPath('code', 'RATE_LIMITED');
++    }
++
++    #[Test]
++    public function forbidden_is_403_and_still_uses_the_shared_shape(): void
++    {
++        // AuthorizationException renders itself; this is the one that would silently
++        // diverge from the shape if AuthorizationException::render() were ever
++        // changed without updating its api/v1 branch.
++        $instructor = User::factory()->withRole(RoleType::Instructor)->create();
++
++        $this->actingAs($instructor);
++        try {
++            app(\App\Support\AuthorizeService::class)->authorize($instructor, 'gradebook.configure');
++            $this->fail('Expected an AuthorizationException.');
++        } catch (\App\Exceptions\AuthorizationException $e) {
++            $request = \Illuminate\Http\Request::create('/api/v1/probe', 'GET');
++            $response = $e->render($request);
++
++            $this->assertSame(403, $response->getStatusCode());
++            $body = json_decode($response->getContent(), true);
++            $this->assertSame('FORBIDDEN', $body['code']);
++            $this->assertArrayHasKey('message', $body);
++        }
++    }
++
++    #[Test]
++    public function web_routes_are_unaffected_by_the_api_v1_error_shape(): void
++    {
++        // The whole point of scoping every branch to `api/v1/*` is that nothing
++        // about web error rendering changes. A 404 on a web route must still be
++        // Laravel's normal HTML error page, not the API envelope.
++        $response = $this->get('/this-route-does-not-exist');
++
++        $response->assertStatus(404);
++        $this->assertStringNotContainsString('"code":"NOT_FOUND"', $response->getContent());
++    }
++}
+diff --git a/tests/Feature/Api/V1/LocaleTest.php b/tests/Feature/Api/V1/LocaleTest.php
+new file mode 100644
+index 0000000..8b6cb42
+--- /dev/null
++++ b/tests/Feature/Api/V1/LocaleTest.php
+@@ -0,0 +1,112 @@
++<?php
++
++namespace Tests\Feature\Api\V1;
++
++use App\Enums\RoleType;
++use App\Models\User;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++class LocaleTest extends TestCase
++{
++    use RefreshDatabase;
++
++    #[Test]
++    public function accept_language_ar_returns_arabic_error_copy(): void
++    {
++        $this->withHeaders(['Accept-Language' => 'ar'])
++            ->getJson(route('api.v1.me'))
++            ->assertJsonPath('message', __('auth.unauthorized', [], 'ar'));
++    }
++
++    #[Test]
++    public function accept_language_fr_returns_french_error_copy(): void
++    {
++        $this->withHeaders(['Accept-Language' => 'fr'])
++            ->getJson(route('api.v1.me'))
++            ->assertJsonPath('message', __('auth.unauthorized', [], 'fr'));
++    }
++
++    #[Test]
++    public function a_multi_value_accept_language_header_picks_the_first_supported_tag(): void
++    {
++        // "de" is not supported; "ar" is the next candidate and must win over any
++        // fallback, matching real browser/device Accept-Language lists.
++        $this->withHeaders(['Accept-Language' => 'de;q=1.0, ar;q=0.8, en;q=0.5'])
++            ->getJson(route('api.v1.me'))
++            ->assertJsonPath('message', __('auth.unauthorized', [], 'ar'));
++    }
++
++    #[Test]
++    public function no_header_and_no_stored_preference_falls_back_to_english(): void
++    {
++        $this->getJson(route('api.v1.me'))
++            ->assertJsonPath('message', __('auth.unauthorized', [], 'en'));
++    }
++
++    #[Test]
++    public function an_authenticated_users_stored_preference_is_used_when_no_header_is_sent(): void
++    {
++        // Exercised directly against the resolver rather than through a route: a
++        // request that matches no route at all never runs the auth middleware, so
++        // $request->user() can never be populated there, and there is no S1 route
++        // yet that both requires auth and can still fail after auth succeeds.
++        $user = User::factory()->withRole(RoleType::Student)->create(['preferred_locale' => 'ar']);
++
++        $request = \Illuminate\Http\Request::create('/api/v1/probe', 'GET');
++        // Request::create() injects a default Accept-Language header (from the
++        // CLI/testing environment's own server vars) when none is passed. A real
++        // client either sends the header or does not; simulate "does not".
++        $request->headers->remove('Accept-Language');
++        $request->setUserResolver(fn () => $user);
++
++        $this->assertSame('ar', \App\Support\Api\ApiLocale::resolve($request));
++    }
++
++    #[Test]
++    public function a_header_wins_over_the_users_stored_preference(): void
++    {
++        $user = User::factory()->withRole(RoleType::Student)->create(['preferred_locale' => 'ar']);
++
++        $request = \Illuminate\Http\Request::create('/api/v1/probe', 'GET', server: [
++            'HTTP_ACCEPT_LANGUAGE' => 'fr',
++        ]);
++        $request->setUserResolver(fn () => $user);
++
++        $this->assertSame('fr', \App\Support\Api\ApiLocale::resolve($request));
++    }
++
++    #[Test]
++    public function an_unsupported_stored_preference_falls_back_to_english(): void
++    {
++        // Defensive: the column has no DB-level enum constraint tying it to
++        // ['ar','en','fr'], so a bad value must not propagate into __() calls.
++        $user = User::factory()->withRole(RoleType::Student)->create(['preferred_locale' => 'de']);
++
++        $request = \Illuminate\Http\Request::create('/api/v1/probe', 'GET');
++        $request->headers->remove('Accept-Language');
++        $request->setUserResolver(fn () => $user);
++
++        $this->assertSame('en', \App\Support\Api\ApiLocale::resolve($request));
++    }
++
++    #[Test]
++    public function the_legacy_unversioned_api_user_route_is_unaffected(): void
++    {
++        // SetApiLocale is scoped to the v1 group only, not the shared `api`
++        // middleware group — this proves the legacy scaffold route is untouched.
++        $user = User::factory()->withRole(RoleType::Student)->create();
++
++        $this->withHeaders(['Accept-Language' => 'ar'])
++            ->actingAs($user)
++            ->getJson('/api/user')
++            ->assertOk();
++
++        // No error envelope was ever introduced for this route: `id` is a raw
++        // model attribute at the top level, not nested under `data`.
++        $this->assertNotNull(
++            $this->withHeaders(['Accept-Language' => 'ar'])->actingAs($user)->getJson('/api/user')->json('id')
++        );
++    }
++}
+diff --git a/tests/Feature/Api/V1/MeTest.php b/tests/Feature/Api/V1/MeTest.php
+new file mode 100644
+index 0000000..cd4457f
+--- /dev/null
++++ b/tests/Feature/Api/V1/MeTest.php
+@@ -0,0 +1,83 @@
++<?php
++
++namespace Tests\Feature\Api\V1;
++
++use App\Enums\RoleType;
++use App\Models\User;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Illuminate\Support\Facades\Auth;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++class MeTest extends TestCase
++{
++    use RefreshDatabase;
++
++    #[Test]
++    public function it_returns_the_authenticated_users_profile_and_roles(): void
++    {
++        $user = User::factory()->withRole(RoleType::Instructor)->create([
++            'preferred_locale' => 'fr',
++        ]);
++        $token = $user->createToken('test')->plainTextToken;
++
++        $this->withToken($token)->getJson(route('api.v1.me'))
++            ->assertOk()
++            ->assertJsonPath('data.email', $user->email)
++            ->assertJsonPath('data.preferred_locale', 'fr')
++            ->assertJsonPath('data.roles.0', 'INSTRUCTOR')
++            ->assertJsonMissingPath('data.password_hash');
++    }
++
++    #[Test]
++    public function a_user_with_multiple_roles_gets_every_role_listed(): void
++    {
++        $user = User::factory()->withRole(RoleType::Instructor)->create();
++        $user->roles()->create(['role' => RoleType::AcademicAdmin]);
++
++        $token = $user->createToken('test')->plainTextToken;
++
++        $roles = $this->withToken($token)->getJson(route('api.v1.me'))->json('data.roles');
++
++        $this->assertEqualsCanonicalizing(['INSTRUCTOR', 'ACADEMIC_ADMIN'], $roles);
++    }
++
++    #[Test]
++    public function it_401s_without_a_token(): void
++    {
++        $this->getJson(route('api.v1.me'))
++            ->assertUnauthorized()
++            ->assertJsonPath('code', 'UNAUTHENTICATED');
++    }
++
++    #[Test]
++    public function it_401s_with_a_garbage_token(): void
++    {
++        $this->withToken('not-a-real-token')
++            ->getJson(route('api.v1.me'))
++            ->assertUnauthorized();
++    }
++
++    #[Test]
++    public function a_revoked_token_no_longer_authenticates(): void
++    {
++        $user = User::factory()->withRole(RoleType::Student)->create();
++        $token = $user->createToken('test');
++
++        $this->withToken($token->plainTextToken)->getJson(route('api.v1.me'))->assertOk();
++
++        $token->accessToken->delete();
++
++        // Sanctum's `sanctum` guard is a RequestGuard, which caches the resolved
++        // user for the lifetime of the guard instance (see
++        // Illuminate\Auth\RequestGuard::user()). The test HTTP client reuses one
++        // application container across requests in a single test method, so
++        // without forgetting the cached guard, this second call would still see
++        // the guard's answer from before the token was deleted — a testing
++        // artifact, not something that can happen across real, separate requests
++        // in production.
++        Auth::forgetGuards();
++
++        $this->withToken($token->plainTextToken)->getJson(route('api.v1.me'))->assertUnauthorized();
++    }
++}
+diff --git a/tests/Feature/Api/V1/OpenApiCoverageTest.php b/tests/Feature/Api/V1/OpenApiCoverageTest.php
+new file mode 100644
+index 0000000..9ae050a
+--- /dev/null
++++ b/tests/Feature/Api/V1/OpenApiCoverageTest.php
+@@ -0,0 +1,69 @@
++<?php
++
++namespace Tests\Feature\Api\V1;
++
++use Illuminate\Support\Facades\Route;
++use PHPUnit\Framework\Attributes\Test;
++use Symfony\Component\Yaml\Yaml;
++use Tests\TestCase;
++
++/**
++ * docs/api/openapi.yaml is hand-maintained, so nothing enforces that it stays in
++ * sync except this test: every registered `api.v1.*` route must have a matching
++ * `paths` entry (with its HTTP method) in the document.
++ */
++class OpenApiCoverageTest extends TestCase
++{
++    #[Test]
++    public function every_v1_route_is_documented_in_the_openapi_spec(): void
++    {
++        $spec = Yaml::parseFile(base_path('docs/api/openapi.yaml'));
++        $documented = $spec['paths'] ?? [];
++
++        $undocumented = [];
++
++        foreach (Route::getRoutes() as $route) {
++            // Filter on the URI, not the route name: a route registered under
++            // `api/v1/*` with a name that doesn't happen to start with `api.v1.`
++            // (a typo, or one added outside the `Route::prefix('v1')->name(...)`
++            // group) is still a live, reachable /api/v1 endpoint and must still be
++            // documented. Filtering on the name alone would silently pass such a
++            // route through undocumented — the exact gap a coverage test exists
++            // to close.
++            if (! str_starts_with($route->uri(), 'api/v1/') && $route->uri() !== 'api/v1') {
++                continue;
++            }
++
++            // "api/v1/me" -> "/me", matching the yaml's `servers.url: /api/v1` base
++            // and its paths keys.
++            $path = '/'.preg_replace('#^api/v1/?#', '', $route->uri());
++            $path = $path === '/' ? '/' : rtrim($path, '/');
++
++            $methods = array_diff($route->methods(), ['HEAD']);
++
++            foreach ($methods as $method) {
++                $method = strtolower($method);
++
++                if (! isset($documented[$path][$method])) {
++                    $undocumented[] = "$method $path (route: {$route->getName()})";
++                }
++            }
++        }
++
++        $this->assertSame(
++            [],
++            $undocumented,
++            "The following api/v1 routes have no docs/api/openapi.yaml entry:\n".implode("\n", $undocumented)
++        );
++    }
++
++    #[Test]
++    public function the_openapi_document_itself_is_valid_yaml_with_the_expected_top_level_keys(): void
++    {
++        $spec = Yaml::parseFile(base_path('docs/api/openapi.yaml'));
++
++        $this->assertArrayHasKey('openapi', $spec);
++        $this->assertArrayHasKey('paths', $spec);
++        $this->assertNotEmpty($spec['paths']);
++    }
++}
+-- 
+2.43.0
+

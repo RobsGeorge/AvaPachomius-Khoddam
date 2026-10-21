@@ -1,0 +1,53 @@
+
+=== 0. Fresh clone of spims-edu main + all four patches applied via git am ===
+  6d6dec5 feat(api): S1 — /api/v1 foundation (login, logout, me, branding)
+  d4950e6 feat(authz): enforce resource scope so the 'own' permission level means something
+  3cde73a fix(assignments): stop resubmissions destroying the previous attempt
+  ed1c074 fix(notifications): honour the notify_email preference
+
+=== 1. Registered /api/v1 routes ===
+
+  GET|HEAD   api/v1/branding api.v1.branding › Api\V1\BrandingController@show
+  POST       api/v1/login ......... api.v1.login › Api\V1\AuthController@login
+  POST       api/v1/logout ...... api.v1.logout › Api\V1\AuthController@logout
+  GET|HEAD   api/v1/me .................. api.v1.me › Api\V1\MeController@show
+
+                                                            Showing [4] routes
+
+
+=== 2. Full suite ===
+Tests:    176 passed (712 assertions)
+Duration: 6.71s
+
+=== 3. Two review-found bugs, reproduced against the pre-fix code ===
+-- WITH the fix (current state):
+status=403 body={"message":"nope","code":"FORBIDDEN"}
+-- codeForStatus 401/403 mapping REVERTED (native Illuminate\Auth\Access\AuthorizationException, which S6/S8 Policies will throw):
+status=403 body={"message":"nope","code":"ERROR"}
+-- restored
+-- OpenApiCoverageTest reverted to name-based filter + an undocumented /v1/* route added:
+  ✓ every v1 route is documented in the openapi spec                     0.05s  
+  ✓ the openapi document itself is valid yaml with the expected top lev… 0.01s  
+  Tests:    2 passed (4 assertions)
+-- restored
+
+=== 4. The fixed versions catch both ===
+  Tests:    2 passed (4 assertions)
+Tests:    176 passed (712 assertions)
+Duration: 6.58s
+
+=== 5. Style — only the files these patches touch ===
+  ──────────────────────────────────────────────────────────────────── Laravel  
+    PASS   .......................................................... 21 files  
+
+
+=== 6. PostgreSQL 16 ===
+29 steps completed
+  POST       api/v1/login ......... api.v1.login › Api\V1\AuthController@login
+  POST       api/v1/logout ...... api.v1.logout › Api\V1\AuthController@logout
+  GET|HEAD   api/v1/me .................. api.v1.me › Api\V1\MeController@show
+
+                                                            Showing [4] routes
+
+
+=== done ===

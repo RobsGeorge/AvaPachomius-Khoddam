@@ -1,0 +1,142 @@
+From df473f4f3b4aa47f0698c380f94fae72b5267ccd Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 5 Sep 2026 03:44:18 +0000
+Subject: [PATCH 1/2] fix(notifications): honour the notify_email preference
+
+NotificationService always sent mail when $alsoEmail was true, never reading
+users.notify_email. The toggle in Settings was inert: a user who opted out
+still received every transactional email and an EMAIL channel row.
+
+Gate sendEmailChannel() on the preference, defaulting to opted-in so users
+predating the column are unaffected (matching the column default). Callers
+passing alsoEmail: false are unchanged.
+
+Adds NotificationEmailPreferenceTest, which fails on the previous behaviour.
+---
+ .../Notifications/NotificationService.php     | 11 ++-
+ .../Live/NotificationEmailPreferenceTest.php  | 84 +++++++++++++++++++
+ 2 files changed, 94 insertions(+), 1 deletion(-)
+ create mode 100644 tests/Feature/Live/NotificationEmailPreferenceTest.php
+
+diff --git a/app/Services/Notifications/NotificationService.php b/app/Services/Notifications/NotificationService.php
+index f81fc5e..1b265c7 100644
+--- a/app/Services/Notifications/NotificationService.php
++++ b/app/Services/Notifications/NotificationService.php
+@@ -33,7 +33,7 @@ public function notify(
+             'metadata' => $metadata,
+         ]);
+ 
+-        if ($alsoEmail) {
++        if ($alsoEmail && $this->wantsEmail($user)) {
+             $this->sendEmailChannel($user, $type, $title, $body, $metadata);
+         }
+ 
+@@ -48,6 +48,15 @@ public function markRead(User $user, Notification $notification): Notification
+         return $notification->fresh();
+     }
+ 
++    /**
++     * Honours the `notify_email` preference exposed in settings. Users predating the
++     * column default to opted-in, matching the column default.
++     */
++    private function wantsEmail(User $user): bool
++    {
++        return $user->notify_email ?? true;
++    }
++
+     /**
+      * @param  array<string, mixed>|null  $metadata
+      */
+diff --git a/tests/Feature/Live/NotificationEmailPreferenceTest.php b/tests/Feature/Live/NotificationEmailPreferenceTest.php
+new file mode 100644
+index 0000000..9d5fb05
+--- /dev/null
++++ b/tests/Feature/Live/NotificationEmailPreferenceTest.php
+@@ -0,0 +1,84 @@
++<?php
++
++namespace Tests\Feature\Live;
++
++use App\Enums\NotificationChannel;
++use App\Enums\RoleType;
++use App\Models\Notification;
++use App\Models\User;
++use App\Services\Mail\TransactionalMailer;
++use App\Services\Notifications\NotificationService;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Mockery;
++use PHPUnit\Framework\Attributes\Test;
++use Tests\TestCase;
++
++/**
++ * The `notify_email` toggle is exposed in settings; these assert it actually
++ * suppresses mail rather than only appearing to.
++ */
++class NotificationEmailPreferenceTest extends TestCase
++{
++    use RefreshDatabase;
++
++    #[Test]
++    public function opting_out_of_email_suppresses_the_mail_channel_but_not_the_in_app_notification(): void
++    {
++        $user = User::factory()->withRole(RoleType::Student)->create(['notify_email' => false]);
++
++        $mailer = Mockery::mock(TransactionalMailer::class);
++        $mailer->shouldNotReceive('send');
++        $this->app->instance(TransactionalMailer::class, $mailer);
++
++        app(NotificationService::class)->notify($user, 'test.event', 'Title', 'Body');
++
++        $this->assertTrue(
++            Notification::query()
++                ->where('user_id', $user->id)
++                ->where('channel', NotificationChannel::InApp)
++                ->exists(),
++            'The in-app notification must still be delivered.'
++        );
++
++        $this->assertFalse(
++            Notification::query()
++                ->where('user_id', $user->id)
++                ->where('channel', NotificationChannel::Email)
++                ->exists(),
++            'No EMAIL channel row may be written when the user opted out.'
++        );
++    }
++
++    #[Test]
++    public function opting_in_to_email_still_sends_both_channels(): void
++    {
++        $user = User::factory()->withRole(RoleType::Student)->create(['notify_email' => true]);
++
++        $mailer = Mockery::mock(TransactionalMailer::class);
++        $mailer->shouldReceive('send')->once()->andReturnTrue();
++        $this->app->instance(TransactionalMailer::class, $mailer);
++
++        app(NotificationService::class)->notify($user, 'test.event', 'Title', 'Body');
++
++        $this->assertTrue(
++            Notification::query()
++                ->where('user_id', $user->id)
++                ->where('channel', NotificationChannel::Email)
++                ->exists()
++        );
++    }
++
++    #[Test]
++    public function callers_that_explicitly_disable_email_are_unaffected_by_the_preference(): void
++    {
++        $user = User::factory()->withRole(RoleType::Student)->create(['notify_email' => true]);
++
++        $mailer = Mockery::mock(TransactionalMailer::class);
++        $mailer->shouldNotReceive('send');
++        $this->app->instance(TransactionalMailer::class, $mailer);
++
++        app(NotificationService::class)->notify($user, 'test.event', 'Title', 'Body', alsoEmail: false);
++
++        $this->assertSame(1, Notification::query()->where('user_id', $user->id)->count());
++    }
++}
+-- 
+2.43.0
+
