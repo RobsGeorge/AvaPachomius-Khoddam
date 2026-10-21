@@ -155,6 +155,7 @@ class SystemTestRunner
         return [
             'APP_ENV' => 'testing',
             'APP_URL' => 'http://localhost',
+            'APP_KEY' => '',
             'MULTI_TENANT' => 'false',
             'DB_CONNECTION' => 'sqlite',
             'DB_DATABASE' => ':memory:',

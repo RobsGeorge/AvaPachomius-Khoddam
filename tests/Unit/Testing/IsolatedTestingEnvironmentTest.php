@@ -6,6 +6,7 @@ use Tests\TestCase;
 
 /**
  * Guards the staging/prod shell-leak fix: CreatesApplication + phpunit.xml force=true.
+ * Also refuses committed Laravel APP_KEY literals (GitGuardian / secret scanners).
  */
 class IsolatedTestingEnvironmentTest extends TestCase
 {
@@ -65,6 +66,7 @@ class IsolatedTestingEnvironmentTest extends TestCase
         foreach ([
             'APP_ENV',
             'APP_URL',
+            'APP_KEY',
             'DB_CONNECTION',
             'DB_DATABASE',
             'MULTI_TENANT',
@@ -77,5 +79,76 @@ class IsolatedTestingEnvironmentTest extends TestCase
                 "phpunit.xml must force={$key}"
             );
         }
+
+        $this->assertMatchesRegularExpression(
+            '/<env\s+name="APP_KEY"\s+value=""\s+force="true"\s*\/>/',
+            $xml,
+            'phpunit.xml must force-clear APP_KEY so no real key is committed'
+        );
+    }
+
+    public function test_runtime_app_key_is_a_valid_laravel_key(): void
+    {
+        $key = (string) config('app.key');
+
+        $this->assertNotSame('', $key);
+        $this->assertStringStartsWith('base64:', $key);
+
+        $raw = base64_decode(substr($key, strlen('base64:')), true);
+        $this->assertNotFalse($raw);
+        $this->assertSame(32, strlen($raw));
+    }
+
+    public function test_committed_sources_do_not_embed_a_laravel_app_key(): void
+    {
+        $hits = [];
+        $pattern = '/(?:APP_KEY["\']?\s*(?:=|=>)\s*["\']?|name="APP_KEY"\s+value=")base64:([A-Za-z0-9+\/]{20,}={0,2})/';
+
+        foreach ($this->trackedSourceFiles() as $path) {
+            $contents = (string) file_get_contents($path);
+            if (! preg_match_all($pattern, $contents, $matches)) {
+                continue;
+            }
+
+            foreach ($matches[1] as $payload) {
+                $raw = base64_decode($payload, true);
+                if ($raw !== false && in_array(strlen($raw), [16, 24, 32], true)) {
+                    $hits[] = str_replace(base_path().DIRECTORY_SEPARATOR, '', $path);
+                }
+            }
+        }
+
+        $this->assertSame([], $hits, 'Committed Laravel APP_KEY literals: '.implode(', ', $hits));
+    }
+
+    /** @return list<string> */
+    private function trackedSourceFiles(): array
+    {
+        $extensions = ['php', 'xml', 'yml', 'yaml', 'md', 'env', 'example', 'json', 'txt', 'dist', 'ini'];
+        $listed = (string) shell_exec('git -C '.escapeshellarg(base_path()).' ls-files');
+        $files = [];
+
+        foreach (preg_split('/\R/', trim($listed)) ?: [] as $relative) {
+            if ($relative === '') {
+                continue;
+            }
+
+            $base = basename($relative);
+            if ($base === '.env' || (str_starts_with($base, '.env.') && $base !== '.env.example')) {
+                continue;
+            }
+
+            $ext = strtolower(pathinfo($relative, PATHINFO_EXTENSION));
+            if ($ext !== '' && ! in_array($ext, $extensions, true)) {
+                continue;
+            }
+
+            $path = base_path($relative);
+            if (is_file($path)) {
+                $files[] = $path;
+            }
+        }
+
+        return $files;
     }
 }

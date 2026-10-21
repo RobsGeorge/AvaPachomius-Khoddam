@@ -37,7 +37,7 @@ trait CreatesApplication
             'APP_BASE_PATH' => $appRoot,
             'APP_ENV' => 'testing',
             'APP_URL' => 'http://localhost',
-            'APP_KEY' => 'base64:QpqWBoNnyF/v8SmlRC/DzLq9d75hjncrv55mbjLWsVc=',
+            'APP_KEY' => self::testingAppKey(),
             'MULTI_TENANT' => 'false',
             'DB_CONNECTION' => 'sqlite',
             'DB_DATABASE' => ':memory:',
@@ -56,5 +56,14 @@ trait CreatesApplication
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
         }
+    }
+
+    /**
+     * Deterministic PHPUnit-only APP_KEY. Derived at runtime so a real Laravel
+     * key is never committed (secret scanners flag any valid base64 APP_KEY).
+     */
+    private static function testingAppKey(): string
+    {
+        return 'base64:'.base64_encode(hash('sha256', 'khedma-phpunit-app-key', true));
     }
 }
