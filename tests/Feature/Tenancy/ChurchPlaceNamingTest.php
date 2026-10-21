@@ -169,6 +169,55 @@ class ChurchPlaceNamingTest extends EventModuleTestCase
         $this->assertStringContainsString('New Street', (string) data_get($updated->settings, 'public.address'));
     }
 
+    public function test_arabic_locale_uses_english_name_when_the_church_has_no_arabic_name(): void
+    {
+        $church = app(ChurchProvisioningService::class)->create([
+            'slug' => 'demo-stmark',
+            'name' => 'St Mark Church (Demo)',
+            'short_name' => 'St Mark Church (Demo)',
+            'capabilities' => ['church_management'],
+            'place_country_code' => 'EG',
+            'place_governorate' => 'Cairo',
+            'place_district' => 'Maadi',
+        ]);
+
+        app()->setLocale('ar');
+
+        $this->assertSame('St Mark Church (Demo)', $church->localizedName());
+        $this->assertNotSame('كنيسة الأنبا باخوميوس', $church->localizedName());
+
+        $church->settings = array_merge($church->settings ?? [], ['name_ar' => 'كنيسة مارمرقس']);
+        $church->save();
+
+        $this->assertSame('كنيسة مارمرقس', $church->fresh()->localizedName('ar'));
+        $this->assertSame('St Mark Church (Demo)', $church->fresh()->localizedName('en'));
+    }
+
+    public function test_login_on_a_church_host_does_not_show_tenant_zero_name(): void
+    {
+        app(ChurchProvisioningService::class)->create([
+            'slug' => 'demo-stmark',
+            'name' => 'St Mark Church (Demo)',
+            'short_name' => 'St Mark Church (Demo)',
+            'capabilities' => ['church_management'],
+            'place_country_code' => 'EG',
+            'place_governorate' => 'Cairo',
+            'place_district' => 'Maadi',
+            'status' => 'active',
+        ]);
+
+        config([
+            'tenancy.enabled' => true,
+            'tenancy.base_domain' => 'localhost',
+            'app.url' => 'http://localhost',
+        ]);
+
+        $this->get('http://demo-stmark.localhost/login')
+            ->assertOk()
+            ->assertSee('St Mark Church (Demo)', false)
+            ->assertDontSee('كنيسة الأنبا باخوميوس', false);
+    }
+
     private function createSuperadmin(): User
     {
         return $this->createUser([

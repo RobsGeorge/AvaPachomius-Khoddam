@@ -5,7 +5,7 @@
 @section('content')
 <div class="container py-5 animate-in">
     <div class="text-center mb-5">
-        <p class="text-muted-theme small mb-1">{{ __('app.institute_name') }}</p>
+        <p class="text-muted-theme small mb-1">{{ ($currentChurch ?? null)?->localizedName() ?? ($churchDisplayName ?? __('app.institute_name')) }}</p>
         <h1 class="page-title mb-2">{{ __('service.select_title') }}</h1>
         <p class="text-muted-theme mb-0 mx-auto" style="max-width: 36rem;">{{ __('service.select_intro') }}</p>
     </div>

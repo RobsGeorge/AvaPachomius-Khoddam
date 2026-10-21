@@ -231,7 +231,9 @@
                             @endif
                             <span class="brand-names">
                                 <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
-                                <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                                @if(!empty($churchDisplayName) && $churchDisplayName !== ($brandedChurchName ?? null))
+                                    <span class="brand-subtitle">{{ $churchDisplayName }}</span>
+                                @endif
                             </span>
                         </a>
                     @endif
@@ -256,7 +258,9 @@
                         @endif
                         <span class="brand-names">
                             <span class="brand-name">{{ $brandedChurchName ?? __('app.name') }}</span>
-                            <span class="brand-subtitle">{{ __('app.institute_name') }}</span>
+                            @if(!empty($churchDisplayName) && $churchDisplayName !== ($brandedChurchName ?? null))
+                                <span class="brand-subtitle">{{ $churchDisplayName }}</span>
+                            @endif
                         </span>
                     </a>
                 @endauth

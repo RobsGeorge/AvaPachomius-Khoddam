@@ -319,6 +319,8 @@ h1, h2, h3, .h1, .h2, .h3,
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .brand-mark {
@@ -338,15 +340,16 @@ h1, h2, h3, .h1, .h2, .h3,
     flex-direction: column;
     line-height: 1.05;
     min-width: 0;
-    max-width: min(14rem, 42vw);
+    max-width: min(18rem, calc(100vw - 8.5rem));
 }
 
 .app-nav .brand-name {
     display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+    unicode-bidi: plaintext;
 }
 
 .app-nav .brand-subtitle {
