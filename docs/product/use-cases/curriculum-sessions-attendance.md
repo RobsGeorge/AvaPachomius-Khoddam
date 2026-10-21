@@ -16,7 +16,8 @@ Controllers: `CurriculumController`, `ModuleController`, `LectureController`,
 | UC-ATT-02 | Instructor | View all attendance; filter/group by date/session/module; export report | — | `attendance.view_all`, `attendance.report` |
 | UC-ATT-03 | Instructor / Course Admin | Edit an attendance record / permission reason; close a session's attendance | After session close **or module end**, status edits remain allowed (`attendance.edit` or `attendance.record`) and attendance gradebook scores re-sync from status (late % via policy). QR/new scans stay blocked. Course closed/archived still strips write keys | `attendance.edit` / `attendance.record` |
 | UC-ATT-04 | Student | View **own** attendance record only | Cannot see others' | `attendance.view_own` |
-| UC-ATT-05 | Course Admin | Configure attendance policy (late thresholds, defaults) | — | `attendance.configure` |
+| UC-ATT-05 | Course Admin | Configure attendance policy (late thresholds, defaults) and the course default roll call (whole session or each lecture) | — | `attendance.configure` / course details |
+| UC-ATT-06 | Instructor | On a session, keep one roll call or take attendance per linked lecture. The course default pre-fills the choice; it locks after the first mark | Per-lecture close uses the earliest Present mark in the meeting as the late arrival. Each lecture is its own gradebook occasion | `curriculum.manage`, `attendance.record` |
 
 **Coverage:** `AttendanceRosterTest`, `SessionUpcomingNotificationTest`,
 `Unit/SessionNotificationServiceTest`; management paths gated in `AuthorizationMatrixTest`.

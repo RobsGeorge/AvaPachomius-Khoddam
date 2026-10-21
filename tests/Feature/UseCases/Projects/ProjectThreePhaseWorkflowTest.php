@@ -22,6 +22,88 @@ use Tests\Support\EventModuleTestCase;
 
 class ProjectThreePhaseWorkflowTest extends EventModuleTestCase
 {
+    public function test_adding_a_team_later_copies_the_three_link_slots(): void
+    {
+        Mail::fake();
+        [$course, $module, $admin] = $this->staffFixture();
+        app(CourseContextService::class)->setCurrentCourse($admin, $course->course_id);
+
+        $this->actingAs($admin)
+            ->post(route('projects.assessments.store'), [
+                'module_id' => $module->module_id,
+                'title' => 'Parish visits',
+                'min_team_size' => 2,
+                'max_team_size' => 3,
+                'project_count' => 1,
+                'join_closes_at' => now()->addWeek()->toDateTimeString(),
+                'submission_due_at' => now()->addWeeks(5)->toDateTimeString(),
+                'subprojects' => [
+                    ['title' => 'Original team'],
+                ],
+            ])
+            ->assertRedirect(route('projects.manage'));
+
+        $assessment = ProjectAssessment::query()->where('title', 'Parish visits')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('projects.store', $assessment), ['title' => 'Late team'])
+            ->assertSessionHasNoErrors();
+
+        $added = $assessment->projects()->where('title', 'Late team')->firstOrFail();
+        $deliverables = $added->deliverables()->orderBy('sort_order')->get();
+        $this->assertSame(
+            ProjectDeliverable::canonicalSlotKeys(),
+            $deliverables->pluck('slot_key')->all()
+        );
+        $this->assertTrue($deliverables->every(fn (ProjectDeliverable $row) => $row->expectsLink()));
+
+        $studentRole = $this->courseRoleWithPermissions($course, 'student', ['project.view', 'project.join']);
+        $student = $this->createUser(['email' => 'late-team-student@example.com']);
+        $this->assignCourseRole($student, $course, $studentRole);
+        $assessment->update(['is_published' => true]);
+        $original = $assessment->projects()->where('title', 'Original team')->firstOrFail();
+        app(ProjectAssignmentService::class)->assignStudent(
+            $assessment->fresh(),
+            $student,
+            excludeProjectId: (int) $original->project_id,
+            notify: false,
+        );
+
+        app(CourseContextService::class)->setCurrentCourse($student, $course->course_id);
+        $this->actingAs($student)
+            ->get(route('projects.show', $added->fresh()))
+            ->assertOk()
+            ->assertSee('name="link_url"', false)
+            ->assertDontSee(__('projects.no_deliverables'), false);
+    }
+
+    public function test_backfill_copies_link_slots_onto_teams_created_empty(): void
+    {
+        Mail::fake();
+        [$course, $admin, $students, $assessment, $project] = $this->seatedTeam();
+
+        $empty = Project::create([
+            'project_assessment_id' => $assessment->project_assessment_id,
+            'title' => 'Empty late team',
+            'status' => Project::STATUS_OPEN,
+            'sort_order' => 99,
+        ]);
+        $this->assertSame(0, $empty->deliverables()->count());
+        $this->assertSame(0, $empty->phases()->count());
+
+        $filled = app(ProjectAdminService::class)->backfillMissingSharedWorkflow();
+        $this->assertGreaterThanOrEqual(1, $filled);
+
+        $empty->refresh()->load(['deliverables', 'phases']);
+        $this->assertSame(
+            ProjectDeliverable::canonicalSlotKeys(),
+            $empty->deliverables->pluck('slot_key')->all()
+        );
+        $this->assertTrue($empty->deliverables->every(fn (ProjectDeliverable $row) => $row->expectsLink()));
+        $this->assertSame($project->phases->count(), $empty->phases->count());
+        $this->assertSame((int) $project->church_id, (int) $empty->deliverables->first()->church_id);
+    }
+
     public function test_creating_an_assessment_without_custom_deliverables_seeds_the_three_phases(): void
     {
         Mail::fake();

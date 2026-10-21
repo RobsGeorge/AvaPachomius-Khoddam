@@ -67,10 +67,12 @@ class ExamResultsVisibilityService
         }
 
         if ($user) {
-            return $this->mandatoryFeedback->unsubmittedMandatorySurveys(
+            return $this->mandatoryFeedback->unsubmittedBlockingSurveys(
                 $user,
                 (int) $exam->course_id,
                 $exam->module_id ? (int) $exam->module_id : null,
+                FeedbackSurvey::BLOCK_KIND_EXAM,
+                (int) $exam->exam_id,
             );
         }
 
@@ -78,13 +80,27 @@ class ExamResultsVisibilityService
             ->where('course_id', $exam->course_id)
             ->when(
                 $exam->module_id,
-                fn ($q) => $q->where('module_id', $exam->module_id),
+                function ($q) use ($exam) {
+                    $q->where(function ($inner) use ($exam) {
+                        $inner->where('module_id', $exam->module_id)
+                            ->orWhere(function ($courseWide) use ($exam) {
+                                $courseWide->whereNull('module_id')
+                                    ->where('blocks_exam_id', $exam->exam_id);
+                            });
+                    });
+                },
                 fn ($q) => $q->whereNull('module_id')
             )
             ->where('is_mandatory', true)
             ->where('status', FeedbackSurvey::STATUS_OPEN)
             ->where(function ($q) {
                 $q->whereNull('due_at')->orWhere('due_at', '>', now());
+            })
+            ->where(function ($q) use ($exam) {
+                $q->where(function ($legacy) {
+                    $legacy->whereNull('blocks_exam_id')
+                        ->whereNull('blocks_project_assessment_id');
+                })->orWhere('blocks_exam_id', $exam->exam_id);
             })
             ->orderBy('survey_id')
             ->get();

@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
         <div>
             <h1 class="page-title mb-1">{{ $survey->title }}</h1>
-            <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->module?->title }}</small>
+            <small class="text-muted-theme">{{ $survey->course?->title }} — {{ $survey->scopeLabel() }}</small>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('feedback.index') }}" class="btn btn-outline-secondary btn-sm">{{ __('pages.back') }}</a>
@@ -39,7 +39,12 @@
                             <input type="datetime-local" name="due_at" class="form-control"
                                    value="{{ old('due_at', $survey->due_at?->format('Y-m-d\TH:i')) }}">
                         </div>
-                        @include('feedback.admin.partials.blocking-attribute', ['isMandatory' => $survey->is_mandatory])
+                        @include('feedback.admin.partials.anonymity-attribute', ['isAnonymous' => $survey->isAnonymous()])
+                        @include('feedback.admin.partials.blocking-attribute', [
+                            'isMandatory' => $survey->is_mandatory,
+                            'blockedAssessment' => $survey->blockedAssessmentKey(),
+                            'moduleAssessments' => $moduleAssessments ?? [],
+                        ])
                         <button type="submit" class="btn btn-outline-primary btn-sm">{{ __('pages.save') }}</button>
                     </form>
                     <hr>
@@ -115,6 +120,15 @@
                         </div>
                         <div class="mb-2 d-none" id="cfg-mcq">
                             <textarea name="choices" class="form-control form-control-sm" rows="3" placeholder="{{ __('pages.mcq_choices_hint') }}"></textarea>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" name="allow_multiple" value="1" id="q-multi">
+                                <label class="form-check-label small" for="q-multi">{{ __('pages.feedback_allow_multiple') }}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="allow_other" value="1" id="q-other">
+                                <label class="form-check-label small" for="q-other">{{ __('pages.feedback_allow_other') }}</label>
+                            </div>
+                            <p class="form-text mb-0">{{ __('pages.feedback_mcq_options_help') }}</p>
                         </div>
                         <div class="mb-2 d-none row g-2" id="cfg-slider">
                             <div class="col-6"><input type="number" name="min" class="form-control form-control-sm" placeholder="Min" value="1"></div>
@@ -143,8 +157,13 @@
                                 <span class="badge bg-light text-dark me-1">#{{ $question->order_index }}</span>
                                 <span class="badge bg-primary me-1">{{ $question->question_type }}</span>
                                 <span class="badge bg-secondary">{{ $question->scope }}</span>
+                                @if($question->allowsMultiple())<span class="badge bg-info text-dark">{{ __('pages.feedback_badge_multiple') }}</span>@endif
+                                @if($question->allowsOther())<span class="badge bg-info text-dark">{{ __('pages.feedback_badge_other') }}</span>@endif
                                 @if(!$question->is_required)<span class="badge bg-warning text-dark">{{ __('pages.optional') }}</span>@endif
                                 <div class="fw-semibold mt-1">{{ $question->scopeLabel() }}</div>
+                                @if($question->question_type === 'mcq' && $question->choices())
+                                    <div class="small text-muted mt-1">{{ implode(' · ', $question->choices()) }}</div>
+                                @endif
                             </div>
                             @if($survey->status === 'draft')
                                 <form method="POST" action="{{ route('feedback.surveys.questions.destroy', [$survey, $question]) }}">@csrf @method('DELETE')
@@ -179,5 +198,16 @@ function toggleType() {
 scopeEl?.addEventListener('change', toggleScope);
 typeEl?.addEventListener('change', toggleType);
 toggleScope(); toggleType();
+function syncBlockingUi() {
+    const blocking = document.getElementById('survey_blocking')?.checked;
+    const wrap = document.getElementById('blocked-assessment-wrap');
+    const select = document.getElementById('blocked_assessment');
+    if (wrap) wrap.classList.toggle('d-none', !blocking);
+    if (select) select.required = !!blocking;
+    if (!blocking && select) select.value = '';
+}
+document.getElementById('survey_blocking')?.addEventListener('change', syncBlockingUi);
+document.getElementById('survey_non_blocking')?.addEventListener('change', syncBlockingUi);
+syncBlockingUi();
 </script>
 @endpush

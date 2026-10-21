@@ -18,20 +18,24 @@ class SessionAttendanceController extends Controller
     {
         $validated = $request->validate([
             'status' => 'nullable|in:Present,Absent,Late,Permission',
+            'lecture_id' => 'nullable|integer|exists:lectures,lecture_id',
         ]);
 
         $status = $validated['status'] ?? 'Absent';
+        $lectureId = isset($validated['lecture_id']) ? (int) $validated['lecture_id'] : null;
         $count = $this->attendanceClose->fillMissingRecords(
             $session,
             (int) auth()->user()->user_id,
             $status,
+            $lectureId,
         );
 
         return redirect()
-            ->route('attendance.all', [
+            ->route('attendance.all', array_filter([
                 'filter_by' => 'session',
                 'session_id' => $session->session_id,
-            ])
+                'lecture_id' => $lectureId,
+            ]))
             ->with('success', __('pages.attendance_fill_missing_success', ['count' => $count]));
     }
 
@@ -43,6 +47,7 @@ class SessionAttendanceController extends Controller
             'status' => 'required|in:Present,Absent,Late,Permission',
             'permission_reason' => 'required_if:status,Permission|nullable|string|max:255',
             'allow_non_enrolled' => 'sometimes|boolean',
+            'lecture_id' => 'nullable|integer|exists:lectures,lecture_id',
         ]);
 
         if (empty($validated['person_id']) && empty($validated['user_id'])) {
@@ -60,6 +65,7 @@ class SessionAttendanceController extends Controller
 
         $allowNonEnrolled = (bool) ($validated['allow_non_enrolled'] ?? false);
         $actorId = (int) auth()->user()->user_id;
+        $lectureId = isset($validated['lecture_id']) ? (int) $validated['lecture_id'] : null;
 
         if (! empty($validated['person_id'])) {
             $attendance = $this->attendanceClose->createOrUpdateForPerson(
@@ -69,6 +75,7 @@ class SessionAttendanceController extends Controller
                 $actorId,
                 $validated['permission_reason'] ?? null,
                 $allowNonEnrolled,
+                $lectureId,
             );
         } else {
             $attendance = $this->attendanceClose->createOrUpdateRecord(
@@ -78,6 +85,7 @@ class SessionAttendanceController extends Controller
                 $actorId,
                 $validated['permission_reason'] ?? null,
                 $allowNonEnrolled,
+                $lectureId,
             );
         }
 
@@ -92,10 +100,11 @@ class SessionAttendanceController extends Controller
         }
 
         return redirect()
-            ->route('attendance.all', [
+            ->route('attendance.all', array_filter([
                 'filter_by' => 'session',
                 'session_id' => $session->session_id,
-            ])
+                'lecture_id' => $attendance->lecture_id,
+            ]))
             ->with('success', __('pages.attendance_record_saved'));
     }
 

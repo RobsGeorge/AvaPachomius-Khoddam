@@ -1,27 +1,29 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\User;
-use App\Models\Course;
-use App\Models\Role;
 
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\Request;
-use App\Models\Person;
-use App\Models\Session;
+use App\Exceptions\OptimisticLockException;
 use App\Models\Attendance;
+use App\Models\AttendancePolicy;
+use App\Models\Course;
 use App\Models\Module;
+use App\Models\Person;
+use App\Models\Role;
+use App\Models\Session;
+use App\Models\User;
 use App\Services\AttendanceCloseService;
 use App\Services\AttendanceLatePolicyService;
 use App\Services\AuditLogService;
 use App\Services\CoursePermissionResolver;
 use App\Services\RolePreviewService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Database\QueryException;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceController extends Controller
@@ -109,7 +111,7 @@ class AttendanceController extends Controller
         });
     }
 
-    /** @return \Illuminate\Support\Collection<int, int> */
+    /** @return Collection<int, int> */
     private function enrolledStudentIds()
     {
         $studentRoleIds = $this->studentRoleIds();
@@ -122,7 +124,7 @@ class AttendanceController extends Controller
 
     private function attendanceRecordsForUser(int|string $userId)
     {
-        return Attendance::with(['session', 'takenBy'])
+        return Attendance::with(['session', 'lecture', 'takenBy'])
             ->where('user_id', $userId)
             ->orderByDesc('attendance_time')
             ->get();
@@ -161,7 +163,7 @@ class AttendanceController extends Controller
 
         $today = now()->toDateString();
 
-        $sessions = $this->scopeSessionsToCurrentCourse(Session::with('course'))
+        $sessions = $this->scopeSessionsToCurrentCourse(Session::with(['course', 'lectures']))
             ->whereDate('session_date', $today)
             ->orderBy('session_title')
             ->get();
@@ -183,7 +185,25 @@ class AttendanceController extends Controller
                 $existingQuery->where('user_id', $userId);
             }
 
-            $existingAttendance = $existingQuery->get()->keyBy('session_id');
+            $existingAttendance = $existingQuery->get();
+        }
+
+        $checkIns = [];
+        foreach ($sessions as $session) {
+            if ($session->usesLectureAttendance()) {
+                if ($session->lectures->isEmpty()) {
+                    $checkIns[] = ['session' => $session, 'lecture' => null, 'needs_lectures' => true];
+
+                    continue;
+                }
+                foreach ($session->lectures as $lecture) {
+                    $checkIns[] = ['session' => $session, 'lecture' => $lecture, 'needs_lectures' => false];
+                }
+
+                continue;
+            }
+
+            $checkIns[] = ['session' => $session, 'lecture' => null, 'needs_lectures' => false];
         }
 
         return view('attendance.sessions', [
@@ -193,6 +213,7 @@ class AttendanceController extends Controller
             'personId' => $person?->person_id,
             'today' => $today,
             'sessions' => $sessions,
+            'checkIns' => $checkIns,
             'existingAttendance' => $existingAttendance,
         ]);
     }
@@ -214,11 +235,19 @@ class AttendanceController extends Controller
             return redirect()->back()->with('error', __('pages.attendance_session_closed'));
         }
 
+        $lectureId = $request->filled('lecture_id') ? (int) $request->input('lecture_id') : null;
+
         try {
             if ($personId && Schema::hasColumn('attendance', 'person_id')) {
                 $existing = Attendance::query()
                     ->where('session_id', $session->session_id)
                     ->where('person_id', $personId)
+                    ->when(
+                        Schema::hasColumn('attendance', 'lecture_id'),
+                        fn ($query) => $lectureId
+                            ? $query->where('lecture_id', $lectureId)
+                            : $query->whereNull('lecture_id')
+                    )
                     ->exists();
                 if ($existing) {
                     return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
@@ -230,10 +259,17 @@ class AttendanceController extends Controller
                     'Present',
                     (int) auth()->user()->user_id,
                     allowNonEnrolled: true,
+                    lectureId: $lectureId,
                 );
             } else {
                 $exists = Attendance::where('session_id', $session->session_id)
                     ->where('user_id', $studentUserId)
+                    ->when(
+                        Schema::hasColumn('attendance', 'lecture_id'),
+                        fn ($query) => $lectureId
+                            ? $query->where('lecture_id', $lectureId)
+                            : $query->whereNull('lecture_id')
+                    )
                     ->exists();
 
                 if ($exists) {
@@ -246,6 +282,7 @@ class AttendanceController extends Controller
                     'Present',
                     (int) auth()->user()->user_id,
                     allowNonEnrolled: true,
+                    lectureId: $lectureId,
                 );
             }
         } catch (QueryException $e) {
@@ -382,14 +419,30 @@ class AttendanceController extends Controller
     /** @return array{0: array<int, array<string, mixed>>, 1: LengthAwarePaginator, 2: bool} */
     private function buildSingleSessionReport(Session $session, Builder $baseQuery, Request $request): array
     {
+        $session->loadMissing('lectures');
+        $lectureId = $request->filled('lecture_id') ? (int) $request->input('lecture_id') : null;
+        if ($session->usesLectureAttendance() && $lectureId) {
+            abort_unless($session->lectures->contains(fn ($lecture) => (int) $lecture->lecture_id === $lectureId), 404);
+        }
+
         $records = $this->recordsForSessionGroup($baseQuery, $session->session_id);
-        $roster = $this->attendanceClose->sessionRoster($session);
+        $roster = $this->attendanceClose->sessionRoster($session, $lectureId);
+        $activeLectureId = $roster['lecture']?->lecture_id;
+        if ($session->usesLectureAttendance()) {
+            $records = $records->where('lecture_id', $activeLectureId)->values();
+        } elseif (Schema::hasColumn('attendance', 'lecture_id')) {
+            $records = $records->whereNull('lecture_id')->values();
+        }
         $meta = $session->session_date?->format('Y-m-d');
         if ($session->course) {
             $meta = trim(($meta ?? '').' · '.$session->course->title, ' ·');
         }
+        $heading = $session->session_title;
+        if ($roster['lecture']) {
+            $heading .= ' — '.$roster['lecture']->title;
+        }
         $groups = [
-            $this->formatGroup((string) $session->session_id, $session->session_title, $records, $meta, $session, $roster),
+            $this->formatGroup((string) $session->session_id, $heading, $records, $meta, $session, $roster),
         ];
 
         return [
@@ -681,7 +734,7 @@ class AttendanceController extends Controller
         $attendance = $this->authorizeAttendanceRecord($id);
         $previousStatus = $attendance->status;
 
-        if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'lock_version')
+        if (Schema::hasColumn('attendance', 'lock_version')
             && $request->filled('lock_version')
         ) {
             $expected = (int) $request->input('lock_version');
@@ -696,19 +749,19 @@ class AttendanceController extends Controller
                 ]);
 
             if ($affected === 0) {
-                throw new \App\Exceptions\OptimisticLockException(
+                throw new OptimisticLockException(
                     __('structure.optimistic_lock_conflict'),
                     $attendance->fresh()?->lock_version
                 );
             }
 
             AuditLogService::recordEvent('attendance.status_updated', [
-                'attendance_id'   => $attendance->attendance_id ?? $attendance->getKey(),
-                'user_id'         => $attendance->user_id,
-                'session_id'      => $attendance->session_id,
-                'course_id'       => $attendance->session?->course_id,
+                'attendance_id' => $attendance->attendance_id ?? $attendance->getKey(),
+                'user_id' => $attendance->user_id,
+                'session_id' => $attendance->session_id,
+                'course_id' => $attendance->session?->course_id,
                 'previous_status' => $previousStatus,
-                'new_status'      => $request->status,
+                'new_status' => $request->status,
             ]);
 
             $attendance->refresh();
@@ -723,18 +776,18 @@ class AttendanceController extends Controller
 
         $attendance->status = $request->status;
         $attendance->permission_reason = $request->permission_reason;
-        if (\Illuminate\Support\Facades\Schema::hasColumn('attendance', 'lock_version')) {
+        if (Schema::hasColumn('attendance', 'lock_version')) {
             $attendance->lock_version = (int) $attendance->lock_version + 1;
         }
         $attendance->save();
 
         AuditLogService::recordEvent('attendance.status_updated', [
-            'attendance_id'   => $attendance->attendance_id ?? $attendance->getKey(),
-            'user_id'         => $attendance->user_id,
-            'session_id'      => $attendance->session_id,
-            'course_id'       => $attendance->session?->course_id,
+            'attendance_id' => $attendance->attendance_id ?? $attendance->getKey(),
+            'user_id' => $attendance->user_id,
+            'session_id' => $attendance->session_id,
+            'course_id' => $attendance->session?->course_id,
             'previous_status' => $previousStatus,
-            'new_status'      => $attendance->status,
+            'new_status' => $attendance->status,
         ]);
 
         $this->resyncAttendanceGrade($attendance);
@@ -775,9 +828,9 @@ class AttendanceController extends Controller
 
         AuditLogService::recordEvent('attendance.permission_reason_updated', [
             'attendance_id' => $attendance->attendance_id ?? $attendance->getKey(),
-            'user_id'       => $attendance->user_id,
-            'session_id'    => $attendance->session_id,
-            'course_id'     => $attendance->session?->course_id,
+            'user_id' => $attendance->user_id,
+            'session_id' => $attendance->session_id,
+            'course_id' => $attendance->session?->course_id,
         ]);
 
         return response()->json([
@@ -981,7 +1034,7 @@ class AttendanceController extends Controller
         $totalSessionsInDB = DB::table('session')->count();
         $studentIds = $this->enrolledStudentIds();
         // Match GraduationService: Late contributes late_grade_percentage (e.g. 50%) of a session.
-        $lateFactor = \App\Models\AttendancePolicy::current()->lateAttendanceFactor();
+        $lateFactor = AttendancePolicy::current()->lateAttendanceFactor();
 
         $users = DB::table('user')
             ->whereIn('user.user_id', $studentIds)
@@ -1005,7 +1058,7 @@ class AttendanceController extends Controller
                         / COALESCE(SUM(CASE WHEN attendance.status IN ("Present", "Permission", "Absent", "Late") THEN 1 ELSE 0 END), 0)
                     ) * 100, 2)
                     ELSE 0 
-                END as attendance_percentage')
+                END as attendance_percentage'),
             ])
             ->groupBy('user.user_id', 'user.first_name', 'user.second_name', 'user.mobile_number')
             ->orderByDesc('attendance_percentage')

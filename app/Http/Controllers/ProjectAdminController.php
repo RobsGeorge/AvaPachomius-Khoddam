@@ -213,6 +213,7 @@ class ProjectAdminController extends Controller
             'brief_purpose' => $validated['brief_purpose'] ?? null,
             'phases' => $validated['phases'] ?? [],
             'deliverables' => $validated['deliverables'] ?? [],
+            'seed_canonical_slots' => true,
         ]);
 
         return back()->with('success', __('projects.project_created'));

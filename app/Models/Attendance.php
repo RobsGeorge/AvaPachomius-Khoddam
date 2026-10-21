@@ -17,7 +17,7 @@ class Attendance extends Model
     protected $primaryKey = 'attendance_id';
 
     protected $fillable = [
-        'user_id', 'person_id', 'session_id', 'taken_by_id', 'status',
+        'user_id', 'person_id', 'session_id', 'lecture_id', 'taken_by_id', 'status',
         'permission_reason', 'attendance_time', 'lock_version',
     ];
 
@@ -63,5 +63,10 @@ class Attendance extends Model
     public function session(): BelongsTo
     {
         return $this->belongsTo(Session::class, 'session_id', 'session_id');
+    }
+
+    public function lecture(): BelongsTo
+    {
+        return $this->belongsTo(Lecture::class, 'lecture_id', 'lecture_id');
     }
 }

@@ -1,0 +1,121 @@
+set -e
+cd /var/www/deaconia-staging
+# Keep group-write on mkdir 02775 (default umask 0022 → 2755 breaks www-data).
+umask 0002
+
+PHP_BIN=php8.2
+DEPLOY_USER="$(whoami)"
+DEPLOY_FIX_PERMS=/usr/local/sbin/avapakhomios-deploy-perms
+DEPLOY_START=$(date +%s)
+step() { echo "==> $1 ($(date -Iseconds))"; }
+fix_runtime_permissions() {
+  # Least-privilege helper (see .github/DEPLOY-VPS.md) — not bare chown/chmod.
+  sudo -n "$DEPLOY_FIX_PERMS" "$(pwd)" "${DEPLOY_USER}:www-data"
+}
+
+# set -e exits on the failing command. If that happens after `artisan down`,
+# bring the site back before the shell ends. exit keeps the original status:
+# an EXIT trap whose last command succeeds would otherwise report a green deploy.
+bring_up_on_failure() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    $PHP_BIN artisan up || true
+    echo "Deploy failed (exit $status). Application was brought back up."
+    exit "$status"
+  fi
+}
+trap bring_up_on_failure EXIT
+
+# Guard: never let a deaconia staging deploy touch another app directory or DB.
+step "safety check"
+if [ "$(pwd)" != "/var/www/deaconia-staging" ]; then
+  echo "ERROR: not in deaconia staging directory. Aborting."
+  exit 1
+fi
+if ! grep -q "^DB_DATABASE=deaconia_staging" .env; then
+  echo "ERROR: staging .env is not pointing at deaconia_staging. Aborting."
+  exit 1
+fi
+if ! grep -q "^APP_ENV=staging" .env; then
+  echo "ERROR: APP_ENV is not 'staging'. Aborting."
+  exit 1
+fi
+
+if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
+  echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
+  echo "  sudo apt install -y php8.2-mysql php8.2-sqlite3 php8.2-cli php8.2-fpm php8.2-mbstring php8.2-xml php8.2-curl php8.2-zip php8.2-gd"
+  exit 1
+fi
+if ! $PHP_BIN -m 2>/dev/null | grep -qi sqlite; then
+  echo "WARN: PHP SQLite extension missing; some test dashboards require pdo_sqlite."
+fi
+
+step "reclaim storage for git"
+# PHP-FPM may own runtime cache/session files; reclaim before git reset.
+if ! sudo -n "$DEPLOY_FIX_PERMS" --version >/dev/null 2>&1; then
+  echo "ERROR: least-privilege deploy sudo is not configured."
+  echo "See .github/DEPLOY-VPS.md — install avapakhomios-deploy-perms + restricted sudoers for ${DEPLOY_USER}."
+  echo "Do NOT grant bare chown/chmod/systemctl."
+  exit 1
+fi
+fix_runtime_permissions
+
+step "git sync"
+git fetch origin staging
+git reset --hard origin/staging
+
+step "composer install"
+# NOTE: dev dependencies KEPT on staging (PHPUnit etc. for running tests on the box).
+COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer install \
+  --no-interaction \
+  --prefer-dist \
+  --optimize-autoloader \
+  --no-progress \
+  --no-scripts
+COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN /usr/local/bin/composer dump-autoload \
+  --optimize \
+  --no-interaction
+
+step "maintenance mode"
+$PHP_BIN artisan down --retry=60 --refresh=15 || true
+
+step "migrations"
+$PHP_BIN artisan migrate:deploy --force
+
+step "permissions catalog + role templates"
+$PHP_BIN artisan permissions:sync
+$PHP_BIN artisan roles:sync-templates
+
+step "optimize"
+# Staging does NOT cache config/routes/views — you want .env edits to take
+# effect immediately while developing.
+$PHP_BIN artisan optimize:clear
+mkdir -p storage/framework/cache/data
+fix_runtime_permissions
+
+step "storage link"
+if [ ! -L public/storage ]; then
+  $PHP_BIN artisan storage:link
+else
+  echo "public/storage link already exists, skipping"
+fi
+
+step "permissions"
+fix_runtime_permissions
+
+step "reload php-fpm"
+# This VPS's php8.2-fpm is shared with other sites on the box. Reload is graceful.
+if sudo -n systemctl reload php8.2-fpm 2>/dev/null; then
+  echo "php8.2-fpm reloaded"
+else
+  echo "WARN: could not reload php-fpm without password — allow only: systemctl reload php8.2-fpm (see .github/DEPLOY-VPS.md)"
+fi
+
+step "ensure scheduler cron"
+$PHP_BIN artisan scheduler:ensure-cron --php=$PHP_BIN || echo "WARN: could not ensure scheduler cron"
+
+step "live"
+$PHP_BIN artisan up || true
+
+DEPLOY_END=$(date +%s)
+echo "Deaconia staging deployment complete in $((DEPLOY_END - DEPLOY_START))s: $(date)"

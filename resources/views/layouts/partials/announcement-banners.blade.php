@@ -10,7 +10,7 @@
                 <div>
                     <strong>{{ $announcement->title }}</strong>
                     <span class="d-block small">{!! nl2br(e(\Illuminate\Support\Str::limit($announcement->body, 180))) !!}</span>
-                    <a href="{{ route('announcements.show', $announcement) }}" class="small fw-semibold">{{ __('pages.view_details') }}</a>
+                    <a href="{{ $announcement->studentActionPath() }}" class="small fw-semibold">{{ __('pages.view_details') }}</a>
                 </div>
                 @if(! $locked)
                     <form method="POST" action="{{ route('announcements.dismiss-banner', $announcement) }}">

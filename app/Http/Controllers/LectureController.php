@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attendance;
+use App\Models\Church;
 use App\Models\Lecture;
 use App\Models\Session;
 use App\Services\ChurchStorageQuotaService;
 use App\Services\CurriculumMediaService;
+use App\Services\NotificationScannerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -20,15 +24,15 @@ class LectureController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'session_id'   => 'nullable|exists:session,session_id',
-            'course_id'    => 'required|exists:course,course_id',
-            'module_id'    => 'required|exists:modules,module_id',
-            'title'        => 'required|string|max:150',
+            'session_id' => 'nullable|exists:session,session_id',
+            'course_id' => 'required|exists:course,course_id',
+            'module_id' => 'required|exists:modules,module_id',
+            'title' => 'required|string|max:150',
             'lecture_date' => 'nullable|date',
-            'video_link'   => 'nullable|url|max:500',
-            'slides_link'  => 'nullable|url|max:500',
-            'notes'        => 'nullable|string',
-            'order_index'  => 'nullable|integer|min:0',
+            'video_link' => 'nullable|url|max:500',
+            'slides_link' => 'nullable|url|max:500',
+            'notes' => 'nullable|string',
+            'order_index' => 'nullable|integer|min:0',
         ]);
 
         $session = null;
@@ -41,18 +45,18 @@ class LectureController extends Controller
         }
 
         $lecture = Lecture::create([
-            'module_id'    => $request->module_id,
-            'session_id'   => $session?->session_id,
-            'title'        => $request->title,
-            'week_number'  => $session?->week_number ?? 1,
+            'module_id' => $request->module_id,
+            'session_id' => $session?->session_id,
+            'title' => $request->title,
+            'week_number' => $session?->week_number ?? 1,
             'lecture_date' => $request->lecture_date ?? $session?->session_date,
-            'video_link'   => $request->video_link,
-            'slides_link'  => $request->slides_link,
-            'notes'        => $request->notes,
-            'order_index'  => $request->order_index ?? 0,
+            'video_link' => $request->video_link,
+            'slides_link' => $request->slides_link,
+            'notes' => $request->notes,
+            'order_index' => $request->order_index ?? 0,
         ]);
 
-        app(\App\Services\NotificationScannerService::class)->notifyNewLecture($lecture);
+        app(NotificationScannerService::class)->notifyNewLecture($lecture);
 
         return redirect()
             ->route('curriculum.admin', $request->course_id)
@@ -65,7 +69,7 @@ class LectureController extends Controller
             ->findOrFail($id);
 
         $course = $lecture->module->courses->first();
-        $church = $course ? \App\Models\Church::query()->find($course->church_id) : null;
+        $church = $course ? Church::query()->find($course->church_id) : null;
 
         return view('lectures.edit', [
             'lecture' => $lecture,
@@ -81,16 +85,16 @@ class LectureController extends Controller
     public function update(Request $request, string $id)
     {
         $request->validate([
-            'session_id'   => 'nullable|exists:session,session_id',
-            'title'        => 'required|string|max:150',
+            'session_id' => 'nullable|exists:session,session_id',
+            'title' => 'required|string|max:150',
             'lecture_date' => 'nullable|date',
-            'video_link'   => 'nullable|url|max:500',
+            'video_link' => 'nullable|url|max:500',
             'slides_source' => ['nullable', Rule::in(['external_link', 'hosted_file'])],
-            'slides_link'  => 'nullable|url|max:500',
-            'slides_file'  => 'nullable|file',
+            'slides_link' => 'nullable|url|max:500',
+            'slides_file' => 'nullable|file',
             'remove_slides_file' => 'nullable|boolean',
-            'notes'        => 'nullable|string',
-            'order_index'  => 'nullable|integer|min:0',
+            'notes' => 'nullable|string',
+            'order_index' => 'nullable|integer|min:0',
         ]);
 
         $lecture = Lecture::with('module.courses', 'slidesMedia')->findOrFail($id);
@@ -145,16 +149,23 @@ class LectureController extends Controller
             );
         }
 
+        $nextSessionId = $session?->session_id;
+        if ((int) $lecture->session_id !== (int) $nextSessionId && $this->lectureHasAttendance($lecture)) {
+            throw ValidationException::withMessages([
+                'session_id' => [__('pages.lecture_has_attendance')],
+            ]);
+        }
+
         $lecture->update([
-            'session_id'   => $session?->session_id,
-            'title'        => $request->title,
-            'week_number'  => $session?->week_number ?? $lecture->week_number,
+            'session_id' => $session?->session_id,
+            'title' => $request->title,
+            'week_number' => $session?->week_number ?? $lecture->week_number,
             'lecture_date' => $request->lecture_date,
-            'video_link'   => $request->video_link,
-            'slides_link'  => $slidesLink,
+            'video_link' => $request->video_link,
+            'slides_link' => $slidesLink,
             'slides_media_id' => $slidesMediaId,
-            'notes'        => $request->notes,
-            'order_index'  => $request->order_index ?? 0,
+            'notes' => $request->notes,
+            'order_index' => $request->order_index ?? 0,
         ]);
 
         return redirect()
@@ -166,6 +177,12 @@ class LectureController extends Controller
     {
         $lecture = Lecture::with('slidesMedia', 'materials.media')->findOrFail($id);
         $courseId = $request->input('course_id');
+
+        if ($this->lectureHasAttendance($lecture)) {
+            return redirect()
+                ->back()
+                ->with('error', __('pages.lecture_has_attendance'));
+        }
 
         if ($lecture->slidesMedia) {
             $this->media->deleteAsset($lecture->slidesMedia, $request->user());
@@ -203,5 +220,16 @@ class LectureController extends Controller
         }
 
         return $session;
+    }
+
+    private function lectureHasAttendance(Lecture $lecture): bool
+    {
+        if (! Schema::hasColumn('attendance', 'lecture_id')) {
+            return false;
+        }
+
+        return Attendance::query()
+            ->where('lecture_id', $lecture->lecture_id)
+            ->exists();
     }
 }

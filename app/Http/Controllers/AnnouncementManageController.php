@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Announcement;
 use App\Models\AnnouncementDelivery;
 use App\Models\Course;
+use App\Models\FeedbackSurvey;
 use App\Models\User;
 use App\Services\AnnouncementService;
 use App\Services\StudentRosterService;
@@ -46,8 +47,9 @@ class AnnouncementManageController extends Controller
         $students = $selectedCourse
             ? $this->rosterService->enrolledStudents((int) $selectedCourse)
             : collect();
+        $surveys = $this->linkableSurveys($courses);
 
-        return view('announcements.manage.create', compact('courses', 'selectedCourse', 'students'));
+        return view('announcements.manage.create', compact('courses', 'selectedCourse', 'students', 'surveys'));
     }
 
     public function store(Request $request)
@@ -70,10 +72,11 @@ class AnnouncementManageController extends Controller
         $students = $announcement->course_id
             ? $this->rosterService->enrolledStudents($announcement->course_id)
             : collect();
+        $surveys = $this->linkableSurveys($courses);
 
         $announcement->load(['targetUsers', 'revisions.editor', 'deliveries.user']);
 
-        return view('announcements.manage.edit', compact('announcement', 'courses', 'students'));
+        return view('announcements.manage.edit', compact('announcement', 'courses', 'students', 'surveys'));
     }
 
     public function update(Request $request, Announcement $announcement)
@@ -223,6 +226,7 @@ class AnnouncementManageController extends Controller
             'channels.banner_locked' => 'boolean',
             'channels.email' => 'boolean',
             'channels.whatsapp' => 'boolean',
+            'survey_id' => 'nullable|integer|exists:feedback_surveys,survey_id',
         ]) + ['channels' => is_array($channels) ? $channels : []];
     }
 
@@ -235,6 +239,14 @@ class AnnouncementManageController extends Controller
 
         if (! empty($data['course_id'])) {
             $this->authorizeAnnouncementCourse((int) $data['course_id']);
+        }
+
+        if (! empty($data['survey_id'])) {
+            $survey = FeedbackSurvey::query()->find($data['survey_id']);
+            abort_unless($survey, 422);
+            if (! empty($data['course_id'])) {
+                abort_unless((int) $survey->course_id === (int) $data['course_id'], 422);
+            }
         }
     }
 
@@ -267,5 +279,21 @@ class AnnouncementManageController extends Controller
     private function accessibleCourseIds(User $user): array
     {
         return $this->rosterService->accessibleCourses($user)->pluck('course_id')->all();
+    }
+
+    /** @param \Illuminate\Support\Collection<int, Course> $courses */
+    private function linkableSurveys($courses)
+    {
+        $courseIds = $courses->pluck('course_id');
+        if ($courseIds->isEmpty() || ! class_exists(FeedbackSurvey::class)) {
+            return collect();
+        }
+
+        return FeedbackSurvey::query()
+            ->with('course')
+            ->whereIn('course_id', $courseIds)
+            ->whereIn('status', [FeedbackSurvey::STATUS_OPEN, FeedbackSurvey::STATUS_DRAFT, FeedbackSurvey::STATUS_CLOSED])
+            ->orderByDesc('survey_id')
+            ->get();
     }
 }

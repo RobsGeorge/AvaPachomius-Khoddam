@@ -190,6 +190,7 @@ class AnnouncementService
             'target_mode' => $source->target_mode,
             'course_id' => $source->course_id,
             'service_id' => $source->service_id,
+            'survey_id' => $source->survey_id,
             'channels' => $source->channels ?? [],
             'target_user_ids' => $source->targetUsers->pluck('user_id')->all(),
             'banner_starts_at' => $schedule['banner_starts_at'] ?? null,
@@ -492,6 +493,10 @@ class AnnouncementService
 
         if (Schema::hasColumn('announcements', 'service_id')) {
             $attributes['service_id'] = $data['service_id'] ?? null;
+        }
+
+        if (Schema::hasColumn('announcements', 'survey_id')) {
+            $attributes['survey_id'] = $data['survey_id'] ?? null;
         }
 
         return $attributes;
