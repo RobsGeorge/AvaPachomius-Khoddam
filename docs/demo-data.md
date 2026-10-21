@@ -36,7 +36,9 @@ role templates (`church-admin` / `priest` / `servant`):
 - **Assignments:** one graded with feedback, one submitted and **awaiting grading**, one upcoming.
 - **Feedback surveys:** module 1 closed with responses; module 2 open — `student1` has **not**
   answered it yet, so the student view can fill it in.
-- **Gradebook:** attendance 20%, quizzes 30%, final exam 30%, project 20%.
+- **Gradebook:** the work graded so far: attendance 40%, quizzes 60%, so the report shows a
+  realistic pass/fail spread mid-term. Staff add final-exam and project categories (and
+  rebalance) when that work is graded.
 - **Project:** published 3-team field-ministry project; joining is open, so students can pick a team.
 - **Announcements:** three course announcements.
 

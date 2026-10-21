@@ -34,7 +34,8 @@ use Illuminate\Support\Carbon;
  * live Tenant Zero course: three modules of weekly sessions with lectures and materials,
  * closed attendance (present / late / permission / absent), graded and pending assignments,
  * online quizzes graded through ExamGradingService, module feedback surveys answered through
- * FeedbackSurveyService, a weighted gradebook, announcements, and a published team project.
+ * FeedbackSurveyService, a weighted gradebook of the work graded so far, announcements, and a
+ * published team project.
  *
  * Everything is relative to today: weeks 1–9 are in the past, weeks 10–12 are upcoming.
  * Week 9's attendance is recorded but left open so staff can demo closing it; the module 2
@@ -212,13 +213,16 @@ class ServantsPrepDemoCourse
     /** @var array<string, GradeCategory> */
     private array $categories = [];
 
+    /**
+     * Only categories with graded work so far: an empty weighted category caps every total
+     * below the pass mark, so the report would show the whole class failing mid-term.
+     * Staff add the final-exam / project categories (and rebalance) when those are graded.
+     */
     private function seedGradebook(): void
     {
         $rows = [
-            'attendance' => ['الحضور', 20],
-            'quiz' => ['الاختبارات القصيرة', 30],
-            'exam' => ['الامتحان النهائي', 30],
-            'project' => ['المشروع', 20],
+            'attendance' => ['الحضور', 40],
+            'quiz' => ['الاختبارات القصيرة', 60],
         ];
 
         $order = 0;
@@ -358,15 +362,16 @@ class ServantsPrepDemoCourse
                 'is_completed' => true,
             ]);
 
-            $gradeItem = GradeItem::create([
+            // Staff copy a quiz into the gradebook once its results are announced.
+            $gradeItem = $announced ? GradeItem::create([
                 'category_id' => $this->categories['quiz']->category_id,
                 'title' => $name,
                 'max_score' => 100,
                 'item_date' => $this->weekDate($week)->toDateString(),
                 'ordering' => ++$item,
-            ]);
+            ]) : null;
 
-            $this->takeExam($exam, $schedule, $week, $announced ? $gradeItem : null);
+            $this->takeExam($exam, $schedule, $week, $gradeItem);
         }
     }
 
@@ -626,7 +631,7 @@ class ServantsPrepDemoCourse
             'passing_percent' => 50,
             'join_closes_at' => $this->weekDate(10)->setTime(23, 59)->utc()->toDateTimeString(),
             'submission_due_at' => $due->toDateTimeString(),
-            'sync_to_gradebook' => true,
+            'sync_to_gradebook' => false,
             'subprojects' => [
                 ['title' => 'زيارة المرضى', 'brief_main_title' => 'زيارة المرضى في المستشفى', 'brief_audience' => 'المرضى ودار الرعاية', 'brief_environment' => 'مستشفى بالتنسيق مع أب الاعتراف', 'brief_purpose' => 'زيارتان وتقرير موثق'],
                 ['title' => 'خدمة المسنين', 'brief_main_title' => 'رعاية المسنين', 'brief_audience' => 'كبار السن في الرعية', 'brief_environment' => 'دار مسنين أو بيوت الرعية', 'brief_purpose' => 'خطة رعاية شهرية'],

@@ -113,6 +113,14 @@ class DemoDataSeederTest extends EventModuleTestCase
         $attendanceCategory = GradeCategory::where('course_id', $course->course_id)->where('type', 'attendance')->firstOrFail();
         $this->assertSame($closed->count(), $attendanceCategory->items()->count());
 
+        // Mid-term totals give a believable spread: most of the class passes, not everyone.
+        $course->load('gradeCategories.items.grades');
+        $passing = User::where('email', 'like', 'student%.stmark@'.DemoData::emailDomain())->get()
+            ->filter(fn (User $u) => $course->studentTotalGrade($u->user_id) >= $course->effectivePassingPercentage())
+            ->count();
+        $this->assertGreaterThanOrEqual(10, $passing);
+        $this->assertLessThan(20, $passing);
+
         // Quizzes graded through the real grading path; only the first is announced.
         $quizzes = Exam::where('course_id', $course->course_id)->where('exam_type', Exam::TYPE_QUIZ)->orderBy('exam_id')->get();
         $this->assertCount(2, $quizzes);
