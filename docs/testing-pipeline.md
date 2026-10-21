@@ -45,14 +45,37 @@ CI and `SystemTestRunner` also force the same safe env onto the subprocess.
 
 ## 2. CI deploy gate
 
-`.github/workflows/ci.yml` has two jobs:
+`.github/workflows/ci.yml` runs on pull requests, and again as the test job of a
+production or staging deploy. It has two jobs, in parallel:
 
-- **`gate`** (blocks deploy): runs the pipelines **in sequence** — Unit(events) →
-  Feature(events) → Smoke → Api → Notifications → Mail → Tenancy → Load(events).
-  Any failure fails the gate. `deploy.yml` (`needs: test`) only deploys when this passes.
-- **`full-suite-report`** (non-blocking): runs the full `Unit` and `Feature` suites for
-  visibility. Marked `continue-on-error` so pre-existing failures outside the gated
-  categories don't block deploys while they're worked through (see §4).
+- **`gate`** (blocks deploy): Unit(events) → Feature(events) → Smoke → Api →
+  Notifications → Mail → Tenancy → Load(events). Any failure fails the gate.
+  `deploy.yml` (`needs: test`) only deploys when this passes. Tenancy runs once.
+  `tests/CreatesApplication.php` forces `MULTI_TENANT=false`, and the suite covers
+  both flag values by setting `tenancy.enabled` inside the tests.
+- **`mysql-migrate-fresh`**: a clean MySQL `migrate:fresh --seed`, so a migration
+  that only works on sqlite cannot ship.
+
+The broad Unit and Feature suites are not part of this gate. They have known
+failures outside these categories (see §4) and run weekly, or on demand, from
+`.github/workflows/ci-full-report.yml`. A push to `main` or `staging` does not
+start a second copy of this workflow; the deploy workflow calls it.
+
+Deploy safety (production `/var/www/avapakhomios` and staging
+`/var/www/khedma-staging` on the avapakhomios VPS):
+
+- A second push does not cancel a deploy that is already running. Cancelling
+  after `artisan down` would leave the site offline.
+- The remote script brings the app back up if a later step fails, and the
+  script's exit status stays non-zero so the GitHub job is red.
+- `scripts/ci/ssh-deploy.sh` opens the SSH session. It retries a connection
+  failure (4 attempts, 45s apart) and does not retry a failure inside the
+  remote script. The private key stays in the process environment and a
+  mode-600 temp file. The previous retry action parsed that key as YAML and
+  failed before connecting, and `appleboy/ssh-action@v1.0.3` has no
+  `script_path` input.
+- These workflows do not deploy deaconia.com. That host is a separate checkout
+  and is not using these SSH secrets.
 
 ## 3. In-portal testing report
 

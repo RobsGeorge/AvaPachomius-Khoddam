@@ -13,6 +13,19 @@ fix_runtime_permissions() {
   sudo -n "$DEPLOY_FIX_PERMS" "$(pwd)" "${DEPLOY_USER}:www-data"
 }
 
+# set -e exits on the failing command. If that happens after `artisan down`,
+# bring the site back before the shell ends. exit keeps the original status:
+# an EXIT trap whose last command succeeds would otherwise report a green deploy.
+bring_up_on_failure() {
+  status=$?
+  if [ "$status" -ne 0 ]; then
+    $PHP_BIN artisan up || true
+    echo "Deploy failed (exit $status). Application was brought back up."
+    exit "$status"
+  fi
+}
+trap bring_up_on_failure EXIT
+
 if ! $PHP_BIN -m 2>/dev/null | grep -qi pdo_mysql; then
   echo "ERROR: PHP MySQL driver (pdo_mysql) is not installed for $PHP_BIN."
   echo "On Ubuntu/Debian run:"

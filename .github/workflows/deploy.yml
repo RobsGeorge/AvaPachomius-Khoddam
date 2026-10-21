@@ -6,16 +6,15 @@ on:
       - main
   workflow_dispatch:
 
-# Avoid overlapping deploys (second push while first runs often hits SSH limits).
+# One deploy at a time. Do not cancel an in-flight deploy: it may already
+# have run `artisan down`, and cancelling it leaves the site offline.
 concurrency:
   group: production-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   test:
     uses: ./.github/workflows/ci.yml
-    with:
-      skip_full_suite: true
 
   deploy:
     needs: test
@@ -26,17 +25,19 @@ jobs:
       - name: Checkout deploy script
         uses: actions/checkout@v4
 
+      - name: Check SSH retry classifier
+        run: bash scripts/ci/ssh-deploy.sh --self-test
+
+      # OpenSSH, not the retry action. That action parses its inputs as YAML,
+      # and the multiline private key makes the parser fail before any connection
+      # ("a multiline key may not be an implicit key"). appleboy/ssh-action@v1.0.3
+      # also has no script_path input, so the previous wrapper never ran the
+      # deploy script. Connection failures are retried; a remote script failure
+      # is not.
       - name: Deploy to VPS
-        uses: Wandalen/wretry.action@v3.8.0
-        with:
-          action: appleboy/ssh-action@v1.0.3
-          attempt_limit: 4
-          attempt_delay: 45000
-          with: |
-            host: ${{ secrets.SSH_HOST }}
-            username: ${{ secrets.SSH_USER }}
-            key: ${{ secrets.SSH_PRIVATE_KEY }}
-            port: ${{ secrets.SSH_PORT }}
-            timeout: 180s
-            command_timeout: 30m
-            script_path: scripts/vps/deploy-production.sh
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: bash scripts/ci/ssh-deploy.sh scripts/vps/deploy-production.sh
