@@ -16,6 +16,7 @@ use App\Services\AttendanceCloseService;
 use App\Services\AttendanceGrain;
 use App\Services\GraduationService;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
 use Tests\Support\EventModuleTestCase;
 
 class LectureAttendanceModeTest extends EventModuleTestCase
@@ -365,5 +366,84 @@ class LectureAttendanceModeTest extends EventModuleTestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('lectures', ['lecture_id' => $lectureA->lecture_id]);
+    }
+
+    /**
+     * @return array{admin: User, session: Session}
+     */
+    private function seedLectureGrainSessionWithoutLectures(): array
+    {
+        $admin = $this->createUser(['is_superadmin' => true, 'email' => 'grain-empty-'.uniqid().'@example.com']);
+        $roles = $this->seedBasicRoles();
+        $course = $this->createCourse([
+            'title' => 'Empty Lecture Grain Course',
+            'attendance_grain' => AttendanceGrain::LECTURE,
+        ]);
+        $this->assignCourseRole($admin, $course, $roles['admin']);
+
+        $module = Module::create(['title' => 'Module', 'description' => 'M']);
+        $course->modules()->attach($module->module_id);
+
+        $session = Session::create([
+            'course_id' => $course->course_id,
+            'module_id' => $module->module_id,
+            'session_title' => 'Meeting without lectures',
+            'session_date' => '2026-04-02',
+            'session_start_time' => '09:00:00',
+            'attendance_grain' => AttendanceGrain::LECTURE,
+            'week_number' => 1,
+        ]);
+
+        return compact('admin', 'session');
+    }
+
+    public function test_close_refuses_lecture_grain_session_without_lectures(): void
+    {
+        ['admin' => $admin, 'session' => $session] = $this->seedLectureGrainSessionWithoutLectures();
+        $service = app(AttendanceCloseService::class);
+
+        $this->assertFalse($service->canClose($session));
+
+        try {
+            $service->closeSession($session, $admin->user_id);
+            $this->fail('Expected ValidationException when closing lecture-grain session without lectures.');
+        } catch (ValidationException $e) {
+            $this->assertSame(
+                __('pages.attendance_cannot_close_without_lectures'),
+                $e->errors()['session'][0] ?? null,
+            );
+        }
+
+        $this->assertNull($session->fresh()->attendance_closed_at);
+        $this->assertSame(0, Attendance::where('session_id', $session->session_id)->count());
+    }
+
+    public function test_close_sessions_for_date_skips_lecture_grain_without_lectures(): void
+    {
+        ['admin' => $admin, 'session' => $session] = $this->seedLectureGrainSessionWithoutLectures();
+        $service = app(AttendanceCloseService::class);
+
+        $totalAbsent = $service->closeSessionsForDate(
+            Carbon::parse('2026-04-02', config('attendance.timezone'))->startOfDay(),
+            $admin->user_id,
+        );
+
+        $this->assertSame(0, $totalAbsent);
+        $this->assertNull($session->fresh()->attendance_closed_at);
+        $this->assertSame(0, Attendance::where('session_id', $session->session_id)->count());
+    }
+
+    public function test_http_close_refuses_lecture_grain_session_without_lectures(): void
+    {
+        ['admin' => $admin, 'session' => $session] = $this->seedLectureGrainSessionWithoutLectures();
+
+        $this->actingAs($admin)
+            ->from(route('sessions.index', ['session_id' => $session->session_id]))
+            ->post(route('sessions.close-attendance', $session->session_id))
+            ->assertRedirect(route('sessions.index', ['session_id' => $session->session_id]))
+            ->assertSessionHas('error', __('pages.attendance_cannot_close_without_lectures'));
+
+        $this->assertNull($session->fresh()->attendance_closed_at);
+        $this->assertSame(0, Attendance::where('session_id', $session->session_id)->count());
     }
 }

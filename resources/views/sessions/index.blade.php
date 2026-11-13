@@ -26,10 +26,13 @@
 
 @if($canManageSessions && ($focusSession ?? null))
         @php
+            $focusSession->loadMissing('lectures');
             $focusDate = $focusSession->session_date?->format('Y-m-d');
+            $focusNeedsLecturesToClose = $focusSession->usesLectureAttendance() && $focusSession->lectures->isEmpty();
             $canCloseFocus = ! $focusSession->isAttendanceClosed()
                 && $focusDate
-                && $focusDate <= $todayLocal;
+                && $focusDate <= $todayLocal
+                && ! $focusNeedsLecturesToClose;
         @endphp
         <div class="alert alert-warning border-warning shadow-sm mb-4" id="focus-session-{{ $focusSession->session_id }}">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
@@ -64,6 +67,8 @@
                                 <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
                             </button>
                         </form>
+                    @elseif(! $focusSession->isAttendanceClosed() && $focusNeedsLecturesToClose)
+                        <p class="small text-warning mb-0 align-self-center">{{ __('pages.attendance_cannot_close_without_lectures') }}</p>
                     @endif
                 </div>
             </div>
@@ -133,10 +138,13 @@
                                         </span>
                                     @endif
                                     @php
+                                        $session->loadMissing('lectures');
                                         $sessionDate = $session->session_date?->format('Y-m-d');
+                                        $needsLecturesToClose = $session->usesLectureAttendance() && $session->lectures->isEmpty();
                                         $canClose = ! $session->isAttendanceClosed()
                                             && $sessionDate
-                                            && $sessionDate <= $todayLocal;
+                                            && $sessionDate <= $todayLocal
+                                            && ! $needsLecturesToClose;
                                     @endphp
                                     @if($canClose)
                                         <form method="POST"
@@ -147,6 +155,10 @@
                                                 <i class="bi bi-lock"></i>
                                             </button>
                                         </form>
+                                    @elseif(! $session->isAttendanceClosed() && $needsLecturesToClose)
+                                        <span class="small text-warning align-self-center" title="{{ __('pages.attendance_cannot_close_without_lectures') }}">
+                                            {{ __('pages.attendance_cannot_close_without_lectures') }}
+                                        </span>
                                     @endif
                                     <a href="{{ route('sessions.edit', $session->session_id) }}"
                                        class="btn btn-sm btn-outline-theme">
@@ -238,10 +250,13 @@
                                     </span>
                                 @endif
                                 @php
+                                    $session->loadMissing('lectures');
                                     $sessionDate = $session->session_date?->format('Y-m-d');
+                                    $needsLecturesToClose = $session->usesLectureAttendance() && $session->lectures->isEmpty();
                                     $canClose = ! $session->isAttendanceClosed()
                                         && $sessionDate
-                                        && $sessionDate <= $todayLocal;
+                                        && $sessionDate <= $todayLocal
+                                        && ! $needsLecturesToClose;
                                 @endphp
                                 @if($canClose)
                                     <form method="POST"
@@ -253,6 +268,8 @@
                                             <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
                                         </button>
                                     </form>
+                                @elseif(! $session->isAttendanceClosed() && $needsLecturesToClose)
+                                    <p class="small text-warning mb-0 w-100">{{ __('pages.attendance_cannot_close_without_lectures') }}</p>
                                 @endif
                                 <a href="{{ route('sessions.edit', $session->session_id) }}"
                                    class="btn btn-sm btn-outline-theme">

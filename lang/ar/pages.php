@@ -258,6 +258,7 @@ return [
     'attendance_session_closed' => 'حضور هذه الجلسة مغلق. لا يمكن تسجيل حضور جديد.',
     'attendance_closed_corrections_allowed' => 'يمكن لإدارة الدورة تصحيح حالة حضور أي طالب حتى بعد إغلاق الجلسة أو الوحدة.',
     'attendance_cannot_close_future_session' => 'لا يمكن إغلاق حضور جلسة مستقبلية.',
+    'attendance_cannot_close_without_lectures' => 'لا يمكن إغلاق الحضور: اربط محاضرة واحدة على الأقل بهذه الجلسة أولاً.',
     'not_recorded' => 'غير مسجل',
     'roster_enrolled' => 'المسجلون',
     'roster_recorded' => 'مسجل حضورهم',

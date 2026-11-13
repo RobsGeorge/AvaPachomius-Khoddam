@@ -4,11 +4,14 @@
 
 @if($session)
     @php
+        $session->loadMissing('lectures');
         $sessionDate = $session->session_date?->format('Y-m-d');
+        $needsLecturesToClose = $session->usesLectureAttendance() && $session->lectures->isEmpty();
         $canCloseSession = ($canManageSessionAttendance ?? false)
             && ! $session->isAttendanceClosed()
             && $sessionDate
-            && $sessionDate <= ($todayLocal ?? now()->toDateString());
+            && $sessionDate <= ($todayLocal ?? now()->toDateString())
+            && ! $needsLecturesToClose;
     @endphp
     <div class="px-3 py-3 border-bottom bg-light">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3">
@@ -49,6 +52,8 @@
                             <i class="bi bi-lock"></i> {{ __('pages.close_attendance') }}
                         </button>
                     </form>
+                @elseif(($canManageSessionAttendance ?? false) && ! $session->isAttendanceClosed() && $needsLecturesToClose)
+                    <p class="small text-warning mb-0 align-self-center">{{ __('pages.attendance_cannot_close_without_lectures') }}</p>
                 @endif
             </div>
         </div>

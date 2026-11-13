@@ -193,6 +193,11 @@ class SessionController extends Controller
                 ->with('error', __('pages.attendance_cannot_close_future_session'));
         }
 
+        if (! $this->attendanceClose->canClose($session)) {
+            return redirect()->back()
+                ->with('error', __('pages.attendance_cannot_close_without_lectures'));
+        }
+
         $result = $this->attendanceClose->closeSession($session, (int) $user->user_id);
 
         if ($result['already_closed']) {

@@ -52,6 +52,8 @@ class AttendanceCloseService
             ];
         }
 
+        $this->assertCanClose($session);
+
         $absentMarked = 0;
         $lateMarked = 0;
         $gradesSynced = 0;
@@ -91,6 +93,10 @@ class AttendanceCloseService
         $totalAbsent = 0;
 
         foreach ($sessions as $session) {
+            if (! $this->canClose($session)) {
+                continue;
+            }
+
             $result = $this->closeSession($session, $closedByUserId);
 
             if (! $result['already_closed']) {
@@ -99,6 +105,25 @@ class AttendanceCloseService
         }
 
         return $totalAbsent;
+    }
+
+    /**
+     * Lecture-grain sessions need at least one linked lecture before close can mark absents.
+     */
+    public function canClose(Session $session): bool
+    {
+        $session->loadMissing('lectures');
+
+        return ! ($session->usesLectureAttendance() && $session->lectures->isEmpty());
+    }
+
+    public function assertCanClose(Session $session): void
+    {
+        if (! $this->canClose($session)) {
+            throw ValidationException::withMessages([
+                'session' => __('pages.attendance_cannot_close_without_lectures'),
+            ]);
+        }
     }
 
     public function fillMissingRecords(
