@@ -7,10 +7,12 @@ use App\Models\Attendance;
 use App\Models\Church;
 use App\Models\Lecture;
 use App\Models\Person;
+use App\Models\PersonPlacement;
 use App\Models\Role;
 use App\Models\Session;
 use App\Models\User;
 use App\Models\UserCourseRole;
+use App\Support\Structure\RosterStatus;
 use App\Tenancy\TenantContext;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -353,6 +355,60 @@ class AttendanceCloseService
         }
 
         return $usersQuery->orderBy('first_name')->orderBy('second_name')->get();
+    }
+
+    /**
+     * People-table search for the session roster "add student" modal.
+     *
+     * @return Collection<int, array{person_id: int, user_id: ?int, label: string, mobile_number: ?string}>
+     */
+    public function searchPeopleForSession(Session $session, string $query, bool $includeNonEnrolled = false): Collection
+    {
+        $query = trim($query);
+
+        if ($query === '' || ! Schema::hasTable('people')) {
+            return collect();
+        }
+
+        $like = '%'.$query.'%';
+
+        $peopleQuery = Person::withoutTenancy()
+            ->active()
+            ->where(function ($q) use ($like) {
+                $q->where('first_name', 'like', $like)
+                    ->orWhere('second_name', 'like', $like)
+                    ->orWhere('third_name', 'like', $like)
+                    ->orWhere('display_name', 'like', $like)
+                    ->orWhere('mobile_number', 'like', $like);
+            })
+            ->limit(20);
+
+        if (! $includeNonEnrolled && $session->course_id) {
+            $enrolledPersonIds = $this->enrolledPersonIdsForCourse($session->course_id);
+            $peopleQuery->whereIn('person_id', $enrolledPersonIds);
+        }
+
+        return $peopleQuery->get()->map(fn (Person $person) => [
+            'person_id' => (int) $person->person_id,
+            'user_id' => User::query()->where('person_id', $person->person_id)->value('user_id'),
+            'label' => trim($person->display_name ?: ($person->first_name.' '.$person->second_name.' '.($person->third_name ?? ''))),
+            'mobile_number' => $person->mobile_number,
+        ])->values();
+    }
+
+    /** @return Collection<int, int> */
+    public function enrolledPersonIdsForCourse(?int $courseId): Collection
+    {
+        if (! $courseId || ! Schema::hasTable('person_placements')) {
+            return collect();
+        }
+
+        return PersonPlacement::withoutTenancy()
+            ->where('course_id', $courseId)
+            ->where('roster_status', RosterStatus::ACTIVE)
+            ->pluck('person_id')
+            ->unique()
+            ->values();
     }
 
     private function insertMissingRecords(Session $session, int $actorId, string $status, ?int $lectureId = null): int
