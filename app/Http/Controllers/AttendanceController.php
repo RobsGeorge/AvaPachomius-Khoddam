@@ -239,17 +239,36 @@ class AttendanceController extends Controller
 
         try {
             if ($personId && Schema::hasColumn('attendance', 'person_id')) {
-                $existing = Attendance::query()
-                    ->where('session_id', $session->session_id)
+                $linkedUserId = User::query()
                     ->where('person_id', $personId)
+                    ->orderBy('user_id')
+                    ->value('user_id');
+
+                $scope = Attendance::query()
+                    ->where('session_id', $session->session_id)
                     ->when(
                         Schema::hasColumn('attendance', 'lecture_id'),
                         fn ($query) => $lectureId
                             ? $query->where('lecture_id', $lectureId)
                             : $query->whereNull('lecture_id')
-                    )
+                    );
+
+                // Already checked in under person_id, or under linked user_id with an
+                // attended status. Legacy fill-missing Absents (user_id only) fall through
+                // so createOrUpdateForPerson can heal them instead of inserting a duplicate.
+                $alreadyRecorded = (clone $scope)
+                    ->where(function ($query) use ($personId, $linkedUserId) {
+                        $query->where('person_id', $personId);
+                        if ($linkedUserId) {
+                            $query->orWhere(function ($userScope) use ($linkedUserId) {
+                                $userScope->where('user_id', $linkedUserId)
+                                    ->whereIn('status', Attendance::ATTENDED_STATUSES);
+                            });
+                        }
+                    })
                     ->exists();
-                if ($existing) {
+
+                if ($alreadyRecorded) {
                     return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
                 }
 

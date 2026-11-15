@@ -198,7 +198,29 @@ class AttendanceCloseService
         $attributes = $this->statusAttributes($status, $actorId, $permissionReason);
         $attributes['user_id'] = $user?->user_id;
 
-        $attendance = $this->persistAttendance($identity, $attributes, null);
+        // Legacy bulk fill/close rows keyed only by user_id (person_id null). Heal
+        // those instead of inserting a second row under the person identity.
+        $attendance = null;
+        if (! $this->findAttendanceByIdentity($identity) && $user) {
+            $legacy = $this->findAttendanceForUserScope(
+                $session,
+                (int) $user->user_id,
+                $resolvedLectureId,
+            );
+            if ($legacy) {
+                $attributes['person_id'] = $person->person_id;
+                if (Schema::hasColumn('attendance', 'lock_version')) {
+                    $attributes['lock_version'] = (int) $legacy->lock_version + 1;
+                }
+                $legacy->fill($attributes)->save();
+                $attendance = $legacy;
+            }
+        }
+
+        if (! $attendance) {
+            $attendance = $this->persistAttendance($identity, $attributes, null);
+        }
+
         $fresh = $attendance->fresh(['user', 'takenBy', 'session', 'lecture']);
         $this->latePolicy->syncAttendanceGradeForRecord($session, $fresh, $actorId);
 
@@ -396,8 +418,14 @@ class AttendanceCloseService
         // Attendance::insert() bypasses BelongsToChurch creating stamps. After T7,
         // attendance.church_id is NOT NULL on MySQL — omit it and close-attendance 500s.
         $churchId = $this->churchIdForBulkAttendanceInsert($session);
+        $stampPersonId = Schema::hasColumn('attendance', 'person_id');
+        $personIdByUser = $stampPersonId
+            ? User::query()
+                ->whereIn('user_id', $missingStudentIds->all())
+                ->pluck('person_id', 'user_id')
+            : collect();
         $now = now();
-        $records = $missingStudentIds->map(function ($userId) use ($session, $actorId, $status, $now, $churchId, $lectureId) {
+        $records = $missingStudentIds->map(function ($userId) use ($session, $actorId, $status, $now, $churchId, $lectureId, $stampPersonId, $personIdByUser) {
             $row = [
                 'user_id' => $userId,
                 'session_id' => $session->session_id,
@@ -407,6 +435,10 @@ class AttendanceCloseService
                 'created_at' => $now,
                 'updated_at' => $now,
             ];
+            if ($stampPersonId) {
+                $personId = $personIdByUser->get($userId);
+                $row['person_id'] = $personId !== null ? (int) $personId : null;
+            }
             if (Schema::hasColumn('attendance', 'lecture_id')) {
                 $row['lecture_id'] = $lectureId;
             }
@@ -505,9 +537,8 @@ class AttendanceCloseService
 
     /**
      * @param  array<string, mixed>  $identity
-     * @param  array<string, mixed>  $attributes
      */
-    private function persistAttendance(array $identity, array $attributes, ?int $expectedLockVersion): Attendance
+    private function findAttendanceByIdentity(array $identity): ?Attendance
     {
         $query = Attendance::query();
         foreach ($identity as $column => $value) {
@@ -518,7 +549,33 @@ class AttendanceCloseService
             }
         }
 
-        $existing = $query->first();
+        return $query->first();
+    }
+
+    private function findAttendanceForUserScope(Session $session, int $userId, ?int $lectureId): ?Attendance
+    {
+        $query = Attendance::query()
+            ->where('session_id', $session->session_id)
+            ->where('user_id', $userId);
+
+        if (Schema::hasColumn('attendance', 'lecture_id')) {
+            if ($lectureId) {
+                $query->where('lecture_id', $lectureId);
+            } else {
+                $query->whereNull('lecture_id');
+            }
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * @param  array<string, mixed>  $identity
+     * @param  array<string, mixed>  $attributes
+     */
+    private function persistAttendance(array $identity, array $attributes, ?int $expectedLockVersion): Attendance
+    {
+        $existing = $this->findAttendanceByIdentity($identity);
 
         if ($existing && Schema::hasColumn('attendance', 'lock_version') && $expectedLockVersion !== null) {
             if ((int) $existing->lock_version !== $expectedLockVersion) {
