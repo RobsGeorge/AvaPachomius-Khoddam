@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesSessionAttendance;
 use App\Models\Session;
 use App\Services\AttendanceCloseService;
 use Illuminate\Http\JsonResponse;
@@ -10,12 +11,16 @@ use Illuminate\Http\Request;
 
 class SessionAttendanceController extends Controller
 {
+    use AuthorizesSessionAttendance;
+
     public function __construct(
         private AttendanceCloseService $attendanceClose,
     ) {}
 
     public function fillMissing(Request $request, Session $session): RedirectResponse
     {
+        $this->authorizeSessionAttendanceMutation($session);
+
         $validated = $request->validate([
             'status' => 'nullable|in:Present,Absent,Late,Permission',
             'lecture_id' => 'nullable|integer|exists:lectures,lecture_id',
@@ -41,6 +46,8 @@ class SessionAttendanceController extends Controller
 
     public function store(Request $request, Session $session): RedirectResponse|JsonResponse
     {
+        $this->authorizeSessionAttendanceMutation($session);
+
         $validated = $request->validate([
             'person_id' => 'nullable|integer|exists:people,person_id',
             'user_id' => 'nullable|integer|exists:user,user_id',
@@ -110,6 +117,8 @@ class SessionAttendanceController extends Controller
 
     public function searchStudents(Request $request, Session $session): JsonResponse
     {
+        $this->authorizeSessionAttendanceMutation($session);
+
         $validated = $request->validate([
             'q' => 'required|string|min:1|max:100',
             'include_non_enrolled' => 'sometimes|boolean',

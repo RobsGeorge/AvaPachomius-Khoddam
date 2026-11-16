@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exceptions\OptimisticLockException;
+use App\Http\Controllers\Concerns\AuthorizesSessionAttendance;
 use App\Models\Attendance;
 use App\Models\AttendancePolicy;
 use App\Models\Course;
@@ -28,6 +29,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceController extends Controller
 {
+    use AuthorizesSessionAttendance;
+
     private const SESSION_DATE_SQL = 'DATE(DATE_ADD(session.session_date, INTERVAL 3 HOUR))';
 
     private const SESSION_MONTH_SQL = 'DATE_FORMAT(DATE_ADD(session.session_date, INTERVAL 3 HOUR), "%Y-%m")';
@@ -220,6 +223,8 @@ class AttendanceController extends Controller
 
     public function recordAttendance(Request $request, Session $session)
     {
+        $this->authorizeSessionAttendanceMutation($session);
+
         $personId = $request->input('student_person_id');
         $studentUserId = $request->input('student_user_id');
 
