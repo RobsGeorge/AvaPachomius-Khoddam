@@ -68,6 +68,8 @@
 
                     return $row->lecture_id === null;
                 });
+                $alreadyCheckedIn = $record
+                    && in_array($record->status, \App\Models\Attendance::ATTENDED_STATUSES, true);
             @endphp
             <div class="app-card card mb-3">
                 <div class="card-body">
@@ -89,12 +91,12 @@
 
                     @if(! empty($checkIn['needs_lectures']))
                         <div class="alert alert-warning mb-0">{{ __('pages.attendance_needs_lectures') }}</div>
-                    @elseif($session->isAttendanceClosed() && ! $record)
+                    @elseif($session->isAttendanceClosed())
                         <div class="alert alert-secondary mb-0 d-flex align-items-start gap-2">
                             <i class="bi bi-lock-fill mt-1"></i>
                             <div>{{ __('pages.attendance_session_closed') }}</div>
                         </div>
-                    @elseif($record)
+                    @elseif($alreadyCheckedIn)
                         <div class="alert alert-info mb-0 d-flex align-items-start gap-2">
                             <i class="bi bi-info-circle-fill mt-1"></i>
                             <div>

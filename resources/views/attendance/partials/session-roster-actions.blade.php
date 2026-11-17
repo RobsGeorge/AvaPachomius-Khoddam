@@ -1,11 +1,15 @@
 @php
     $session = $session ?? null;
     $roster = $roster ?? ['missing' => 0];
+    $sessionDate = $session?->session_date?->format('Y-m-d');
+    $canFillMissing = ($roster['missing'] ?? 0) > 0
+        && $sessionDate
+        && $sessionDate <= ($todayLocal ?? now()->toDateString());
 @endphp
 
 @if($session)
     <div class="px-3 py-3 border-bottom d-flex flex-wrap align-items-center gap-2">
-        @if(($roster['missing'] ?? 0) > 0)
+        @if($canFillMissing)
             <form method="POST" action="{{ route('sessions.attendance.fill-missing', $session->session_id) }}"
                   data-confirm="{{ __('pages.confirm_fill_missing_attendance') }}">
                 @csrf

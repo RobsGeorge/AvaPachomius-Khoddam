@@ -21,6 +21,18 @@ class SessionAttendanceController extends Controller
             'lecture_id' => 'nullable|integer|exists:lectures,lecture_id',
         ]);
 
+        $sessionDate = $session->session_date?->toDateString();
+        $todayLocal = $this->attendanceClose->todayInTimezone()->toDateString();
+        if (! $sessionDate || $sessionDate > $todayLocal) {
+            return redirect()
+                ->route('attendance.all', array_filter([
+                    'filter_by' => 'session',
+                    'session_id' => $session->session_id,
+                    'lecture_id' => isset($validated['lecture_id']) ? (int) $validated['lecture_id'] : null,
+                ]))
+                ->with('error', __('pages.attendance_cannot_fill_future_session'));
+        }
+
         $status = $validated['status'] ?? 'Absent';
         $lectureId = isset($validated['lecture_id']) ? (int) $validated['lecture_id'] : null;
         $count = $this->attendanceClose->fillMissingRecords(

@@ -239,9 +239,12 @@ class AttendanceController extends Controller
 
         try {
             if ($personId && Schema::hasColumn('attendance', 'person_id')) {
-                $existing = Attendance::query()
+                // Absent from fill-missing/close prep must still be upgradeable to Present.
+                // Only a real check-in (Present/Late/Permission) counts as already recorded.
+                $alreadyCheckedIn = Attendance::query()
                     ->where('session_id', $session->session_id)
                     ->where('person_id', $personId)
+                    ->whereIn('status', Attendance::ATTENDED_STATUSES)
                     ->when(
                         Schema::hasColumn('attendance', 'lecture_id'),
                         fn ($query) => $lectureId
@@ -249,7 +252,7 @@ class AttendanceController extends Controller
                             : $query->whereNull('lecture_id')
                     )
                     ->exists();
-                if ($existing) {
+                if ($alreadyCheckedIn) {
                     return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
                 }
 
@@ -262,8 +265,9 @@ class AttendanceController extends Controller
                     lectureId: $lectureId,
                 );
             } else {
-                $exists = Attendance::where('session_id', $session->session_id)
+                $alreadyCheckedIn = Attendance::where('session_id', $session->session_id)
                     ->where('user_id', $studentUserId)
+                    ->whereIn('status', Attendance::ATTENDED_STATUSES)
                     ->when(
                         Schema::hasColumn('attendance', 'lecture_id'),
                         fn ($query) => $lectureId
@@ -272,7 +276,7 @@ class AttendanceController extends Controller
                     )
                     ->exists();
 
-                if ($exists) {
+                if ($alreadyCheckedIn) {
                     return redirect()->back()->with('warning', __('pages.attendance_already_recorded'));
                 }
 

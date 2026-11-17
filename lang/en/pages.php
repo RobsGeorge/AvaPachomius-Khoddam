@@ -258,6 +258,7 @@ return [
     'attendance_session_closed' => 'Attendance for this session is closed. New scans are not allowed.',
     'attendance_closed_corrections_allowed' => 'Course staff can still correct any student\'s status after the session or module is closed.',
     'attendance_cannot_close_future_session' => 'Cannot close attendance for a future session.',
+    'attendance_cannot_fill_future_session' => 'Cannot fill missing attendance for a future session.',
     'not_recorded' => 'Not recorded',
     'roster_enrolled' => 'Enrolled',
     'roster_recorded' => 'Recorded',
