@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesCourseGradeManage;
 use Illuminate\Http\Request;
 use App\Models\GradeCategory;
 use App\Models\GradeItem;
 
 class GradeItemController extends Controller
 {
+    use AuthorizesCourseGradeManage;
+
     public function store(Request $request, string $categoryId)
     {
         $request->validate([
@@ -18,7 +21,8 @@ class GradeItemController extends Controller
             'ordering'    => 'nullable|integer|min:0',
         ]);
 
-        $category = GradeCategory::findOrFail($categoryId);
+        $category = GradeCategory::with('course')->findOrFail($categoryId);
+        $this->authorizeCourseGradeManage($category->course);
 
         GradeItem::create([
             'category_id' => $categoryId,
@@ -44,7 +48,8 @@ class GradeItemController extends Controller
             'ordering'    => 'nullable|integer|min:0',
         ]);
 
-        $item = GradeItem::findOrFail($itemId);
+        $item = GradeItem::with('category.course')->findOrFail($itemId);
+        $this->authorizeCourseGradeManage($item->category->course);
         $item->update($request->only('title', 'max_score', 'item_date', 'description', 'ordering'));
 
         return redirect()
@@ -54,7 +59,8 @@ class GradeItemController extends Controller
 
     public function destroy(string $itemId)
     {
-        $item     = GradeItem::with('category')->findOrFail($itemId);
+        $item = GradeItem::with('category.course')->findOrFail($itemId);
+        $this->authorizeCourseGradeManage($item->category->course);
         $courseId = $item->category->course_id;
         $item->delete();
 

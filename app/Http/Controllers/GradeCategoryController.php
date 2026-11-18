@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesCourseGradeManage;
 use Illuminate\Http\Request;
 use App\Models\Course;
 use App\Models\GradeCategory;
 
 class GradeCategoryController extends Controller
 {
+    use AuthorizesCourseGradeManage;
+
     /** Admin/instructor grade management panel for a course */
     public function admin(string $courseId)
     {
         $course = Course::with([
             'gradeCategories.items.grades',
         ])->findOrFail($courseId);
+        $this->authorizeCourseGradeManage($course);
 
         $totalWeight = $course->gradeCategories->sum('weight_percentage');
 
@@ -32,7 +36,8 @@ class GradeCategoryController extends Controller
             'ordering'         => 'nullable|integer|min:0',
         ]);
 
-        Course::findOrFail($courseId);
+        $course = Course::findOrFail($courseId);
+        $this->authorizeCourseGradeManage($course);
 
         GradeCategory::create([
             'course_id'        => $courseId,
@@ -55,7 +60,9 @@ class GradeCategoryController extends Controller
             'ordering'          => 'nullable|integer|min:0',
         ]);
 
-        $category = GradeCategory::findOrFail($categoryId);
+        $category = GradeCategory::with('course')->findOrFail($categoryId);
+        $this->authorizeCourseGradeManage($category->course);
+
         $category->update($request->only('name', 'weight_percentage', 'ordering'));
 
         return redirect()
@@ -65,7 +72,8 @@ class GradeCategoryController extends Controller
 
     public function destroy(string $categoryId)
     {
-        $category = GradeCategory::findOrFail($categoryId);
+        $category = GradeCategory::with('course')->findOrFail($categoryId);
+        $this->authorizeCourseGradeManage($category->course);
         $courseId = $category->course_id;
         $category->delete();
 

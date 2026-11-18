@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesCourseGradeManage;
 use Illuminate\Http\Request;
 use App\Models\Course;
 use App\Models\GradeItem;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentGradeController extends Controller
 {
+    use AuthorizesCourseGradeManage;
+
     /** Student view: own grades for a course */
     public function show(string $courseId)
     {
@@ -34,6 +37,7 @@ class StudentGradeController extends Controller
     public function courseReport(string $courseId)
     {
         $course = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
+        $this->authorizeCourseGradeManage($course);
         $report = $this->buildCourseReport($course);
         $avg = $report->avg('total');
 
@@ -44,6 +48,7 @@ class StudentGradeController extends Controller
     public function exportCsv(string $courseId): StreamedResponse
     {
         $course = Course::with(['gradeCategories.items.grades'])->findOrFail($courseId);
+        $this->authorizeCourseGradeManage($course);
         $report = $this->buildCourseReport($course);
         $categories = $course->gradeCategories;
         $filename = 'gradebook-'.$course->course_id.'-'.now()->format('Y-m-d').'.csv';
@@ -101,6 +106,7 @@ class StudentGradeController extends Controller
     {
         $item     = GradeItem::with(['grades.student', 'category.course'])->findOrFail($itemId);
         $course   = $item->category->course;
+        $this->authorizeCourseGradeManage($course);
         $students = $this->enrolledStudents($course->course_id);
 
         // Key existing grades by user_id for easy lookup in the view
@@ -114,6 +120,7 @@ class StudentGradeController extends Controller
     {
         $item   = GradeItem::with('category.course')->findOrFail($itemId);
         $course = $item->category->course;
+        $this->authorizeCourseGradeManage($course);
 
         abort_unless($course->allowsGradeEditing(), 403, __('course_graduation.errors.grading_locked'));
 
